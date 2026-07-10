@@ -1,0 +1,34 @@
+{
+  "UI": true,
+  "Volume": "0.35",
+  "Pitch": "0.98 1.05",
+  "Decibels": 42,
+  "SelectionMode": "Random",
+  "Sounds": [
+    "ui/main_menu/menu_sting.mp3"
+  ],
+  "Occlusion": false,
+  "AirAbsorption": false,
+  "Transmission": false,
+  "OcclusionRadius": 64,
+  "DistanceAttenuation": false,
+  "Distance": 100000,
+  "Falloff": [
+    {
+      "x": 0,
+      "y": 1,
+      "in": 0,
+      "out": 0,
+      "mode": "Mirrored"
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "in": 0,
+      "out": 0,
+      "mode": "Mirrored"
+    }
+  ],
+  "__references": [],
+  "__version": 1
+}

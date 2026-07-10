@@ -1,0 +1,459 @@
+/* Field UI skin — expedition dossier palette (s&box UI-safe).
+   Same layout as Classic/Survive; typography, color, and border treatment only. */
+
+$fd-ink: #14110e;
+$fd-paper: rgba(36, 32, 26, 0.96);
+$fd-paper-light: rgba(48, 42, 34, 0.92);
+$fd-rule: rgba(120, 102, 72, 0.65);
+$fd-rule-faint: rgba(120, 102, 72, 0.28);
+$fd-text: #ddd5c4;
+$fd-text-muted: #8a8278;
+$fd-stamp: #c4a574;
+$fd-health: #8b3a3a;
+$fd-thirst: #4a6a7a;
+$fd-hunger: #a06830;
+$fd-xp: #94865a;
+$fd-mono: "Courier New", Consolas, "Lucida Console", monospace;
+$fd-label: "Arial Narrow", "Segoe UI", Arial, sans-serif;
+
+.ui-skin-field
+{
+	&.ThornsGameplayUi,
+	&.ThornsMenuHost,
+	&.mainmenu-root,
+	ThornsHudRoot,
+	ThornsHudRoot.hud-pass-through
+	{
+		font-family: $fd-label;
+		font-size: 13px;
+		color: $fd-text;
+		letter-spacing: 0.04em;
+	}
+
+	.thorns-header
+	{
+		font-family: $fd-mono;
+		font-size: 10px;
+		font-weight: 700;
+		letter-spacing: 0.22em;
+		text-transform: uppercase;
+		color: $fd-stamp;
+	}
+
+	.thorns-muted
+	{
+		font-family: $fd-mono;
+		font-size: 11px;
+		color: $fd-text-muted;
+		line-height: 1.55;
+	}
+
+	.thorns-accent
+	{
+		color: $fd-stamp;
+		font-family: $fd-mono;
+	}
+
+	.thorns-glass,
+	.thorns-menu-opaque,
+	.thorns-hud-glass
+	{
+		background-color: $fd-paper;
+		border: 1px solid $fd-rule;
+		border-radius: 0;
+		backdrop-filter: none;
+	}
+
+	.thorns-field-panel,
+	.thorns-field-frame,
+	.thorns-field-section,
+	.thorns-field-card,
+	.thorns-field-slot,
+	.thorns-field-compact
+	{
+		background-color: $fd-paper;
+		border: 1px solid $fd-rule;
+		border-radius: 0;
+	}
+
+	.thorns-field-section
+	{
+		border-left: 3px solid $fd-stamp;
+	}
+
+	.thorns-menu-overlay,
+	.thorns-menu-overlay-field
+	{
+		background-color: rgba(12, 10, 8, 0.97);
+	}
+
+	.thorns-menu-overlay-fantasy,
+	.thorns-menu-overlay-fantasy-textured
+	{
+		background-image: none;
+	}
+
+	.thorns-menu-topbar,
+	.thorns-menu-topbar-fantasy
+	{
+		border-bottom: 1px solid $fd-rule;
+		background-color: rgba(16, 14, 11, 0.98);
+	}
+
+	.thorns-menu-brand-label
+	{
+		font-family: $fd-mono;
+		font-size: 12px;
+		font-weight: 700;
+		letter-spacing: 0.24em;
+		color: $fd-stamp;
+	}
+
+	.thorns-tab
+	{
+		font-family: $fd-mono;
+		font-size: 9px;
+		font-weight: 700;
+		letter-spacing: 0.1em;
+		color: $fd-text-muted;
+		border: 1px solid transparent;
+		border-radius: 0;
+		height: 64px;
+
+		&:hover
+		{
+			color: $fd-text;
+			border-color: $fd-rule-faint;
+			background-color: rgba(196, 165, 116, 0.06);
+		}
+
+		&.active
+		{
+			color: $fd-stamp;
+			border-color: $fd-stamp;
+			background-color: rgba(196, 165, 116, 0.1);
+			box-shadow: none;
+		}
+	}
+
+	.thorns-tab-label
+	{
+		font-family: $fd-mono;
+		font-size: 9px;
+		letter-spacing: 0.08em;
+	}
+
+	.thorns-btn-primary
+	{
+		font-family: $fd-mono;
+		font-size: 10px;
+		font-weight: 700;
+		letter-spacing: 0.14em;
+		text-transform: uppercase;
+		color: $fd-text;
+		background-color: rgba(196, 165, 116, 0.08);
+		border: 1px solid $fd-rule;
+		border-radius: 0;
+		padding: 8px 12px;
+
+		&:hover
+		{
+			background-color: rgba(196, 165, 116, 0.18);
+			color: $fd-stamp;
+		}
+	}
+
+	.section-btn,
+	.journal-goal-card,
+	.journal-discovery-card,
+	.journal-simple-card,
+	.recipe-row,
+	.skill-cat-btn,
+	.tame-slot-card
+	{
+		background-color: $fd-paper-light;
+		border: 1px solid $fd-rule-faint;
+		border-radius: 0;
+		border-left: 3px solid transparent;
+	}
+
+	.section-btn:hover,
+	.journal-goal-card:hover,
+	.journal-discovery-card:hover
+	{
+		border-left-color: $fd-rule;
+	}
+
+	.section-btn.active,
+	.journal-goal-card.selected,
+	.journal-discovery-card.selected
+	{
+		border-left-color: $fd-stamp;
+		background-color: rgba(196, 165, 116, 0.08);
+	}
+
+	.hud-bar-fill-health { background-color: $fd-health; border-radius: 0; }
+	.hud-bar-fill-thirst { background-color: $fd-thirst; border-radius: 0; }
+	.hud-bar-fill-hunger { background-color: $fd-hunger; border-radius: 0; }
+
+	.hud-bar-track
+	{
+		border-radius: 0;
+		background-color: rgba(0, 0, 0, 0.55);
+		border: 1px solid $fd-rule-faint;
+	}
+
+	.hud-bar-value,
+	.hud-stat-value
+	{
+		font-family: $fd-mono;
+		font-size: 10px;
+		color: $fd-text-muted;
+	}
+
+	.hud-level-diamond
+	{
+		border-radius: 0;
+		background-color: rgba(8, 7, 6, 0.9);
+		border: 1px solid $fd-stamp;
+	}
+
+	.hud-level-number
+	{
+		font-family: $fd-mono;
+		font-size: 12px;
+		font-weight: 700;
+		color: $fd-stamp;
+	}
+
+	.objectives-hud,
+	.hud-prompt-card,
+	.first-session-tutorial,
+	.level-up-toast
+	{
+		border-radius: 0;
+		border: 1px solid $fd-rule;
+		border-left: 4px solid $fd-stamp;
+		background-color: $fd-paper;
+	}
+
+	.objectives-accent
+	{
+		font-family: $fd-mono;
+		color: $fd-stamp;
+	}
+
+	.objectives-title
+	{
+		font-family: $fd-label;
+		font-weight: 700;
+	}
+
+	.objectives-category
+	{
+		font-family: $fd-mono;
+		font-size: 9px;
+		letter-spacing: 0.16em;
+	}
+
+	.hotbar-slots-frame
+	{
+		border-radius: 0;
+		border: 1px solid $fd-rule;
+		border-top: 2px solid $fd-stamp;
+		background-color: rgba(14, 12, 10, 0.94);
+	}
+
+	.hotbar-slot
+	{
+		border-radius: 0;
+		border: 1px solid $fd-rule-faint;
+		background-color: rgba(10, 9, 7, 0.92);
+
+		&.selected
+		{
+			border-color: $fd-stamp;
+			background-color: rgba(196, 165, 116, 0.12);
+		}
+	}
+
+	.hotbar-slot-key
+	{
+		font-family: $fd-mono;
+		font-size: 9px;
+		color: $fd-stamp;
+	}
+
+	.hotbar-xp-fill
+	{
+		background-color: $fd-xp;
+		border-radius: 0;
+	}
+
+	.hotbar-xp-value
+	{
+		font-family: $fd-mono;
+		font-size: 9px;
+		color: $fd-text-muted;
+	}
+
+	.minimap-frame,
+	.minimap-ring
+	{
+		border-radius: 0;
+		border: 1px solid $fd-rule;
+		background-color: rgba(12, 11, 9, 0.92);
+	}
+
+	.hud-time-label
+	{
+		font-family: $fd-mono;
+		color: $fd-stamp;
+		letter-spacing: 0.1em;
+	}
+
+	.world-event-card
+	{
+		border-radius: 0;
+		font-family: $fd-mono;
+		background-color: rgba(20, 18, 14, 0.94);
+		border: 1px solid $fd-rule;
+	}
+
+	.notification-hud .notification-card
+	{
+		border-radius: 0;
+		font-family: $fd-mono;
+		border-left: 3px solid $fd-stamp;
+	}
+
+	.mainmenu-root
+	{
+		background-color: $fd-ink;
+	}
+
+	.mainmenu-left-rail
+	{
+		background: linear-gradient(
+			90deg,
+			rgba(16, 14, 11, 0.98) 0%,
+			rgba(16, 14, 11, 0.55) 85%,
+			rgba(16, 14, 11, 0) 100%
+		);
+	}
+
+	.mainmenu-brand
+	{
+		font-family: $fd-mono;
+		font-size: 28px;
+		font-weight: 700;
+		letter-spacing: 0.28em;
+		color: $fd-stamp;
+	}
+
+	.mainmenu-tagline
+	{
+		font-family: $fd-mono;
+		font-size: 10px;
+		letter-spacing: 0.2em;
+		color: $fd-text-muted;
+	}
+
+	.mainmenu-nav-btn
+	{
+		font-family: $fd-mono;
+		font-size: 12px;
+		font-weight: 700;
+		letter-spacing: 0.14em;
+		color: $fd-text-muted;
+		border-left: 2px solid transparent;
+
+		&:hover
+		{
+			color: $fd-text;
+			border-left-color: $fd-stamp;
+			text-shadow: none;
+		}
+
+		&.primary
+		{
+			color: $fd-stamp;
+			border-left-color: $fd-stamp;
+		}
+
+		&.disabled
+		{
+			color: rgba(138, 130, 120, 0.45);
+			border-left-color: rgba(120, 102, 72, 0.35);
+		}
+	}
+
+	.mainmenu-overlay-screen
+	{
+		background-color: rgba(10, 8, 6, 0.94);
+		border: none;
+		padding: 40px 56px;
+	}
+
+	.mainmenu-overlay-head
+	{
+		flex-shrink: 0;
+		margin-bottom: 16px;
+	}
+
+	.mainmenu-overlay-title
+	{
+		font-family: $fd-mono;
+		font-size: 18px;
+		font-weight: 700;
+		letter-spacing: 0.2em;
+		color: $fd-stamp;
+		flex-grow: 1;
+	}
+
+	.mainmenu-back
+	{
+		font-family: $fd-mono;
+		font-size: 12px;
+		font-weight: 700;
+		letter-spacing: 0.12em;
+		padding: 10px 16px;
+		color: $fd-text-muted;
+		border: 1px solid $fd-rule-faint;
+		flex-shrink: 0;
+
+		&:hover
+		{
+			color: $fd-stamp;
+			border-color: $fd-stamp;
+		}
+	}
+
+	.mainmenu-browser-title
+	{
+		font-family: $fd-mono;
+		color: $fd-stamp;
+	}
+
+	.ui-skin-hint
+	{
+		font-family: $fd-mono;
+		font-size: 10px;
+		margin-top: 4px;
+	}
+
+	.ui-skin-value
+	{
+		font-family: $fd-mono;
+		color: $fd-stamp;
+		min-width: 64px;
+	}
+
+	.stepper-row
+	{
+		flex-shrink: 0;
+		margin-bottom: 8px;
+		gap: 8px;
+		align-items: center;
+	}
+}

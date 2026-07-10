@@ -1,0 +1,270 @@
+@using Sandbox
+@using Sandbox.UI
+@using ThinkDrink.UI
+@inherits PanelComponent
+@namespace ThinkDrink.UI
+
+<root>
+	<div class="show-board @PhaseClass">
+		<div class="top-bar">
+			<div class="show-title">THINK &amp; DRINK</div>
+			<div class="round-pill">ROUND @RoundText</div>
+			<div class="timer @TimerClass">@TimerDisplay</div>
+		</div>
+
+		<div class="category-strip">
+			<div class="category-label">@Kicker</div>
+			<div class="category-text">@PrimaryLine</div>
+		</div>
+
+		<div class="content-stage">
+			@if ( Phase == MatchPhase.ScoreboardReveal )
+			{
+				<div class="standings-card">
+					<div class="question-label">MATCH STANDINGS</div>
+					@foreach ( var row in MatchStandings )
+					{
+						<div class="standings-row @(row.IsLeader ? "leader" : "") @(row.IsHot ? "hot" : "")">
+							<span class="standings-rank">#@row.Rank</span>
+							<span class="standings-name">@row.Name @(row.IsHot ? "★" : "")</span>
+							<span class="standings-score">@row.Score</span>
+						</div>
+					}
+				</div>
+			}
+			else if ( ShowAnswer )
+			{
+				<div class="answer-card">
+					@if ( !string.IsNullOrWhiteSpace( LastScorerName ) && LastPointsAwarded > 0 )
+					{
+						<div class="scorer-callout">
+							@LastScorerName +@LastPointsAwarded
+							@if ( LastScorerStreak >= 3 )
+							{
+								<span class="streak-tag">@LastScorerStreak STREAK</span>
+							}
+						</div>
+					}
+					<div class="answer-label">@(MatchManager.Instance?.IsCreativeMode == true ? "TOP QUIP" : "CORRECT ANSWER")</div>
+					<div class="answer-text @AnswerTextClass">
+						@foreach ( var word in AnswerWords )
+						{
+							<div class="text-word">@word</div>
+						}
+					</div>
+					@if ( !string.IsNullOrWhiteSpace( SafeExplanation ) )
+					{
+						<div class="explanation @ExplanationClass">@SafeExplanation</div>
+					}
+				</div>
+			}
+			else
+			{
+				<div class="question-card">
+					<div class="question-label">@QuestionLabel</div>
+					<div class="question-text @QuestionTextClass">
+						@foreach ( var word in QuestionWords )
+						{
+							<div class="text-word">@word</div>
+						}
+					</div>
+				</div>
+			}
+		</div>
+
+		<div class="cue-bar">
+			<div class="cue-main">@CueText</div>
+			<div class="cue-side">@StateDetail</div>
+		</div>
+	</div>
+</root>
+
+@code
+{
+	private sealed record StandingRow( int Rank, string Name, int Score, bool IsLeader, bool IsHot );
+
+	private MatchPhase Phase => MatchManager.Instance?.Phase ?? MatchPhase.Lobby;
+	private string CurrentCategory => MatchManager.Instance?.CurrentCategory ?? "";
+	private string QuestionText => MatchManager.Instance?.QuestionText ?? "";
+	private string RevealedAnswer => MatchManager.Instance?.RevealedAnswer ?? "";
+	private string Explanation => MatchManager.Instance?.Explanation ?? "";
+	private string BuzzWinnerName => MatchManager.Instance?.BuzzWinnerName ?? "";
+	private string WinnerName => MatchManager.Instance?.WinnerName ?? "";
+	private string LastScorerName => MatchManager.Instance?.LastScorerName ?? "";
+	private int LastPointsAwarded => MatchManager.Instance?.LastPointsAwarded ?? 0;
+	private int LastScorerStreak => MatchManager.Instance?.LastScorerStreak ?? 0;
+	private string EventBanner => MatchManager.Instance?.EventBanner ?? "";
+	private string ActiveModeName => MatchManager.Instance?.ActiveGameModeDefinition.DisplayName ?? "Trivia Showdown";
+	private string ActiveModeLabel => MatchManager.Instance?.ActiveModeLabel ?? "SHOWDOWN";
+	private float PhaseTimer => MatchManager.Instance?.PhaseTimer ?? 0;
+	private int RoundNumber => MatchManager.Instance?.RoundNumber ?? 0;
+	private int WinThreshold => MatchManager.Instance?.WinThreshold ?? GameConstants.DefaultWinThreshold;
+	private string LastWinner => MatchManager.Instance?.LastResult?.WinnerName ?? "";
+
+	private List<StandingRow> MatchStandings => ThinkDrinkPlayer.All
+		.Where( p => p.IsParticipant )
+		.OrderByDescending( p => p.MatchScore )
+		.ThenBy( p => p.PlayerName )
+		.Select( ( p, i ) => new StandingRow(
+			i + 1,
+			p.PlayerName,
+			p.MatchScore,
+			i == 0,
+			p.PlayerName == LastScorerName && LastScorerStreak >= 2 ) )
+		.ToList();
+
+	private bool ShowAnswer => Phase == MatchPhase.AnswerReveal || !string.IsNullOrWhiteSpace( RevealedAnswer );
+	private bool IsFirstRound => RoundNumber <= 1;
+
+	private string RoundText => Math.Max( 1, RoundNumber ).ToString();
+	private string TimerDisplay => PhaseTimer > 0 ? $"{MathF.Ceiling( PhaseTimer ):0}s" : "--";
+	private string TimerClass => PhaseTimer > 0 && PhaseTimer <= 5f ? "timer-hot" : "";
+	private string PhaseClass => Phase.ToString().ToLowerInvariant();
+
+	private string SafeCategory => string.IsNullOrWhiteSpace( CurrentCategory ) ? "GENERAL TRIVIA" : CurrentCategory;
+	private string SafeQuestion => Phase == MatchPhase.CategoryReveal
+		? SafeCategory
+		: string.IsNullOrWhiteSpace( QuestionText ) ? "Ready up to begin the next question." : QuestionText;
+	private string SafeAnswer => string.IsNullOrWhiteSpace( RevealedAnswer ) ? "Awaiting answer reveal" : RevealedAnswer;
+	private string SafeExplanation => Explanation ?? "";
+
+	private string Kicker => Phase switch
+	{
+		MatchPhase.Lobby => "LOBBY",
+		MatchPhase.PostMatch => "FINAL",
+		MatchPhase.MatchEnd => "WINNER",
+		MatchPhase.RandomEvent => "SPECIAL EVENT",
+		MatchPhase.ScoreboardReveal => "STANDINGS",
+		MatchPhase.CategoryReveal when IsFirstRound => ActiveModeLabel,
+		MatchPhase.CategoryReveal => ActiveModeLabel,
+		_ => ActiveModeLabel
+	};
+
+	private string PrimaryLine => Phase switch
+	{
+		MatchPhase.Lobby => $"{ActiveModeName} selected",
+		MatchPhase.PostMatch when !string.IsNullOrWhiteSpace( LastWinner ) => $"{LastWinner} wins the match",
+		MatchPhase.MatchEnd when !string.IsNullOrWhiteSpace( WinnerName ) => $"{WinnerName} wins",
+		MatchPhase.RandomEvent when !string.IsNullOrWhiteSpace( EventBanner ) => EventBanner,
+		MatchPhase.ScoreboardReveal => $"Round {RoundText} · First to {WinThreshold}",
+		_ => SafeCategory
+	};
+
+	private string QuestionLabel => Phase switch
+	{
+		MatchPhase.Lobby => "STANDBY",
+		MatchPhase.CategoryReveal => ActiveModeLabel,
+		MatchPhase.CreativeSubmit => "WRITE",
+		MatchPhase.CreativeVote => "VOTE",
+		MatchPhase.BuzzIn => "QUESTION",
+		MatchPhase.Answering => "QUESTION",
+		MatchPhase.StealAttempt => "QUESTION",
+		_ => "ON THE BOARD"
+	};
+
+	private string CueText => Phase switch
+	{
+		MatchPhase.Lobby => "Players can ready up",
+		MatchPhase.CategoryReveal when IsFirstRound => "First question incoming",
+		MatchPhase.CategoryReveal => "New category locked",
+		MatchPhase.QuestionReveal => "Read carefully",
+		MatchPhase.CreativeSubmit => "Write something funny",
+		MatchPhase.CreativeVote => "Vote for your favorite",
+		MatchPhase.BuzzIn => "Buzz in",
+		MatchPhase.Answering when !string.IsNullOrWhiteSpace( BuzzWinnerName ) => $"{BuzzWinnerName}, answer now",
+		MatchPhase.Answering => "Answer now",
+		MatchPhase.StealAttempt => "Steal chance",
+		MatchPhase.AnswerReveal => LastScorerStreak >= 3
+			? $"{LastScorerName} on a {LastScorerStreak}-answer heater"
+			: "Answer revealed",
+		MatchPhase.ScoreboardReveal => "Leaderboard update",
+		MatchPhase.RandomEvent => "Rules shift",
+		MatchPhase.MatchEnd when !string.IsNullOrWhiteSpace( WinnerName ) => $"{WinnerName} takes it",
+		MatchPhase.PostMatch => "Returning to lobby",
+		_ => "Think fast"
+	};
+
+	private string StateDetail => Phase switch
+	{
+		MatchPhase.BuzzIn => "Fastest hand gets control",
+		MatchPhase.Answering => "Judges are listening",
+		MatchPhase.StealAttempt => "Anyone else can steal",
+		MatchPhase.AnswerReveal => "Lock it in for next round",
+		MatchPhase.ScoreboardReveal => "Scores after this question",
+		MatchPhase.RandomEvent => "Stay sharp",
+		_ => "Audience display"
+	};
+
+	private string QuestionTextClass => TextSizeClass( SafeQuestion.Length, "question" );
+	private string AnswerTextClass => TextSizeClass( SafeAnswer.Length, "answer" );
+	private string ExplanationClass => SafeExplanation.Length > 180 ? "explanation-long" : "";
+	private List<string> QuestionWords => SplitWords( SafeQuestion );
+	private List<string> AnswerWords => SplitWords( SafeAnswer );
+
+	private static string TextSizeClass( int length, string prefix )
+	{
+		if ( length > 150 ) return $"{prefix}-xs";
+		if ( length > 95 ) return $"{prefix}-sm";
+		if ( length > 48 ) return $"{prefix}-md";
+		return $"{prefix}-lg";
+	}
+
+	private static List<string> SplitWords( string text )
+	{
+		if ( string.IsNullOrWhiteSpace( text ) )
+			return new List<string> { "" };
+
+		return text.Split( ' ', StringSplitOptions.RemoveEmptyEntries ).ToList();
+	}
+
+	private int _revision;
+	private int _lastTimerSecond = -1;
+
+	protected override void OnStart()
+	{
+		GameEvents.PhaseChanged += OnPhaseChanged;
+		GameEvents.QuestionShown += OnQuestionShown;
+		GameEvents.BuzzWinner += OnBuzzWinner;
+		GameEvents.AnswerResolved += OnAnswerResolved;
+		GameEvents.MatchEnded += OnMatchEnded;
+		GameEvents.GameModeChanged += OnGameModeChanged;
+	}
+
+	protected override void OnDestroy()
+	{
+		GameEvents.PhaseChanged -= OnPhaseChanged;
+		GameEvents.QuestionShown -= OnQuestionShown;
+		GameEvents.BuzzWinner -= OnBuzzWinner;
+		GameEvents.AnswerResolved -= OnAnswerResolved;
+		GameEvents.MatchEnded -= OnMatchEnded;
+		GameEvents.GameModeChanged -= OnGameModeChanged;
+	}
+
+	protected override void OnTreeFirstBuilt()
+	{
+		Log.Info( $"[ThinkDrink][Billboard] game-show board built phase={Phase} questionLen={QuestionText.Length}" );
+	}
+
+	protected override void OnUpdate()
+	{
+		if ( PhaseTimer <= 0 ) return;
+
+		var second = (int)MathF.Ceiling( PhaseTimer );
+		if ( second == _lastTimerSecond ) return;
+
+		_lastTimerSecond = second;
+		_revision++;
+	}
+
+	private void OnPhaseChanged( MatchPhase phase ) => Bump();
+	private void OnQuestionShown( TriviaQuestion q ) => Bump();
+	private void OnBuzzWinner( string key ) => Bump();
+	private void OnAnswerResolved( string key, bool correct ) => Bump();
+	private void OnMatchEnded( MatchResult result ) => Bump();
+	private void OnGameModeChanged( GameModeId mode ) => Bump();
+	private void Bump() => _revision++;
+
+	protected override int BuildHash() => HashCode.Combine(
+		HashCode.Combine( _revision, Phase, RoundNumber, TimerDisplay, StudioBoardTuner.Revision, MatchStandings.Count, LastScorerStreak ),
+		HashCode.Combine( QuestionText, RevealedAnswer, CurrentCategory, WinnerName, ActiveModeName, LastScorerName, LastPointsAwarded ) );
+}

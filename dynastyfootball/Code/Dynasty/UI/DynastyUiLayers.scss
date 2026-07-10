@@ -1,0 +1,73 @@
+$ui-z-passive: 10;
+$ui-z-hud: 20;
+$ui-z-notification: 30;
+$ui-z-tooltip: 40;
+$ui-z-journal: 50;
+$ui-z-dialog: 60;
+$ui-z-screen: 70;
+$ui-z-fullscreen: 80;
+$ui-z-confirmation: 90;
+$ui-z-critical: 100;
+
+$ui-safe-margin: 20px;
+$ui-safe-gap: 12px;
+$ui-modal-backdrop-opacity: 0.88;
+
+@mixin ui-layer( $z )
+{
+	z-index: $z;
+}
+
+@mixin ui-modal-backdrop( $z: $ui-z-dialog )
+{
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	align-items: center;
+	justify-content: center;
+	pointer-events: all;
+	background-color: rgba( 0, 0, 0, 0.88 );
+	opacity: 1;
+	@include ui-layer( $z );
+}
+
+@mixin ui-modal-card
+{
+	flex-direction: column;
+	gap: 12px;
+	width: 420px;
+	max-width: 90%;
+	max-height: 85%;
+	padding: 24px;
+	background-color: $dynasty-card;
+	border: 1px solid $dynasty-card-border;
+	border-radius: $dynasty-radius-lg;
+	pointer-events: all;
+	box-shadow: 0 12px 40px rgba( 0, 0, 0, 0.55 );
+	opacity: 1;
+	overflow: hidden;
+}
+
+@mixin ui-focus-ring
+{
+	transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+@mixin ui-safe-inset
+{
+	padding: $ui-safe-margin;
+}
+
+@mixin ui-stack-column( $gap: $ui-safe-gap )
+{
+	flex-direction: column;
+	gap: $gap;
+}
+
+@mixin ui-stack-row( $gap: $ui-safe-gap )
+{
+	flex-direction: row;
+	gap: $gap;
+}

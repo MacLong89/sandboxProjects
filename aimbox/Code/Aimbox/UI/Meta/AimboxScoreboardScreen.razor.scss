@@ -1,0 +1,504 @@
+AimboxScoreboardScreen, aimboxscoreboardscreen, .aimbox-scoreboard
+{
+	position: absolute;
+	left: 0;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	width: 100%;
+	height: 100%;
+	z-index: 320;
+	font-family: Poppins;
+	pointer-events: none;
+	overflow: hidden;
+	color: #141414;
+}
+
+AimboxScoreboardScreen.visible, .aimbox-scoreboard.visible
+{
+	pointer-events: all;
+	flex-direction: column;
+	padding-bottom: 56px;
+}
+
+AimboxScoreboardScreen.with-pause-tabs .scoreboard-shell, .aimbox-scoreboard.with-pause-tabs .scoreboard-shell
+{
+	padding-top: 68px;
+}
+
+AimboxScoreboardScreen.hidden, .aimbox-scoreboard.hidden
+{
+	display: none;
+}
+
+AimboxScoreboardScreen .decor, .aimbox-scoreboard .decor
+{
+	pointer-events: none;
+}
+
+AimboxScoreboardScreen .scoreboard-vignette, .aimbox-scoreboard .scoreboard-vignette
+{
+	position: absolute;
+	left: 0;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	background-color: rgba(220, 218, 214, 0.96);
+}
+
+AimboxScoreboardScreen .scoreboard-empty, .aimbox-scoreboard .scoreboard-empty
+{
+	padding: 48px;
+	font-size: 18px;
+	color: #141414;
+}
+
+AimboxScoreboardScreen .scoreboard-shell, .aimbox-scoreboard .scoreboard-shell
+{
+	position: relative;
+	z-index: 2;
+	flex-direction: column;
+	width: 100%;
+	height: 100%;
+	padding: 24px 32px 16px;
+	gap: 16px;
+	min-height: 0;
+}
+
+AimboxScoreboardScreen .scoreboard-header, .aimbox-scoreboard .scoreboard-header
+{
+	flex-direction: row;
+	flex-wrap: wrap;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 16px 24px;
+	position: relative;
+	flex-shrink: 0;
+}
+
+AimboxScoreboardScreen .header-left, .aimbox-scoreboard .header-left
+{
+	flex-direction: column;
+	gap: 6px;
+	flex: 1 1 280px;
+	min-width: 0;
+}
+
+AimboxScoreboardScreen .header-title, .aimbox-scoreboard .header-title
+{
+	font-size: 34px;
+	font-weight: 900;
+	font-style: italic;
+	letter-spacing: 2px;
+}
+
+AimboxScoreboardScreen .header-subtitle, .aimbox-scoreboard .header-subtitle
+{
+	font-size: 12px;
+	font-weight: 700;
+	letter-spacing: 1px;
+	color: rgba(0, 0, 0, 0.55);
+	line-height: 1.35;
+	word-break: break-word;
+}
+
+AimboxScoreboardScreen .header-scores, .aimbox-scoreboard .header-scores
+{
+	flex-direction: row;
+	align-items: center;
+	justify-content: center;
+	gap: 20px;
+	flex: 1 1 420px;
+}
+
+AimboxScoreboardScreen .header-scores.solo, .aimbox-scoreboard .header-scores.solo
+{
+	flex-direction: column;
+	gap: 8px;
+}
+
+AimboxScoreboardScreen .header-mode, .aimbox-scoreboard .header-mode
+{
+	font-size: 24px;
+	font-weight: 900;
+	letter-spacing: 2px;
+}
+
+AimboxScoreboardScreen .team-score, .aimbox-scoreboard .team-score
+{
+	flex-direction: column;
+	align-items: center;
+	gap: 2px;
+	min-width: 120px;
+}
+
+AimboxScoreboardScreen .team-score-value, .aimbox-scoreboard .team-score-value
+{
+	font-size: 42px;
+	font-weight: 900;
+	line-height: 1;
+}
+
+AimboxScoreboardScreen .team-score.tone-alpha .team-score-value, .aimbox-scoreboard .team-score.tone-alpha .team-score-value
+{
+	color: #ff2a6d;
+}
+
+AimboxScoreboardScreen .team-score.tone-bravo .team-score-value, .aimbox-scoreboard .team-score.tone-bravo .team-score-value
+{
+	color: #2ad4c8;
+}
+
+AimboxScoreboardScreen .team-score-label, .aimbox-scoreboard .team-score-label
+{
+	font-size: 14px;
+	font-weight: 800;
+	letter-spacing: 2px;
+}
+
+AimboxScoreboardScreen .header-center, .aimbox-scoreboard .header-center
+{
+	flex-direction: column;
+	align-items: center;
+	gap: 4px;
+}
+
+AimboxScoreboardScreen .header-vs, .aimbox-scoreboard .header-vs
+{
+	font-size: 16px;
+	font-weight: 800;
+	color: rgba(0, 0, 0, 0.45);
+}
+
+AimboxScoreboardScreen .header-timer-label, .aimbox-scoreboard .header-timer-label
+{
+	font-size: 11px;
+	font-weight: 700;
+	letter-spacing: 1px;
+	color: rgba(0, 0, 0, 0.45);
+}
+
+AimboxScoreboardScreen .header-timer, .aimbox-scoreboard .header-timer
+{
+	font-size: 22px;
+	font-weight: 900;
+}
+
+AimboxScoreboardScreen .header-splatter, .aimbox-scoreboard .header-splatter
+{
+	position: absolute;
+	right: 0;
+	top: -20px;
+	width: 160px;
+	height: 160px;
+	border-radius: 50%;
+	background-color: rgba(255, 42, 109, 0.22);
+}
+
+AimboxScoreboardScreen .team-grid, .aimbox-scoreboard .team-grid
+{
+	flex-direction: row;
+	gap: 16px;
+	flex-grow: 1;
+	min-height: 0;
+}
+
+AimboxScoreboardScreen .team-panel, .aimbox-scoreboard .team-panel
+{
+	flex: 1;
+	flex-direction: column;
+	background-color: rgba(255, 255, 255, 0.58);
+	border: 3px solid rgba(0, 0, 0, 0.12);
+	min-width: 0;
+}
+
+AimboxScoreboardScreen .team-panel.tone-alpha, .aimbox-scoreboard .team-panel.tone-alpha
+{
+	border-top: 6px solid #ff2a6d;
+}
+
+AimboxScoreboardScreen .team-panel.tone-bravo, .aimbox-scoreboard .team-panel.tone-bravo
+{
+	border-top: 6px solid #2ad4c8;
+}
+
+AimboxScoreboardScreen .team-panel-header, .aimbox-scoreboard .team-panel-header
+{
+	flex-direction: column;
+	gap: 10px;
+	padding: 12px 14px 10px;
+	color: #ffffff;
+}
+
+AimboxScoreboardScreen .tone-alpha .team-panel-header, .aimbox-scoreboard .tone-alpha .team-panel-header
+{
+	background-color: #ff2a6d;
+}
+
+AimboxScoreboardScreen .tone-bravo .team-panel-header, .aimbox-scoreboard .tone-bravo .team-panel-header
+{
+	background-color: #2ad4c8;
+}
+
+AimboxScoreboardScreen .team-badge, .aimbox-scoreboard .team-badge
+{
+	width: 34px;
+	height: 34px;
+	min-width: 34px;
+	background-color: rgba(255, 255, 255, 0.25);
+	border: 2px solid rgba(255, 255, 255, 0.65);
+	transform: rotate(45deg);
+	flex-shrink: 0;
+}
+
+AimboxScoreboardScreen .team-panel-title, .aimbox-scoreboard .team-panel-title
+{
+	font-size: 15px;
+	font-weight: 900;
+	letter-spacing: 1px;
+	flex-grow: 1;
+	min-width: 0;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+AimboxScoreboardScreen .team-header-main, .aimbox-scoreboard .team-header-main
+{
+	flex-direction: row;
+	align-items: center;
+	gap: 12px;
+}
+
+AimboxScoreboardScreen .team-stat-header, .aimbox-scoreboard .team-stat-header
+{
+	flex-direction: row;
+	justify-content: flex-end;
+	gap: 12px;
+	padding-right: 14px;
+}
+
+AimboxScoreboardScreen .solo-header, .aimbox-scoreboard .solo-header
+{
+	flex-direction: row;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px;
+	padding: 12px 14px;
+	background-color: #141414;
+	color: #ffffff;
+}
+
+AimboxScoreboardScreen .solo-header-label, .aimbox-scoreboard .solo-header-label
+{
+	font-size: 14px;
+	font-weight: 900;
+	letter-spacing: 2px;
+}
+
+AimboxScoreboardScreen .col-stat, .aimbox-scoreboard .col-stat
+{
+	width: 64px;
+	min-width: 64px;
+	font-size: 10px;
+	font-weight: 800;
+	text-align: center;
+	letter-spacing: 1px;
+	white-space: nowrap;
+}
+
+AimboxScoreboardScreen .team-rows, .aimbox-scoreboard .team-rows,
+AimboxScoreboardScreen .solo-rows, .aimbox-scoreboard .solo-rows
+{
+	flex-direction: column;
+	overflow-y: scroll;
+	flex-grow: 1;
+	min-height: 0;
+}
+
+AimboxScoreboardScreen .solo-panel, .aimbox-scoreboard .solo-panel
+{
+	flex-direction: column;
+	flex-grow: 1;
+	background-color: rgba(255, 255, 255, 0.58);
+	border: 3px solid rgba(0, 0, 0, 0.12);
+	min-height: 0;
+}
+
+AimboxScoreboardScreen .player-row, .aimbox-scoreboard .player-row
+{
+	flex-direction: row;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	padding: 10px 14px;
+	min-height: 46px;
+	border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+AimboxScoreboardScreen .row-leading, .aimbox-scoreboard .row-leading
+{
+	flex-direction: row;
+	align-items: center;
+	gap: 10px;
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+AimboxScoreboardScreen .row-stats, .aimbox-scoreboard .row-stats
+{
+	flex-direction: row;
+	align-items: center;
+	gap: 12px;
+	flex-shrink: 0;
+}
+
+AimboxScoreboardScreen .player-row.local, .aimbox-scoreboard .player-row.local
+{
+	background-color: #ff2a6d;
+	color: #ffffff;
+}
+
+AimboxScoreboardScreen .player-row.local .row-stat, .aimbox-scoreboard .player-row.local .row-stat
+{
+	color: #ffffff;
+}
+
+AimboxScoreboardScreen .row-rank, .aimbox-scoreboard .row-rank
+{
+	width: 24px;
+	font-size: 13px;
+	font-weight: 800;
+	color: rgba(0, 0, 0, 0.45);
+}
+
+AimboxScoreboardScreen .player-row.local .row-rank, .aimbox-scoreboard .player-row.local .row-rank
+{
+	color: rgba(255, 255, 255, 0.75);
+}
+
+AimboxScoreboardScreen .row-badge, .aimbox-scoreboard .row-badge
+{
+	width: 32px;
+	height: 32px;
+	min-width: 32px;
+	align-items: center;
+	justify-content: center;
+	font-size: 11px;
+	font-weight: 800;
+	background-color: rgba(0, 0, 0, 0.08);
+}
+
+AimboxScoreboardScreen .player-row.local .row-badge, .aimbox-scoreboard .player-row.local .row-badge
+{
+	background-color: rgba(255, 255, 255, 0.2);
+}
+
+AimboxScoreboardScreen .row-name, .aimbox-scoreboard .row-name
+{
+	flex: 1 1 auto;
+	font-size: 13px;
+	font-weight: 800;
+	letter-spacing: 0.5px;
+	min-width: 0;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+AimboxScoreboardScreen .row-stat, .aimbox-scoreboard .row-stat
+{
+	width: 64px;
+	min-width: 64px;
+	font-size: 13px;
+	font-weight: 800;
+	text-align: center;
+	color: rgba(0, 0, 0, 0.78);
+	white-space: nowrap;
+}
+
+AimboxScoreboardScreen .scoreboard-footer, .aimbox-scoreboard .scoreboard-footer
+{
+	flex-direction: row;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 16px 24px;
+	padding: 16px 18px;
+	background-color: #0a0a0a;
+	color: #ffffff;
+	margin-top: auto;
+	flex-shrink: 0;
+}
+
+AimboxScoreboardScreen .footer-stats, .aimbox-scoreboard .footer-stats
+{
+	flex-direction: row;
+	flex-wrap: wrap;
+	gap: 20px;
+	flex-grow: 1;
+	justify-content: center;
+}
+
+AimboxScoreboardScreen .footer-tab, .aimbox-scoreboard .footer-tab
+{
+	padding: 10px 16px;
+	background-color: #ff2a6d;
+	font-size: 12px;
+	font-weight: 900;
+	letter-spacing: 1px;
+	flex-shrink: 0;
+}
+AimboxScoreboardScreen .footer-stat, .aimbox-scoreboard .footer-stat
+{
+	flex-direction: column;
+	align-items: center;
+	gap: 2px;
+	min-width: 80px;
+}
+
+AimboxScoreboardScreen .footer-stat.accent .footer-stat-value, .aimbox-scoreboard .footer-stat.accent .footer-stat-value
+{
+	color: #ff2a6d;
+}
+
+AimboxScoreboardScreen .footer-stat-value, .aimbox-scoreboard .footer-stat-value
+{
+	font-size: 28px;
+	font-weight: 900;
+	line-height: 1;
+}
+
+AimboxScoreboardScreen .footer-stat-label, .aimbox-scoreboard .footer-stat-label
+{
+	font-size: 10px;
+	font-weight: 700;
+	letter-spacing: 1px;
+	color: rgba(255, 255, 255, 0.55);
+}
+
+AimboxScoreboardScreen .footer-back, .aimbox-scoreboard .footer-back
+{
+	margin-left: auto;
+	padding: 8px 0;
+	font-size: 12px;
+	font-weight: 700;
+	letter-spacing: 2px;
+	color: rgba(255, 255, 255, 0.55);
+	background-color: transparent;
+	border: none;
+	cursor: pointer;
+}
+
+AimboxScoreboardScreen .scoreboard-continue, .aimbox-scoreboard .scoreboard-continue
+{
+	margin-left: auto;
+	padding: 12px 28px;
+	background-color: #ff2a6d;
+	color: #ffffff;
+	font-size: 14px;
+	font-weight: 900;
+	letter-spacing: 2px;
+	border: none;
+	cursor: pointer;
+	flex-shrink: 0;
+}

@@ -1,0 +1,18 @@
+{
+  "Images": null,
+  "Sequences": [
+    {
+      "Source": "materials/skybox/cloud_puff_03.png",
+      "IsLooping": true,
+      "FlipBook": false,
+      "Columns": 0,
+      "Rows": 0,
+      "Frames": 1
+    }
+  ],
+  "InputColorSpace": "SRGB",
+  "OutputFormat": "DXT5",
+  "OutputColorSpace": "SRGB",
+  "OutputMipAlgorithm": "None",
+  "OutputTypeString": "2D"
+}

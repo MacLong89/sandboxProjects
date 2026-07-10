@@ -1,0 +1,83 @@
+@using Sandbox.UI
+@using Sandbox
+@using GameNetworking = Sandbox.Networking
+@using Dynasty
+@using Dynasty.Core
+@using Dynasty.Core.Commands
+@using Dynasty.Networking
+@inherits Panel
+@namespace Dynasty.UI.Components
+@attribute [StyleSheet( "/Dynasty/UI/Components/MultiGmTeamClaimPanel.razor.scss" )]
+
+<root class="multi-gm-claim-root">
+	@if ( ShowPanel )
+	{
+		<div class="multi-gm-claim-panel">
+			<Label class="claim-title">Claim Your Franchise</Label>
+			<Label class="muted">This is a multi-GM league. Pick an unclaimed team to manage.</Label>
+			<div class="claim-grid">
+				@foreach ( var team in _claimable )
+				{
+					<Button class="btn secondary small" Text="@team" onclick='@(() => ClaimTeam( team ))' />
+				}
+			</div>
+			@if ( !string.IsNullOrEmpty( _error ) )
+			{
+				<Label class="claim-error">@_error</Label>
+			}
+		</div>
+	}
+</root>
+
+@code
+{
+	List<string> _claimable = new();
+	string _error = "";
+
+	bool ShowPanel =>
+		DynastyApp.League.State?.Settings.EnableMultiGm == true
+		&& GmAssignmentHelper.GetTeamForSteamId( DynastyApp.League.State, Connection.Local?.SteamId ?? 0 ).IsEmpty;
+
+	protected override void OnParametersSet()
+	{
+		RefreshClaimable();
+	}
+
+	void RefreshClaimable()
+	{
+		var state = DynastyApp.League.State;
+		if ( state == null )
+		{
+			_claimable = new List<string>();
+			return;
+		}
+
+		_claimable = GmAssignmentHelper.GetClaimableTeams( state )
+			.Select( t => t.Identity.Abbreviation )
+			.Take( 12 )
+			.ToList();
+	}
+
+	void ClaimTeam( string abbreviation )
+	{
+		_error = "";
+		var state = DynastyApp.League.State;
+		if ( state == null )
+			return;
+
+		var result = RosterRequests.Execute(
+			new ClaimTeamCommand
+			{
+				TeamAbbreviation = abbreviation,
+				ExpectedStateRevision = state.StateRevision
+			},
+			Connection.Local?.SteamId ?? 0 );
+
+		if ( !result.Success )
+			_error = result.Error;
+		else
+			RefreshClaimable();
+
+		StateHasChanged();
+	}
+}

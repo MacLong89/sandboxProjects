@@ -1,0 +1,47 @@
+{
+  "Title": "Thorns",
+  "Type": "game",
+  "Org": "maclgames",
+  "Ident": "thorns",
+  "Schema": 1,
+  "IncludeSourceFiles": false,
+  "Resources": "*",
+  "PackageReferences": [
+    "facepunch.sboxweapons",
+    "facepunch.tree_oak_small_a"
+  ],
+  "EditorReferences": null,
+  "Mounts": null,
+  "IsStandaloneOnly": false,
+  "Metadata": {
+    "MaxPlayers": 64,
+    "MinPlayers": 1,
+    "TickRate": 50,
+    "GameNetworkType": "Multiplayer",
+    "MapSelect": "Unrestricted",
+    "MapList": [
+      "facepunch.flatgrass"
+    ],
+    "RankType": "None",
+    "PerMapRanking": false,
+    "LeaderboardType": "None",
+    "CsProjName": "Code/thorns.csproj",
+    "Compiler": {
+      "RootNamespace": "Sandbox",
+      "DefineConstants": "SANDBOX",
+      "NoWarn": "1701;1702;1591;",
+      "WarningsAsErrors": "",
+      "TreatWarningsAsErrors": false,
+      "Nullables": false,
+      "Whitelist": false,
+      "AssemblyReferences": [],
+      "IgnoreFolders": [
+        "editor",
+        "unittest"
+      ],
+      "DistinctAssemblyReferences": []
+    },
+    "StartupScene": "scenes/thorns_main_menu.scene",
+    "LaunchMode": "Normal"
+  }
+}

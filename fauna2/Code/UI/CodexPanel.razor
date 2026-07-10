@@ -1,0 +1,128 @@
+@using Sandbox
+@using Sandbox.UI
+@inherits PanelComponent
+@namespace Fauna2.UI
+
+<root class="@( UiState.ActivePage == UiPage.Codex && UiState.GameplayHudVisible ? "open" : "" )">
+	@if ( UiState.ActivePage == UiPage.Codex && UiState.GameplayHudVisible )
+	{
+		<div class="window">
+			<div class="window-header">
+				<i class="icon">menu_book</i>
+				<div class="window-title">Zoo Codex</div>
+				<div class="completion">@CompletionText complete</div>
+				<div class="close" onclick=@( () => UiState.Close() )><i class="icon">close</i></div>
+			</div>
+
+			<div class="tabs">
+				<div class="tab @(_tab == 0 ? "active" : "")" onclick=@( () => SelectTab( 0 ) )>Species</div>
+				<div class="tab @(_tab == 1 ? "active" : "")" onclick=@( () => SelectTab( 1 ) )>Variants</div>
+				<div class="tab @(_tab == 2 ? "active" : "")" onclick=@( () => SelectTab( 2 ) )>Discovery Log</div>
+			</div>
+
+			@if ( _tab == 0 )
+			{
+				<div class="grid">
+					@foreach ( var def in Defs.Animals.OrderBy( a => a.UnlockLevel ) )
+					{
+						var discovered = Codex?.IsDiscovered( def.ResourceName ) ?? false;
+						var bred = Codex?.HasBred( def.ResourceName ) ?? false;
+						<div class="card @(discovered ? "" : "unknown")">
+							<div class="portrait" style="background-color: @(discovered ? def.BodyTint.Hex : "#222822");">
+								@if ( !discovered )
+								{
+									<div class="mystery">?</div>
+								}
+							</div>
+							<div class="card-name">@(discovered ? def.DisplayName : "???")</div>
+							<div class="card-sub">
+								@if ( discovered )
+								{
+									<span>@UiFormat.BiomeLabel( def.Biome ) · @def.Rarity@(bred ? " · Bred" : "")</span>
+								}
+								else
+								{
+									<span>Unlocks at level @def.UnlockLevel</span>
+								}
+							</div>
+						</div>
+					}
+				</div>
+			}
+			else if ( _tab == 1 )
+			{
+				<div class="grid">
+					@foreach ( var (species, variant) in VariantSlots() )
+					{
+						var found = Codex?.HasVariant( species.ResourceName, variant.ResourceName ) ?? false;
+						<div class="card @(found ? "" : "unknown")">
+							<div class="portrait" style="background-color: @(found ? variant.Tint.Hex : "#222822");">
+								@if ( !found )
+								{
+									<div class="mystery">?</div>
+								}
+							</div>
+							<div class="card-name">@(found ? $"{variant.DisplayName} {species.DisplayName}" : "???")</div>
+							<div class="card-sub"><span>@(found ? "Discovered" : "Undiscovered variant")</span></div>
+						</div>
+					}
+				</div>
+			}
+			else
+			{
+				<div class="items">
+					@if ( History.Count == 0 )
+					{
+						<div class="empty">No breeding recorded yet. Keep your pairs happy!</div>
+					}
+					@foreach ( var record in History.Take( 25 ) )
+					{
+						<div class="item log">
+							<i class="icon">favorite</i>
+							<div class="info">
+								<div class="name">@record.OffspringName <span class="species">(@SpeciesName( record ))</span></div>
+								<div class="desc">Gen @record.Generation @BloodlineText( record ) · Parents: @record.ParentA &amp; @record.ParentB @VariantText( record )</div>
+							</div>
+						</div>
+					}
+				</div>
+			}
+		</div>
+	}
+</root>
+
+@code
+{
+	private int _tab;
+
+	private CollectionSystem Codex => CollectionSystem.Instance;
+	private List<BreedingRecord> History => BreedingSystem.Instance?.History ?? new();
+
+	private string CompletionText => $"{Codex?.CompletionPercent ?? 0f:0.0}%";
+
+	private void SelectTab( int tab )
+	{
+		_tab = tab;
+		StateHasChanged();
+	}
+
+	private IEnumerable<(AnimalDefinition, VariantDefinition)> VariantSlots()
+	{
+		foreach ( var species in Defs.Animals.OrderBy( a => a.UnlockLevel ) )
+			foreach ( var variant in Defs.Variants.Where( v => v.AppliesTo( species ) ) )
+				yield return (species, variant);
+	}
+
+	private string SpeciesName( BreedingRecord record ) =>
+		Defs.Animal( record.Species )?.DisplayName ?? record.Species;
+
+	private string VariantText( BreedingRecord record ) =>
+		string.IsNullOrEmpty( record.VariantId ) ? "" : $"· {Defs.Variant( record.VariantId )?.DisplayName} variant!";
+
+	private static string BloodlineText( BreedingRecord record ) =>
+		string.IsNullOrEmpty( record.BloodlineName ) ? "" : $"· {record.BloodlineName}";
+
+	protected override int BuildHash() => System.HashCode.Combine(
+		(int)UiState.ActivePage, UiState.Revision, _tab,
+		Codex?.DiscoveredSpeciesCount, Codex?.DiscoveredVariantCount, History.Count );
+}

@@ -1,0 +1,218 @@
+{
+  "__guid": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "GameObjects": [
+    {
+      "__guid": "053a16a5-703b-4d3b-af9f-aa38f1a11043",
+      "__version": 2,
+      "Flags": 0,
+      "Name": "Scene Information",
+      "Position": "0,0,0",
+      "Rotation": "0,0,0,1",
+      "Scale": "1,1,1",
+      "Tags": "",
+      "Enabled": true,
+      "NetworkMode": 2,
+      "NetworkFlags": 0,
+      "NetworkOrphaned": 0,
+      "NetworkTransmit": true,
+      "OwnerTransfer": 1,
+      "Components": [
+        {
+          "__type": "Sandbox.SceneInformation",
+          "__guid": "f3d1faf1-3d75-4a5a-9bb4-3c09b451e645",
+          "__enabled": true,
+          "Flags": 0,
+          "Author": null,
+          "Changes": null,
+          "Description": "Flat floor gallery — one 3×3 proc building per type with scripted interior furniture. Press H for collision debug. Enable Bandit Combat Test for a single-building shootout sandbox.",
+          "Group": null,
+          "OnComponentDestroy": null,
+          "OnComponentDisabled": null,
+          "OnComponentEnabled": null,
+          "OnComponentFixedUpdate": null,
+          "OnComponentStart": null,
+          "OnComponentUpdate": null,
+          "SceneTags": "",
+          "Title": "Thorns — Interior furniture floorplan test",
+          "Version": null
+        }
+      ],
+      "Children": []
+    },
+    {
+      "__guid": "6cb2d52c-66c3-477a-8a4b-4ed0ef5d5c5b",
+      "__version": 2,
+      "Flags": 0,
+      "Name": "Sun",
+      "Position": "0,0,0",
+      "Rotation": "-0.0729314983,0.482239604,0.130543306,0.863182724",
+      "Scale": "1,1,1",
+      "Tags": "light_directional,light",
+      "Enabled": true,
+      "NetworkMode": 2,
+      "NetworkFlags": 0,
+      "NetworkOrphaned": 0,
+      "NetworkTransmit": true,
+      "OwnerTransfer": 1,
+      "Components": [
+        {
+          "__type": "Sandbox.DirectionalLight",
+          "__guid": "45cfe91e-9e39-4541-bb20-210294f7952d",
+          "__enabled": true,
+          "Flags": 0,
+          "FogMode": "Disabled",
+          "FogStrength": 0.2,
+          "LightColor": "1,0.96,0.88,1",
+          "OnComponentDestroy": null,
+          "OnComponentDisabled": null,
+          "OnComponentEnabled": null,
+          "OnComponentFixedUpdate": null,
+          "OnComponentStart": null,
+          "OnComponentUpdate": null,
+          "ShadowBias": 0.0005,
+          "ShadowCascadeCount": 4,
+          "ShadowCascadeSplitRatio": 0.91,
+          "ShadowHardness": 0.42,
+          "Shadows": true,
+          "SkyColor": "0.42,0.54,0.72,1",
+          "Visualizer": {}
+        }
+      ],
+      "Children": []
+    },
+    {
+      "__guid": "076ffbb3-9238-4312-853a-785bdf4aa652",
+      "__version": 2,
+      "Flags": 0,
+      "Name": "2D Skybox",
+      "Position": "0,0,0",
+      "Rotation": "0,0,0,1",
+      "Scale": "1,1,1",
+      "Tags": "skybox",
+      "Enabled": true,
+      "NetworkMode": 2,
+      "NetworkFlags": 0,
+      "NetworkOrphaned": 0,
+      "NetworkTransmit": true,
+      "OwnerTransfer": 1,
+      "Components": [
+        {
+          "__type": "Sandbox.SkyBox2D",
+          "__guid": "bb20cbff-2f89-453c-b933-a600f882c63a",
+          "__enabled": true,
+          "Flags": 0,
+          "OnComponentDestroy": null,
+          "OnComponentDisabled": null,
+          "OnComponentEnabled": null,
+          "OnComponentFixedUpdate": null,
+          "OnComponentStart": null,
+          "OnComponentUpdate": null,
+          "SkyIndirectLighting": false,
+          "SkyMaterial": "materials/skybox/skybox_day_01.vmat",
+          "Tint": "0.837,0.884,0.93,1"
+        }
+      ],
+      "Children": []
+    },
+    {
+      "__guid": "c4d5e6f7-a8b9-4c3d-9e0f-112233445566",
+      "__version": 2,
+      "Flags": 0,
+      "Name": "Interior Furniture Floorplan Test",
+      "Position": "0,0,0",
+      "Rotation": "0,0,0,1",
+      "Scale": "1,1,1",
+      "Tags": "",
+      "Enabled": true,
+      "NetworkMode": 2,
+      "NetworkFlags": 0,
+      "NetworkOrphaned": 0,
+      "NetworkTransmit": true,
+      "OwnerTransfer": 1,
+      "Components": [
+        {
+          "__type": "Terraingen.Buildings.ThornsInteriorFurnitureFloorplanTest",
+          "__guid": "d5e6f7a8-b9c0-4d1e-8f2a-334455667788",
+          "__enabled": true,
+          "Flags": 0,
+          "BuildingSpacing": 380,
+          "DevBoxModel": "models/dev/box.vmdl",
+          "EnableBanditCombatTest": false,
+          "BanditCount": 3,
+          "BanditGroupRadius": 140,
+          "BanditSpawnDelaySeconds": 3,
+          "BanditSpawnDistance": 320,
+          "FloorModelPath": "models/dev/box.vmdl",
+          "FloorScale": "3200,2800,4",
+          "FoundationDepthInches": 24,
+          "GalleryOrigin": "0,0,64",
+          "GalleryStories": 4,
+          "GridColumns": 4,
+          "LayoutVariantIndex": 0,
+          "LogLayoutsOnRebuild": true,
+          "OnComponentDestroy": null,
+          "OnComponentDisabled": null,
+          "OnComponentEnabled": null,
+          "OnComponentFixedUpdate": null,
+          "OnComponentStart": null,
+          "OnComponentUpdate": null,
+          "PlayerSpawnOffset": "-200,0,80",
+          "PlayerPrefabPath": "templates/gameobject/player controller.prefab",
+          "RebuildOnStart": true,
+          "SingleBuildingWorkbench": false,
+          "SpawnPlayerOnStart": true,
+          "WalkSpeedMultiplier": 2.5,
+          "WorkbenchBuildingType": "Store"
+        },
+        {
+          "__type": "Terraingen.Buildings.ThornsBuildingLootWorldService",
+          "__guid": "e6f7a8b9-c0d1-4e2f-9a3b-445566778899",
+          "__enabled": true,
+          "Flags": 0,
+          "OnComponentDestroy": null,
+          "OnComponentDisabled": null,
+          "OnComponentEnabled": null,
+          "OnComponentFixedUpdate": null,
+          "OnComponentStart": null,
+          "OnComponentUpdate": null
+        }
+      ],
+      "Children": []
+    }
+  ],
+  "SceneProperties": {
+    "NetworkInterpolation": true,
+    "TimeScale": 1,
+    "WantsSystemScene": true,
+    "Metadata": {
+      "Title": "Thorns — Interior furniture floorplan test",
+      "Description": "Flat floor bandit combat sandbox on the interior furniture test scene."
+    },
+    "NavMesh": {
+      "Enabled": false,
+      "IncludeStaticBodies": true,
+      "IncludeKeyframedBodies": true,
+      "EditorAutoUpdate": false,
+      "AgentHeight": 64,
+      "AgentRadius": 16,
+      "AgentStepSize": 18,
+      "AgentMaxSlope": 40,
+      "ExcludedBodies": "",
+      "IncludedBodies": "",
+      "DeferGeneration": false,
+      "CustomBounds": false
+    },
+    "GameObjectSystems": {
+      "Sandbox.SelectionSetsSystem": {
+        "Data": {
+          "SelectionSets": []
+        }
+      }
+    }
+  },
+  "ResourceVersion": 3,
+  "Title": "Thorns — Bandit combat test (interior floor)",
+  "Description": "Flat floor bandit combat sandbox on the interior furniture test scene.",
+  "__references": [],
+  "__version": 3
+}

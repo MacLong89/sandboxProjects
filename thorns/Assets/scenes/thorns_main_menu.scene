@@ -1,0 +1,161 @@
+{
+  "__guid": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "GameObjects": [
+    {
+      "__guid": "f1e2d3c4-b5a6-9780-1234-567890abcdef",
+      "__version": 2,
+      "Flags": 0,
+      "Name": "Scene Information",
+      "Position": "0,0,0",
+      "Rotation": "0,0,0,1",
+      "Scale": "1,1,1",
+      "Tags": "",
+      "Enabled": true,
+      "NetworkMode": 2,
+      "NetworkFlags": 0,
+      "NetworkOrphaned": 0,
+      "NetworkTransmit": true,
+      "OwnerTransfer": 1,
+      "Components": [
+        {
+          "__type": "Sandbox.SceneInformation",
+          "__guid": "c2d3e4f5-a6b7-8901-cdef-234567890abc",
+          "__enabled": true,
+          "Flags": 0,
+          "Author": null,
+          "Changes": null,
+          "Description": "Main menu: PLAY → Story / Multiplayer browser / Settings. StartupScene in thorns.sbproj.",
+          "Group": null,
+          "OnComponentDestroy": null,
+          "OnComponentDisabled": null,
+          "OnComponentEnabled": null,
+          "OnComponentFixedUpdate": null,
+          "OnComponentStart": null,
+          "OnComponentUpdate": null,
+          "SceneTags": "",
+          "Title": "Thorns — Main Menu",
+          "Version": null
+        }
+      ],
+      "Children": []
+    },
+    {
+      "__guid": "d3e4f5a6-b7c8-9012-def3-4567890abcde",
+      "__version": 2,
+      "Flags": 0,
+      "Name": "MainMenuUi",
+      "Position": "0,0,0",
+      "Rotation": "0,0,0,1",
+      "Scale": "1,1,1",
+      "Tags": "",
+      "Enabled": true,
+      "NetworkMode": 2,
+      "NetworkFlags": 0,
+      "NetworkOrphaned": 0,
+      "NetworkTransmit": true,
+      "OwnerTransfer": 1,
+      "Components": [],
+      "Children": []
+    },
+    {
+      "__guid": "f4c3b2a1-9876-5432-1098-76543210fedc",
+      "__version": 2,
+      "Flags": 0,
+      "Name": "MenuCamera",
+      "Position": "0,0,200",
+      "Rotation": "0,0,0,1",
+      "Scale": "1,1,1",
+      "Tags": "",
+      "Enabled": true,
+      "NetworkMode": 2,
+      "NetworkFlags": 0,
+      "NetworkOrphaned": 0,
+      "NetworkTransmit": true,
+      "OwnerTransfer": 1,
+      "Components": [
+        {
+          "__type": "Sandbox.CameraComponent",
+          "__guid": "e3d2c1b0-a876-5432-1098-fedcba098765",
+          "__enabled": true,
+          "Flags": 0,
+          "BackgroundColor": "0.04,0.05,0.08,1",
+          "ClearFlags": "All",
+          "EnablePostProcessing": true,
+          "FieldOfView": 52,
+          "FovAxis": "Horizontal",
+          "IsMainCamera": true,
+          "OnComponentDestroy": null,
+          "OnComponentDisabled": null,
+          "OnComponentEnabled": null,
+          "OnComponentFixedUpdate": null,
+          "OnComponentStart": null,
+          "OnComponentUpdate": null,
+          "Orthographic": false,
+          "OrthographicHeight": 512,
+          "PostProcessAnchor": null,
+          "Priority": 0,
+          "RenderExcludeTags": "",
+          "RenderTags": "",
+          "RenderTexture": null,
+          "TargetEye": "None",
+          "Viewport": "0,0,1,1",
+          "ZFar": 10000,
+          "ZNear": 1
+        },
+        {
+          "__type": "Sandbox.ThornsMainMenuSceneWake",
+          "__guid": "b7c8d9e0-f1a2-3456-7890-bcdef1234567",
+          "__enabled": true,
+          "Flags": 0,
+          "OnComponentDestroy": null,
+          "OnComponentDisabled": null,
+          "OnComponentEnabled": null,
+          "OnComponentFixedUpdate": null,
+          "OnComponentStart": null,
+          "OnComponentUpdate": null
+        }
+      ],
+      "Children": []
+    }
+  ],
+  "SceneProperties": {
+    "NetworkInterpolation": true,
+    "TimeScale": 1,
+    "WantsSystemScene": false,
+    "Metadata": {
+      "Title": "Thorns — Main Menu",
+      "Description": "Main menu: PLAY → Story / Multiplayer browser / Settings. StartupScene in thorns.sbproj."
+    },
+    "NavMesh": {
+      "Enabled": false,
+      "IncludeStaticBodies": true,
+      "IncludeKeyframedBodies": true,
+      "EditorAutoUpdate": true,
+      "AgentHeight": 64,
+      "AgentRadius": 16,
+      "AgentStepSize": 18,
+      "AgentMaxSlope": 40,
+      "ExcludedBodies": "",
+      "IncludedBodies": "",
+      "DeferGeneration": false,
+      "CustomBounds": false
+    },
+    "GameObjectSystems": {
+      "Sandbox.Clutter.ClutterGridSystem": {
+        "Storage": {
+          "$blob": "f84a07ef-4204-4e2a-90c3-18da55d5de20"
+        }
+      },
+      "Sandbox.SelectionSetsSystem": {
+        "Data": {
+          "SelectionSets": []
+        }
+      }
+    }
+  },
+  "ResourceVersion": 3,
+  "Title": "Thorns — Main Menu",
+  "Description": "Main menu: PLAY → Story / Multiplayer browser / Settings. StartupScene in thorns.sbproj.",
+  "__references": [],
+  "__version": 3
+}

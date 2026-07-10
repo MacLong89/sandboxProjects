@@ -1,0 +1,45 @@
+@using Sandbox
+@using Sandbox.UI
+@inherits PanelComponent
+@namespace Fauna2.UI
+
+<root>
+	@if ( HasPrompt )
+	{
+		<div class="prompt">
+			<div class="key">E</div>
+			<i class="icon">@MaterialIcon</i>
+			<div class="label">@Label</div>
+		</div>
+	}
+</root>
+
+@code
+{
+	private bool HasPrompt =>
+		UiState.GameplayHudVisible
+		&& !UiState.ObstacleClearActive
+		&& WorldInteractState.Current.IsValid
+		&& BuildController.Instance?.Mode == BuildMode.None
+		&& !UiState.IsPageOpen;
+
+	private string Label => WorldInteractState.Current.Label;
+
+	private string MaterialIcon => WorldInteractState.Current.Icon switch
+	{
+		"money" => "payments",
+		"pets" => "pets",
+		"build" => "fence",
+		"market" => "storefront",
+		"interact" => "forest",
+		_ => "touch_app",
+	};
+
+	protected override int BuildHash() => System.HashCode.Combine(
+		UiState.Revision,
+		UiState.ObstacleClearActive,
+		(int)WorldInteractState.Current.Kind,
+		WorldInteractState.Current.Label?.GetHashCode() ?? 0,
+		(int)(BuildController.Instance?.Mode ?? BuildMode.None),
+		(int)UiState.ActivePage );
+}

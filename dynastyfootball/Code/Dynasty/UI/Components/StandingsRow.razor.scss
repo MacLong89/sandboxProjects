@@ -1,0 +1,55 @@
+StandingsRow,
+.standings-row
+{
+	flex-direction: row;
+	align-items: center;
+	gap: 10px;
+	width: 100%;
+	padding: 10px 8px;
+	border-bottom: 1px solid #243044;
+	cursor: pointer;
+	pointer-events: all;
+	flex-shrink: 0;
+
+	Label
+	{
+		pointer-events: none;
+	}
+
+	.rank-col
+	{
+		width: 28px;
+		flex-shrink: 0;
+		font-weight: 700;
+		color: #8b9cb3;
+		text-align: right;
+	}
+
+	.abbr-col
+	{
+		width: 56px;
+		flex-shrink: 0;
+		font-weight: 700;
+		color: white;
+	}
+
+	.record-col
+	{
+		width: 52px;
+		flex-shrink: 0;
+		text-align: right;
+		font-weight: 600;
+		color: #e8eef7;
+	}
+
+	&:hover
+	{
+		background-color: #1a2d4a;
+	}
+
+	&.user-team
+	{
+		background-color: #13233d;
+		border-left: 3px solid #34c759;
+	}
+}

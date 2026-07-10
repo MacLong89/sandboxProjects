@@ -1,0 +1,48 @@
+AimboxScreenBackButton, aimboxscreenbackbutton, .aimbox-screen-back
+{
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	height: 56px;
+	z-index: 340;
+	flex-direction: row;
+	align-items: center;
+	padding: 0 40px;
+	pointer-events: none;
+	font-family: Poppins;
+	background-color: rgba(8, 8, 10, 0.94);
+	border-top: 2px solid rgba(255, 255, 255, 0.12);
+}
+
+AimboxScreenBackButton.visible, .aimbox-screen-back.visible
+{
+	pointer-events: all;
+}
+
+AimboxScreenBackButton.hidden, .aimbox-screen-back.hidden
+{
+	display: none;
+}
+
+AimboxScreenBackButton .screen-back-btn, .aimbox-screen-back .screen-back-btn,
+.screen-back-btn
+{
+	padding: 10px 16px;
+	font-size: 12px;
+	font-weight: 800;
+	letter-spacing: 2px;
+	color: rgba(255, 255, 255, 0.55);
+	background-color: rgba(255, 255, 255, 0.06);
+	border: 2px solid rgba(255, 255, 255, 0.18);
+	cursor: pointer;
+	flex-shrink: 0;
+}
+
+AimboxScreenBackButton .screen-back-btn:hover, .aimbox-screen-back .screen-back-btn:hover,
+.screen-back-btn:hover
+{
+	color: #fff;
+	border-color: #ff2a6d;
+	background-color: rgba(255, 42, 109, 0.2);
+}

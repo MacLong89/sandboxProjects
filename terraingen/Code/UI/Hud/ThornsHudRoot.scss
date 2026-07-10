@@ -1,0 +1,69 @@
+ThornsHudRoot, ThornsHudRoot.hud-pass-through
+{
+	position: absolute;
+	width: 100%;
+	height: 100%;
+	pointer-events: none;
+}
+
+.thorns-scope-overlay
+{
+	position: absolute;
+	left: 0;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	pointer-events: none;
+	z-index: 50;
+}
+
+.thorns-scope-mask,
+.thorns-scope-ring
+{
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	width: 84vmin;
+	height: 84vmin;
+	margin-left: -42vmin;
+	margin-top: -42vmin;
+	border-radius: 50%;
+	pointer-events: none;
+}
+
+.thorns-scope-mask
+{
+	background-color: rgba( 0, 0, 0, 0 );
+	box-shadow: 0 0 0 9999px #000;
+}
+
+.thorns-scope-ring
+{
+	border: 3px solid rgba( 12, 12, 12, 0.98 );
+	box-shadow: 0 0 0 1px rgba( 255, 255, 255, 0.06 );
+	background-color: rgba( 0, 0, 0, 0 );
+}
+
+.thorns-scope-crosshair
+{
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	transform: translate( -50%, -50% );
+	pointer-events: none;
+	z-index: 60;
+}
+
+.thorns-scope-crosshair.hidden
+{
+	opacity: 0;
+}
+
+.thorns-scope-crosshair-dot
+{
+	width: 4px;
+	height: 4px;
+	border-radius: 50%;
+	background-color: rgba( 255, 255, 255, 0.92 );
+	box-shadow: 0 0 1px rgba( 0, 0, 0, 0.85 );
+}

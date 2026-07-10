@@ -1,0 +1,1121 @@
+AimboxProgressionScreen, aimboxprogressionscreen, .aimbox-progression
+{
+	position: absolute;
+	left: 0;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	width: 100%;
+	height: 100%;
+	z-index: 315;
+	font-family: Poppins;
+	pointer-events: none;
+	overflow: hidden;
+	color: #f4f4f4;
+}
+
+AimboxProgressionScreen.visible, .aimbox-progression.visible
+{
+	pointer-events: all;
+	flex-direction: column;
+	padding-bottom: 56px;
+}
+
+AimboxProgressionScreen.with-pause-tabs.visible, .aimbox-progression.with-pause-tabs.visible
+{
+	padding-top: 56px;
+}
+
+AimboxProgressionScreen.hidden, .aimbox-progression.hidden
+{
+	display: none;
+}
+
+AimboxProgressionScreen .decor, .aimbox-progression .decor
+{
+	pointer-events: none;
+}
+
+AimboxProgressionScreen .progression-vignette, .aimbox-progression .progression-vignette
+{
+	position: absolute;
+	left: 0;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	background-color: rgba(6, 6, 8, 0.92);
+	background-image: linear-gradient(90deg, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.55) 28%, rgba(0, 0, 0, 0.35) 100%);
+}
+
+AimboxProgressionScreen .progression-empty, .aimbox-progression .progression-empty
+{
+	padding: 48px;
+	font-size: 18px;
+}
+
+AimboxProgressionScreen .progression-layout, .aimbox-progression .progression-layout
+{
+	position: relative;
+	z-index: 2;
+	flex-direction: row;
+	width: 100%;
+	height: 100%;
+	min-height: 0;
+}
+
+AimboxProgressionScreen .progression-sidebar, .aimbox-progression .progression-sidebar
+{
+	width: 300px;
+	min-width: 300px;
+	flex-direction: column;
+	padding: 28px 20px 20px;
+	background-color: rgba(8, 8, 10, 0.95);
+	border-right: 3px solid rgba(255, 42, 109, 0.35);
+	gap: 16px;
+	flex-shrink: 0;
+}
+
+AimboxProgressionScreen .sidebar-title, .aimbox-progression .sidebar-title
+{
+	font-size: 28px;
+	font-weight: 800;
+	letter-spacing: 2px;
+	font-style: italic;
+}
+
+AimboxProgressionScreen .sidebar-profile, .aimbox-progression .sidebar-profile
+{
+	flex-direction: row;
+	align-items: center;
+	gap: 14px;
+	padding: 14px;
+	background-color: rgba(255, 255, 255, 0.04);
+	border: 2px solid rgba(255, 255, 255, 0.08);
+}
+
+AimboxProgressionScreen .profile-badge, .aimbox-progression .profile-badge
+{
+	width: 56px;
+	height: 56px;
+	min-width: 56px;
+	background-color: rgba(255, 42, 109, 0.2);
+	border: 2px solid #ff2a6d;
+	transform: rotate(45deg);
+	align-items: center;
+	justify-content: center;
+}
+
+AimboxProgressionScreen .profile-badge-inner, .aimbox-progression .profile-badge-inner
+{
+	width: 22px;
+	height: 22px;
+	background-color: #f4f4f4;
+	border-radius: 50%;
+	transform: rotate(-45deg);
+}
+
+AimboxProgressionScreen .profile-copy, .aimbox-progression .profile-copy
+{
+	flex-direction: column;
+	flex-grow: 1;
+	gap: 4px;
+	min-width: 0;
+}
+
+AimboxProgressionScreen .profile-name, .aimbox-progression .profile-name
+{
+	font-size: 16px;
+	font-weight: 700;
+	letter-spacing: 1px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+AimboxProgressionScreen .profile-level, .aimbox-progression .profile-level
+{
+	font-size: 12px;
+	font-weight: 600;
+	color: rgba(255, 255, 255, 0.65);
+	white-space: nowrap;
+	flex-shrink: 0;
+	line-height: 1.2;
+}
+
+AimboxProgressionScreen .profile-xp-track, .aimbox-progression .profile-xp-track
+{
+	height: 8px;
+	background-color: rgba(255, 255, 255, 0.12);
+	overflow: hidden;
+}
+
+AimboxProgressionScreen .profile-xp-fill, .aimbox-progression .profile-xp-fill
+{
+	height: 100%;
+	background-color: #ff2a6d;
+}
+
+AimboxProgressionScreen .profile-xp-label, .aimbox-progression .profile-xp-label
+{
+	font-size: 11px;
+	color: rgba(255, 255, 255, 0.55);
+}
+
+AimboxProgressionScreen .category-rail, .aimbox-progression .category-rail
+{
+	flex-direction: column;
+	gap: 8px;
+	flex-grow: 1;
+	overflow-y: scroll;
+	min-height: 0;
+}
+
+AimboxProgressionScreen .category-btn, .aimbox-progression .category-btn
+{
+	flex-direction: row;
+	align-items: center;
+	gap: 14px;
+	padding: 16px 14px;
+	border: 3px solid rgba(255, 255, 255, 0.08);
+	background-color: rgba(255, 255, 255, 0.03);
+	cursor: pointer;
+	transition: transform 0.12s ease;
+}
+
+AimboxProgressionScreen .category-btn:hover, .aimbox-progression .category-btn:hover
+{
+	transform: translateX(4px);
+}
+
+AimboxProgressionScreen .category-btn.active, .aimbox-progression .category-btn.active
+{
+	border-color: rgba(255, 255, 255, 0.35);
+	background-color: rgba(255, 255, 255, 0.08);
+}
+
+AimboxProgressionScreen .category-btn.tone-pink, .aimbox-progression .category-btn.tone-pink
+{
+	border-left: 6px solid #ff2a6d;
+}
+
+AimboxProgressionScreen .category-btn.tone-blue, .aimbox-progression .category-btn.tone-blue
+{
+	border-left: 6px solid #2a9dff;
+}
+
+AimboxProgressionScreen .category-btn.tone-yellow, .aimbox-progression .category-btn.tone-yellow
+{
+	border-left: 6px solid #ff2a6d;
+}
+
+AimboxProgressionScreen .category-btn.tone-teal, .aimbox-progression .category-btn.tone-teal
+{
+	border-left: 6px solid #2ad4c8;
+}
+
+AimboxProgressionScreen .category-icon, .aimbox-progression .category-icon
+{
+	width: 42px;
+	height: 42px;
+	min-width: 42px;
+	border-radius: 6px;
+	background-color: rgba(255, 255, 255, 0.12);
+}
+
+AimboxProgressionScreen .category-icon.icon-perk, .aimbox-progression .category-icon.icon-perk
+{
+	background-color: rgba(255, 42, 109, 0.35);
+}
+
+AimboxProgressionScreen .category-icon.icon-weapon, .aimbox-progression .category-icon.icon-weapon
+{
+	background-color: rgba(42, 157, 255, 0.35);
+}
+
+AimboxProgressionScreen .category-icon.icon-attachment, .aimbox-progression .category-icon.icon-attachment
+{
+	background-color: rgba(255, 184, 42, 0.35);
+}
+
+AimboxProgressionScreen .category-icon.icon-kill, .aimbox-progression .category-icon.icon-kill
+{
+	background-color: rgba(42, 212, 200, 0.35);
+}
+
+AimboxProgressionScreen .category-copy, .aimbox-progression .category-copy
+{
+	flex-direction: column;
+	gap: 2px;
+}
+
+AimboxProgressionScreen .category-label, .aimbox-progression .category-label
+{
+	font-size: 15px;
+	font-weight: 800;
+	letter-spacing: 1px;
+}
+
+AimboxProgressionScreen .category-count, .aimbox-progression .category-count
+{
+	font-size: 13px;
+	font-weight: 600;
+	color: rgba(255, 255, 255, 0.55);
+}
+
+AimboxProgressionScreen .sidebar-footer, .aimbox-progression .sidebar-footer
+{
+	flex-direction: column;
+	gap: 8px;
+}
+
+AimboxProgressionScreen .back-btn, .aimbox-progression .back-btn
+{
+	padding: 10px 0;
+	font-size: 13px;
+	font-weight: 700;
+	letter-spacing: 2px;
+	color: rgba(255, 255, 255, 0.55);
+	background-color: transparent;
+	border: none;
+	cursor: pointer;
+	text-align: left;
+}
+
+AimboxProgressionScreen .sidebar-footer, .aimbox-progression .sidebar-footer
+{
+	flex-direction: column;
+	gap: 8px;
+	margin-top: auto;
+	padding-top: 12px;
+	border-top: 2px solid rgba(255, 255, 255, 0.08);
+	flex-shrink: 0;
+}
+
+AimboxProgressionScreen .reset-xp-btn, .aimbox-progression .reset-xp-btn
+{
+	width: 100%;
+	padding: 12px 14px;
+	background-color: rgba(255, 42, 109, 0.18);
+	border: 2px solid rgba(255, 42, 109, 0.55);
+	color: #ff8fb0;
+	font-size: 11px;
+	font-weight: 900;
+	letter-spacing: 1px;
+	cursor: pointer;
+	text-align: center;
+}
+
+AimboxProgressionScreen .reset-xp-note, .aimbox-progression .reset-xp-note
+{
+	font-size: 10px;
+	line-height: 1.4;
+	color: rgba(255, 255, 255, 0.42);
+	text-align: center;
+}
+
+AimboxProgressionScreen .progression-main, .aimbox-progression .progression-main
+{
+	flex-grow: 1;
+	flex-direction: column;
+	padding: 28px 32px 20px;
+	background-color: rgba(220, 218, 214, 0.94);
+	color: #141414;
+	overflow-y: scroll;
+	gap: 18px;
+	position: relative;
+	min-width: 0;
+	min-height: 0;
+}
+
+AimboxProgressionScreen .progression-main.post-match-view, .aimbox-progression .progression-main.post-match-view
+{
+	gap: 20px;
+	justify-content: flex-start;
+	padding-bottom: 0;
+}
+
+AimboxProgressionScreen .main-splatter, .aimbox-progression .main-splatter
+{
+	position: absolute;
+	right: 24px;
+	top: 8px;
+	width: 180px;
+	height: 180px;
+	border-radius: 50%;
+	background-color: rgba(255, 42, 109, 0.22);
+}
+
+AimboxProgressionScreen .level-header, .aimbox-progression .level-header
+{
+	flex-direction: row;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px 24px;
+	position: relative;
+	z-index: 2;
+}
+
+AimboxProgressionScreen .level-title, .aimbox-progression .level-title
+{
+	font-size: 44px;
+	font-weight: 900;
+	color: #ff2a6d;
+	letter-spacing: 2px;
+	line-height: 1;
+}
+
+AimboxProgressionScreen .level-xp-block, .aimbox-progression .level-xp-block
+{
+	flex-direction: row;
+	align-items: center;
+	gap: 16px;
+	flex-grow: 1;
+	max-width: 520px;
+}
+
+AimboxProgressionScreen .level-xp-track, .aimbox-progression .level-xp-track
+{
+	flex-grow: 1;
+	height: 18px;
+	background-color: rgba(0, 0, 0, 0.18);
+	overflow: hidden;
+}
+
+AimboxProgressionScreen .level-xp-fill, .aimbox-progression .level-xp-fill
+{
+	height: 100%;
+	background-color: #ff2a6d;
+}
+
+AimboxProgressionScreen .level-xp-label, .aimbox-progression .level-xp-label
+{
+	font-size: 14px;
+	font-weight: 700;
+	white-space: nowrap;
+	color: rgba(0, 0, 0, 0.75);
+}
+
+AimboxProgressionScreen .section-label, .aimbox-progression .section-label
+{
+	font-size: 13px;
+	font-weight: 800;
+	letter-spacing: 2px;
+	color: rgba(0, 0, 0, 0.55);
+	position: relative;
+	z-index: 2;
+}
+
+AimboxProgressionScreen .timeline, .aimbox-progression .timeline
+{
+	flex-direction: row;
+	flex-wrap: wrap;
+	align-items: stretch;
+	gap: 12px;
+	position: relative;
+	z-index: 2;
+	padding: 8px 0 4px;
+}
+
+AimboxProgressionScreen .timeline-line, .aimbox-progression .timeline-line
+{
+	display: none;
+}
+
+AimboxProgressionScreen .timeline-card, .aimbox-progression .timeline-card
+{
+	flex-direction: column;
+	align-items: center;
+	gap: 8px;
+	flex: 1 1 140px;
+	max-width: 180px;
+	min-width: 120px;
+	min-height: 130px;
+	padding: 14px 12px 16px;
+	background-color: rgba(255, 255, 255, 0.55);
+	border: 3px solid rgba(0, 0, 0, 0.12);
+	cursor: pointer;
+	position: relative;
+	overflow: hidden;
+	flex-shrink: 0;
+}
+
+AimboxProgressionScreen .timeline-card.selected, .aimbox-progression .timeline-card.selected
+{
+	background-color: #ff2a6d;
+	border-color: #ff2a6d;
+	color: #ffffff;
+}
+
+AimboxProgressionScreen .timeline-card.selected .timeline-type, .aimbox-progression .timeline-card.selected .timeline-type
+{
+	color: rgba(255, 255, 255, 0.85);
+}
+
+AimboxProgressionScreen .timeline-card.locked, .aimbox-progression .timeline-card.locked
+{
+	opacity: 0.72;
+}
+
+AimboxProgressionScreen .timeline-card.earned:not(.selected), .aimbox-progression .timeline-card.earned:not(.selected)
+{
+	border-color: rgba(255, 42, 109, 0.45);
+}
+
+AimboxProgressionScreen .timeline-level, .aimbox-progression .timeline-level
+{
+	font-size: 11px;
+	font-weight: 800;
+	letter-spacing: 1px;
+	color: rgba(0, 0, 0, 0.45);
+}
+
+AimboxProgressionScreen .timeline-card.selected .timeline-level, .aimbox-progression .timeline-card.selected .timeline-level
+{
+	color: rgba(255, 255, 255, 0.75);
+}
+
+AimboxProgressionScreen .timeline-icon, .aimbox-progression .timeline-icon
+{
+	width: 44px;
+	height: 44px;
+	align-items: center;
+	justify-content: center;
+	font-size: 12px;
+	font-weight: 800;
+	color: #ffffff;
+	border: 2px solid rgba(0, 0, 0, 0.15);
+}
+
+AimboxProgressionScreen .timeline-name, .aimbox-progression .timeline-name
+{
+	font-size: 11px;
+	font-weight: 800;
+	text-align: center;
+	letter-spacing: 0.5px;
+	line-height: 1.3;
+	word-break: break-word;
+	width: 100%;
+	max-height: 42px;
+	overflow: hidden;
+}
+
+AimboxProgressionScreen .timeline-type, .aimbox-progression .timeline-type
+{
+	font-size: 10px;
+	font-weight: 600;
+	color: rgba(0, 0, 0, 0.5);
+	text-align: center;
+	line-height: 1.25;
+	width: 100%;
+	max-height: 28px;
+	overflow: hidden;
+}
+
+AimboxProgressionScreen .reward-preview, .aimbox-progression .reward-preview
+{
+	flex-direction: row;
+	flex-wrap: wrap;
+	align-items: stretch;
+	gap: 20px;
+	padding: 20px;
+	background-color: rgba(255, 255, 255, 0.62);
+	border: 3px solid rgba(0, 0, 0, 0.1);
+	position: relative;
+	z-index: 2;
+	width: 100%;
+	flex-shrink: 0;
+}
+
+AimboxProgressionScreen .preview-icon-wrap, .aimbox-progression .preview-icon-wrap
+{
+	width: 120px;
+	min-width: 120px;
+	align-items: center;
+	justify-content: center;
+}
+
+AimboxProgressionScreen .preview-icon, .aimbox-progression .preview-icon
+{
+	width: 88px;
+	height: 88px;
+	align-items: center;
+	justify-content: center;
+	border: 4px solid rgba(0, 0, 0, 0.15);
+	transform: rotate(45deg);
+}
+
+AimboxProgressionScreen .preview-icon-label, .aimbox-progression .preview-icon-label
+{
+	font-size: 18px;
+	font-weight: 900;
+	color: #ffffff;
+	transform: rotate(-45deg);
+	line-height: 1;
+}
+
+AimboxProgressionScreen .preview-copy, .aimbox-progression .preview-copy
+{
+	flex-direction: column;
+	flex: 1 1 240px;
+	gap: 8px;
+	justify-content: center;
+	min-width: 0;
+}
+
+AimboxProgressionScreen .preview-name, .aimbox-progression .preview-name
+{
+	font-size: 24px;
+	font-weight: 900;
+	color: #ff2a6d;
+	letter-spacing: 1px;
+	line-height: 1.15;
+	word-break: break-word;
+}
+
+AimboxProgressionScreen .preview-type, .aimbox-progression .preview-type
+{
+	font-size: 12px;
+	font-weight: 700;
+	letter-spacing: 2px;
+	color: rgba(0, 0, 0, 0.5);
+}
+
+AimboxProgressionScreen .preview-status, .aimbox-progression .preview-status
+{
+	font-size: 12px;
+	font-weight: 800;
+	letter-spacing: 1px;
+}
+
+AimboxProgressionScreen .preview-status.unlocked, .aimbox-progression .preview-status.unlocked
+{
+	color: #2a8f5a;
+}
+
+AimboxProgressionScreen .preview-status.locked, .aimbox-progression .preview-status.locked
+{
+	color: #a03838;
+}
+
+AimboxProgressionScreen .preview-description, .aimbox-progression .preview-description
+{
+	font-size: 14px;
+	line-height: 1.45;
+	color: rgba(0, 0, 0, 0.72);
+	max-width: 100%;
+}
+
+AimboxProgressionScreen .preview-action, .aimbox-progression .preview-action
+{
+	margin-top: 6px;
+	padding: 10px 16px;
+	font-size: 12px;
+	font-weight: 800;
+	letter-spacing: 1px;
+	background-color: #141414;
+	color: #ffffff;
+	border: none;
+	cursor: pointer;
+	align-self: flex-start;
+}
+
+AimboxProgressionScreen .preview-action.disabled, .aimbox-progression .preview-action.disabled
+{
+	opacity: 0.45;
+	cursor: default;
+}
+
+AimboxProgressionScreen .preview-scene, .aimbox-progression .preview-scene
+{
+	flex: 0 0 280px;
+	width: 280px;
+	max-width: 100%;
+	flex-shrink: 0;
+}
+
+AimboxProgressionScreen .preview-scene-inner, .aimbox-progression .preview-scene-inner
+{
+	width: 100%;
+	height: 160px;
+	align-items: center;
+	justify-content: center;
+	flex-direction: column;
+	gap: 8px;
+	border: 3px solid rgba(0, 0, 0, 0.15);
+}
+
+AimboxProgressionScreen .preview-scene-code, .aimbox-progression .preview-scene-code
+{
+	font-size: 36px;
+	font-weight: 900;
+	color: rgba(255, 255, 255, 0.92);
+}
+
+AimboxProgressionScreen .preview-scene-caption, .aimbox-progression .preview-scene-caption
+{
+	font-size: 11px;
+	font-weight: 700;
+	letter-spacing: 2px;
+	color: rgba(255, 255, 255, 0.75);
+}
+
+AimboxProgressionScreen .inventory-grid, .aimbox-progression .inventory-grid
+{
+	flex-direction: row;
+	flex-wrap: wrap;
+	gap: 10px;
+	position: relative;
+	z-index: 2;
+}
+
+AimboxProgressionScreen .inventory-card, .aimbox-progression .inventory-card
+{
+	flex-direction: column;
+	align-items: center;
+	gap: 6px;
+	width: 150px;
+	min-height: 110px;
+	padding: 12px 10px;
+	background-color: rgba(255, 255, 255, 0.55);
+	border: 2px solid rgba(0, 0, 0, 0.12);
+	cursor: pointer;
+}
+
+AimboxProgressionScreen .inventory-card.selected, .aimbox-progression .inventory-card.selected
+{
+	border-color: #ff2a6d;
+	background-color: rgba(255, 42, 109, 0.12);
+}
+
+AimboxProgressionScreen .inventory-card.locked, .aimbox-progression .inventory-card.locked
+{
+	opacity: 0.65;
+}
+
+AimboxProgressionScreen .inventory-icon, .aimbox-progression .inventory-icon
+{
+	width: 40px;
+	height: 40px;
+	align-items: center;
+	justify-content: center;
+	font-size: 11px;
+	font-weight: 800;
+	color: #ffffff;
+}
+
+AimboxProgressionScreen .inventory-name, .aimbox-progression .inventory-name
+{
+	font-size: 10px;
+	font-weight: 800;
+	text-align: center;
+	line-height: 1.3;
+	word-break: break-word;
+}
+
+AimboxProgressionScreen .inventory-meta, .aimbox-progression .inventory-meta
+{
+	font-size: 9px;
+	font-weight: 600;
+	color: rgba(0, 0, 0, 0.5);
+	text-align: center;
+}
+
+AimboxProgressionScreen .stats-footer, .aimbox-progression .stats-footer
+{
+	flex-direction: row;
+	flex-wrap: wrap;
+	gap: 12px;
+	margin-top: auto;
+	padding-top: 16px;
+	border-top: 3px solid rgba(0, 0, 0, 0.12);
+	position: relative;
+	z-index: 2;
+	flex-shrink: 0;
+}
+
+AimboxProgressionScreen .stat-chip, .aimbox-progression .stat-chip
+{
+	flex-direction: column;
+	gap: 4px;
+	flex: 1 1 110px;
+	min-width: 110px;
+	max-width: 160px;
+	padding: 12px 14px;
+	background-color: rgba(0, 0, 0, 0.08);
+}
+
+AimboxProgressionScreen .stat-chip.accent, .aimbox-progression .stat-chip.accent
+{
+	background-color: rgba(255, 42, 109, 0.15);
+}
+
+AimboxProgressionScreen .stat-value, .aimbox-progression .stat-value
+{
+	font-size: 20px;
+	font-weight: 900;
+	color: #141414;
+	line-height: 1.1;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	max-width: 100%;
+}
+
+AimboxProgressionScreen .stats-footer.compact, .aimbox-progression .stats-footer.compact
+{
+	margin-top: auto;
+	padding-top: 12px;
+}
+
+AimboxProgressionScreen .stats-footer.compact .stat-chip, .aimbox-progression .stats-footer.compact .stat-chip
+{
+	flex: 1 1 100px;
+	min-width: 100px;
+	max-width: 140px;
+	padding: 10px 12px;
+}
+
+AimboxProgressionScreen .stats-footer.compact .stat-value, .aimbox-progression .stats-footer.compact .stat-value
+{
+	font-size: 18px;
+}
+
+AimboxProgressionScreen .stat-label, .aimbox-progression .stat-label
+{
+	font-size: 10px;
+	font-weight: 700;
+	letter-spacing: 1px;
+	color: rgba(0, 0, 0, 0.5);
+}
+
+AimboxProgressionScreen .post-match-recap, .aimbox-progression .post-match-recap
+{
+	flex-direction: column;
+	gap: 14px;
+	padding: 18px 20px;
+	background-color: rgba(0, 0, 0, 0.08);
+	border: 3px solid rgba(0, 0, 0, 0.12);
+	position: relative;
+	z-index: 2;
+	flex-shrink: 0;
+}
+
+AimboxProgressionScreen .post-match-recap.victory, .aimbox-progression .post-match-recap.victory
+{
+	border-color: rgba(46, 160, 67, 0.45);
+	background-color: rgba(46, 160, 67, 0.12);
+}
+
+AimboxProgressionScreen .post-match-recap.defeat, .aimbox-progression .post-match-recap.defeat
+{
+	border-color: rgba(255, 42, 109, 0.35);
+	background-color: rgba(255, 42, 109, 0.1);
+}
+
+AimboxProgressionScreen .post-match-recap-head, .aimbox-progression .post-match-recap-head
+{
+	flex-direction: column;
+	gap: 6px;
+}
+
+AimboxProgressionScreen .post-match-recap-kicker, .aimbox-progression .post-match-recap-kicker
+{
+	font-size: 12px;
+	font-weight: 800;
+	letter-spacing: 1px;
+	color: rgba(0, 0, 0, 0.55);
+}
+
+AimboxProgressionScreen .post-match-recap-result, .aimbox-progression .post-match-recap-result
+{
+	font-size: 32px;
+	font-weight: 900;
+	letter-spacing: 2px;
+	color: #141414;
+	line-height: 1;
+}
+
+AimboxProgressionScreen .post-match-recap.victory .post-match-recap-result, .aimbox-progression .post-match-recap.victory .post-match-recap-result
+{
+	color: #1f7a35;
+}
+
+AimboxProgressionScreen .post-match-recap.defeat .post-match-recap-result, .aimbox-progression .post-match-recap.defeat .post-match-recap-result
+{
+	color: #c41e52;
+}
+
+AimboxProgressionScreen .post-match-recap-meta, .aimbox-progression .post-match-recap-meta
+{
+	font-size: 14px;
+	font-weight: 700;
+	color: rgba(0, 0, 0, 0.65);
+}
+
+AimboxProgressionScreen .post-match-recap-grid, .aimbox-progression .post-match-recap-grid
+{
+	flex-direction: row;
+	flex-wrap: wrap;
+	gap: 12px;
+}
+
+AimboxProgressionScreen .post-match-recap-card, .aimbox-progression .post-match-recap-card
+{
+	flex-direction: column;
+	gap: 6px;
+	flex: 1 1 220px;
+	min-width: 220px;
+	padding: 14px 16px;
+	background-color: rgba(255, 255, 255, 0.55);
+	border: 2px solid rgba(0, 0, 0, 0.08);
+}
+
+AimboxProgressionScreen .post-match-recap-label, .aimbox-progression .post-match-recap-label
+{
+	font-size: 10px;
+	font-weight: 800;
+	letter-spacing: 1px;
+	color: rgba(0, 0, 0, 0.5);
+}
+
+AimboxProgressionScreen .post-match-recap-value, .aimbox-progression .post-match-recap-value
+{
+	font-size: 22px;
+	font-weight: 900;
+	color: #141414;
+	line-height: 1.2;
+	word-break: break-word;
+}
+
+AimboxProgressionScreen .post-match-rank-row, .aimbox-progression .post-match-rank-row
+{
+	flex-direction: row;
+	align-items: center;
+	gap: 10px;
+	flex-wrap: wrap;
+}
+
+AimboxProgressionScreen .post-match-rank-from, .aimbox-progression .post-match-rank-from,
+AimboxProgressionScreen .post-match-rank-to, .aimbox-progression .post-match-rank-to
+{
+	font-size: 22px;
+	font-weight: 900;
+	color: #141414;
+	line-height: 1;
+}
+
+AimboxProgressionScreen .post-match-rank-to, .aimbox-progression .post-match-rank-to
+{
+	color: #1f7a35;
+}
+
+AimboxProgressionScreen .post-match-rank-arrow, .aimbox-progression .post-match-rank-arrow
+{
+	font-size: 20px;
+	font-weight: 900;
+	color: rgba(0, 0, 0, 0.45);
+	line-height: 1;
+	flex-shrink: 0;
+}
+
+AimboxProgressionScreen .post-match-recap-badge, .aimbox-progression .post-match-recap-badge
+{
+	align-self: flex-start;
+	padding: 4px 10px;
+	background-color: #ff2a6d;
+	color: #ffffff;
+	font-size: 10px;
+	font-weight: 900;
+	letter-spacing: 1px;
+}
+
+AimboxProgressionScreen .post-match-recap-sub, .aimbox-progression .post-match-recap-sub
+{
+	font-size: 13px;
+	font-weight: 700;
+	color: rgba(0, 0, 0, 0.62);
+}
+
+AimboxProgressionScreen .post-match-unlocks, .aimbox-progression .post-match-unlocks
+{
+	flex-direction: column;
+	gap: 12px;
+	padding: 16px 18px;
+	background-color: rgba(255, 255, 255, 0.72);
+	border: 3px solid rgba(255, 42, 109, 0.35);
+	position: relative;
+	z-index: 2;
+	flex-shrink: 0;
+}
+
+AimboxProgressionScreen .post-match-unlocks-head, .aimbox-progression .post-match-unlocks-head
+{
+	flex-direction: row;
+	flex-wrap: wrap;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 8px 16px;
+}
+
+AimboxProgressionScreen .post-match-unlocks-kicker, .aimbox-progression .post-match-unlocks-kicker
+{
+	font-size: 18px;
+	font-weight: 900;
+	letter-spacing: 1px;
+	color: #ff2a6d;
+	line-height: 1;
+}
+
+AimboxProgressionScreen .post-match-unlocks-count, .aimbox-progression .post-match-unlocks-count
+{
+	font-size: 12px;
+	font-weight: 700;
+	color: rgba(0, 0, 0, 0.55);
+}
+
+AimboxProgressionScreen .post-match-unlocks-list, .aimbox-progression .post-match-unlocks-list
+{
+	flex-direction: row;
+	flex-wrap: wrap;
+	gap: 10px;
+}
+
+AimboxProgressionScreen .post-match-unlock, .aimbox-progression .post-match-unlock
+{
+	flex-direction: row;
+	align-items: center;
+	gap: 10px;
+	padding: 12px 14px;
+	background-color: rgba(46, 160, 67, 0.14);
+	border: 3px solid rgba(46, 160, 67, 0.35);
+	flex: 1 1 220px;
+	min-width: 200px;
+}
+
+AimboxProgressionScreen .post-match-unlock.player, .aimbox-progression .post-match-unlock.player
+{
+	background-color: rgba(46, 160, 67, 0.14);
+	border-color: rgba(46, 160, 67, 0.35);
+}
+
+AimboxProgressionScreen .post-match-unlock.mastery, .aimbox-progression .post-match-unlock.mastery
+{
+	background-color: rgba(42, 157, 255, 0.12);
+	border-color: rgba(42, 157, 255, 0.35);
+}
+
+AimboxProgressionScreen .post-match-unlock-icon, .aimbox-progression .post-match-unlock-icon
+{
+	width: 28px;
+	height: 28px;
+	min-width: 28px;
+	align-items: center;
+	justify-content: center;
+	background-color: #2ea043;
+	color: #ffffff;
+	font-size: 18px;
+	font-weight: 900;
+	line-height: 1;
+}
+
+AimboxProgressionScreen .post-match-unlock.mastery .post-match-unlock-icon, .aimbox-progression .post-match-unlock.mastery .post-match-unlock-icon
+{
+	background-color: #2a9dff;
+}
+
+AimboxProgressionScreen .post-match-unlock-label, .aimbox-progression .post-match-unlock-label
+{
+	font-size: 14px;
+	font-weight: 900;
+	color: #141414;
+	line-height: 1.25;
+}
+
+AimboxProgressionScreen .post-match-unlock.player .post-match-unlock-label, .aimbox-progression .post-match-unlock.player .post-match-unlock-label
+{
+	color: #1f7a35;
+}
+
+AimboxProgressionScreen .post-match-unlock.mastery .post-match-unlock-label, .aimbox-progression .post-match-unlock.mastery .post-match-unlock-label
+{
+	color: #1d6fb8;
+}
+
+AimboxProgressionScreen .post-match-action-footer, .aimbox-progression .post-match-action-footer
+{
+	flex-direction: row;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 16px 24px;
+	padding: 16px 18px;
+	background-color: #0a0a0a;
+	color: #ffffff;
+	margin-top: auto;
+	flex-shrink: 0;
+	position: relative;
+	z-index: 2;
+}
+
+AimboxProgressionScreen .post-match-action-footer .footer-tab, .aimbox-progression .post-match-action-footer .footer-tab
+{
+	padding: 10px 16px;
+	background-color: #ff2a6d;
+	font-size: 12px;
+	font-weight: 900;
+	letter-spacing: 1px;
+	flex-shrink: 0;
+	color: #ffffff;
+}
+
+AimboxProgressionScreen .post-match-action-footer .footer-stats, .aimbox-progression .post-match-action-footer .footer-stats
+{
+	flex-direction: row;
+	flex-wrap: wrap;
+	gap: 20px;
+	flex-grow: 1;
+	justify-content: center;
+}
+
+AimboxProgressionScreen .post-match-action-footer .footer-stat, .aimbox-progression .post-match-action-footer .footer-stat
+{
+	flex-direction: column;
+	align-items: center;
+	gap: 2px;
+	min-width: 80px;
+}
+
+AimboxProgressionScreen .post-match-action-footer .footer-stat-value, .aimbox-progression .post-match-action-footer .footer-stat-value
+{
+	font-size: 28px;
+	font-weight: 900;
+	line-height: 1;
+	color: #ffffff;
+}
+
+AimboxProgressionScreen .post-match-action-footer .footer-stat.accent .footer-stat-value, .aimbox-progression .post-match-action-footer .footer-stat.accent .footer-stat-value
+{
+	color: #ff2a6d;
+}
+
+AimboxProgressionScreen .post-match-action-footer .footer-stat-label, .aimbox-progression .post-match-action-footer .footer-stat-label
+{
+	font-size: 10px;
+	font-weight: 700;
+	letter-spacing: 1px;
+	color: rgba(255, 255, 255, 0.55);
+}
+
+AimboxProgressionScreen .post-match-action-footer .scoreboard-continue, .aimbox-progression .post-match-action-footer .scoreboard-continue
+{
+	margin-left: auto;
+	padding: 12px 28px;
+	background-color: #ff2a6d;
+	color: #ffffff;
+	font-size: 14px;
+	font-weight: 900;
+	letter-spacing: 2px;
+	border: none;
+	cursor: pointer;
+	flex-shrink: 0;
+}

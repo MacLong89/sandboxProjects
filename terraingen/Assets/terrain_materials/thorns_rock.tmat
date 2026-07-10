@@ -1,0 +1,16 @@
+{
+  "AlbedoImage": "terrain_materials/rock_stylized.png",
+  "RoughnessImage": "terrain_materials/rock_rough.png",
+  "NormalImage": "materials/default/default_normal.tga",
+  "HeightImage": "materials/default/default_ao.tga",
+  "AOImage": "materials/default/default_ao.tga",
+  "UVScale": 4,
+  "Metalness": 0,
+  "NormalStrength": 0.24,
+  "HeightBlendStrength": 0.38,
+  "DisplacementScale": 0,
+  "NoTiling": false,
+  "Surface": null,
+  "__references": [],
+  "__version": 0
+}

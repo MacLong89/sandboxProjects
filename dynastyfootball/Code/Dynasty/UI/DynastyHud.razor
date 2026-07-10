@@ -1,0 +1,3812 @@
+@using System
+
+@using System.Collections.Generic
+
+@using System.Linq
+
+@using Sandbox
+
+@using Sandbox.UI
+
+@using GameNetworking = Sandbox.Networking
+
+@using Dynasty
+
+@using Dynasty.Core
+
+@using Dynasty.Core.Commands
+@using Dynasty.Core.Enums
+@using Dynasty.Core.Identifiers
+@using Dynasty.Data
+@using Dynasty.Domain.Contracts
+@using Dynasty.Audio
+@using Dynasty.UI.Team
+@using Dynasty.UI.ViewModels
+@using Dynasty.UI.Components
+@using Dynasty.UI.Management
+
+@inherits Panel
+
+@namespace Dynasty.UI
+
+@attribute [StyleSheet( "/Dynasty/UI/DynastyHud.razor.scss" )]
+
+<div class="dynasty-hud @RootClass()">
+
+	<SpectatorBanner />
+
+	<MultiGmTeamClaimPanel />
+
+	<NotificationStack />
+
+	@if ( _home.IsHumanFired )
+	{
+		<div class="fired-banner ui-region-alert">
+			<Label>You've been fired. Start a new franchise from the main menu to continue your GM career.</Label>
+			<Button class="btn secondary" Text="Main Menu" onclick=@ExitToMenu />
+		</div>
+	}
+
+	<TooltipHost />
+
+	<div class="top-bar ui-region-top-bar">
+
+		<div class="brand-block">
+
+			<Label class="brand-kicker">DYNASTY</Label>
+
+			<Label class="brand-name">@_home.LeagueName</Label>
+
+			<Label class="calendar-line muted">@_home.CalendarMonth · Season @_home.Season · Week @_home.Week · Day @_home.DayOfWeek</Label>
+
+		</div>
+
+		<Label class="@($"league-meta phase-badge {PhaseClass()}")">@_home.Phase</Label>
+
+		<div class="hud-actions">
+
+			@if ( !string.IsNullOrEmpty( _saveSlot ) )
+
+			{
+
+				<Label class="save-indicator">Save: @_saveSlot</Label>
+
+			}
+
+			@if ( _inbox.ActionRequiredCount > 0 )
+
+			{
+
+				<Label class="inbox-badge">@_inbox.ActionRequiredCount action(s)</Label>
+
+			}
+
+			<Button class="btn secondary" Text="Save" onclick=@SaveGame />
+
+			<Button class="btn secondary" Text="Main Menu" onclick=@ExitToMenu />
+
+			<Button class="btn primary" Text="Advance Week" onclick=@AdvanceWeek />
+
+			<Button class="btn secondary subtle-time" Text="More…" onclick=@OpenAdvanceMenu />
+
+		</div>
+
+	</div>
+
+
+
+	<div class="next-action-bar clickable" @onclick=@OnNextActionClick>
+
+		<Label class="next-label">Next:</Label>
+
+		<Label class="next-text">@_home.NextSuggestedAction</Label>
+
+		<Label class="next-hint muted">Click to go →</Label>
+
+	</div>
+
+
+
+	<div class="hud-nav">
+
+		<Button class="@NavClass( "home" )" Text="League Home" onclick='@(() => SetTab( "home" ))' />
+
+		<Button class="@NavClass( "inbox" )" Text="@InboxTabLabel()" onclick='@(() => SetTab( "inbox" ))' />
+
+		<Button class="@NavClass( "team" )" Text="Team" onclick='@(() => SetTab( "team" ))' />
+
+		<Button class="@NavClass( "facilities" )" Text="Facilities" onclick='@(() => SetTab( "facilities" ))' />
+
+		<Button class="@NavClass( "trades" )" Text="Trade Center" onclick='@(() => SetTab( "trades" ))' />
+
+		<Button class="@NavClass( "schedule" )" Text="Schedule" onclick='@(() => SetTab( "schedule" ))' />
+
+		<Button class="@NavClass( "freeagency" )" Text="@FreeAgencyTabLabel()" onclick='@(() => SetTab( "freeagency" ))' />
+
+		<Button class="@NavClass( "draft" )" Text="Draft" onclick='@(() => SetTab( "draft" ))' />
+
+		<Button class="@NavClass( "news" )" Text="News" onclick='@(() => SetTab( "news" ))' />
+
+		<Button class="@NavClass( "legacy" )" Text="Legacy" onclick='@(() => SetTab( "legacy" ))' />
+
+	</div>
+
+
+
+	@if ( !string.IsNullOrEmpty( _statusMessage ) )
+
+	{
+
+		<div class="status-bar @_statusClass hud-feedback">@_statusMessage</div>
+
+	}
+
+
+
+	<div class="hud-main-row @HudMainClass() ui-region-main">
+
+	<div class="hud-content">
+
+		@if ( _tab == "home" )
+
+		{
+
+			<div class="home-dashboard">
+
+				@if ( _home.Franchise.HasTeam )
+
+				{
+
+					<div class="franchise-hero">
+
+						<div class="franchise-identity">
+
+							<Label class="franchise-abbr">@_home.Franchise.Abbreviation</Label>
+
+							<div class="franchise-text">
+
+								<Label class="franchise-name">@_home.Franchise.DisplayName</Label>
+
+								<div class="franchise-meta">
+
+									<div class="franchise-meta-item">
+
+										<Label class="franchise-meta-val">@_home.Franchise.Record</Label>
+
+										<Label class="franchise-meta-label">Record</Label>
+
+									</div>
+
+									<Label class="franchise-meta-sep">|</Label>
+
+									<div class="franchise-meta-item">
+
+										<Label class="franchise-meta-val">#@_home.Franchise.StandingRank</Label>
+
+										<Label class="franchise-meta-label">Standing</Label>
+
+									</div>
+
+								</div>
+
+							</div>
+
+						</div>
+
+						@if ( _home.Stakes.ShowFtueHint )
+						{
+							<div class="stakes-banner ftue-banner">
+								<Label class="stakes-title">Getting Started</Label>
+								<Label class="muted">Follow the To-Do list. Use Sim Rest of Draft if you want to reach football faster.</Label>
+							</div>
+						}
+
+						<div class="stakes-banner">
+							<Label class="stakes-title">Franchise Stakes</Label>
+							<div class="stakes-row">
+								<Label class="stakes-chip">Dynasty @_home.Stakes.DynastyScore</Label>
+								<Label class="stakes-chip">Job Security @_home.Stakes.OwnerJobSecurity%</Label>
+								<Label class="stakes-chip">@_home.Stakes.OwnerMandate</Label>
+							</div>
+							@if ( !string.IsNullOrEmpty( _home.Stakes.SeasonObjective ) )
+							{
+								<Label class="muted">@_home.Stakes.SeasonObjective</Label>
+							}
+							@if ( !string.IsNullOrEmpty( _home.Stakes.RivalLabel ) )
+							{
+								<Label class="stakes-rival">@_home.Stakes.RivalLabel</Label>
+							}
+						</div>
+
+						<div class="franchise-stats">
+
+							<div class="hero-stat" tooltip="Starters assigned on your lineup — affects simulation strength">
+
+								<Label class="hero-stat-val">@FranchiseLineupLabel()</Label>
+
+								<Label class="hero-stat-label">Lineup</Label>
+
+							</div>
+
+							<div class="hero-stat" tooltip="Average overall of offensive starters on your roster">
+
+								<Label class="hero-stat-val ovr">@_home.Franchise.OffenseOverall</Label>
+
+								<Label class="hero-stat-label">Off OVR</Label>
+
+							</div>
+
+							<div class="hero-stat" tooltip="Average overall of defensive starters on your roster">
+
+								<Label class="hero-stat-val ovr">@_home.Franchise.DefenseOverall</Label>
+
+								<Label class="hero-stat-label">Def OVR</Label>
+
+							</div>
+
+							<div class="hero-stat" tooltip="Weighted team strength used in game simulation">
+
+								<Label class="hero-stat-val ovr team-ovr">@_home.Franchise.TeamOverall</Label>
+
+								<Label class="hero-stat-label">Team OVR</Label>
+
+							</div>
+
+							<div class="hero-stat" tooltip="Franchise reputation — grows with wins and championships">
+
+								<Label class="hero-stat-val">@_home.Franchise.Prestige</Label>
+
+								<Label class="hero-stat-label">Prestige</Label>
+
+							</div>
+
+							<div class="hero-stat" tooltip="Locker room mood — low morale hurts development">
+
+								<Label class="hero-stat-val">@_home.Franchise.Morale</Label>
+
+								<Label class="hero-stat-label">Morale</Label>
+
+							</div>
+
+							<div class="hero-stat">
+
+								<Label class="hero-stat-val">$@(_home.Franchise.CapSpace / 1_000_000)M</Label>
+
+								<Label class="hero-stat-label">Cap Space</Label>
+
+							</div>
+
+							<div class="hero-stat">
+
+								<Label class="hero-stat-val">@_home.Franchise.RosterCount</Label>
+
+								<Label class="hero-stat-label">Roster</Label>
+
+							</div>
+
+							<div class="hero-stat">
+
+								<Label class="hero-stat-val">@_home.Franchise.BuildingWindow</Label>
+
+								<Label class="hero-stat-label">Window</Label>
+
+							</div>
+
+						</div>
+
+						@if ( _home.InboxActionCount > 0 )
+
+						{
+
+							<Button class="btn secondary small" Text="@($"Inbox ({_home.InboxActionCount})")" onclick='@(() => SetTab( "inbox" ))' />
+
+						}
+
+					</div>
+
+				}
+
+				@if ( _home.NextGame.HasGame )
+
+				{
+
+					<div class="next-game-card clickable @(_home.NextGame.IsUserGamePending ? "pulse-cta" : "")" @onclick=@OpenNextGame>
+
+						<div class="next-game-body">
+
+							<Label class="next-game-kicker">@( _home.NextGame.IsComplete ? "Last Game" : "Up Next" ) · Week @_home.NextGame.Week</Label>
+
+							<Label class="next-game-matchup">@_home.NextGame.MatchupLabel</Label>
+
+							<Label class="muted">@_home.NextGame.Opponent @( _home.NextGame.IsHome ? "(Home)" : "(Away)" )</Label>
+
+							@if ( !string.IsNullOrEmpty( _home.NextGame.PlayoffLabel ) )
+
+							{
+
+								<Label class="tag playoff-tag">@_home.NextGame.PlayoffLabel</Label>
+
+							}
+
+						</div>
+
+						@if ( _home.NextGame.IsUserGamePending )
+
+						{
+
+							<div class="next-game-actions">
+
+								<Button class="btn primary small game-cta" Text="Simulate Game" onclick=@OpenNextGame />
+
+							</div>
+
+						}
+
+					</div>
+
+				}
+
+				<div class="home-grid">
+
+					<div class="panel standings">
+
+						<Label class="panel-title">Standings</Label>
+
+						<Label class="muted standings-hint">Click a team for profile</Label>
+
+						<div class="standings-header">
+
+							<Label class="rank-col muted">#</Label>
+
+							<Label class="abbr-col muted">Team</Label>
+
+							<Label class="record-col muted">W-L</Label>
+
+						</div>
+
+						<div class="standings-scroll">
+
+							@foreach ( var row in _home.Standings )
+
+							{
+
+								<StandingsRow
+									Rank="@row.Rank"
+									Abbreviation="@row.Abbreviation"
+									Record="@FormatRecord( row )"
+									IsUserTeam="@row.IsUserTeam" />
+
+							}
+
+						</div>
+
+					</div>
+
+					<div class="panel news">
+
+						<Label class="panel-title">League News</Label>
+
+						@if ( _home.RecentNews.Count == 0 )
+
+						{
+
+							<Label class="muted">Advance time to generate league stories.</Label>
+
+						}
+
+						else
+
+						{
+
+							@foreach ( var item in _home.RecentNews )
+
+							{
+
+								<div class="news-row clickable" @onclick='@(() => OpenNewsArticle( item.Id ))'>
+
+									<Label class="tag">@item.Category</Label>
+
+									<Label class="headline">@item.Headline</Label>
+
+									<Label class="muted">@item.WeekLabel</Label>
+
+								</div>
+
+							}
+
+						}
+
+					</div>
+
+				</div>
+
+			</div>
+
+		}
+
+		else if ( _tab == "inbox" )
+
+		{
+
+			<div class="split-layout">
+
+				<div class="panel inbox-panel">
+
+					<Label class="panel-title">Franchise Inbox</Label>
+
+					@if ( _inbox.Messages.Count == 0 )
+
+					{
+
+						<Label class="muted">No pending messages. Advance the week for new opportunities and problems.</Label>
+
+					}
+
+					else
+
+					{
+
+						@foreach ( var msg in _inbox.Messages )
+
+						{
+
+							<div class="@InboxRowClass( msg )" @onclick='@(() => SelectInboxMessage( msg.Id ))'>
+
+								<div class="inbox-header">
+
+									<Label class="tag">@msg.Category</Label>
+
+									<Label class="inbox-subject">@msg.Subject</Label>
+
+									@if ( !msg.IsRead )
+
+									{
+
+										<Label class="unread-dot">●</Label>
+
+									}
+
+								</div>
+
+								<Label class="inbox-preview muted">@msg.Preview</Label>
+
+							</div>
+
+						}
+
+					}
+
+				</div>
+
+				@if ( _inboxDetail != null )
+
+				{
+
+					<div class="panel detail-panel">
+
+						<Label class="panel-title">@_inboxDetail.Subject</Label>
+
+						<Label class="muted">@_inboxDetail.Category · @_inboxDetail.Priority · @_inboxDetail.WeekLabel</Label>
+
+						<Label class="detail-body">@_inboxDetail.Body</Label>
+
+						<Label class="muted">@_inboxDetail.ActionHint</Label>
+
+						<div class="detail-actions">
+
+							@if ( !string.IsNullOrEmpty( _inboxDetail.SuggestedTab ) )
+
+							{
+
+								<Button class="btn primary small" Text="Take Action" onclick=@InboxTakeAction />
+
+							}
+
+							@if ( _inboxDetail.RequiresAction )
+
+							{
+
+								<Label class="muted resolve-note">Complete the action above — Mark Resolved is disabled for required items.</Label>
+
+							}
+
+							else
+
+							{
+
+								<Button class="btn secondary small" Text="Mark Resolved" onclick='@(() => ResolveInbox( _inboxDetail.Id ))' />
+
+							}
+
+						</div>
+
+					</div>
+
+				}
+
+				else
+
+				{
+
+					<div class="panel detail-panel empty-detail">
+
+						<Label class="muted">Select a message to read and respond.</Label>
+
+					</div>
+
+				}
+
+			</div>
+
+		}
+
+		else if ( _tab == "team" )
+
+		{
+
+			<div class="team-screen">
+
+				<div class="team-subnav">
+
+					<Button class="@TeamSubNavClass( "roster" )" Text="Roster" onclick='@(() => SetTeamSubTab( "roster" ))' />
+
+					<Button class="@TeamSubNavClass( "formation" )" Text="Formation View" onclick='@(() => SetTeamSubTab( "formation" ))' />
+
+					<Button class="@TeamSubNavClass( "specialteams" )" Text="Special Teams" onclick='@(() => SetTeamSubTab( "specialteams" ))' />
+
+					<Button class="@TeamSubNavClass( "lineup" )" Text="Lineup" onclick='@(() => SetTeamSubTab( "lineup" ))' />
+
+					<Button class="@TeamSubNavClass( "contracts" )" Text="Contracts" onclick='@(() => SetTeamSubTab( "contracts" ))' />
+
+				</div>
+
+				@if ( ShowGamePlanBar )
+				{
+					<div class="panel game-plan-bar">
+						<Label class="panel-subtitle">Weekly Game Plan</Label>
+						<Label class="muted">Choose a focus before your game for a tactical bonus.</Label>
+						<div class="game-plan-actions">
+							<Button class="btn secondary small" Text="Balanced" onclick='@(() => SetGamePlan( "balanced" ))' />
+							<Button class="btn secondary small" Text="Run Heavy" onclick='@(() => SetGamePlan( "runHeavy" ))' />
+							<Button class="btn secondary small" Text="Pass Heavy" onclick='@(() => SetGamePlan( "passHeavy" ))' />
+							<Button class="btn secondary small" Text="Defensive Focus" onclick='@(() => SetGamePlan( "defensiveFocus" ))' />
+						</div>
+					</div>
+				}
+
+				@if ( _teamSubTab == "formation" || _teamSubTab == "specialteams" )
+
+				{
+
+					<FormationRosterView
+						Model="@_formationRoster"
+						SelectedSlotKey="@_formationSelectedSlotKey"
+						SelectedSlotLabel="@FormationSelectedSlotLabel()"
+						SelectedProfile="@_playerProfile"
+						CanManage="@CanManage()"
+						OnSlotSelected="@SelectFormationSlot"
+						OnSideChanged="@SetFormationSide"
+						OnFormationChanged="@SetFormationType"
+						OnSetStarter="@OpenFormationPicker"
+						OnExtend="@OpenExtendModal"
+						OnTrade="@FormationTradePlayer"
+						OnRelease="@FormationReleasePlayer"
+						OnTrainAttribute="@TrainAttribute"
+						OnUnlockTrait="@UnlockTrait" />
+
+				}
+
+				else if ( _teamSubTab == "lineup" )
+
+				{
+
+					<LineupPanel
+						Model="@_rosterSlots"
+						FormationName="@_formationRoster.FormationName"
+						OnSlotSelected="@SelectFormationSlot"
+						OnOpenFormation='@(() => SetTeamSubTab( "formation" ))'
+						OnOpenSpecialTeams='@(() => SetTeamSubTab( "specialteams" ))' />
+
+				}
+
+				else if ( _teamSubTab == "contracts" )
+
+				{
+
+					<div class="team-layout">
+
+						<div class="panel team-contracts-panel">
+
+							<Label class="panel-title">@_teamContracts.TeamName · Contracts</Label>
+
+							<div class="contracts-table">
+
+								<div class="contracts-header">
+
+									<Label class="col-name">Name</Label>
+
+									<Label class="col-pos">Pos</Label>
+
+									<Label class="col-ovr">OVR</Label>
+
+									<Label class="col-years">Years</Label>
+
+									<Label class="col-salary">Salary</Label>
+
+									<Label class="col-guar">Guaranteed</Label>
+
+								</div>
+
+								@foreach ( var p in _teamContracts.Players )
+
+								{
+
+									<div class="contracts-row clickable @( _selectedRosterPlayerId.Value == p.PlayerId.Value ? "selected" : "" )" @onclick='@(() => SelectRosterPlayer( p.PlayerId ))'>
+
+										<Label class="col-name">@p.Name</Label>
+
+										<Label class="col-pos">@p.Position</Label>
+
+										<Label class="col-ovr">@p.Overall</Label>
+
+										<Label class="col-years">@p.YearsRemaining</Label>
+
+										<Label class="col-salary">$@p.AnnualSalary.ToString( "N0" )</Label>
+
+										<Label class="col-guar">$@p.GuaranteedMoney.ToString( "N0" )</Label>
+
+									</div>
+
+								}
+
+							</div>
+
+						</div>
+
+						@if ( _playerProfile != null )
+
+						{
+
+							<div class="panel player-detail">
+
+								<PlayerProfilePanel
+									Model="@_playerProfile"
+									CanManage="@CanManage()"
+									OnClose="@ClosePlayerDetail"
+									OnExtend="@OpenExtendModal"
+									OnTrade="@OpenTradeModal"
+									OnRelease="@OpenReleaseModal"
+									OnTrainAttribute="@TrainAttribute"
+									OnUnlockTrait="@UnlockTrait" />
+
+							</div>
+
+						}
+
+					</div>
+
+				}
+
+				else
+
+				{
+
+			<div class="team-layout">
+
+				<div class="panel team-main">
+
+					<Label class="panel-title">@_team.DisplayName</Label>
+
+					<div class="stat-grid">
+
+						<Label>Window: @_team.BuildingWindow</Label>
+
+						<Label>Style: @_team.PlayStyle</Label>
+
+						<Label>Prestige: @_team.Prestige</Label>
+
+						<Label>Morale: @_team.Morale</Label>
+
+						<Label>Budget: $@_team.Budget.ToString( "N0" )</Label>
+
+						<Label>Cap Space: $@_team.CapSpace.ToString( "N0" )</Label>
+
+						<Label>Roster: @_team.RosterCount</Label>
+
+					</div>
+
+					<div class="roster-table">
+
+						<div class="roster-header">
+
+							<Label class="col-name">Name</Label>
+
+							<Label class="col-age">Age</Label>
+
+							<Label class="col-pos">Pos</Label>
+
+							<Label class="col-ovr">OVR</Label>
+
+							<Label class="col-health">Health</Label>
+
+						</div>
+
+						@foreach ( var p in _team.Roster )
+
+						{
+
+							<div class="roster-row @( _selectedRosterPlayerId.Value == p.Id.Value ? "selected" : "" )" @onclick='@(() => SelectRosterPlayer( p.Id ))'>
+
+								<Label class="col-name">@p.Name</Label>
+
+								<Label class="col-age">@p.Age</Label>
+
+								<Label class="col-pos">@p.Position</Label>
+
+								<Label class="col-ovr">@p.Overall</Label>
+
+								<Label class="@($"col-health {HealthClass( p.Health )}")">@p.Health</Label>
+
+							</div>
+
+						}
+
+					</div>
+
+				</div>
+
+				@if ( _playerProfile != null )
+
+				{
+
+					<div class="panel player-detail">
+
+						<PlayerProfilePanel
+							Model="@_playerProfile"
+							CanManage="@CanManage()"
+							OnClose="@ClosePlayerDetail"
+							OnExtend="@OpenExtendModal"
+							OnTrade="@OpenTradeModal"
+							OnRelease="@OpenReleaseModal"
+							OnTrainAttribute="@TrainAttribute"
+							OnUnlockTrait="@UnlockTrait" />
+
+					</div>
+
+				}
+
+			</div>
+
+				}
+
+			</div>
+
+		}
+
+		else if ( _tab == "schedule" )
+
+		{
+
+			<div class="panel">
+
+				<div class="schedule-header">
+
+					<Button class="btn secondary small" Text="◀" onclick='@(() => ChangeScheduleWeek( -1 ))' />
+
+					<div class="schedule-title-block">
+						<Label class="panel-title">Week @_schedule.Week · Season @_schedule.Season</Label>
+						@if ( !string.IsNullOrEmpty( _schedule.PhaseLabel ) )
+						{
+							<Label class="muted schedule-phase-label">@_schedule.PhaseLabel</Label>
+						}
+					</div>
+
+					<Button class="btn secondary small" Text="▶" onclick='@(() => ChangeScheduleWeek( 1 ))' />
+
+					@if ( !_schedule.IsViewingCurrentWeek )
+
+					{
+
+						<Button class="btn secondary small" Text="Current Week" onclick=@ResetScheduleWeek />
+
+					}
+
+					<Button class="@ScheduleFilterClass()" Text="@(_scheduleUserOnly ? "All Games" : "My Games")" onclick=@ToggleScheduleFilter />
+
+				</div>
+
+				@if ( _schedule.Games.Count == 0 )
+
+				{
+
+					<Label class="muted">No games scheduled this week.</Label>
+
+				}
+
+				@foreach ( var g in _schedule.Games )
+
+				{
+
+					<ScheduleGameCard Model="@g" OnOpen="@OpenGame" />
+
+				}
+
+			</div>
+
+		}
+
+		else if ( _tab == "freeagency" )
+
+		{
+
+			<div class="split-layout fa-layout">
+
+				<div class="panel">
+
+					<Label class="panel-title">Free Agency</Label>
+
+					@if ( !_freeAgency.IsOpen )
+
+					{
+
+						<Label class="muted">Free agency is closed. Check back during the offseason.</Label>
+
+					}
+
+					else
+
+					{
+
+						<div class="fa-summary">
+
+							<Label>Cap Space: $@_freeAgency.CapSpace.ToString( "N0" )</Label>
+
+							<Label class="muted">@_freeAgency.AvailableCount agents available · @_freeAgency.PendingOfferCount pending offers</Label>
+
+						</div>
+
+						@if ( _freeAgency.Agents.Count == 0 )
+
+						{
+
+							<Label class="muted">No free agents on the market right now.</Label>
+
+						}
+
+						@foreach ( var agent in _freeAgency.Agents )
+
+						{
+
+							<div class="player-row clickable @( _selectedFaPlayerId.Value == agent.Id.Value ? "selected" : "" )" @onclick='@(() => SelectFreeAgent( agent.Id, agent.AskingSalary ))'>
+
+								<Label class="pos">@agent.Position</Label>
+
+								<Label class="player-name">@agent.Name</Label>
+
+								<Label class="ovr">@agent.Overall OVR</Label>
+
+								<Label class="muted">Age @agent.Age</Label>
+
+								<Label class="salary">$@(agent.AskingSalary / 1_000_000)M/yr</Label>
+
+							</div>
+
+						}
+
+					}
+
+				</div>
+
+				<div class="panel detail-panel">
+
+					@if ( _selectedFaPlayerId.IsEmpty )
+
+					{
+
+						<Label class="muted">Select a free agent to make an offer.</Label>
+
+					}
+
+					else if ( !_freeAgency.IsOpen )
+
+					{
+
+						<Label class="muted">Free agency is not open.</Label>
+
+					}
+
+					else
+
+					{
+
+						@if ( _playerProfile != null )
+
+						{
+
+							<PlayerProfilePanel
+								Model="@_playerProfile"
+								CanManage="@CanManage()"
+								ShowClose=@(false)
+								ShowContractActions=@(false)
+								OnTrainAttribute="@TrainAttribute"
+								OnUnlockTrait="@UnlockTrait" />
+
+						}
+
+						<Label class="panel-title">Contract Offer</Label>
+
+						<Label class="field-label">Years (1–7)</Label>
+
+						<TextEntry class="text-input" Value:bind=@_faOfferYears />
+
+						<Label class="field-label">Annual Salary</Label>
+
+						<TextEntry class="text-input" Value:bind=@_faOfferSalary />
+
+						@if ( CanManage() )
+
+						{
+
+							<Button class="btn primary" Text="Submit Offer" onclick=@SubmitFreeAgentOffer />
+
+						}
+
+						@if ( _freeAgency.PendingOffers.Count > 0 )
+
+						{
+
+							<Label class="panel-subtitle">Your Pending Offers</Label>
+
+							@foreach ( var offer in _freeAgency.PendingOffers )
+
+							{
+
+								<div class="profile-info-row">
+
+									<Label>@offer.PlayerName</Label>
+
+									<Label class="muted">@offer.Years yr · $@offer.AnnualSalary.ToString( "N0" )/yr · @offer.Status</Label>
+
+								</div>
+
+							}
+
+						}
+
+					}
+
+				</div>
+
+			</div>
+
+		}
+
+		else if ( _tab == "draft" )
+
+		{
+
+			<div class="draft-layout">
+
+				<div class="panel draft-header-panel">
+
+					<Label class="panel-title">@_draftBoard.DraftType Draft · Season @_draftBoard.Season</Label>
+
+					@if ( !_draftBoard.IsActive )
+
+					{
+
+						<Label class="muted">Draft complete. Advance time to continue your dynasty.</Label>
+
+					}
+
+					else
+
+					{
+
+						<div class="draft-status-row">
+
+							<div class="draft-status-main">
+
+								<Label class="@($"draft-clock{(_draftBoard.IsUserOnClock ? " your-pick" : "")}")">
+
+									Pick @_draftBoard.CurrentOverallPick / @_draftBoard.TotalPicks · Round @_draftBoard.CurrentRound
+
+								</Label>
+
+								<Label class="muted">On the clock: @_draftBoard.OnClockFullName (@_draftBoard.OnClockTeam)</Label>
+
+								@if ( _draftBoard.IsUserOnClock )
+
+								{
+
+									<Label class="your-pick-label">YOU ARE ON THE CLOCK</Label>
+
+								}
+
+							</div>
+
+							<div class="draft-timer @( DraftPickTimerUrgent() ? "urgent" : "" ) @( _draftBoard.IsUserOnClock ? "your-pick" : "" )">
+
+								<Label class="timer-label">Pick Timer</Label>
+
+								<Label class="timer-value">@DraftPickTimerLabel()</Label>
+
+							</div>
+
+						</div>
+
+						<div class="draft-controls">
+
+							<Button class="btn secondary small" Text="Sim 1 Pick" onclick=@SimOneDraftPick />
+
+							<Button class="btn secondary small" Text="Sim to My Pick" onclick=@SimDraftToHuman />
+
+							<Button class="btn secondary small" Text="Sim Smart" onclick=@SimSmartDraft />
+
+							<Button class="btn primary small recommended-draft" Text="★ Sim Rest of Draft" onclick=@SimRestOfDraft />
+
+							@if ( _draftBoard.IsUserOnClock && !_selectedProspectId.IsEmpty )
+
+							{
+
+								<Button class="btn primary small" Text="Draft Player" onclick=@ConfirmDraftPick />
+
+							}
+
+						</div>
+
+					}
+
+				</div>
+
+				<div class="draft-columns">
+
+					<div class="panel draft-board-panel">
+
+						<Label class="panel-subtitle draft-section-title">Draft Board</Label>
+
+						<div class="draft-board-table">
+
+							<div class="board-header">
+
+								<Label class="board-col-pick">#</Label>
+
+								<Label class="board-col-team">Team</Label>
+
+								<Label class="board-col-player">Player</Label>
+
+							</div>
+
+							@foreach ( var pick in _draftBoard.Board.Take( 80 ) )
+
+							{
+
+								<div class="board-row @( pick.IsOnClock ? "on-clock" : "" ) @( pick.IsUserTeam ? "user-team" : "" ) @( pick.IsComplete ? "complete" : "" )">
+
+									<Label class="board-col-pick">@pick.OverallPick</Label>
+
+									<Label class="board-col-team">@pick.TeamAbbr</Label>
+
+									<Label class="board-col-player">@DraftBoardPlayerLabel( pick )</Label>
+
+								</div>
+
+							}
+
+						</div>
+
+					</div>
+
+					<div class="panel draft-pool-panel">
+
+						<Label class="panel-subtitle draft-section-title">Available Players</Label>
+
+						<div class="prospect-table">
+
+							<div class="prospect-header">
+
+								<Label class="@($"draft-col-rank sortable-header {ProspectSortClass( "rank" )}")" @onclick='@(() => ToggleProspectSort( "rank" ))'>@ProspectSortHeader( "rank", "#" )</Label>
+
+								<Label class="draft-col-name">Name</Label>
+
+								<Label class="@($"draft-col-pos sortable-header {ProspectSortClass( "position" )}")" @onclick='@(() => ToggleProspectSort( "position" ))'>@ProspectSortHeader( "position", "Pos" )</Label>
+
+								<Label class="@($"draft-col-age sortable-header {ProspectSortClass( "age" )}")" @onclick='@(() => ToggleProspectSort( "age" ))'>@ProspectSortHeader( "age", "Age" )</Label>
+
+								<Label class="@($"draft-col-ovr sortable-header {ProspectSortClass( "overall" )}")" @onclick='@(() => ToggleProspectSort( "overall" ))'>@ProspectSortHeader( "overall", "OVR" )</Label>
+
+								<Label class="draft-col-pot">POT</Label>
+
+							</div>
+
+							<div class="prospect-scroll">
+
+								@foreach ( var p in GetSortedProspects() )
+
+								{
+
+									<div class="prospect-row clickable @( _selectedProspectId.Value == p.Id.Value ? "selected" : "" )" @onclick='@(() => SelectProspect( p.Id ))'>
+
+										<Label class="draft-col-rank">@p.Rank</Label>
+
+										<Label class="draft-col-name">@p.Name</Label>
+
+										<Label class="draft-col-pos">@p.Position</Label>
+
+										<Label class="draft-col-age">@p.Age</Label>
+
+										<Label class="draft-col-ovr">@p.Overall</Label>
+
+										<Label class="draft-col-pot">@p.Potential</Label>
+
+									</div>
+
+								}
+
+							</div>
+
+						</div>
+
+						<div class="recent-picks-section">
+
+							<Label class="panel-subtitle draft-section-title">Recent Picks</Label>
+
+						@foreach ( var rp in _draftBoard.RecentPicks )
+
+						{
+
+							<div class="recent-pick-row">
+
+								<Label class="tag">@rp.OverallPick</Label>
+
+								<Label>@($"{rp.TeamAbbr}: {rp.PlayerName}")</Label>
+
+								<Label class="muted">@rp.Detail</Label>
+
+							</div>
+
+						}
+
+						</div>
+
+					</div>
+
+					@if ( _playerProfile != null && _tab == "draft" )
+
+					{
+
+						<div class="panel player-detail draft-prospect-detail">
+
+							<PlayerProfilePanel
+								Model="@_playerProfile"
+								CanManage="@CanManage()"
+								ShowClose=@(false)
+								ShowContractActions=@(false)
+								OnDraftPick="@DraftSelectedProspect"
+								OnTrainAttribute="@TrainAttribute"
+								OnUnlockTrait="@UnlockTrait" />
+
+						</div>
+
+					}
+
+				</div>
+
+			</div>
+
+		}
+
+		else if ( _tab == "facilities" )
+
+		{
+
+			<FacilitiesPanel Model="@_facilities" CanManage="@CanManage()" OnUpgrade="@UpgradeFacility" />
+
+		}
+
+		else if ( _tab == "trades" )
+
+		{
+
+			<div class="trade-screen">
+
+				<TradeCenterPanel
+					Model="@_tradeCenter"
+					CanManage="@CanManage()"
+					GetPartnerRoster="@GetTradePartnerRoster"
+					OnPlayerView="@OpenTradePlayerProfile"
+					OnSubmitTrade="@SubmitTradeFromCenter"
+					OnRespondOffer="@RespondTradeOffer" />
+
+				@if ( _playerProfile != null )
+
+				{
+
+					<div class="panel trade-player-profile">
+
+						<PlayerProfilePanel
+							Model="@_playerProfile"
+							CanManage="@CanManage()"
+							ShowClose=@(false)
+							ShowContractActions="@_playerProfile.IsUserTeam"
+							OnExtend="@OpenExtendModal"
+							OnTrade="@OpenTradeModal"
+							OnRelease="@OpenReleaseModal"
+							OnTrainAttribute="@TrainAttribute"
+							OnUnlockTrait="@UnlockTrait" />
+
+					</div>
+
+				}
+
+			</div>
+
+		}
+
+		else if ( _tab == "legacy" )
+
+		{
+
+			<LegacyPanel Model="@_legacy" />
+
+		}
+
+		else if ( _tab == "news" )
+
+		{
+
+			<div class="split-layout">
+
+				<div class="panel">
+
+					<Label class="panel-title">League News</Label>
+
+					@if ( _news.Articles.Count == 0 )
+
+					{
+
+						<Label class="muted">Advance time to generate league stories.</Label>
+
+					}
+
+					@foreach ( var n in _news.Articles )
+
+					{
+
+						<div class="news-row clickable @( _selectedNewsId == n.Id ? "selected" : "" )" @onclick='@(() => OpenNewsArticle( n.Id ))'>
+
+							<Label class="tag">@n.Category</Label>
+
+							<Label class="headline">@n.Headline</Label>
+
+							<Label class="muted">@n.WeekLabel</Label>
+
+						</div>
+
+					}
+
+				</div>
+
+				@if ( _newsDetail != null )
+
+				{
+
+					<div class="panel detail-panel">
+
+						<Label class="panel-title">@_newsDetail.Headline</Label>
+
+						<Label class="muted">@_newsDetail.Category · @_newsDetail.WeekLabel · @_newsDetail.PublishedLabel</Label>
+
+						<Label class="detail-body">@_newsDetail.Body</Label>
+
+					</div>
+
+				}
+
+				else
+
+				{
+
+					<div class="panel detail-panel empty-detail">
+
+						<Label class="muted">Select a story to read the full article.</Label>
+
+					</div>
+
+				}
+
+			</div>
+
+		}
+
+	</div>
+
+	<aside class="action-sidebar ui-region-sidebar">
+
+		<div class="sidebar-header">
+
+			<Label class="sidebar-title">To-Do</Label>
+
+			@if ( _todos.UrgentCount > 0 )
+
+			{
+
+				<Label class="sidebar-urgent">@_todos.UrgentCount urgent</Label>
+
+			}
+
+		</div>
+
+		@if ( _todos.Items.Count == 0 )
+
+		{
+
+			<Label class="muted sidebar-empty">You're all caught up. Advance time for new storylines.</Label>
+
+		}
+
+		else
+
+		{
+
+			@foreach ( var todo in _todos.Items )
+
+			{
+
+				<div class="todo-item @PriorityClass( todo )">
+
+					<div class="todo-top">
+
+						<Label class="todo-title">@todo.Title</Label>
+
+						<Button class="todo-action" Text="@TodoActionLabel( todo )" onclick='@(() => HandleTodoById( todo.Id ))' />
+
+					</div>
+
+					@if ( !string.IsNullOrEmpty( todo.Detail ) )
+
+					{
+
+						<Label class="todo-detail">@todo.Detail</Label>
+
+					}
+
+				</div>
+
+			}
+
+		}
+
+	</aside>
+
+	</div>
+
+	@if ( DynastyUi.IsOpen( UiWindowType.GameViewer ) )
+
+	{
+
+		<GameViewerModal
+			Model="@GameViewerPayload()"
+			LeagueState="@DynastyApp.League.State"
+			VisualizationMode="@_visualizationMode"
+			CanManage="@CanManage()"
+			OnClose="@CloseGameViewer"
+			OnSimulate="@RunSimulateSelectedGame" />
+
+	}
+
+	@if ( DynastyUi.IsOpen( UiWindowType.DraftCeremony ) )
+
+	{
+
+		<DraftCeremonyModal
+			Model="@DraftCeremonyPayload()"
+			OnDismiss="@CloseDraftCeremony" />
+
+	}
+
+	@if ( DynastyUi.IsOpen( UiWindowType.SessionSummary ) )
+	{
+		<SessionSummaryModal
+			Model="@SessionSummaryPayload()"
+			OnConfirm="@ConfirmExitToMenu" />
+	}
+
+	@if ( DynastyUi.IsOpen( UiWindowType.FourthDownDecision ) )
+	{
+		<FourthDownDecisionModal OnChoose="@OnFourthDownChoice" />
+	}
+
+	@if ( _showTeamProfile && _teamProfileModal != null )
+	{
+		var teamProfile = _teamProfileModal;
+		<div class="ui-modal-backdrop team-profile-backdrop ui-anim-fade" @onclick=@CloseTeamProfile>
+			<div class="ui-modal-card team-profile-card" @onmousedown='@UiModalHelpers.StopPropagation'>
+				<Label class="modal-title">Team Profile</Label>
+
+				<div class="team-profile-hero @( teamProfile.IsUserTeam ? "user-team" : "" )">
+					<div class="team-profile-identity">
+						<Label class="team-profile-abbr">@teamProfile.Abbreviation</Label>
+						<div class="team-profile-text">
+							<Label class="team-profile-name">@teamProfile.DisplayName</Label>
+							<div class="team-profile-meta">
+								<div class="team-profile-meta-item">
+									<Label class="team-profile-meta-val">@teamProfile.Record</Label>
+									<Label class="team-profile-meta-label">Record</Label>
+								</div>
+								<Label class="team-profile-meta-sep">|</Label>
+								<div class="team-profile-meta-item">
+									<Label class="team-profile-meta-val">#@teamProfile.StandingRank</Label>
+									<Label class="team-profile-meta-label">Standing</Label>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<div class="team-profile-stats">
+						@if ( !string.IsNullOrEmpty( teamProfile.DepthChartLabel ) )
+						{
+							<div class="profile-stat">
+								<Label class="profile-stat-val">@teamProfile.DepthChartLabel</Label>
+								<Label class="profile-stat-label">Lineup</Label>
+							</div>
+						}
+						<div class="profile-stat">
+							<Label class="profile-stat-val ovr">@teamProfile.OffenseOverall</Label>
+							<Label class="profile-stat-label">Off OVR</Label>
+						</div>
+						<div class="profile-stat">
+							<Label class="profile-stat-val ovr">@teamProfile.DefenseOverall</Label>
+							<Label class="profile-stat-label">Def OVR</Label>
+						</div>
+						<div class="profile-stat">
+							<Label class="profile-stat-val ovr team-ovr">@teamProfile.TeamOverall</Label>
+							<Label class="profile-stat-label">Team OVR</Label>
+						</div>
+						<div class="profile-stat">
+							<Label class="profile-stat-val">@teamProfile.Prestige</Label>
+							<Label class="profile-stat-label">Prestige</Label>
+						</div>
+						<div class="profile-stat">
+							<Label class="profile-stat-val">@teamProfile.Morale</Label>
+							<Label class="profile-stat-label">Morale</Label>
+						</div>
+						<div class="profile-stat">
+							<Label class="profile-stat-val">$@(teamProfile.CapSpace / 1_000_000)M</Label>
+							<Label class="profile-stat-label">Cap Space</Label>
+						</div>
+						<div class="profile-stat">
+							<Label class="profile-stat-val">@teamProfile.RosterCount</Label>
+							<Label class="profile-stat-label">Roster</Label>
+						</div>
+						<div class="profile-stat">
+							<Label class="profile-stat-val">@teamProfile.BuildingWindow</Label>
+							<Label class="profile-stat-label">Window</Label>
+						</div>
+					</div>
+				</div>
+
+				<Label class="panel-subtitle recent-games-title">Recent Games</Label>
+				@if ( teamProfile.RecentGames.Count == 0 )
+				{
+					<Label class="muted">No completed games this season yet.</Label>
+				}
+				else
+				{
+					<div class="recent-games-list">
+						@foreach ( var game in teamProfile.RecentGames )
+						{
+							<div class="recent-game-row clickable @TeamGameResultClass( game.ResultLabel )" @onclick='@(() => OpenTeamProfileGame( game.GameId.Value ))'>
+								<Label class="recent-game-week">Wk @game.Week</Label>
+								<Label class="recent-game-matchup">@game.MatchupLabel</Label>
+								<Label class="recent-game-score">@game.ScoreLine</Label>
+								<Label class="recent-game-result">@game.ResultLabel</Label>
+							</div>
+						}
+					</div>
+				}
+
+				<div class="modal-actions">
+					<Button class="btn secondary" Text="Close" onclick=@CloseTeamProfile />
+				</div>
+			</div>
+		</div>
+	}
+
+	@if ( DynastyUi.IsOpen( UiWindowType.AdvanceTimeMenu ) )
+	{
+		<div class="ui-modal-backdrop ui-anim-fade" style="@UiModalHelpers.ZIndexStyle( UiWindowType.AdvanceTimeMenu )" @onclick='@(() => UiModalHelpers.BackdropClick( UiWindowType.AdvanceTimeMenu, CloseAdvanceMenu ))'>
+			<div class="ui-modal-card advance-time-modal" @onmousedown='@UiModalHelpers.StopPropagation'>
+				<Label class="modal-title">Advance Time</Label>
+				<Label class="muted">Simulate games and league events automatically.</Label>
+				<div class="advance-time-options">
+					<Button class="btn secondary advance-time-option" Text="Advance Week" onclick='@(() => ExecuteAdvanceTarget( TimeAdvanceTarget.OneWeek ))' />
+					<Button class="btn secondary advance-time-option" Text="Advance to Mid-Season" onclick='@(() => ExecuteAdvanceTarget( TimeAdvanceTarget.MidSeason ))' />
+					<Button class="btn secondary advance-time-option" Text="Advance to End of Regular Season" onclick='@(() => ExecuteAdvanceTarget( TimeAdvanceTarget.EndRegularSeason ))' />
+					<Button class="btn secondary advance-time-option" Text="Advance to Super Bowl" onclick='@(() => ExecuteAdvanceTarget( TimeAdvanceTarget.SuperBowl ))' />
+					<Button class="btn secondary advance-time-option" Text="Advance to Next Draft" onclick='@(() => ExecuteAdvanceTarget( TimeAdvanceTarget.NextDraft ))' />
+				</div>
+				<div class="modal-actions">
+					<Button class="btn secondary" Text="Cancel" onclick=@CloseAdvanceMenu />
+				</div>
+			</div>
+		</div>
+	}
+
+	@if ( DynastyUi.IsOpen( UiWindowType.WeekSummary ) )
+	{
+		<div class="ui-modal-backdrop ui-anim-fade" style="@UiModalHelpers.ZIndexStyle( UiWindowType.WeekSummary )" @onclick='@(() => UiModalHelpers.BackdropClick( UiWindowType.WeekSummary, CloseWeekSummary ))'>
+			<div class="ui-modal-card week-summary-modal" @onmousedown='@UiModalHelpers.StopPropagation'>
+				<Label class="modal-title">@(ActiveWeekSummary()?.Title ?? "Week Summary")</Label>
+				@if ( !string.IsNullOrEmpty( ActiveWeekSummary()?.Headline ) )
+				{
+					<Label class="week-summary-headline">@ActiveWeekSummary()?.Headline</Label>
+				}
+				<div class="week-summary-lines">
+					@foreach ( var line in ActiveWeekSummary()?.Lines ?? Array.Empty<string>() )
+					{
+						<Label class="week-summary-line">@line</Label>
+					}
+				</div>
+				<div class="modal-actions">
+					<Button class="btn secondary" Text="View Inbox" onclick=@WeekSummaryOpenInbox />
+					<Button class="btn primary" Text="Continue" onclick=@CloseWeekSummary />
+				</div>
+			</div>
+		</div>
+	}
+
+	@if ( DynastyUi.IsOpen( UiWindowType.PostGameCelebration ) )
+	{
+		<div class="ui-modal-backdrop celebration-backdrop ui-anim-fade" style="@UiModalHelpers.ZIndexStyle( UiWindowType.PostGameCelebration )" @onclick='@(() => UiModalHelpers.BackdropClick( UiWindowType.PostGameCelebration, ClosePostGameCelebration ))'>
+			<div class="ui-modal-card post-game-modal" @onmousedown='@UiModalHelpers.StopPropagation'>
+				<Label class="celebration-kicker">VICTORY</Label>
+				<Label class="modal-title">@ActivePostGameCelebration()?.Title</Label>
+				<Label class="celebration-score">@ActivePostGameCelebration()?.ScoreLine</Label>
+				<Label class="muted">@ActivePostGameCelebration()?.Detail</Label>
+				<div class="modal-actions">
+					<Button class="btn primary" Text="Continue Dynasty" onclick=@ClosePostGameCelebration />
+				</div>
+			</div>
+		</div>
+	}
+
+	@if ( DynastyUi.IsOpen( UiWindowType.FormationPicker ) )
+
+	{
+
+		<PlayerPickerModal
+			Picker="@ActiveFormationPicker()?.Picker"
+			GetPlayerProfile="@GetFormationPickerProfile"
+			OnClose="@CloseFormationPicker"
+			OnAssign="@AssignFormationPlayer" />
+
+	}
+
+	@if ( DynastyUi.IsOpen( UiWindowType.TeamReleaseConfirm ) && ActiveTeamPlayer() != null )
+
+	{
+
+		<div class="ui-modal-backdrop ui-anim-fade" style="@UiModalHelpers.ZIndexStyle( UiWindowType.TeamReleaseConfirm )" @onclick='@(() => UiModalHelpers.BackdropClick( UiWindowType.TeamReleaseConfirm, CloseTeamModal ))'>
+			<div class="ui-modal-card" @onmousedown='@UiModalHelpers.StopPropagation'>
+				<Label class="modal-title">Release @ActiveTeamPlayer().Name?</Label>
+				<Label class="muted">Cap savings: $@ActiveTeamPlayer().ReleasePreview.CapSavings.ToString( "N0" )</Label>
+				<Label class="muted">Dead cap hit: $@ActiveTeamPlayer().ReleasePreview.DeadCapHit.ToString( "N0" )</Label>
+				<Label class="muted">Player enters free agency.</Label>
+				<div class="modal-actions">
+					<Button class="btn secondary" Text="Cancel" onclick=@CloseTeamModal />
+					<Button class="btn primary danger" Text="Confirm Release" onclick=@ConfirmRelease />
+				</div>
+			</div>
+		</div>
+
+	}
+
+	@if ( DynastyUi.IsOpen( UiWindowType.TeamExtendDialog ) && ActiveTeamPlayer() != null )
+
+	{
+
+		<div class="ui-modal-backdrop ui-anim-fade" style="@UiModalHelpers.ZIndexStyle( UiWindowType.TeamExtendDialog )" @onclick='@(() => UiModalHelpers.BackdropClick( UiWindowType.TeamExtendDialog, CloseTeamModal ))'>
+			<div class="ui-modal-card" @onmousedown='@UiModalHelpers.StopPropagation'>
+				<Label class="modal-title">Extend @ActiveTeamPlayer().Name</Label>
+				<div class="form-row">
+					<Label>Years</Label>
+					<TextEntry class="text-input" Value:bind=@_extendYearsText />
+				</div>
+				<div class="form-row">
+					<Label>Annual salary</Label>
+					<TextEntry class="text-input" Value:bind=@_extendSalaryText />
+				</div>
+				<Label class="muted">@ExtendContractSummary()</Label>
+				<div class="modal-actions">
+					<Button class="btn secondary" Text="Cancel" onclick=@CloseTeamModal />
+					<Button class="btn primary" Text="Submit Extension" onclick=@ConfirmExtend />
+				</div>
+			</div>
+		</div>
+
+	}
+
+	@if ( DynastyUi.IsOpen( UiWindowType.TeamTradeDialog ) && ActiveTeamPlayer() != null )
+
+	{
+
+		<div class="ui-modal-backdrop ui-anim-fade" style="@UiModalHelpers.ZIndexStyle( UiWindowType.TeamTradeDialog )" @onclick='@(() => UiModalHelpers.BackdropClick( UiWindowType.TeamTradeDialog, CloseTeamModal ))'>
+			<div class="ui-modal-card trade-dialog-card" @onmousedown='@UiModalHelpers.StopPropagation'>
+				<Label class="modal-title">Trade @ActiveTeamPlayer().Name</Label>
+				<Label class="muted">Step 1 complete — now pick a partner, then choose who you receive.</Label>
+				<Label class="step-label trade-step-label">Step 2 · Trade partner</Label>
+				<div class="trade-partner-list">
+					@foreach ( var partner in ActiveTeamPlayer().TradePartners.Take( 12 ) )
+					{
+						<Button class="@TradePartnerClass( partner.TeamId )" Text="@partner.Abbreviation" onclick='@(() => SelectTradePartnerById( partner.TeamId.Value ))' />
+					}
+				</div>
+				@if ( !_tradePartnerId.IsEmpty )
+				{
+					<Label class="step-label trade-step-label">Step 3 · Player you receive</Label>
+					<div class="panel trade-summary">
+						<div class="trade-summary-row">
+							<Label class="trade-summary-key">Send</Label>
+							<Label class="trade-summary-val">@ActiveTeamPlayer()?.Name</Label>
+						</div>
+						<div class="trade-summary-row">
+							<Label class="trade-summary-key">To</Label>
+							<Label class="trade-summary-val">@TradePartnerLabel()</Label>
+						</div>
+						<div class="trade-receive-block">
+							<Label class="trade-summary-key">Receive</Label>
+							@if ( _tradeReturnPlayerId.IsEmpty )
+							{
+								<Label class="trade-receive-empty muted">Choose a player from @TradePartnerAbbreviation()</Label>
+								<Button class="btn secondary trade-action-btn" Text="@($"Select Player from {TradePartnerAbbreviation()}")" onclick=@OpenTradeReturnPicker />
+							}
+							else
+							{
+								<Label class="trade-receive-name">@TradeReturnPlayerName()</Label>
+								<Label class="trade-receive-ovr">@TradeReturnPlayerOverall() OVR</Label>
+								<Button class="btn secondary small trade-action-btn" Text="Change Return Player" onclick=@OpenTradeReturnPicker />
+							}
+						</div>
+					</div>
+				}
+				<div class="modal-actions">
+					<Button class="btn secondary" Text="Cancel" onclick=@CloseTeamModal />
+					<Button class="btn primary" Text="Propose Trade" Disabled="@(!CanProposeTrade())" onclick=@ConfirmTrade />
+				</div>
+			</div>
+		</div>
+
+		<TradeReturnPickerModal
+			Visible="@_tradeReturnPickerOpen"
+			PartnerLabel="@TradePartnerLabel()"
+			OutgoingPlayerName="@ActiveTeamPlayer()?.Name"
+			Candidates="@_tradeReturnCandidates"
+			OnSelect="@SelectTradeReturnPlayer"
+			OnCancel="@CloseTradeReturnPicker" />
+
+	}
+
+</div>
+
+
+
+@code
+
+{
+
+	private LeagueViewModelProvider _provider = new();
+
+	private string _tab = "home";
+
+
+
+	private LeagueHomeViewModel _home = new();
+
+	private InboxViewModel _inbox = new();
+
+	private TeamOverviewViewModel _team = new();
+
+	private string _teamSubTab = "roster";
+
+	private FormationSide _formationSide = FormationSide.Offense;
+
+	private FormationRosterViewModel _formationRoster = new();
+
+	private DepthChartViewModel _rosterSlots = new();
+
+	private TeamContractsViewModel _teamContracts = new();
+
+	private string _formationSelectedSlotKey = "";
+
+	private PlayerId _formationSelectedPlayerId;
+
+	private PlayerDetailViewModel _formationPlayerDetail;
+
+	private ScheduleViewModel _schedule = new();
+
+	private DraftRoomViewModel _draft = new();
+
+	private DraftBoardViewModel _draftBoard = new();
+
+	private bool _autoOpenedDraftTab;
+
+	private ActionTodoViewModel _todos = new();
+
+	private string _saveSlot = "";
+
+	private string _statusMessage = "";
+
+	private string _statusClass = "";
+
+	private ulong _lastRevision;
+
+	private PlayerId _selectedProspectId;
+
+	private PlayerId _selectedRosterPlayerId;
+
+	private PlayerDetailViewModel _playerDetail;
+
+	private PlayerProfileViewModel _playerProfile;
+
+	private PlayerId _tradeProfilePlayerId;
+
+	private TeamId _tradeProfileTeamId;
+
+	private string _extendYearsText = "3";
+
+	private string _extendSalaryText = "";
+
+	private TeamId _tradePartnerId;
+	private PlayerId _tradeReturnPlayerId;
+	private bool _tradeReturnPickerOpen;
+	private IReadOnlyList<TradePlayerRow> _tradeReturnCandidates = Array.Empty<TradePlayerRow>();
+
+	private int _scheduleWeekOffset;
+
+	private Guid _selectedInboxId;
+
+	private InboxDetailViewModel _inboxDetail;
+
+	private NewsViewModel _news = new();
+
+	private Guid _selectedNewsId;
+
+	private NewsDetailViewModel _newsDetail;
+
+	private GameVisualizationMode _visualizationMode = GameVisualizationMode.TopDownField;
+
+	private FacilitiesViewModel _facilities = new();
+
+	private TradeCenterViewModel _tradeCenter = new();
+
+	private LegacyViewModel _legacy = new();
+
+	private TeamProfileViewModel _teamProfileModal;
+
+	private bool _showTeamProfile;
+
+	private bool _pendingWeekSummary;
+	private int _summaryClosedSeason;
+	private int _summaryClosedWeek;
+	private LeaguePhase _summaryClosedPhase;
+
+	private int _statusClearToken;
+
+	private bool _uiSubscribed;
+
+	private FreeAgencyViewModel _freeAgency = new();
+
+	private PlayerId _selectedFaPlayerId;
+
+	private string _faOfferYears = "3";
+
+	private string _faOfferSalary = "";
+
+	private bool _scheduleUserOnly;
+
+	private ProspectDetailViewModel _prospectDetail;
+
+	private string _prospectSortColumn = "rank";
+
+	private bool _prospectSortDescending;
+
+
+
+	int GetLivePickSecondsRemaining()
+
+	{
+
+		var state = DynastyApp.League.State;
+
+		if ( state == null || !state.Draft.IsActive )
+
+			return 0;
+
+		var limit = state.Settings.DraftPickTimerSeconds;
+
+		if ( state.Draft.OnClockSinceUtc == default )
+
+			return limit;
+
+		var elapsed = (int)( DateTime.UtcNow - state.Draft.OnClockSinceUtc ).TotalSeconds;
+
+		return Math.Max( 0, limit - elapsed );
+
+	}
+
+
+
+	protected override int BuildHash()
+
+	{
+
+		EnsureFresh();
+
+		EnsureUiSubscription();
+
+		PollNetworkCommandFeedback();
+
+		var hash = new HashCode();
+		hash.Add( _tab );
+		hash.Add( _home.StateRevision );
+		hash.Add( _saveSlot );
+		hash.Add( _statusMessage );
+		hash.Add( _selectedProspectId );
+		hash.Add( _selectedRosterPlayerId );
+		hash.Add( _selectedInboxId );
+		hash.Add( _selectedNewsId );
+		hash.Add( DynastyUi.IsOpen( UiWindowType.GameViewer ) );
+		hash.Add( DynastyUi.IsOpen( UiWindowType.AdvanceTimeMenu ) );
+		hash.Add( DynastyUi.IsOpen( UiWindowType.WeekSummary ) );
+		hash.Add( DynastyUi.IsOpen( UiWindowType.PostGameCelebration ) );
+		hash.Add( DynastyUi.IsOpen( UiWindowType.FormationPicker ) );
+		hash.Add( DynastyUi.IsOpen( UiWindowType.TeamReleaseConfirm ) );
+		hash.Add( DynastyUi.IsOpen( UiWindowType.TeamExtendDialog ) );
+		hash.Add( DynastyUi.IsOpen( UiWindowType.TeamTradeDialog ) );
+		hash.Add( DynastyUi.IsOpen( UiWindowType.DraftCeremony ) );
+		hash.Add( _showTeamProfile );
+		hash.Add( _teamProfileModal?.Abbreviation ?? "" );
+		hash.Add( _todos.Items.Count );
+		hash.Add( GetLivePickSecondsRemaining() );
+		hash.Add( _prospectSortColumn );
+		hash.Add( _prospectSortDescending );
+		hash.Add( _teamSubTab );
+		hash.Add( _formationSide );
+		hash.Add( _formationSelectedSlotKey );
+		hash.Add( _formationSelectedPlayerId );
+		hash.Add( DynastyUiManager.Instance.ChangeToken );
+		return hash.ToHashCode();
+
+	}
+
+
+
+	void EnsureUiSubscription()
+
+	{
+
+		if ( _uiSubscribed )
+
+			return;
+
+		_uiSubscribed = true;
+
+		DynastyUiManager.Instance.StateChanged += OnDynastyUiStateChanged;
+		StandingsEvents.TeamAbbreviationClicked += OpenStandingsTeamAbbr;
+
+	}
+
+	void OnDynastyUiStateChanged() => StateHasChanged();
+
+
+
+	string RootClass() => DynastyUiManager.Instance.ShouldDimBackground ? "modal-active" : "";
+
+	string HudMainClass() => DynastyUiManager.Instance.IsHudInputBlocked ? "input-blocked" : "";
+
+	string FranchiseLineupLabel() => _home.Franchise.DepthChartLabel;
+
+	GameViewerViewModel GameViewerPayload() => DynastyUi.Payload<GameViewerViewModel>( UiWindowType.GameViewer );
+
+	DraftPickCeremonyViewModel DraftCeremonyPayload() => DynastyUi.Payload<DraftPickCeremonyViewModel>( UiWindowType.DraftCeremony );
+	SessionSummaryViewModel SessionSummaryPayload() => DynastyUi.Payload<SessionSummaryViewModel>( UiWindowType.SessionSummary );
+
+	GameId _pendingSimGameId;
+	bool _pendingSimFromViewer;
+
+	WeekSummaryPayload ActiveWeekSummary() => DynastyUi.Payload<WeekSummaryPayload>( UiWindowType.WeekSummary );
+
+	PostGameCelebrationViewModel ActivePostGameCelebration() => DynastyUi.Payload<PostGameCelebrationViewModel>( UiWindowType.PostGameCelebration );
+
+	FormationPickerPayload ActiveFormationPicker() => DynastyUi.Payload<FormationPickerPayload>( UiWindowType.FormationPicker );
+
+	PlayerDetailViewModel ActiveTeamPlayer()
+	{
+		if ( DynastyUi.IsOpen( UiWindowType.TeamReleaseConfirm ) )
+			return DynastyUi.Payload<TeamPlayerDialogPayload>( UiWindowType.TeamReleaseConfirm )?.Player;
+
+		if ( DynastyUi.IsOpen( UiWindowType.TeamExtendDialog ) )
+			return DynastyUi.Payload<TeamPlayerDialogPayload>( UiWindowType.TeamExtendDialog )?.Player;
+
+		if ( DynastyUi.IsOpen( UiWindowType.TeamTradeDialog ) )
+			return DynastyUi.Payload<TeamPlayerDialogPayload>( UiWindowType.TeamTradeDialog )?.Player;
+
+		return _playerDetail;
+	}
+
+
+
+	string _lastNetworkErrorShown = "";
+
+
+
+	void PollNetworkCommandFeedback()
+
+	{
+
+		var notification = DynastyApp.LastCommandResult;
+
+		if ( notification == null || notification.Success || string.IsNullOrEmpty( notification.Error ) )
+
+			return;
+
+
+
+		if ( notification.Error == _lastNetworkErrorShown )
+
+			return;
+
+
+
+		_lastNetworkErrorShown = notification.Error;
+
+		DynastyUiManager.Instance.EnqueueNotification( notification.Error, true );
+
+	}
+
+
+
+	void EnsureFresh()
+
+	{
+
+		var state = DynastyApp.League.State;
+
+		var revision = state != null ? state.StateRevision : 0UL;
+
+		if ( revision == _lastRevision && _home.StateRevision == revision )
+
+			return;
+
+
+
+		_lastRevision = revision;
+
+		Refresh();
+
+	}
+
+
+
+	void Refresh()
+
+	{
+
+		var state = DynastyApp.League.State;
+
+		_saveSlot = DynastyApp.Persistence != null ? DynastyApp.Persistence.ActiveSaveSlot ?? "" : "";
+
+		_provider.Update( state );
+
+		_home = _provider.GetHome();
+
+		_inbox = _provider.GetInbox();
+
+		_team = _provider.GetTeamOverview();
+
+		_formationRoster = _provider.GetFormationRoster( GetActiveFormationSide() );
+
+		_rosterSlots = _provider.GetDepthChart();
+
+		_teamContracts = _provider.GetTeamContracts();
+
+		RefreshFormationSelection();
+
+		var focusWeek = ScheduleWeekHelper.GetFocusWeek( state );
+		var requestedWeek = focusWeek + _scheduleWeekOffset;
+		var viewWeek = ScheduleWeekHelper.ClampViewWeek( state, requestedWeek );
+		_scheduleWeekOffset = viewWeek - focusWeek;
+		_schedule = _provider.GetSchedule( viewWeek, _scheduleUserOnly );
+
+		_freeAgency = _provider.GetFreeAgency();
+
+		_draft = _provider.GetDraftRoom();
+
+		_draftBoard = _provider.GetDraftBoard();
+
+		_news = _provider.GetNews();
+
+		_facilities = _provider.GetFacilities();
+
+		_tradeCenter = _provider.GetTradeCenter();
+
+		_legacy = _provider.GetLegacy();
+
+		_visualizationMode = state?.Settings.DefaultVisualizationMode ?? GameVisualizationMode.TopDownField;
+
+		if ( !_autoOpenedDraftTab && state?.Phase == Core.Enums.LeaguePhase.Draft )
+		{
+			_tab = "draft";
+			_autoOpenedDraftTab = true;
+		}
+
+		_todos = _provider.GetActionTodos();
+
+		RefreshPlayerProfile();
+
+		if ( _selectedInboxId != Guid.Empty )
+
+			_inboxDetail = _provider.GetInboxDetail( _selectedInboxId );
+
+		if ( _selectedNewsId != Guid.Empty )
+
+			_newsDetail = _provider.GetNewsDetail( _selectedNewsId );
+
+		if ( DynastyUi.IsOpen( UiWindowType.GameViewer ) )
+		{
+			var viewer = DynastyUi.Payload<GameViewerViewModel>( UiWindowType.GameViewer );
+			if ( viewer != null )
+				DynastyUi.Request( UiRequest.Open( UiWindowType.GameViewer, _provider.GetGameViewer( viewer.GameId ) ) );
+		}
+
+	}
+
+
+
+	void SetTab( string tab )
+
+	{
+		var state = DynastyApp.League.State;
+		if ( state != null && !FtueHelper.IsTabUnlocked( state, _provider.SelectedTeamId, tab ) )
+		{
+			SetStatus( $"Unlocks later — keep playing to access {tab}.", true );
+			return;
+		}
+
+		_tab = tab;
+
+		RefreshPlayerProfile();
+
+		StateHasChanged();
+
+	}
+
+	void SetTeamSubTab( string subTab )
+	{
+		_teamSubTab = subTab;
+		if ( subTab is "formation" or "specialteams" )
+			RefreshFormationSelection();
+		else
+			RefreshPlayerProfile();
+		StateHasChanged();
+	}
+
+	FormationSide GetActiveFormationSide()
+		=> _teamSubTab == "specialteams" ? FormationSide.SpecialTeams : _formationSide;
+
+	static bool IsSpecialTeamsSlot( string slotKey )
+		=> slotKey is "K" or "P";
+
+	string TeamSubNavClass( string subTab ) => _teamSubTab == subTab ? "nav-btn nav-active team-subnav-btn" : "nav-btn team-subnav-btn";
+
+	string NavClass( string tab )
+	{
+		var active = _tab == tab ? " nav-active" : "";
+		var dim = IsNavDimmed( tab ) ? " nav-dimmed" : "";
+		return $"nav-btn{active}{dim}";
+	}
+
+	bool IsNavDimmed( string tab )
+	{
+		var state = DynastyApp.League.State;
+		if ( state == null )
+			return false;
+
+		if ( !FtueHelper.IsTabUnlocked( state, _provider.SelectedTeamId, tab ) )
+			return true;
+
+		if ( tab == "draft" && state.Phase != LeaguePhase.Draft )
+			return true;
+
+		if ( tab == "freeagency" && ( state.Phase != LeaguePhase.FreeAgency || !state.FreeAgency.IsOpen ) )
+			return true;
+
+		return false;
+	}
+
+	void RefreshFormationSelection()
+	{
+		if ( string.IsNullOrEmpty( _formationSelectedSlotKey ) )
+		{
+			_formationSelectedPlayerId = PlayerId.Empty;
+			_formationPlayerDetail = null;
+			RefreshPlayerProfile();
+			return;
+		}
+
+		var slot = _formationRoster.Slots.FirstOrDefault( s => s.SlotKey == _formationSelectedSlotKey );
+		if ( slot == null || slot.IsEmpty )
+		{
+			_formationSelectedPlayerId = PlayerId.Empty;
+			_formationPlayerDetail = null;
+			RefreshPlayerProfile();
+			return;
+		}
+
+		_formationSelectedPlayerId = slot.PlayerId;
+		_formationPlayerDetail = _provider.GetPlayerDetail( slot.PlayerId );
+		RefreshPlayerProfile();
+	}
+
+	void SelectFormationSlot( string slotKey )
+	{
+		_formationSelectedSlotKey = slotKey ?? "";
+		if ( IsSpecialTeamsSlot( _formationSelectedSlotKey ) )
+			_teamSubTab = "specialteams";
+		else if ( _teamSubTab == "lineup" )
+			_teamSubTab = "formation";
+
+		_lastRevision = 0;
+		Refresh();
+		RefreshFormationSelection();
+
+		var slot = _formationRoster.Slots.FirstOrDefault( s => s.SlotKey == _formationSelectedSlotKey );
+		if ( slot?.IsEmpty == true && CanManage() )
+			OpenFormationPicker();
+		else
+			StateHasChanged();
+	}
+
+	void SetFormationSide( FormationSide side )
+	{
+		_formationSide = side;
+		_formationSelectedSlotKey = "";
+		_formationSelectedPlayerId = PlayerId.Empty;
+		_formationPlayerDetail = null;
+		_lastRevision = 0;
+		Refresh();
+		StateHasChanged();
+	}
+
+	void SetFormationType( FormationType formationType )
+	{
+		if ( !CanManage() )
+			return;
+
+		var state = DynastyApp.League.State;
+		var result = DynastyApp.League.ExecuteCommand(
+			new SetTeamFormationCommand
+			{
+				TeamId = _provider.SelectedTeamId,
+				Side = _formationSide,
+				FormationType = formationType,
+				ExpectedStateRevision = state.StateRevision
+			}, 0, true );
+
+		SetStatus( result.Success ? "Formation updated." : result.Error, !result.Success );
+		_lastRevision = 0;
+		Refresh();
+		StateHasChanged();
+	}
+
+	void OpenFormationPicker()
+	{
+		if ( !CanManage() )
+			return;
+
+		if ( string.IsNullOrEmpty( _formationSelectedSlotKey ) )
+		{
+			SetStatus( "Select a position slot first.", true );
+			return;
+		}
+
+		var slot = _formationRoster.Slots.FirstOrDefault( s => s.SlotKey == _formationSelectedSlotKey );
+		var picker = _provider.GetPlayerPicker( _formationSelectedSlotKey, slot?.DisplayLabel ?? _formationSelectedSlotKey );
+		DynastyUi.Request( UiRequest.Open( UiWindowType.FormationPicker, new FormationPickerPayload { Picker = picker } ) );
+		StateHasChanged();
+	}
+
+	void CloseFormationPicker()
+	{
+		DynastyUi.Request( UiRequest.Close( UiWindowType.FormationPicker ) );
+		StateHasChanged();
+	}
+
+	void AssignFormationPlayer( PlayerId playerId )
+	{
+		if ( !CanManage() )
+		{
+			SetStatus( "Only the host can modify the depth chart.", true );
+			return;
+		}
+
+		if ( string.IsNullOrEmpty( _formationSelectedSlotKey ) )
+		{
+			SetStatus( "Select a position slot first.", true );
+			return;
+		}
+
+		if ( playerId.IsEmpty )
+			return;
+
+		var state = DynastyApp.League.State;
+		if ( state == null )
+		{
+			SetStatus( "No league loaded.", true );
+			return;
+		}
+
+		var result = DynastyApp.League.ExecuteCommand(
+			new SetDepthChartStarterCommand
+			{
+				TeamId = _provider.SelectedTeamId,
+				SlotKey = _formationSelectedSlotKey,
+				PlayerId = playerId,
+				ExpectedStateRevision = state.StateRevision
+			}, 0, true );
+
+		SetStatus( result.Success ? "Depth chart updated." : result.Error, !result.Success );
+		DynastyUi.Request( UiRequest.Close( UiWindowType.FormationPicker ) );
+		_lastRevision = 0;
+		Refresh();
+		RefreshFormationSelection();
+		StateHasChanged();
+	}
+
+	void FormationTradePlayer()
+	{
+		if ( _formationPlayerDetail == null )
+			return;
+
+		_playerDetail = _formationPlayerDetail;
+		OpenTeamModal( "trade" );
+	}
+
+	void FormationReleasePlayer()
+	{
+		if ( _formationPlayerDetail == null )
+			return;
+
+		_playerDetail = _formationPlayerDetail;
+		OpenTeamModal( "cut" );
+	}
+
+	string FormationSelectedSlotLabel()
+		=> _formationRoster.Slots.FirstOrDefault( s => s.SlotKey == _formationSelectedSlotKey )?.DisplayLabel ?? _formationSelectedSlotKey;
+
+	string InboxTabLabel() => _inbox.ActionRequiredCount > 0 ? $"Inbox ({_inbox.ActionRequiredCount})" : "Inbox";
+
+	string PriorityClass( ActionTodoItem todo ) => todo.Priority switch
+	{
+		TodoPriority.Urgent => "urgent",
+		TodoPriority.High => "high",
+		TodoPriority.Low => "low",
+		_ => "normal"
+	};
+
+	string TodoActionLabel( ActionTodoItem todo ) => todo.Action switch
+	{
+		TodoActionType.AdvanceWeek => "Advance",
+		TodoActionType.AdvanceDay => "Go",
+		TodoActionType.AdvanceNextEvent => "Run",
+		_ => "Go"
+	};
+
+	void SelectRosterPlayer( PlayerId playerId )
+	{
+		_selectedRosterPlayerId = playerId;
+		_playerDetail = _provider.GetPlayerDetail( playerId );
+		_playerProfile = _provider.GetPlayerProfile( playerId );
+		_extendSalaryText = _playerDetail?.Contract.AnnualSalary.ToString() ?? "";
+		_extendYearsText = "3";
+		_tradePartnerId = default;
+		_tradeReturnPlayerId = default;
+		_tradeReturnPickerOpen = false;
+		CloseAllTeamDialogs();
+		StateHasChanged();
+	}
+
+	void NavigateToRosterPlayer( PlayerId playerId )
+	{
+		SetTab( "team" );
+		SetTeamSubTab( "roster" );
+		SelectRosterPlayer( playerId );
+	}
+
+	void ClosePlayerDetail()
+	{
+		_selectedRosterPlayerId = default;
+		_playerDetail = null;
+		_playerProfile = null;
+		CloseAllTeamDialogs();
+		StateHasChanged();
+	}
+
+	void OpenTradePlayerProfile( PlayerId playerId, TeamId teamId )
+	{
+		_tradeProfilePlayerId = playerId;
+		_tradeProfileTeamId = teamId;
+		_playerDetail = _provider.GetPlayerDetail( playerId, teamId );
+		_playerProfile = _provider.GetPlayerProfile( playerId, teamId );
+		if ( _playerProfile?.IsUserTeam == true )
+		{
+			_extendSalaryText = _playerDetail?.Contract.AnnualSalary.ToString() ?? "";
+			_extendYearsText = "3";
+		}
+		StateHasChanged();
+	}
+
+	void RefreshPlayerProfile()
+	{
+		if ( _tab == "draft" && !_selectedProspectId.IsEmpty )
+		{
+			_prospectDetail = _provider.GetProspectDetail( _selectedProspectId );
+			_playerProfile = _provider.GetProspectProfile( _selectedProspectId, CanManage() && _draft.IsUserOnClock );
+			return;
+		}
+
+		if ( _tab == "freeagency" && !_selectedFaPlayerId.IsEmpty )
+		{
+			_playerDetail = _provider.GetPlayerDetail( _selectedFaPlayerId );
+			_playerProfile = _provider.GetPlayerProfile( _selectedFaPlayerId );
+			return;
+		}
+
+		if ( _tab == "trades" && !_tradeProfilePlayerId.IsEmpty )
+		{
+			_playerDetail = _provider.GetPlayerDetail( _tradeProfilePlayerId, _tradeProfileTeamId );
+			_playerProfile = _provider.GetPlayerProfile( _tradeProfilePlayerId, _tradeProfileTeamId );
+			return;
+		}
+
+		if ( _tab == "team" && ( _teamSubTab is "formation" or "specialteams" ) && !_formationSelectedPlayerId.IsEmpty )
+		{
+			_playerDetail = _provider.GetPlayerDetail( _formationSelectedPlayerId );
+			_playerProfile = _provider.GetPlayerProfile( _formationSelectedPlayerId );
+			return;
+		}
+
+		if ( _tab == "team" && !_selectedRosterPlayerId.IsEmpty && _teamSubTab is "roster" or "contracts" )
+		{
+			_playerDetail = _provider.GetPlayerDetail( _selectedRosterPlayerId );
+			_playerProfile = _provider.GetPlayerProfile( _selectedRosterPlayerId );
+			return;
+		}
+
+		_playerProfile = null;
+	}
+
+	void OpenTeamModal( string modal )
+	{
+		if ( _playerDetail == null )
+			return;
+
+		if ( modal == "extend" )
+		{
+			_extendYearsText = Math.Max( 1, _playerDetail.Contract.YearsRemaining ).ToString();
+			_extendSalaryText = _playerDetail.Contract.AnnualSalary.ToString();
+		}
+
+		var window = modal switch
+		{
+			"cut" => UiWindowType.TeamReleaseConfirm,
+			"extend" => UiWindowType.TeamExtendDialog,
+			"trade" => UiWindowType.TeamTradeDialog,
+			_ => UiWindowType.None
+		};
+
+		if ( window == UiWindowType.None )
+			return;
+
+		var payload = new TeamPlayerDialogPayload { Player = _playerDetail };
+		DynastyUi.Request( UiRequest.Open( window, payload ) );
+		StateHasChanged();
+	}
+
+	void OpenExtendModal() => OpenTeamModal( "extend" );
+
+	void OpenTradeModal() => OpenTeamModal( "trade" );
+
+	void OpenReleaseModal() => OpenTeamModal( "cut" );
+
+	void CloseAllTeamDialogs()
+	{
+		DynastyUi.Request( UiRequest.Close( UiWindowType.TeamReleaseConfirm ) );
+		DynastyUi.Request( UiRequest.Close( UiWindowType.TeamExtendDialog ) );
+		DynastyUi.Request( UiRequest.Close( UiWindowType.TeamTradeDialog ) );
+	}
+
+	void CloseTeamModal()
+	{
+		CloseAllTeamDialogs();
+		StateHasChanged();
+	}
+
+	string HealthClass( string health ) => health == "Healthy" ? "healthy" : "injured";
+
+	string TradePartnerClass( TeamId teamId )
+		=> _tradePartnerId.Value == teamId.Value ? "btn secondary small active-partner" : "btn secondary small";
+
+	void SelectTradePartnerById( Guid teamId )
+	{
+		SelectTradePartner( new TeamId( teamId ) );
+	}
+
+	void SelectTradePartner( TeamId teamId )
+	{
+		_tradePartnerId = teamId;
+		_tradeReturnPlayerId = default;
+		_tradeReturnPickerOpen = false;
+		StateHasChanged();
+	}
+
+	IReadOnlyList<TradePlayerRow> GetTradePartnerRoster( TeamId partnerId )
+		=> _provider.GetTradePartnerRoster( partnerId );
+
+	void OpenTradeReturnPicker()
+	{
+		if ( _tradePartnerId.IsEmpty )
+			return;
+
+		_tradeReturnCandidates = _provider.GetTradePartnerRoster( _tradePartnerId );
+		_tradeReturnPickerOpen = true;
+		StateHasChanged();
+	}
+
+	void CloseTradeReturnPicker()
+	{
+		_tradeReturnPickerOpen = false;
+		StateHasChanged();
+	}
+
+	void SelectTradeReturnPlayer( PlayerId playerId )
+	{
+		_tradeReturnPlayerId = playerId;
+		_tradeReturnPickerOpen = false;
+		StateHasChanged();
+	}
+
+	bool CanProposeTrade()
+		=> !_tradePartnerId.IsEmpty && !_tradeReturnPlayerId.IsEmpty;
+
+	string TradePartnerAbbreviation()
+		=> _playerDetail?.TradePartners.FirstOrDefault( p => p.TeamId.Value == _tradePartnerId.Value )?.Abbreviation ?? "";
+
+	string TradeReturnPlayerName()
+	{
+		var row = _tradeReturnCandidates.FirstOrDefault( p => p.PlayerId.Value == _tradeReturnPlayerId.Value );
+		return row?.Name ?? "";
+	}
+
+	int TradeReturnPlayerOverall()
+	{
+		var row = _tradeReturnCandidates.FirstOrDefault( p => p.PlayerId.Value == _tradeReturnPlayerId.Value );
+		return row?.Overall ?? 0;
+	}
+
+	string TradePartnerLabel()
+		=> _playerDetail?.TradePartners.FirstOrDefault( p => p.TeamId.Value == _tradePartnerId.Value )?.Label ?? "";
+
+	string UnlockTraitButtonLabel()
+		=> _playerDetail != null ? $"Unlock Trait ({_playerDetail.TraitUnlockCost} DP)" : "Unlock Trait";
+
+	void ConfirmRelease()
+	{
+		if ( !CanManage() || _playerDetail == null ) return;
+
+		var result = DynastyApp.League.ExecuteCommand(
+			new ReleasePlayerCommand
+			{
+				TeamId = _provider.SelectedTeamId,
+				PlayerId = _playerDetail.Id,
+				ExpectedStateRevision = DynastyApp.League.State.StateRevision
+			}, 0, true );
+
+		SetStatus( result.Success ? $"{_playerDetail.Name} released." : result.Error, !result.Success );
+		ClosePlayerDetail();
+		_lastRevision = 0;
+		Refresh();
+		StateHasChanged();
+	}
+
+	void ConfirmExtend()
+	{
+		if ( !CanManage() || _playerDetail == null ) return;
+
+		if ( !int.TryParse( _extendYearsText, out var years ) || years < 1 )
+		{
+			SetStatus( "Enter valid years (1–7).", true );
+			return;
+		}
+
+		if ( !int.TryParse( _extendSalaryText, out var salary ) || salary < 750_000 )
+		{
+			SetStatus( "Enter a valid annual salary.", true );
+			return;
+		}
+
+		var result = DynastyApp.League.ExecuteCommand(
+			new ExtendContractCommand
+			{
+				TeamId = _provider.SelectedTeamId,
+				PlayerId = _playerDetail.Id,
+				Years = years,
+				AnnualSalary = salary,
+				ExpectedStateRevision = DynastyApp.League.State.StateRevision
+			}, 0, true );
+
+		SetStatus( result.Success ? "Contract extended." : result.Error, !result.Success );
+		if ( result.Success )
+			DynastyAudio.PlayEconomy();
+		CloseTeamModal();
+		_lastRevision = 0;
+		Refresh();
+		StateHasChanged();
+	}
+
+	void ConfirmTrade()
+	{
+		if ( !CanManage() || _playerDetail == null || _tradePartnerId.IsEmpty )
+		{
+			SetStatus( "Select a trade partner.", true );
+			return;
+		}
+
+		if ( _tradeReturnPlayerId.IsEmpty )
+		{
+			SetStatus( "Select a player to receive in the trade.", true );
+			return;
+		}
+
+		var result = DynastyApp.League.ExecuteCommand(
+			new SubmitTradeCommand
+			{
+				FromTeamId = _provider.SelectedTeamId,
+				ToTeamId = _tradePartnerId,
+				PlayerId = _playerDetail.Id,
+				ReturnPlayerId = _tradeReturnPlayerId,
+				ExpectedStateRevision = DynastyApp.League.State.StateRevision
+			}, 0, true );
+
+		SetStatus( result.Success ? "Trade completed." : result.Error, !result.Success );
+		ClosePlayerDetail();
+		_lastRevision = 0;
+		Refresh();
+		StateHasChanged();
+	}
+
+	void TrainAttribute( string attributeKey )
+	{
+		if ( !CanManage() || _playerDetail == null ) return;
+
+		var result = DynastyApp.League.ExecuteCommand(
+			new TrainPlayerAttributeCommand
+			{
+				TeamId = _provider.SelectedTeamId,
+				PlayerId = _playerDetail.Id,
+				AttributeKey = attributeKey,
+				ExpectedStateRevision = DynastyApp.League.State.StateRevision
+			}, 0, true );
+
+		SetStatus( result.Success ? "Attribute improved." : result.Error, !result.Success );
+		if ( result.Success )
+			DynastyAudio.PlayMilestone();
+		_lastRevision = 0;
+		Refresh();
+		StateHasChanged();
+	}
+
+	void UnlockTrait()
+	{
+		if ( !CanManage() || _playerDetail == null ) return;
+
+		var result = DynastyApp.League.ExecuteCommand(
+			new UnlockPlayerTraitCommand
+			{
+				TeamId = _provider.SelectedTeamId,
+				PlayerId = _playerDetail.Id,
+				ExpectedStateRevision = DynastyApp.League.State.StateRevision
+			}, 0, true );
+
+		SetStatus( result.Success ? "New trait unlocked." : result.Error, !result.Success );
+		if ( result.Success )
+			DynastyAudio.PlayMilestone();
+		_lastRevision = 0;
+		Refresh();
+		StateHasChanged();
+	}
+
+	void HandleTodoById( string todoId )
+	{
+		var todo = _todos.Items.FirstOrDefault( t => t.Id == todoId );
+		if ( todo == null )
+			return;
+
+		HandleTodo( todo );
+	}
+
+	void HandleTodo( ActionTodoItem todo )
+	{
+		switch ( todo.Action )
+		{
+			case TodoActionType.Navigate:
+				NavigateFromTodo( todo );
+				break;
+			case TodoActionType.AdvanceDay:
+				AdvanceDay();
+				break;
+			case TodoActionType.AdvanceWeek:
+				AdvanceWeek();
+				break;
+			case TodoActionType.AdvanceNextEvent:
+				if ( !string.IsNullOrEmpty( todo.NavigateTab ) )
+					SetTab( todo.NavigateTab );
+				else
+					AdvanceNextEvent();
+				break;
+		}
+	}
+
+
+	void NavigateFromTodo( ActionTodoItem todo )
+	{
+		if ( todo.InboxMessageId.HasValue )
+		{
+			var detail = InboxDetailViewModel.From( DynastyApp.League.State, todo.InboxMessageId.Value );
+			if ( detail != null && !string.IsNullOrEmpty( detail.SuggestedTab ) )
+			{
+				SetTab( detail.SuggestedTab );
+				if ( !detail.PlayerId.IsEmpty && detail.SuggestedTab == "team" )
+					NavigateToRosterPlayer( detail.PlayerId );
+				MarkInboxRead( todo.InboxMessageId.Value );
+				return;
+			}
+		}
+
+		if ( !todo.PlayerId.IsEmpty && todo.NavigateTab == "team" )
+		{
+			NavigateToRosterPlayer( todo.PlayerId );
+			return;
+		}
+
+		if ( !string.IsNullOrEmpty( todo.NavigateTab ) )
+			SetTab( todo.NavigateTab );
+	}
+
+	void MarkInboxRead( Guid messageId )
+	{
+		if ( DynastyApp.League?.State == null )
+			return;
+
+		DynastyApp.League.ExecuteCommand(
+			new MarkInboxReadCommand { MessageId = messageId, ExpectedStateRevision = DynastyApp.League.State.StateRevision },
+			0, true );
+		_lastRevision = 0;
+		Refresh();
+	}
+
+	void SetStatus( string message, bool isError = false )
+
+	{
+
+		if ( string.IsNullOrWhiteSpace( message ) )
+
+			return;
+
+		DynastyUiManager.Instance.EnqueueNotification( message, isError );
+
+		_statusMessage = message;
+
+		_statusClass = isError ? "error" : "info";
+
+		_statusClearToken++;
+
+		var token = _statusClearToken;
+
+		_ = ClearStatusAfterDelay( token );
+
+	}
+
+	async Task ClearStatusAfterDelay( int token )
+
+	{
+
+		await Task.Delay( 5000 );
+
+		if ( token != _statusClearToken )
+
+			return;
+
+		_statusMessage = "";
+
+		StateHasChanged();
+
+	}
+
+	void OnNextActionClick() => NavigateSuggestedAction();
+
+	void NavigateSuggestedAction()
+
+	{
+
+		var top = _todos.Items.FirstOrDefault();
+
+		if ( top != null )
+
+		{
+
+			HandleTodo( top );
+
+			return;
+
+		}
+
+		if ( _home.InboxActionCount > 0 )
+
+		{
+
+			SetTab( "inbox" );
+
+			return;
+
+		}
+
+		var state = DynastyApp.League.State;
+
+		if ( state?.Phase == Dynasty.Core.Enums.LeaguePhase.Draft )
+
+			SetTab( "draft" );
+
+		else if ( _home.NextGame.HasGame && !_home.NextGame.IsComplete )
+
+			OpenGame( _home.NextGame.GameId );
+
+		else
+
+			SetTab( "home" );
+
+	}
+
+	void CaptureWeekSummaryBeforeAdvance()
+	{
+		var state = DynastyApp.League?.State;
+		if ( state == null )
+			return;
+
+		_pendingWeekSummary = true;
+		_summaryClosedSeason = state.CurrentSeason;
+		_summaryClosedWeek = state.CurrentWeek;
+		_summaryClosedPhase = state.Phase;
+	}
+
+	void ShowWeekSummaryIfCaptured()
+	{
+		if ( !_pendingWeekSummary )
+			return;
+
+		_pendingWeekSummary = false;
+		var state = DynastyApp.League.State;
+		var teamId = _provider.SelectedTeamId;
+		if ( state == null || teamId.IsEmpty )
+			return;
+
+		var weekAdvanced = state.CurrentWeek != _summaryClosedWeek
+			|| state.CurrentSeason != _summaryClosedSeason
+			|| state.Phase != _summaryClosedPhase;
+
+		if ( !weekAdvanced )
+			return;
+
+		var summary = WeekSummaryViewModel.Build(
+			state,
+			teamId,
+			_summaryClosedSeason,
+			_summaryClosedWeek,
+			_summaryClosedPhase );
+
+		DynastyUi.Request( UiRequest.Open( UiWindowType.WeekSummary, new WeekSummaryPayload
+		{
+			Title = summary.Title,
+			Headline = summary.Headline,
+			Lines = summary.Lines
+		} ) );
+		StateHasChanged();
+	}
+
+	void WeekSummaryOpenInbox()
+	{
+		CloseWeekSummary();
+		SetTab( "inbox" );
+	}
+
+	void CloseWeekSummary()
+	{
+		DynastyUi.Request( UiRequest.Close( UiWindowType.WeekSummary ) );
+		StateHasChanged();
+	}
+
+	void OpenStandingsTeamAbbr( string abbreviation )
+	{
+		if ( string.IsNullOrEmpty( abbreviation ) )
+			return;
+
+		var row = _home.Standings.FirstOrDefault( r => r.Abbreviation == abbreviation );
+		if ( row == null )
+			return;
+
+		OpenTeamProfile( row.TeamId.Value );
+	}
+
+	void OpenTeamProfile( Guid teamId )
+	{
+		var profile = _provider.GetTeamProfile( new TeamId( teamId ) );
+		if ( string.IsNullOrEmpty( profile.DisplayName ) )
+		{
+			SetStatus( "Could not load team profile.", true );
+			return;
+		}
+
+		_teamProfileModal = profile;
+		_showTeamProfile = true;
+		StateHasChanged();
+	}
+
+	void CloseTeamProfile()
+	{
+		_showTeamProfile = false;
+		_teamProfileModal = null;
+		StateHasChanged();
+	}
+
+	void OpenTeamProfileGame( Guid gameId )
+	{
+		CloseTeamProfile();
+		OpenGame( new GameId( gameId ) );
+	}
+
+	static string TeamGameResultClass( string result ) => result switch
+	{
+		"W" => "win",
+		"L" => "loss",
+		_ => "tie"
+	};
+
+	void OpenAdvanceMenu()
+	{
+		if ( !CanManage() )
+			return;
+
+		DynastyUi.Request( UiRequest.Open( UiWindowType.AdvanceTimeMenu ) );
+		StateHasChanged();
+	}
+
+	void CloseAdvanceMenu()
+	{
+		DynastyUi.Request( UiRequest.Close( UiWindowType.AdvanceTimeMenu ) );
+		StateHasChanged();
+	}
+
+	void ExecuteAdvanceTarget( TimeAdvanceTarget target )
+	{
+		if ( !CanManage() )
+			return;
+
+		CloseAdvanceMenu();
+
+		if ( target == TimeAdvanceTarget.OneWeek )
+			CaptureWeekSummaryBeforeAdvance();
+
+		var result = DynastyApp.League.AdvanceToTarget( target );
+		ApplyTimeResult( result, AdvanceTargetSuccessMessage( target, result.Success ) );
+
+		if ( target == TimeAdvanceTarget.OneWeek && result.Success )
+			ShowWeekSummaryIfCaptured();
+	}
+
+	static string AdvanceTargetSuccessMessage( TimeAdvanceTarget target, bool success )
+	{
+		if ( !success )
+			return "";
+
+		return target switch
+		{
+			TimeAdvanceTarget.OneWeek => "Week advanced.",
+			TimeAdvanceTarget.MidSeason => "Advanced to mid-season.",
+			TimeAdvanceTarget.EndRegularSeason => "Advanced to the end of the regular season.",
+			TimeAdvanceTarget.SuperBowl => "Advanced through the Super Bowl.",
+			TimeAdvanceTarget.NextDraft => "Advanced to the draft.",
+			_ => "Time advanced."
+		};
+	}
+
+
+
+	void AdvanceWeek()
+	{
+		ExecuteAdvanceTarget( TimeAdvanceTarget.OneWeek );
+	}
+
+
+
+	void AdvanceDay()
+
+	{
+
+		if ( !CanManage() ) return;
+
+		var result = DynastyApp.League.AdvanceDay();
+
+		ApplyTimeResult( result, "Day advanced." );
+
+	}
+
+
+
+	void AdvanceNextEvent()
+
+	{
+
+		if ( !CanManage() ) return;
+
+		var result = DynastyApp.League.AdvanceToNextEvent();
+
+		ApplyTimeResult( result, "Processed next event." );
+
+	}
+
+
+
+	void ApplyTimeResult( Dynasty.Core.Commands.LeagueCommandResult result, string successMessage )
+
+	{
+
+		if ( result.Success )
+
+			SetStatus( successMessage );
+
+		else
+
+		{
+
+			_pendingWeekSummary = false;
+
+			SetStatus( result.Error ?? "Could not advance.", true );
+
+		}
+
+
+
+		_lastRevision = 0;
+
+		Refresh();
+
+		StateHasChanged();
+
+	}
+
+
+
+	void ResolveInbox( Guid messageId )
+
+	{
+
+		if ( !CanManage() ) return;
+
+		var result = DynastyApp.League.ExecuteCommand(
+
+			new ResolveInboxMessageCommand { MessageId = messageId, ExpectedStateRevision = DynastyApp.League.State.StateRevision },
+
+			0, true );
+
+		SetStatus( result.Success ? "Message resolved." : result.Error, !result.Success );
+
+		if ( result.Success && _selectedInboxId == messageId )
+		{
+			_selectedInboxId = Guid.Empty;
+			_inboxDetail = null;
+		}
+
+		_lastRevision = 0;
+
+		Refresh();
+
+		StateHasChanged();
+
+	}
+
+
+
+	void SelectProspect( PlayerId prospectId )
+
+	{
+
+		_selectedProspectId = prospectId;
+
+		_prospectDetail = _provider.GetProspectDetail( prospectId );
+
+		_playerProfile = _provider.GetProspectProfile( prospectId, CanManage() && _draft.IsUserOnClock );
+
+		StateHasChanged();
+
+	}
+
+	bool IsInboxSelected( Guid id ) => _selectedInboxId == id;
+
+	string InboxRowClass( InboxRow msg )
+	{
+		var classes = "inbox-row clickable";
+		if ( msg.RequiresAction )
+			classes += " urgent";
+		if ( !IsInboxSelected( msg.Id ) && !msg.IsRead )
+			classes += " unread";
+		if ( IsInboxSelected( msg.Id ) )
+			classes += " selected";
+		return classes;
+	}
+
+	string ExtendContractSummary()
+	{
+		var player = ActiveTeamPlayer();
+		return player == null
+			? ""
+			: $"Current: {player.Contract.YearsRemaining} yr @ ${player.Contract.AnnualSalary:N0}";
+	}
+
+	static string DraftBoardPlayerLabel( DraftBoardPickRow pick )
+		=> string.IsNullOrEmpty( pick.Position )
+			? pick.PlayerName
+			: $"{pick.PlayerName} ({pick.Position})";
+
+	string DraftPickTimerLabel()
+
+	{
+
+		var remaining = GetLivePickSecondsRemaining();
+
+		return $"{remaining / 60}:{remaining % 60:D2}";
+
+	}
+
+	bool DraftPickTimerUrgent() => _draftBoard.IsActive && GetLivePickSecondsRemaining() <= 15;
+
+	void ToggleProspectSort( string column )
+
+	{
+
+		if ( _prospectSortColumn == column )
+
+			_prospectSortDescending = !_prospectSortDescending;
+
+		else
+
+		{
+
+			_prospectSortColumn = column;
+
+			_prospectSortDescending = column is "overall" or "age";
+
+		}
+
+		StateHasChanged();
+
+	}
+
+	string ProspectSortClass( string column ) => _prospectSortColumn == column ? "active" : "";
+
+	string ProspectSortHeader( string column, string label )
+
+		=> _prospectSortColumn != column
+			? label
+			: _prospectSortDescending
+				? $"{label} v"
+				: $"{label} ^";
+
+	IEnumerable<ProspectRow> GetSortedProspects()
+
+	{
+
+		var list = _draftBoard.AvailableProspects;
+
+		if ( list.Count == 0 )
+
+			return list;
+
+
+
+		return _prospectSortColumn switch
+
+		{
+
+			"position" => _prospectSortDescending
+
+				? list.OrderByDescending( p => p.PositionEnum ).ThenBy( p => p.Rank )
+
+				: list.OrderBy( p => p.PositionEnum ).ThenBy( p => p.Rank ),
+
+			"age" => _prospectSortDescending
+
+				? list.OrderByDescending( p => p.AgeYears ).ThenBy( p => p.Rank )
+
+				: list.OrderBy( p => p.AgeYears ).ThenBy( p => p.Rank ),
+
+			"overall" => SortProspectsByRating( list, p => p.OverallRating ),
+
+			_ => _prospectSortDescending
+
+				? list.OrderByDescending( p => p.Rank )
+
+				: list.OrderBy( p => p.Rank ),
+
+		};
+
+	}
+
+	IEnumerable<ProspectRow> SortProspectsByRating( IReadOnlyList<ProspectRow> list, Func<ProspectRow, int?> selector )
+
+	{
+
+		if ( _prospectSortDescending )
+
+		{
+
+			return list
+
+				.OrderByDescending( p => selector( p ).HasValue )
+
+				.ThenByDescending( p => selector( p ) ?? int.MinValue )
+
+				.ThenBy( p => p.Rank );
+
+		}
+
+
+
+		return list
+
+			.OrderByDescending( p => selector( p ).HasValue )
+
+			.ThenBy( p => selector( p ) ?? int.MaxValue )
+
+			.ThenBy( p => p.Rank );
+
+	}
+
+	void SelectInboxMessage( Guid messageId )
+	{
+		_selectedInboxId = messageId;
+		_inboxDetail = _provider.GetInboxDetail( messageId );
+
+		if ( CanManage() )
+		{
+			DynastyApp.League.ExecuteCommand(
+				new MarkInboxReadCommand { MessageId = messageId, ExpectedStateRevision = DynastyApp.League.State.StateRevision },
+				0, true );
+		}
+
+		_lastRevision = 0;
+		Refresh();
+		StateHasChanged();
+	}
+
+	void InboxTakeAction()
+	{
+		if ( _inboxDetail == null )
+			return;
+
+		if ( !string.IsNullOrEmpty( _inboxDetail.SuggestedTab ) )
+			SetTab( _inboxDetail.SuggestedTab );
+
+		if ( !_inboxDetail.PlayerId.IsEmpty && _inboxDetail.SuggestedTab == "team" )
+			NavigateToRosterPlayer( _inboxDetail.PlayerId );
+	}
+
+	void OpenNewsArticle( Guid articleId )
+	{
+		_selectedNewsId = articleId;
+		_newsDetail = _provider.GetNewsDetail( articleId );
+		if ( _tab != "news" )
+			_tab = "news";
+		StateHasChanged();
+	}
+
+	void OpenNextGame()
+	{
+		if ( !_home.NextGame.HasGame )
+			return;
+
+		OpenGame( _home.NextGame.GameId );
+	}
+
+	void OpenGame( GameId gameId )
+	{
+		var autoReplay = FtueHelper.ShouldAutoOpenReplay( DynastyApp.League.State );
+		DynastyUiManager.Instance.SetGameplayPhase( UiGameplayPhase.GameSimulation );
+		DynastyUi.Request( UiRequest.Open( UiWindowType.GameViewer, _provider.GetGameViewer( gameId, autoReplay ) ) );
+		StateHasChanged();
+	}
+
+	void CloseGameViewer()
+	{
+		DynastyUi.Request( UiRequest.Close( UiWindowType.GameViewer ) );
+		DynastyUiManager.Instance.SetGameplayPhase( UiGameplayPhase.FranchiseManagement );
+		StateHasChanged();
+	}
+
+	void RunSimulateSelectedGame()
+	{
+		var viewer = DynastyUi.Payload<GameViewerViewModel>( UiWindowType.GameViewer );
+		if ( viewer == null )
+			return;
+
+		BeginSimulateGame( viewer.GameId, fromViewer: true );
+	}
+
+	void BeginSimulateGame( GameId gameId, bool fromViewer = true )
+	{
+		if ( !CanManage() )
+			return;
+
+		var state = DynastyApp.League.State;
+		if ( state != null && FtueHelper.ShouldPromptFourthDownDecision( state ) )
+		{
+			_pendingSimGameId = gameId;
+			_pendingSimFromViewer = fromViewer;
+			DynastyUi.Request( UiRequest.Open( UiWindowType.FourthDownDecision, null ) );
+			StateHasChanged();
+			return;
+		}
+
+		if ( fromViewer )
+			_ = SimulateSelectedGame();
+		else
+			_ = SimulateGameById( gameId );
+	}
+
+	void OnFourthDownChoice( string choice )
+	{
+		DynastyUi.Request( UiRequest.Close( UiWindowType.FourthDownDecision ) );
+
+		var plan = choice switch
+		{
+			"runHeavy" => WeeklyGamePlan.RunHeavy,
+			"passHeavy" => WeeklyGamePlan.PassHeavy,
+			"blitz" => WeeklyGamePlan.DefensiveFocus,
+			_ => WeeklyGamePlan.Balanced
+		};
+
+		if ( FtueHelper.ShouldPromptFourthDownDecision( DynastyApp.League.State ) )
+		{
+			DynastyApp.League.ExecuteCommand(
+				new SetWeeklyGamePlanCommand
+				{
+					TeamId = _provider.SelectedTeamId,
+					Plan = plan,
+					ExpectedStateRevision = DynastyApp.League.State.StateRevision
+				}, Connection.Local?.SteamId ?? 0, true );
+		}
+
+		if ( _pendingSimFromViewer )
+			_ = SimulateSelectedGame();
+		else if ( !_pendingSimGameId.IsEmpty )
+			_ = SimulateGameById( _pendingSimGameId );
+
+		_pendingSimGameId = default;
+		StateHasChanged();
+	}
+
+	async Task SimulateGameById( GameId gameId )
+	{
+		if ( !CanManage() )
+			return;
+
+		var wasUserGame = DynastyApp.League.State.Schedule.Games
+			.Any( g => g.Id.Value == gameId.Value
+				&& ( g.HomeTeamId.Value == _provider.SelectedTeamId.Value || g.AwayTeamId.Value == _provider.SelectedTeamId.Value ) );
+
+		var result = DynastyApp.League.ExecuteCommand(
+			new SimulateGameCommand
+			{
+				GameId = gameId,
+				ExpectedStateRevision = DynastyApp.League.State.StateRevision
+			}, Connection.Local?.SteamId ?? 0, true );
+
+		SetStatus( result.Success ? "Game simulated." : result.Error, !result.Success );
+		_lastRevision = 0;
+		Refresh();
+
+		if ( result.Success && wasUserGame )
+		{
+			var autoReplay = FtueHelper.ShouldAutoOpenReplay( DynastyApp.League.State );
+			DynastyUiManager.Instance.SetGameplayPhase( UiGameplayPhase.GameSimulation );
+			DynastyUi.Request( UiRequest.Open( UiWindowType.GameViewer, _provider.GetGameViewer( gameId, autoReplay ) ) );
+		}
+
+		StateHasChanged();
+	}
+
+	async Task SimulateSelectedGame()
+	{
+		var viewer = DynastyUi.Payload<GameViewerViewModel>( UiWindowType.GameViewer );
+		if ( !CanManage() || viewer == null )
+			return;
+
+		var gameId = viewer.GameId;
+		var wasUserGame = viewer.IsUserGame;
+
+		var result = DynastyApp.League.ExecuteCommand(
+			new SimulateGameCommand
+			{
+				GameId = gameId,
+				ExpectedStateRevision = DynastyApp.League.State.StateRevision
+			}, 0, true );
+
+		SetStatus( result.Success ? "Game simulated." : result.Error, !result.Success );
+		_lastRevision = 0;
+		Refresh();
+		var refreshed = _provider.GetGameViewer( gameId, FtueHelper.ShouldAutoOpenReplay( DynastyApp.League.State ) );
+		DynastyUi.Request( UiRequest.Open( UiWindowType.GameViewer, refreshed ) );
+
+		if ( result.Success && wasUserGame && refreshed != null && TryBuildWinCelebration( refreshed, gameId, out var celebration ) )
+		{
+			DynastyAudio.PlayMilestone();
+			DynastyUi.Request( UiRequest.Close( UiWindowType.GameViewer ) );
+			DynastyUiManager.Instance.SetGameplayPhase( UiGameplayPhase.Celebration );
+			DynastyUi.Request( UiRequest.Open( UiWindowType.PostGameCelebration, celebration ) );
+		}
+
+		StateHasChanged();
+	}
+
+	bool TryBuildWinCelebration( GameViewerViewModel viewer, GameId gameId, out PostGameCelebrationViewModel celebration )
+	{
+		celebration = null;
+		var state = DynastyApp.League.State;
+		var userId = _provider.SelectedTeamId;
+		if ( state == null || userId.IsEmpty || viewer == null )
+			return false;
+
+		var game = state.Schedule.Games.FirstOrDefault( g => g.Id.Value == gameId.Value );
+		if ( game?.Result == null )
+			return false;
+
+		var userIsHome = game.HomeTeamId.Value == userId.Value;
+		var userWon = userIsHome ? viewer.HomeWon : viewer.AwayWon;
+		if ( !userWon )
+			return false;
+
+		celebration = new PostGameCelebrationViewModel
+		{
+			Title = viewer.WinnerLabel,
+			ScoreLine = $"{viewer.Away} {viewer.AwayScore} — {viewer.Home} {viewer.HomeScore}",
+			Detail = "Your team takes the W. Prestige and fan happiness increased."
+		};
+		return true;
+	}
+
+	void ClosePostGameCelebration()
+	{
+		DynastyUi.Request( UiRequest.Close( UiWindowType.PostGameCelebration ) );
+		DynastyUiManager.Instance.SetGameplayPhase( UiGameplayPhase.FranchiseManagement );
+		StateHasChanged();
+	}
+
+	void ChangeScheduleWeek( int delta )
+	{
+		var state = DynastyApp.League.State;
+		if ( state == null )
+			return;
+
+		var focusWeek = ScheduleWeekHelper.GetFocusWeek( state );
+		var (minWeek, maxWeek) = ScheduleWeekHelper.GetSeasonWeekRange( state );
+		var currentView = focusWeek + _scheduleWeekOffset;
+		var nextView = Math.Clamp( currentView + delta, minWeek, maxWeek );
+		_scheduleWeekOffset = nextView - focusWeek;
+		_lastRevision = 0;
+		Refresh();
+		StateHasChanged();
+	}
+
+	void ResetScheduleWeek()
+	{
+		_scheduleWeekOffset = 0;
+		_lastRevision = 0;
+		Refresh();
+		StateHasChanged();
+	}
+
+	void ToggleScheduleFilter()
+	{
+		_scheduleUserOnly = !_scheduleUserOnly;
+		_lastRevision = 0;
+		Refresh();
+		StateHasChanged();
+	}
+
+	string ScheduleFilterClass() => _scheduleUserOnly ? "btn secondary small active-filter" : "btn secondary small";
+
+	string FreeAgencyTabLabel()
+	{
+		if ( _freeAgency.IsOpen && _freeAgency.AvailableCount > 0 )
+			return $"Free Agency ({_freeAgency.AvailableCount})";
+
+		return "Free Agency";
+	}
+
+	string PhaseClass()
+	{
+		return _home.Phase switch
+		{
+			"Draft" => "phase-draft",
+			"FreeAgency" => "phase-fa",
+			"RegularSeason" => "phase-season",
+			"Playoffs" => "phase-playoffs",
+			_ => ""
+		};
+	}
+
+	PlayerProfileViewModel GetFormationPickerProfile( PlayerId playerId )
+		=> _provider.GetPlayerProfile( playerId );
+
+	void SelectFreeAgent( PlayerId playerId, int askingSalary )
+	{
+		_selectedFaPlayerId = playerId;
+		_faOfferYears = "3";
+		_faOfferSalary = askingSalary.ToString();
+		_playerDetail = _provider.GetPlayerDetail( playerId );
+		_playerProfile = _provider.GetPlayerProfile( playerId );
+		StateHasChanged();
+	}
+
+	void SubmitFreeAgentOffer()
+	{
+		if ( !CanManage() || _selectedFaPlayerId.IsEmpty )
+			return;
+
+		if ( !int.TryParse( _faOfferYears, out var years ) || years < 1 || years > 7 )
+		{
+			SetStatus( "Enter valid years (1–7).", true );
+			return;
+		}
+
+		if ( !int.TryParse( _faOfferSalary, out var salary ) || salary < 750_000 )
+		{
+			SetStatus( "Enter a valid annual salary.", true );
+			return;
+		}
+
+		var offer = new ContractOffer
+		{
+			PlayerId = _selectedFaPlayerId,
+			TeamId = _provider.SelectedTeamId,
+			Years = years,
+			AnnualSalary = salary,
+			GuaranteedMoney = (int)( salary * years * 0.4f )
+		};
+
+		var result = DynastyApp.League.ExecuteCommand(
+			new SubmitContractOfferCommand
+			{
+				Offer = offer,
+				ExpectedStateRevision = DynastyApp.League.State.StateRevision
+			}, 0, true );
+
+		SetStatus( result.Success ? "Offer submitted — resolving now." : result.Error, !result.Success );
+		_lastRevision = 0;
+		Refresh();
+		StateHasChanged();
+	}
+
+	void DraftSelectedProspect()
+	{
+		if ( _playerProfile == null || _playerProfile.Kind != PlayerProfileKind.Prospect )
+			return;
+
+		SelectProspect( _playerProfile.Id );
+		ConfirmDraftPick();
+	}
+
+	void SimOneDraftPick()
+	{
+		if ( !CanManage() ) return;
+
+		var result = DynastyApp.League.ExecuteCommand(
+			new SimulateDraftPickCommand { ExpectedStateRevision = DynastyApp.League.State.StateRevision },
+			0, true );
+
+		SetStatus( result.Success ? "Pick simulated." : result.Error, !result.Success );
+		_lastRevision = 0;
+		Refresh();
+		StateHasChanged();
+	}
+
+	void SimDraftToHuman()
+	{
+		if ( !CanManage() ) return;
+
+		var result = DynastyApp.League.ExecuteCommand(
+			new SimDraftToHumanCommand { ExpectedStateRevision = DynastyApp.League.State.StateRevision },
+			0, true );
+
+		SetStatus( result.Success ? "Simulated to your pick." : result.Error, !result.Success );
+		_lastRevision = 0;
+		Refresh();
+		StateHasChanged();
+	}
+
+	void SimRestOfDraft()
+	{
+		if ( !CanManage() ) return;
+
+		var result = DynastyApp.League.ExecuteCommand(
+			new SimRestOfDraftCommand { ExpectedStateRevision = DynastyApp.League.State.StateRevision },
+			0, true );
+
+		SetStatus( result.Success ? "Draft completed." : result.Error, !result.Success );
+		_lastRevision = 0;
+		Refresh();
+		StateHasChanged();
+	}
+
+	void SimSmartDraft()
+	{
+		if ( !CanManage() ) return;
+
+		var result = DynastyApp.League.ExecuteCommand(
+			new SimSmartDraftCommand { ExpectedStateRevision = DynastyApp.League.State.StateRevision },
+			0, true );
+
+		SetStatus( result.Success ? "Smart sim paused — review the board or make your pick." : result.Error, !result.Success );
+		_lastRevision = 0;
+		Refresh();
+		StateHasChanged();
+	}
+
+	void ConfirmDraftPick()
+	{
+		if ( !CanManage() || _selectedProspectId.IsEmpty ) return;
+
+		var teamId = _provider.SelectedTeamId;
+		var prospectId = _selectedProspectId;
+		var current = DynastyApp.League.State.Draft.Order.ElementAtOrDefault( DynastyApp.League.State.Draft.CurrentPickIndex );
+		var round = current?.Round ?? 0;
+		var overall = current?.OverallPick ?? 0;
+
+		var result = DynastyApp.League.ExecuteCommand(
+			new MakeDraftPickCommand
+			{
+				PickingTeamId = teamId,
+				ProspectId = prospectId,
+				ExpectedStateRevision = DynastyApp.League.State.StateRevision
+			}, 0, true );
+
+		SetStatus( result.Success ? "Draft pick submitted." : result.Error, !result.Success );
+
+		if ( result.Success )
+		{
+			if ( !FtueHelper.ShouldShowDraftCeremony( DynastyApp.League.State, teamId ) )
+			{
+				_selectedProspectId = default;
+				_lastRevision = 0;
+				Refresh();
+				StateHasChanged();
+				return;
+			}
+
+			FtueHelper.OnHumanDraftCeremonyShown( DynastyApp.League.State );
+			var ceremony = DraftPickCeremonyViewModel.From( DynastyApp.League.State, teamId, prospectId, round, overall );
+			DynastyUiManager.Instance.SetGameplayPhase( UiGameplayPhase.Celebration );
+			DynastyUi.Request( UiRequest.Open( UiWindowType.DraftCeremony, ceremony ) );
+		}
+
+		_selectedProspectId = default;
+		_lastRevision = 0;
+		Refresh();
+		StateHasChanged();
+	}
+
+	void CloseDraftCeremony()
+	{
+		DynastyUi.Request( UiRequest.Close( UiWindowType.DraftCeremony ) );
+		DynastyUiManager.Instance.SetGameplayPhase( UiGameplayPhase.FranchiseManagement );
+		StateHasChanged();
+	}
+
+	void UpgradeFacility( FacilityType type )
+	{
+		if ( !CanManage() ) return;
+
+		var result = DynastyApp.League.ExecuteCommand(
+			new UpgradeFacilityCommand
+			{
+				TeamId = _provider.SelectedTeamId,
+				FacilityType = type,
+				ExpectedStateRevision = DynastyApp.League.State.StateRevision
+			}, 0, true );
+
+		SetStatus( result.Success ? "Facility upgraded." : result.Error, !result.Success );
+		if ( result.Success )
+			DynastyAudio.PlayEconomy();
+		_lastRevision = 0;
+		Refresh();
+		StateHasChanged();
+	}
+
+	void SubmitTradeFromCenter( PlayerId outgoingPlayerId, TeamId partnerId, PlayerId returnPlayerId )
+	{
+		if ( !CanManage() ) return;
+
+		var result = DynastyApp.League.ExecuteCommand(
+			new SubmitTradeCommand
+			{
+				FromTeamId = _provider.SelectedTeamId,
+				PlayerId = outgoingPlayerId,
+				ToTeamId = partnerId,
+				ReturnPlayerId = returnPlayerId,
+				ExpectedStateRevision = DynastyApp.League.State.StateRevision
+			}, 0, true );
+
+		SetStatus( result.Success ? "Trade completed." : result.Error, !result.Success );
+		_lastRevision = 0;
+		Refresh();
+		StateHasChanged();
+	}
+
+	void RespondTradeOffer( Guid offerId, bool accept )
+	{
+		if ( !CanManage() ) return;
+
+		var result = DynastyApp.League.ExecuteCommand(
+			new RespondTradeOfferCommand
+			{
+				OfferId = offerId,
+				Accept = accept,
+				ExpectedStateRevision = DynastyApp.League.State.StateRevision
+			}, 0, true );
+
+		SetStatus( result.Success ? (accept ? "Trade accepted." : "Trade declined.") : result.Error, !result.Success );
+		if ( result.Success && accept )
+			DynastyAudio.PlayEconomy();
+		_lastRevision = 0;
+		Refresh();
+		StateHasChanged();
+	}
+
+	bool ShowGamePlanBar =>
+		DynastyApp.League?.State != null
+		&& (DynastyApp.League.State.Phase == LeaguePhase.RegularSeason || DynastyApp.League.State.Phase == LeaguePhase.Playoffs);
+
+	void SetGamePlan( string planKey )
+	{
+		if ( !CanManage() ) return;
+
+		var plan = planKey switch
+		{
+			"runHeavy" => WeeklyGamePlan.RunHeavy,
+			"passHeavy" => WeeklyGamePlan.PassHeavy,
+			"defensiveFocus" => WeeklyGamePlan.DefensiveFocus,
+			_ => WeeklyGamePlan.Balanced
+		};
+
+		var result = DynastyApp.League.ExecuteCommand(
+			new SetWeeklyGamePlanCommand
+			{
+				TeamId = _provider.SelectedTeamId,
+				Plan = plan,
+				ExpectedStateRevision = DynastyApp.League.State.StateRevision
+			}, 0, true );
+
+		SetStatus( result.Success ? $"Game plan set: {plan}" : result.Error, !result.Success );
+		_lastRevision = 0;
+		Refresh();
+		StateHasChanged();
+	}
+
+	bool CanManage() => !GameNetworking.IsActive || GameNetworking.IsHost;
+
+
+
+	void SaveGame()
+
+	{
+
+		if ( !CanManage() ) return;
+
+		try
+
+		{
+
+			DynastyApp.Persistence.SaveActiveSlot();
+
+			_saveSlot = DynastyApp.Persistence.ActiveSaveSlot ?? "";
+
+			SetStatus( "Game saved." );
+
+		}
+
+		catch ( Exception ex )
+
+		{
+
+			SetStatus( ex.Message, true );
+
+		}
+
+		StateHasChanged();
+
+	}
+
+
+
+	void ExitToMenu()
+	{
+		var summary = _provider.GetSessionSummary();
+		DynastyUi.Request( UiRequest.Open( UiWindowType.SessionSummary, summary ) );
+		StateHasChanged();
+	}
+
+	void ConfirmExitToMenu()
+	{
+		DynastyUi.Request( UiRequest.Close( UiWindowType.SessionSummary ) );
+		DynastyApp.ReturnToMainMenu( saveFirst: true );
+	}
+
+
+
+	static string FormatRecord( TeamStandingRow row )
+
+	{
+
+		var ties = row.Ties > 0 ? $"-{row.Ties}" : "";
+
+		return $"{row.Wins}-{row.Losses}{ties}";
+
+	}
+
+	static string FormatTraitsList( IEnumerable<string> traits )
+
+		=> string.Join( ", ", traits.Select( FormatTraitDisplay ) );
+
+	static string FormatTraitDisplay( string trait )
+
+	{
+
+		if ( string.IsNullOrEmpty( trait ) )
+
+			return trait;
+
+
+
+		var chars = new List<char>();
+
+		for ( var i = 0; i < trait.Length; i++ )
+
+		{
+
+			var c = trait[i];
+
+			if ( i > 0 && char.IsUpper( c ) && char.IsLower( trait[i - 1] ) )
+
+				chars.Add( ' ' );
+
+			chars.Add( c );
+
+		}
+
+		return new string( chars.ToArray() );
+
+	}
+
+}
+
+

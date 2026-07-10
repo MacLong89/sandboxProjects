@@ -1,0 +1,30 @@
+@using Sandbox.UI
+@using Dynasty.Core.Identifiers
+@using Dynasty.UI.ViewModels
+@inherits Panel
+@namespace Dynasty.UI.Components
+@attribute [StyleSheet( "/Dynasty/UI/Components/TradeRosterRow.razor.scss" )]
+
+<root class="trade-row clickable @(IsSelected ? "selected" : "")" @onclick=@HandleClick>
+	<Label>@Name (@Position)</Label>
+	<Label class="muted">OVR @Overall</Label>
+</root>
+
+@code
+{
+	[Parameter] public PlayerId PlayerId { get; set; }
+	[Parameter] public TeamId TeamId { get; set; }
+	[Parameter] public string Name { get; set; } = "";
+	[Parameter] public string Position { get; set; } = "";
+	[Parameter] public int Overall { get; set; }
+	[Parameter] public bool IsSelected { get; set; }
+	[Parameter] public Action<PlayerId> OnSelect { get; set; }
+
+	void HandleClick()
+	{
+		if ( OnSelect == null )
+			return;
+
+		OnSelect.Invoke( PlayerId );
+	}
+}

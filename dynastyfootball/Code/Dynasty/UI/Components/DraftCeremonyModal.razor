@@ -1,0 +1,42 @@
+@using Sandbox.UI
+@using Dynasty.UI.ViewModels
+@using Dynasty.UI.Management
+@inherits Panel
+@namespace Dynasty.UI.Components
+@attribute [StyleSheet( "/Dynasty/UI/Components/DraftCeremonyModal.razor.scss" )]
+
+<root class="draft-ceremony-modal-root">
+@if ( Model != null )
+{
+	<div class="ui-modal-backdrop celebration-backdrop ui-anim-fade" style="@UiModalHelpers.ZIndexStyle( UiWindowType.DraftCeremony )" @onclick=@HandleBackdropClick>
+		<div class="ui-modal-card draft-ceremony-modal" @onmousedown='@UiModalHelpers.StopPropagation'>
+			<Label class="ceremony-kicker">DRAFT PICK</Label>
+			<Label class="ceremony-round">Round @Model.Round · Pick @Model.OverallPick</Label>
+			<Label class="modal-title">@Model.TeamAbbr selects @Model.PlayerName</Label>
+			<Label class="ceremony-meta">@Model.Position · OVR @Model.Overall · Consensus #@Model.ConsensusRank</Label>
+			<Label class=@($"ceremony-grade {GradeClass()}")>@Model.Grade</Label>
+			<Label class="muted">@Model.Headline</Label>
+			<div class="modal-actions">
+				<Button class="btn primary" Text="Continue" onclick=@HandleDismiss />
+			</div>
+		</div>
+	</div>
+}
+</root>
+
+@code
+{
+	[Parameter] public DraftPickCeremonyViewModel Model { get; set; }
+	[Parameter] public Action OnDismiss { get; set; }
+
+	string GradeClass() => Model?.Grade switch
+	{
+		"STEAL" => "steal",
+		"REACH" => "reach",
+		_ => "solid"
+	};
+
+	void HandleBackdropClick() => UiModalHelpers.BackdropClick( UiWindowType.DraftCeremony, HandleDismiss );
+
+	void HandleDismiss() => OnDismiss?.Invoke();
+}

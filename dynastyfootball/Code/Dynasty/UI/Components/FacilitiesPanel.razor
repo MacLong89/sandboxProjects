@@ -1,0 +1,25 @@
+@using Sandbox.UI
+@using Dynasty.Core.Enums
+@using Dynasty.UI.ViewModels
+@inherits Panel
+@namespace Dynasty.UI.Components
+@attribute [StyleSheet( "/Dynasty/UI/Components/FacilitiesPanel.razor.scss" )]
+
+<root class="facilities-panel">
+	<Label class="panel-title">Facilities — @Model.TeamName</Label>
+	<Label class="muted">Budget: $@(Model.Budget / 1_000_000)M · Upgrades improve development, scouting, and fans.</Label>
+
+	<div class="facility-grid">
+		@foreach ( var row in Model.Facilities )
+		{
+			<FacilityCard Row="@row" CanManage="@CanManage" OnUpgrade="@OnUpgrade" />
+		}
+	</div>
+</root>
+
+@code
+{
+	[Parameter] public FacilitiesViewModel Model { get; set; } = new();
+	[Parameter] public bool CanManage { get; set; }
+	[Parameter] public Action<FacilityType> OnUpgrade { get; set; }
+}

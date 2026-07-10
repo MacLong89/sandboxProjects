@@ -1,0 +1,13 @@
+{
+	"DisplayName": "Food Stand",
+	"Description": "Snacks along the path.",
+	"Category": "Utility",
+	"Cost": 900,
+	"UnlockLevel": 2,
+	"IsRestaurant": true,
+	"GuestsServed": 20,
+	"CollectIncomePerMinute": 40,
+	"Footprint": "256,384",
+	"GridSnap": 64,
+	"Visuals": [{ "Model": "models/dev/box.vmdl", "Scale": "1,1,1" }]
+}

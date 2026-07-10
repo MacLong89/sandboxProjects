@@ -1,0 +1,181 @@
+@import "Shared/window.scss";
+
+MarketPanel {
+	@include ui-surface-root(80);
+
+	.rarity {
+		font-size: 10px;
+		font-weight: 700;
+		padding: 1px 8px;
+		border-radius: 8px;
+		margin-left: 6px;
+		text-transform: uppercase;
+		letter-spacing: 1px;
+
+		&.r-common { background: rgba(160, 170, 160, 0.25); color: #c4cdc2; }
+		&.r-uncommon { background: rgba(123, 201, 111, 0.25); color: #a8dd9a; }
+		&.r-rare { background: rgba(100, 150, 240, 0.25); color: #9dbdf5; }
+		&.r-exotic { background: rgba(190, 120, 240, 0.3); color: #d3a8f5; }
+		&.r-legendary { background: rgba(255, 180, 60, 0.3); color: #ffd166; }
+	}
+
+		.items.backpack {
+			.item.empty-slot {
+				cursor: default;
+				opacity: 0.75;
+			}
+
+			.tool-icon.muted {
+				width: 44px;
+				height: 44px;
+				border-radius: 10px;
+				align-items: center;
+				justify-content: center;
+				background: rgba(255, 255, 255, 0.04);
+				border: 1px dashed rgba(123, 201, 111, 0.2);
+				flex-shrink: 0;
+
+				.icon {
+					font-size: 24px;
+					color: #76856f;
+				}
+			}
+		}
+
+		.items.tools {
+			.item {
+				cursor: default;
+			}
+
+			.tool-icon {
+				width: 44px;
+				height: 44px;
+				border-radius: 10px;
+				align-items: center;
+				justify-content: center;
+				background: rgba(123, 201, 111, 0.12);
+				border: 1px solid rgba(123, 201, 111, 0.25);
+				flex-shrink: 0;
+
+				.icon {
+					font-size: 24px;
+					color: #7bc96f;
+				}
+			}
+
+			.button.disabled {
+				opacity: 0.45;
+				pointer-events: none;
+			}
+		}
+
+	.filters {
+		flex-direction: column;
+		gap: 8px;
+		padding: 10px 16px 12px;
+		border-bottom: 1px solid rgba(123, 201, 111, 0.12);
+		flex-shrink: 0;
+
+		.filter-row {
+			flex-direction: row;
+			align-items: center;
+			gap: 10px;
+			flex-wrap: wrap;
+		}
+
+		.filter-label {
+			font-size: 10px;
+			font-weight: 700;
+			letter-spacing: 1px;
+			text-transform: uppercase;
+			color: #76856f;
+			min-width: 48px;
+			flex-shrink: 0;
+		}
+
+		.filter-chips {
+			flex-direction: row;
+			flex-wrap: wrap;
+			gap: 6px;
+		}
+
+		.chip {
+			flex-direction: row;
+			align-items: center;
+			gap: 6px;
+			padding: 5px 12px;
+			border-radius: 16px;
+			font-size: 12px;
+			font-weight: 600;
+			color: #9fb09a;
+			cursor: pointer;
+			border: 1px solid rgba(123, 201, 111, 0.2);
+			background: rgba(255, 255, 255, 0.03);
+			@include ui-transition;
+
+			&:hover {
+				color: white;
+				border-color: rgba(123, 201, 111, 0.35);
+				background: rgba(123, 201, 111, 0.08);
+			}
+
+			&.active {
+				color: white;
+				border-color: rgba(123, 201, 111, 0.5);
+				background: rgba(123, 201, 111, 0.18);
+			}
+
+			.biome-dot {
+				width: 8px;
+				height: 8px;
+				border-radius: 50%;
+				flex-shrink: 0;
+			}
+
+			&.biome-grassland .biome-dot { background-color: #85c752; }
+			&.biome-forest .biome-dot { background-color: #38943d; }
+			&.biome-rainforest .biome-dot { background-color: #1f7a48; }
+			&.biome-desert .biome-dot { background-color: #d4a84b; }
+			&.biome-arctic .biome-dot { background-color: #d1e5fa; }
+			&.biome-swamp .biome-dot { background-color: #4d9e70; }
+			&.biome-alpine .biome-dot { background-color: #8aa0a8; }
+			&.biome-coastal .biome-dot { background-color: #4aa3c7; }
+		}
+	}
+
+	.cashflow {
+		flex-direction: row;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 6px;
+		margin-top: 4px;
+		padding: 6px 10px;
+		border-radius: 8px;
+		background: rgba(255, 255, 255, 0.04);
+		border: 1px solid transparent;
+
+		.icon { font-size: 14px; flex-shrink: 0; }
+		.net { font-size: 13px; font-weight: 800; }
+		.detail { font-size: 11px; color: #9fb09a; }
+
+		&.positive {
+			border-color: rgba(123, 201, 111, 0.25);
+			background: rgba(123, 201, 111, 0.08);
+			.icon, .net { color: #7bc96f; }
+		}
+
+		&.negative {
+			border-color: rgba(255, 138, 128, 0.25);
+			background: rgba(220, 80, 70, 0.08);
+			.icon, .net { color: #ff8a80; }
+		}
+	}
+
+	.empty {
+		padding: 30px;
+		align-items: center;
+		justify-content: center;
+		color: #76856f;
+		font-size: 14px;
+	}
+}

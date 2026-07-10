@@ -1,0 +1,16 @@
+{
+  "AlbedoImage": "terrain_materials/rock.vtex",
+  "RoughnessImage": "materials/default/default_rough.tga",
+  "NormalImage": "materials/default/default_normal.tga",
+  "HeightImage": "materials/default/default_height.tga",
+  "AOImage": "materials/default/default_ao.tga",
+  "UVScale": 3.75,
+  "Metalness": 0,
+  "NormalStrength": 0.18,
+  "HeightBlendStrength": 0.08,
+  "DisplacementScale": 0,
+  "NoTiling": false,
+  "Surface": null,
+  "__references": [],
+  "__version": 0
+}

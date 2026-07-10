@@ -1,0 +1,467 @@
+// Self-contained menu styles — no @import so a broken theme chain cannot blank the main menu.
+
+.dynasty-game-shell
+{
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	width: 100%;
+	height: 100%;
+	font-family: Poppins;
+	font-size: 14px;
+	color: #e8eef7;
+	pointer-events: all;
+	flex-direction: column;
+	background-color: #0a0f18;
+
+	.menu-screen
+	{
+		width: 100%;
+		height: 100%;
+		flex-direction: column;
+		justify-content: center;
+		align-items: center;
+		padding: 48px;
+		gap: 20px;
+		background-color: #0f1729;
+	}
+
+	.menu-brand
+	{
+		flex-direction: column;
+		align-items: center;
+		gap: 6px;
+		margin-bottom: 8px;
+	}
+
+	.brand-mark
+	{
+		font-size: 11px;
+		font-weight: 700;
+		letter-spacing: 4px;
+		color: #34c759;
+	}
+
+	.brand-title
+	{
+		font-size: 42px;
+		font-weight: 800;
+		color: white;
+	}
+
+	.brand-subtitle
+	{
+		font-size: 15px;
+		color: #8b9cb3;
+	}
+
+	.menu-card
+	{
+		width: 520px;
+		max-width: 100%;
+		flex-direction: column;
+		gap: 16px;
+		padding: 28px;
+		background-color: #151d2e;
+		border: 1px solid #243044;
+		border-radius: 14px;
+	}
+
+	.menu-tabs
+	{
+		flex-direction: row;
+		gap: 8px;
+	}
+
+	Button.menu-tab
+	{
+		flex-grow: 1;
+		justify-content: center;
+		padding: 12px 16px;
+		font-size: 14px;
+		font-weight: 600;
+		color: #8b9cb3;
+		background-color: #111827;
+		border: 1px solid #243044;
+		border-radius: 10px;
+		cursor: pointer;
+		pointer-events: all;
+
+		&:hover
+		{
+			color: white;
+			background-color: #162a45;
+			border-color: rgba( 59, 130, 246, 0.55 );
+		}
+
+		&.active
+		{
+			color: white;
+			background-color: #1a5c32;
+			border-color: #34c759;
+		}
+	}
+
+	.menu-panel
+	{
+		flex-direction: column;
+		gap: 12px;
+	}
+
+	.menu-panel.wizard
+	{
+		max-width: 640px;
+	}
+
+	.wizard-step-label
+	{
+		font-size: 11px;
+		font-weight: 700;
+		color: #34c759;
+		text-transform: uppercase;
+		letter-spacing: 1px;
+	}
+
+	.wizard-nav
+	{
+		flex-direction: row;
+		gap: 10px;
+		margin-top: 8px;
+	}
+
+	.team-picker
+	{
+		flex-direction: row;
+		flex-wrap: wrap;
+		gap: 6px;
+		max-height: 220px;
+		overflow: scroll;
+	}
+
+	Button.team-pick
+	{
+		padding: 8px 10px;
+		font-size: 11px;
+		font-weight: 600;
+		background-color: #0a0f18;
+		border: 1px solid #243044;
+		border-radius: 10px;
+		cursor: pointer;
+		pointer-events: all;
+
+		&:hover
+		{
+			color: white;
+			background-color: #1a2d4a;
+			border-color: rgba( 52, 199, 89, 0.5 );
+		}
+
+		&.selected
+		{
+			border-color: #34c759;
+			background-color: #1a5c32;
+			color: white;
+		}
+	}
+
+	.mode-cards
+	{
+		flex-direction: column;
+		gap: 10px;
+	}
+
+	.mode-card
+	{
+		flex-direction: column;
+		gap: 6px;
+		padding: 14px;
+		background-color: #0a0f18;
+		border: 1px solid #243044;
+		border-radius: 10px;
+		cursor: pointer;
+		pointer-events: all;
+
+		&:hover
+		{
+			border-color: rgba( 52, 199, 89, 0.5 );
+			background-color: #162a45;
+		}
+
+		&.selected
+		{
+			border-color: #34c759;
+			background-color: #13233d;
+		}
+	}
+
+	.mode-title
+	{
+		font-size: 15px;
+		font-weight: 700;
+		color: white;
+	}
+
+	.field-label
+	{
+		font-size: 12px;
+		font-weight: 600;
+		color: #8b9cb3;
+		text-transform: uppercase;
+		letter-spacing: 1px;
+	}
+
+	TextEntry.text-input
+	{
+		width: 100%;
+		padding: 12px 14px;
+		font-size: 15px;
+		color: #e8eef7;
+		background-color: #0a0f18;
+		border: 1px solid #243044;
+		border-radius: 10px;
+
+		&:focus
+		{
+			border-color: #34c759;
+		}
+	}
+
+	.save-list
+	{
+		flex-direction: column;
+		gap: 8px;
+		max-height: 260px;
+		overflow: scroll;
+	}
+
+	.save-row
+	{
+		flex-direction: column;
+		gap: 6px;
+		padding: 14px;
+		background-color: #0a0f18;
+		border: 1px solid #243044;
+		border-radius: 10px;
+		cursor: pointer;
+		pointer-events: all;
+
+		&:hover
+		{
+			border-color: #3b82f6;
+			background-color: #162a45;
+		}
+
+		&.selected
+		{
+			border-color: #3b82f6;
+			background-color: #13233d;
+		}
+	}
+
+	.save-primary
+	{
+		flex-direction: row;
+		justify-content: space-between;
+		gap: 12px;
+	}
+
+	.save-name
+	{
+		font-size: 15px;
+		font-weight: 700;
+		color: white;
+	}
+
+	.save-file
+	{
+		font-size: 12px;
+		color: #8b9cb3;
+	}
+
+	.save-meta
+	{
+		flex-direction: row;
+		flex-wrap: wrap;
+		gap: 12px;
+		font-size: 12px;
+		color: #8b9cb3;
+	}
+
+	.load-actions
+	{
+		flex-direction: row;
+		gap: 8px;
+		margin-top: 4px;
+	}
+
+	Button.btn
+	{
+		justify-content: center;
+		padding: 12px 18px;
+		font-size: 14px;
+		font-weight: 600;
+		color: #e8eef7;
+		background-color: #111827;
+		border: 1px solid #243044;
+		border-radius: 10px;
+		cursor: pointer;
+		pointer-events: all;
+
+		&:hover
+		{
+			color: white;
+			background-color: #1a2d4a;
+			border-color: rgba( 52, 199, 89, 0.5 );
+		}
+
+		&.primary
+		{
+			color: white;
+			background-color: #34c759;
+			border-color: #34c759;
+
+			&:hover
+			{
+				background-color: #3dd968;
+				border-color: #3dd968;
+			}
+		}
+
+		&.danger
+		{
+			color: white;
+			background-color: #ef4444;
+			border-color: #ef4444;
+
+			&:hover
+			{
+				background-color: #dc2626;
+				border-color: #dc2626;
+			}
+		}
+
+		&.full
+		{
+			width: 100%;
+		}
+
+		&.disabled
+		{
+			opacity: 0.4;
+			pointer-events: none;
+		}
+	}
+
+	.alert
+	{
+		padding: 12px 14px;
+		border-radius: 10px;
+		font-size: 13px;
+
+		&.error
+		{
+			color: #fecaca;
+			background-color: #3f1518;
+			border: 1px solid #ef4444;
+		}
+
+		&.info
+		{
+			color: #bfdbfe;
+			background-color: #13233d;
+			border: 1px solid #3b82f6;
+		}
+	}
+
+	.muted
+	{
+		color: #8b9cb3;
+		font-size: 13px;
+	}
+
+	.save-path
+	{
+		font-size: 11px;
+		color: #8b9cb3;
+		opacity: 0.7;
+	}
+
+	.continue-card
+	{
+		flex-direction: column;
+		gap: 6px;
+		padding: 18px 20px;
+		margin-bottom: 12px;
+		background-color: #1a5c32;
+		border: 1px solid #34c759;
+		border-radius: 10px;
+		cursor: pointer;
+		pointer-events: all;
+
+		&:hover
+		{
+			border-color: white;
+		}
+	}
+
+	.continue-kicker
+	{
+		font-size: 10px;
+		font-weight: 700;
+		letter-spacing: 2px;
+		color: #34c759;
+		text-transform: uppercase;
+	}
+
+	.continue-title
+	{
+		font-size: 20px;
+		font-weight: 800;
+		color: white;
+	}
+
+	.continue-urgent
+	{
+		font-size: 12px;
+		font-weight: 700;
+		color: #fbbf24;
+	}
+
+	.challenge-cards
+	{
+		flex-direction: row;
+		flex-wrap: wrap;
+		gap: 10px;
+		width: 100%;
+	}
+
+	.challenge-cards .mode-card
+	{
+		flex-grow: 1;
+		flex-shrink: 0;
+		flex-basis: 46%;
+		min-width: 200px;
+		max-width: 100%;
+	}
+
+	.continue-hint
+	{
+		font-size: 12px;
+		color: #8b9cb3;
+	}
+
+	// One click sound per button press (CSS only — no duplicate C# PlayUiClick).
+	Button:active
+	{
+		sound-in: "sounds/button.sound";
+	}
+
+	.mode-card:active,
+	.continue-card:active,
+	.save-row:active
+	{
+		sound-in: "sounds/button.sound";
+	}
+}

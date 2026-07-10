@@ -1,0 +1,16 @@
+{
+  "AlbedoImage": "terrain_materials/snow_stylized.png",
+  "RoughnessImage": "terrain_materials/snow_rough.png",
+  "NormalImage": "materials/default/default_normal.tga",
+  "HeightImage": "materials/default/default_ao.tga",
+  "AOImage": "materials/default/default_ao.tga",
+  "UVScale": 5,
+  "Metalness": 0,
+  "NormalStrength": 0.1,
+  "HeightBlendStrength": 0.28,
+  "DisplacementScale": 0,
+  "NoTiling": false,
+  "Surface": null,
+  "__references": [],
+  "__version": 0
+}

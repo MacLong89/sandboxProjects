@@ -1,0 +1,65 @@
+GameFieldReplay,
+.game-field-replay
+{
+	width: 100%;
+	flex-direction: column;
+	gap: 8px;
+
+	.field-surface
+	{
+		flex-direction: row;
+		height: 120px;
+		border-radius: 8px;
+		overflow: hidden;
+		border: 1px solid rgba( 255, 255, 255, 0.12 );
+	}
+
+	.field-endzone
+	{
+		width: 48px;
+		justify-content: center;
+		align-items: center;
+		font-size: 9px;
+		font-weight: 700;
+		color: rgba( 255, 255, 255, 0.5 );
+		background-color: #1a472a;
+	}
+
+	.field-mid
+	{
+		flex-grow: 1;
+		background-color: #2d6a3e;
+		position: relative;
+	}
+
+	.field-yard-lines
+	{
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+	}
+
+	.replay-caption
+	{
+		font-size: 12px;
+		color: #8b9cb3;
+	}
+
+	.play-marker
+	{
+		position: absolute;
+		width: 12px;
+		height: 12px;
+		border-radius: 50%;
+		background-color: #fbbf24;
+	}
+
+	.play-label
+	{
+		font-size: 11px;
+		font-weight: 700;
+		color: white;
+	}
+}

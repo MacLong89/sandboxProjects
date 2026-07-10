@@ -1,0 +1,254 @@
+{
+  "__guid": "b8e4f1a2-3c5d-4e6f-9a0b-1c2d3e4f5a6b",
+  "GameObjects": [
+    {
+      "__guid": "053a16a5-703b-4d3b-af9f-aa38f1a11043",
+      "__version": 2,
+      "Flags": 0,
+      "Name": "Scene Information",
+      "Position": "0,0,0",
+      "Rotation": "0,0,0,1",
+      "Scale": "1,1,1",
+      "Tags": "",
+      "Enabled": true,
+      "NetworkMode": 2,
+      "NetworkFlags": 0,
+      "NetworkOrphaned": 0,
+      "NetworkTransmit": true,
+      "OwnerTransfer": 1,
+      "Components": [
+        {
+          "__type": "Sandbox.SceneInformation",
+          "__guid": "f3d1faf1-3d75-4a5a-9bb4-3c09b451e645",
+          "__enabled": true,
+          "Flags": 0,
+          "Author": null,
+          "Changes": null,
+          "Description": "Live-tune interior furniture: one 3x3 ASCII house, move/size props under building root, F9 exports catalog snippets.",
+          "Group": null,
+          "OnComponentDestroy": null,
+          "OnComponentDisabled": null,
+          "OnComponentEnabled": null,
+          "OnComponentFixedUpdate": null,
+          "OnComponentStart": null,
+          "OnComponentUpdate": null,
+          "SceneTags": "",
+          "Title": "Thorns — Interior furniture floorplan test",
+          "Version": null
+        }
+      ],
+      "Children": []
+    },
+    {
+      "__guid": "6cb2d52c-66c3-477a-8a4b-4ed0ef5d5c5b",
+      "__version": 2,
+      "Flags": 0,
+      "Name": "Sun",
+      "Position": "0,0,0",
+      "Rotation": "-0.0729314983,0.482239604,0.130543306,0.863182724",
+      "Scale": "1,1,1",
+      "Tags": "light_directional,light",
+      "Enabled": true,
+      "NetworkMode": 2,
+      "NetworkFlags": 0,
+      "NetworkOrphaned": 0,
+      "NetworkTransmit": true,
+      "OwnerTransfer": 1,
+      "Components": [
+        {
+          "__type": "Sandbox.DirectionalLight",
+          "__guid": "45cfe91e-9e39-4541-bb20-210294f7952d",
+          "__enabled": true,
+          "Flags": 0,
+          "FogMode": "Disabled",
+          "FogStrength": 0.2,
+          "LightColor": "1,0.96,0.88,1",
+          "OnComponentDestroy": null,
+          "OnComponentDisabled": null,
+          "OnComponentEnabled": null,
+          "OnComponentFixedUpdate": null,
+          "OnComponentStart": null,
+          "OnComponentUpdate": null,
+          "ShadowBias": 0.0005,
+          "ShadowCascadeCount": 4,
+          "ShadowCascadeSplitRatio": 0.91,
+          "ShadowHardness": 0.42,
+          "Shadows": true,
+          "SkyColor": "0.42,0.54,0.72,1",
+          "Visualizer": {}
+        },
+        {
+          "__type": "Sandbox.ThornsCelestialSystem",
+          "__guid": "a7c3e1f2-4b5d-6e8f-9a0b-1c2d3e4f5a6b",
+          "__enabled": true,
+          "Flags": 0,
+          "Brightness": 2.4,
+          "SunEnabled": true,
+          "UseObjectRotation": true
+        }
+      ],
+      "Children": []
+    },
+    {
+      "__guid": "076ffbb3-9238-4312-853a-785bdf4aa652",
+      "__version": 2,
+      "Flags": 0,
+      "Name": "2D Skybox",
+      "Position": "0,0,0",
+      "Rotation": "0,0,0,1",
+      "Scale": "1,1,1",
+      "Tags": "skybox",
+      "Enabled": true,
+      "NetworkMode": 2,
+      "NetworkFlags": 0,
+      "NetworkOrphaned": 0,
+      "NetworkTransmit": true,
+      "OwnerTransfer": 1,
+      "Components": [
+        {
+          "__type": "Sandbox.SkyBox2D",
+          "__guid": "bb20cbff-2f89-453c-b933-a600f882c63a",
+          "__enabled": true,
+          "Flags": 0,
+          "OnComponentDestroy": null,
+          "OnComponentDisabled": null,
+          "OnComponentEnabled": null,
+          "OnComponentFixedUpdate": null,
+          "OnComponentStart": null,
+          "OnComponentUpdate": null,
+          "SkyIndirectLighting": false,
+          "SkyMaterial": "materials/skybox/skybox_day_01.vmat",
+          "Tint": "0.837,0.884,0.93,1"
+        }
+      ],
+      "Children": []
+    },
+    {
+      "__guid": "c4d5e6f7-a8b9-4c3d-9e0f-112233445566",
+      "__version": 2,
+      "Flags": 0,
+      "Name": "Interior Furniture Floorplan Test",
+      "Position": "0,0,0",
+      "Rotation": "0,0,0,1",
+      "Scale": "1,1,1",
+      "Tags": "",
+      "Enabled": true,
+      "NetworkMode": 2,
+      "NetworkFlags": 0,
+      "NetworkOrphaned": 0,
+      "NetworkTransmit": true,
+      "OwnerTransfer": 1,
+      "Components": [
+        {
+          "__type": "Sandbox.ThornsInteriorFurnitureFloorplanTest",
+          "__guid": "d5e6f7a8-b9c0-4d1e-8f2a-334455667788",
+          "__enabled": true,
+          "Flags": 0,
+          "BuildingSpacing": 380,
+          "EnableLiveTuning": true,
+          "ExportHotkey": "f9",
+          "FloorModelPath": "models/dev/box.vmdl",
+          "FloorScale": "3200,2800,4",
+          "GalleryOrigin": "0,0,64",
+          "GridColumns": 4,
+          "LayoutVariantIndex": 0,
+          "LogAsciiOnRebuild": true,
+          "ScriptedPlacementsOnly": true,
+          "SingleBuildingWorkbench": false,
+          "WorkbenchBuildingType": "Store",
+          "OnComponentDestroy": null,
+          "OnComponentDisabled": null,
+          "OnComponentEnabled": null,
+          "OnComponentFixedUpdate": null,
+          "OnComponentStart": null,
+          "OnComponentUpdate": null,
+          "PlayerSpawnOffset": "-200,0,80",
+          "RebuildOnStart": true,
+          "UseArchetypeMaterials": true,
+          "ApplySettlementMaterialBias": false,
+          "UseDebugTypeColors": false
+        }
+      ],
+      "Children": []
+    },
+    {
+      "__guid": "9e7c5936-9935-4532-af6a-76e46bb47de0",
+      "__version": 2,
+      "Flags": 0,
+      "Name": "ThornsGameManager",
+      "Position": "0,0,64",
+      "Rotation": "0,0,0,1",
+      "Scale": "1,1,1",
+      "Tags": "",
+      "Enabled": true,
+      "NetworkMode": 2,
+      "NetworkFlags": 0,
+      "NetworkOrphaned": 0,
+      "NetworkTransmit": true,
+      "OwnerTransfer": 1,
+      "Components": [
+        {
+          "__type": "Sandbox.ThornsGameManager",
+          "__guid": "7d2f51b7-2d61-4c33-a5cc-89d4a1be9815",
+          "__enabled": true,
+          "Flags": 0,
+          "CreateLobbyOnLoad": true,
+          "OnComponentDestroy": null,
+          "OnComponentDisabled": null,
+          "OnComponentEnabled": null,
+          "OnComponentFixedUpdate": null,
+          "OnComponentStart": null,
+          "OnComponentUpdate": null,
+          "PlayerPrefab": null,
+          "PlayerVoidKillPlaneWorldZ": -100,
+          "RespawnAtMapCenterWhenNoSpawnPoints": true,
+          "SpawnPoints": null,
+          "WeaponContentPackageIdents": [
+            "facepunch.sboxweapons"
+          ]
+        }
+      ],
+      "Children": []
+    }
+  ],
+  "SceneProperties": {
+    "NetworkInterpolation": true,
+    "TimeScale": 1,
+    "WantsSystemScene": true,
+    "Metadata": {
+      "Title": "Thorns — Interior furniture floorplan test",
+      "Description": "Flat floor + 5x5 two-storey ASCII floorplan house (scripted K/k/T downstairs, B/d upstairs). See ThornsInteriorFurnitureFloorplanAscii."
+    },
+    "NavMesh": {
+      "Enabled": false,
+      "IncludeStaticBodies": true,
+      "IncludeKeyframedBodies": true,
+      "EditorAutoUpdate": false,
+      "AgentHeight": 64,
+      "AgentRadius": 16,
+      "AgentStepSize": 18,
+      "AgentMaxSlope": 40,
+      "ExcludedBodies": "",
+      "IncludedBodies": "",
+      "DeferGeneration": false,
+      "CustomBounds": false
+    },
+    "GameObjectSystems": {
+      "Sandbox.Clutter.ClutterGridSystem": {
+        "Storage": {
+          "$blob": "66e5ec52-8de2-46c5-b974-f3a8607190c9"
+        }
+      },
+      "Sandbox.SelectionSetsSystem": {
+        "Data": {
+          "SelectionSets": []
+        }
+      }
+    }
+  },
+  "ResourceVersion": 3,
+  "Title": "Thorns — Interior furniture floorplan test",
+  "Description": "Flat floor + 5x5 two-storey ASCII floorplan house (scripted K/k/T downstairs, B/d upstairs). See ThornsInteriorFurnitureFloorplanAscii.",
+  "__references": [],
+  "__version": 3
+}

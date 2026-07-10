@@ -1,0 +1,285 @@
+@using Sandbox
+@using Sandbox.UI
+@inherits PanelComponent
+@namespace Fauna2.UI
+
+<root>
+	@if ( UiState.ActivePage == UiPage.Progression && UiState.GameplayHudVisible )
+	{
+		<div class="window progression-window">
+			<div class="window-header">
+				<i class="icon">trending_up</i>
+				<div class="window-title">Progression</div>
+				<div class="close" onclick=@( () => UiState.Close() )><i class="icon">close</i></div>
+			</div>
+
+			<div class="summary">
+				<div class="big-stat">
+					<div class="value">@Level</div>
+					<div class="label">Level</div>
+				</div>
+				<div class="xp-block">
+					<div class="xpbar"><div class="fill" style="width: @(XpPercent)%"></div></div>
+					<div class="xp-text">@XpText</div>
+				</div>
+				<div class="big-stat prestige">
+					<div class="value">@Prestige</div>
+					<div class="label">Prestige</div>
+				</div>
+				<div class="big-stat">
+					<div class="value">@CompletionText</div>
+					<div class="label">Codex</div>
+				</div>
+			</div>
+
+			<div class="tabs">
+				@foreach ( var tab in Tabs )
+				{
+					<div class="tab @(_tab == tab ? "active" : "")" onclick=@( () => SelectTab( tab ) )>@tab</div>
+				}
+			</div>
+
+			<div class="items progression-scroll">
+				@if ( _tab == "Goals" )
+				{
+					@foreach ( var goal in FocusGoals )
+					{
+						<div class="item unlock highlight focus">
+							<i class="icon">@goal.Icon</i>
+							<div class="info">
+								<div class="name">@goal.Title</div>
+								<div class="desc">@GoalMeta( goal )</div>
+							</div>
+						</div>
+					}
+
+					@if ( OtherGoals.Count > 0 )
+					{
+						<div class="section-title">Also tracking</div>
+						@foreach ( var goal in OtherGoals )
+						{
+							<div class="item unlock">
+								<i class="icon">@goal.Icon</i>
+								<div class="info">
+									<div class="name">@goal.Title</div>
+									<div class="desc">@GoalMeta( goal )</div>
+								</div>
+							</div>
+						}
+					}
+				}
+				else if ( _tab == "Upgrades" )
+				{
+					<div class="section-title">Staff (@(StaffSystem.Instance?.TotalStaff ?? 0)/@(StaffSystem.Instance?.StaffCap ?? 0))</div>
+					@foreach ( var role in StaffRoles )
+					{
+						<div class="item unlock highlight">
+							<i class="icon">@StaffIcon( role )</i>
+							<div class="info">
+								<div class="name">@(StaffRoleName( role )) <span class="meta">x@(StaffCount( role ))</span></div>
+								<div class="desc">@StaffDetail( role )</div>
+							</div>
+							<div class="mini-button" onclick=@( () => StaffSystem.Instance?.RequestHire( role ) )>Hire</div>
+						</div>
+					}
+
+					<div class="section-title">Research</div>
+					@foreach ( var node in ResearchNodes )
+					{
+						var rank = ResearchSystem.Instance?.LevelOf( node ) ?? 0;
+						var cost = GameConstants.ResearchBaseCost + rank * GameConstants.ResearchCostGrowth;
+						<div class="item unlock highlight">
+							<i class="icon">science</i>
+							<div class="info">
+								<div class="name">@(ResearchSystem.NodeTitle( node )) <span class="meta">Rank @(rank)/@(GameConstants.ResearchMaxRank)</span></div>
+								<div class="desc">@(ResearchSystem.NodeEffect( node )) | @(ResearchRequirement( node ))</div>
+							</div>
+							<div class="mini-button @(rank >= GameConstants.ResearchMaxRank ? "disabled" : "")"
+								 onclick=@( () => ResearchSystem.Instance?.RequestResearch( node ) )>
+								@(rank >= GameConstants.ResearchMaxRank ? "Max" : $"${cost:n0}")
+							</div>
+						</div>
+					}
+
+					<div class="section-title">Franchise</div>
+					<div class="item unlock @(CanPrestige ? "highlight" : "")">
+						<i class="icon">workspace_premium</i>
+						<div class="info">
+							<div class="name">Rank @(FranchiseRank)</div>
+							<div class="desc">@(LegacyTokens) legacy tokens | @(BranchExpansions) branch grants. Prestige at max level, 50% codex, and 4-star rating.</div>
+						</div>
+						<div class="mini-button @(CanPrestige ? "" : "disabled")" onclick=@( () => FranchiseSystem.Instance?.RequestFranchisePrestige() )>Prestige</div>
+					</div>
+				}
+				else
+				{
+					<div class="section-title">Coming up next</div>
+					@foreach ( var unlock in Upcoming )
+					{
+						<div class="item unlock highlight">
+							<i class="icon">lock</i>
+							<div class="info">
+								<div class="name">@unlock.Name</div>
+								<div class="desc">@UnlockMeta( unlock )</div>
+							</div>
+						</div>
+					}
+					@if ( Upcoming.Count == 0 )
+					{
+						<div class="empty">Everything unlocked for your level. Keep expanding the codex and rating.</div>
+					}
+
+					@if ( Recent.Count > 0 )
+					{
+						<div class="section-title">Recently unlocked</div>
+						@foreach ( var unlock in Recent )
+						{
+							<div class="item unlock done">
+								<i class="icon">check_circle</i>
+								<div class="info">
+									<div class="name">@unlock.Name</div>
+									<div class="desc">@unlock.Kind</div>
+								</div>
+							</div>
+						}
+					}
+
+					<div class="section-title">Achievements (@UnlockedAchievementCount/@Achievements.Count)</div>
+					@foreach ( var achievement in VisibleAchievements )
+					{
+						<div class="item unlock @(achievement.Unlocked ? "done" : "")">
+							<i class="icon">@(achievement.Unlocked ? "emoji_events" : "radio_button_unchecked")</i>
+							<div class="info">
+								<div class="name">@achievement.Title</div>
+								<div class="desc">@achievement.Description</div>
+							</div>
+						</div>
+					}
+				}
+			</div>
+		</div>
+	}
+</root>
+
+@code
+{
+	private string _tab = "Goals";
+	private static readonly string[] Tabs = ["Goals", "Upgrades", "Unlocks"];
+
+	private int Level => ZooState.Instance?.Level ?? 1;
+	private int Prestige => ZooState.Instance?.Prestige ?? 0;
+	private string CompletionText => $"{CollectionSystem.Instance?.CompletionPercent ?? 0f:0}%";
+
+	private IReadOnlyList<HudGoal> AllGoals => GoalBoard.ActiveGoals( 5 );
+	private IReadOnlyList<HudGoal> FocusGoals => AllGoals.Take( 1 ).ToList();
+	private IReadOnlyList<HudGoal> OtherGoals => AllGoals.Skip( 1 ).Take( 3 ).ToList();
+
+	private IReadOnlyList<UnlockEntry> Upcoming => ProgressionHelper.UpcomingUnlocks( 4 ).ToList();
+	private IReadOnlyList<UnlockEntry> Recent =>
+		ProgressionHelper.AllUnlocks().Where( u => u.Unlocked ).Reverse().Take( 3 ).ToList();
+
+	private IReadOnlyList<AchievementEntry> Achievements => AchievementCatalog.All( AchievementSystem.Instance?.UnlockedFlags ?? 0 );
+	private int UnlockedAchievementCount => Achievements.Count( a => a.Unlocked );
+	private IReadOnlyList<AchievementEntry> VisibleAchievements =>
+		Achievements.Where( a => a.Unlocked ).Take( 3 )
+			.Concat( Achievements.Where( a => !a.Unlocked ).Take( 2 ) )
+			.ToList();
+
+	private IEnumerable<StaffRole> StaffRoles => Enum.GetValues( typeof( StaffRole ) ).Cast<StaffRole>();
+	private IEnumerable<ResearchNode> ResearchNodes => Enum.GetValues( typeof( ResearchNode ) ).Cast<ResearchNode>();
+	private int FranchiseRank => FranchiseSystem.Instance?.FranchiseRank ?? 0;
+	private int LegacyTokens => FranchiseSystem.Instance?.LegacyTokens ?? 0;
+	private int BranchExpansions => FranchiseSystem.Instance?.BranchExpansions ?? 0;
+	private bool CanPrestige => FranchiseSystem.Instance?.CanPrestige() ?? false;
+
+	private float XpPercent
+	{
+		get
+		{
+			var state = ZooState.Instance;
+			if ( state is null ) return 0f;
+			if ( state.Level >= GameConstants.MaxLevel ) return 100f;
+			return state.Xp * 100f / ZooState.XpForLevel( state.Level );
+		}
+	}
+
+	private string XpText
+	{
+		get
+		{
+			var state = ZooState.Instance;
+			if ( state is null ) return "0 XP to next level";
+			if ( state.Level >= GameConstants.MaxLevel ) return "Max level";
+			return $"{state.Xp:n0} / {ZooState.XpForLevel( state.Level ):n0} XP to next level";
+		}
+	}
+
+	protected override int BuildHash() => System.HashCode.Combine(
+		(int)UiState.ActivePage,
+		UiState.Revision,
+		System.HashCode.Combine(
+			_tab.GetHashCode(),
+			ZooState.Instance?.Xp ?? 0,
+			Level,
+			Prestige,
+			GuestSystem.Instance?.GuestCount ?? 0,
+			(int)(CollectionSystem.Instance?.CompletionPercent ?? 0f),
+			ObjectiveSystem.Instance?.CurrentIndex ?? 0,
+			(int)(GuestSystem.Instance?.ZooRating ?? 0f) ) );
+
+	private void SelectTab( string tab ) => _tab = tab;
+
+	private static string GoalMeta( HudGoal goal )
+	{
+		if ( string.IsNullOrWhiteSpace( goal.ProgressLabel ) )
+			return goal.Category;
+
+		return $"{goal.Category} | {goal.ProgressLabel}";
+	}
+
+	private static string UnlockMeta( UnlockEntry unlock )
+	{
+		if ( unlock.Prestige > 0 )
+			return $"{unlock.Kind} | Level {unlock.Level} | {unlock.Prestige} prestige";
+
+		return $"{unlock.Kind} | Level {unlock.Level}";
+	}
+
+	private static int StaffCount( StaffRole role ) => StaffSystem.Instance?.CountFor( role ) ?? 0;
+
+	private static string StaffRoleName( StaffRole role ) => role switch
+	{
+		StaffRole.Keeper => "Keeper",
+		StaffRole.Cleaner => "Cleaner",
+		StaffRole.Guide => "Guide",
+		StaffRole.Vet => "Veterinarian",
+		_ => role.ToString(),
+	};
+
+	private static string StaffIcon( StaffRole role ) => role switch
+	{
+		StaffRole.Keeper => "pets",
+		StaffRole.Cleaner => "cleaning_services",
+		StaffRole.Guide => "groups",
+		StaffRole.Vet => "medical_services",
+		_ => "badge",
+	};
+
+	private static string StaffEffect( StaffRole role ) => role switch
+	{
+		StaffRole.Keeper => "Boosts habitat scores",
+		StaffRole.Cleaner => "Recovers cleanliness faster",
+		StaffRole.Guide => "Adds guest appeal",
+		StaffRole.Vet => "Supports health and mood",
+		_ => "",
+	};
+
+	private static string StaffDetail( StaffRole role )
+	{
+		var hire = StaffSystem.Instance?.HireCost( role ) ?? GameConstants.StaffHireCost;
+		return $"{StaffEffect( role )} | ${hire:n0} hire | ${GameConstants.StaffCostPerMinute}/min upkeep";
+	}
+
+	private static string ResearchRequirement( ResearchNode node ) =>
+		ResearchSystem.Instance?.RequirementText( node ) ?? "";
+}

@@ -1,0 +1,12 @@
+@using Sandbox.UI
+@inherits Panel
+@namespace Dynasty.UI.Components
+
+<Button class="notification-dismiss" Text="×" onclick=@HandleDismiss />
+
+@code
+{
+	[Parameter] public Guid NoteId { get; set; }
+
+	void HandleDismiss() => Dynasty.UI.Management.DynastyUiManager.Instance.DismissNotification( NoteId );
+}

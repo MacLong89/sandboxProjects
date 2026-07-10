@@ -1,0 +1,52 @@
+{
+	"DisplayName": "Food Stand",
+	"Description": "Basic dining — click to collect tips. Upgrade to better restaurants as you level up.",
+	"Category": "Utility",
+	"Cost": 600,
+	"UnlockLevel": 1,
+	"AppealBonus": 4,
+	"IsRestaurant": true,
+	"CollectIncomePerMinute": 52,
+	"GuestsServed": 30,
+	"Footprint": "256,384",
+	"GridSnap": 64,
+	"RotationStep": 90,
+	"Visuals": [
+		{
+			"Model": "models/dev/box.vmdl",
+			"Offset": "0,0,4",
+			"Scale": "3.84,2.56,0.12",
+			"Tint": "0.68,0.64,0.58,1"
+		},
+		{
+			"Model": "models/dev/box.vmdl",
+			"Offset": "0,0,56",
+			"Scale": "3.4,2.2,1.8",
+			"Tint": "0.88,0.68,0.38,1"
+		},
+		{
+			"Model": "models/dev/box.vmdl",
+			"Offset": "0,56,88",
+			"Scale": "2.0,0.15,0.6",
+			"Tint": "0.95,0.32,0.28,1"
+		},
+		{
+			"Model": "models/dev/box.vmdl",
+			"Offset": "-64,0,88",
+			"Scale": "0.5,0.5,0.5",
+			"Tint": "1,0.88,0.28,1"
+		},
+		{
+			"Model": "models/dev/box.vmdl",
+			"Offset": "64,0,88",
+			"Scale": "0.5,0.5,0.5",
+			"Tint": "1,0.88,0.28,1"
+		},
+		{
+			"Model": "models/dev/box.vmdl",
+			"Offset": "0,-48,40",
+			"Scale": "1.2,0.8,0.08",
+			"Tint": "0.52,0.42,0.32,1"
+		}
+	]
+}

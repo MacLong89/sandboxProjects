@@ -1,0 +1,29 @@
+MultiGmTeamClaimPanel,
+.multi-gm-claim-root {
+	width: 100%;
+}
+
+.multi-gm-claim-panel {
+	margin: 8px 16px;
+	padding: 12px 16px;
+	border: 1px solid rgba(240, 192, 64, 0.45);
+	border-radius: 8px;
+	background: rgba(20, 20, 30, 0.92);
+}
+
+.claim-title {
+	font-size: 18px;
+	font-weight: 700;
+}
+
+.claim-grid {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-top: 10px;
+}
+
+.claim-error {
+	color: #ff6b6b;
+	margin-top: 8px;
+}

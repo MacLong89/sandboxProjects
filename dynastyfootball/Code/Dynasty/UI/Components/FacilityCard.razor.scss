@@ -1,0 +1,58 @@
+FacilityCard,
+.facility-card
+{
+	width: 280px;
+	flex-direction: column;
+	gap: 6px;
+	padding: 14px;
+	background-color: #151d2e;
+	border: 1px solid #243044;
+	border-radius: 14px;
+
+	.facility-name
+	{
+		font-size: 16px;
+		font-weight: 700;
+		color: white;
+	}
+
+	.facility-level
+	{
+		font-size: 14px;
+		color: #34c759;
+		font-weight: 600;
+	}
+
+	.muted
+	{
+		color: #8b9cb3;
+		font-size: 13px;
+	}
+
+	.tag
+	{
+		font-size: 11px;
+		font-weight: 700;
+		padding: 2px 8px;
+		border-radius: 999px;
+		background-color: #1a5c32;
+		color: #34c759;
+	}
+
+	Button.btn
+	{
+		padding: 6px 10px;
+		font-size: 12px;
+		font-weight: 600;
+		color: white;
+		background-color: #34c759;
+		border: 1px solid #34c759;
+		border-radius: 10px;
+		cursor: pointer;
+	}
+}
+
+Button:active
+{
+	sound-in: "sounds/button.sound";
+}

@@ -1,0 +1,868 @@
+@using System
+
+@using System.Collections.Generic
+
+@using System.Linq
+
+@using Sandbox
+
+@using Sandbox.UI
+
+@using GameNetworking = Sandbox.Networking
+
+@using Dynasty
+
+@using Dynasty.Bootstrap
+
+@using Dynasty.Core.Enums
+
+@using Dynasty.Persistence
+@using Dynasty.Audio
+@using Dynasty.UI.Components
+@using Dynasty.UI.Management
+
+@inherits PanelComponent
+
+@namespace Dynasty.UI
+
+@attribute [StyleSheet( "/Dynasty/UI/DynastyGameShell.razor.scss" )]
+
+<div class="dynasty-game-shell">
+
+	<NotificationStack />
+
+	<TooltipHost />
+
+	@if ( DynastyApp.Session.Screen == GameScreen.MainMenu )
+
+	{
+
+		<div class="menu-screen">
+
+			<div class="menu-brand">
+
+				<Label class="brand-mark">FRANCHISE MODE</Label>
+
+				<Label class="brand-title">Sunday Dynasty</Label>
+
+				<Label class="brand-subtitle">Build your franchise. Own the league.</Label>
+
+			</div>
+
+
+
+			<div class="menu-card">
+
+				@if ( _leaderboardEntries.Count > 0 )
+				{
+					<div class="leaderboard-panel">
+						<Label class="field-label">Dynasty Leaderboard</Label>
+						@foreach ( var entry in _leaderboardEntries.Take( 5 ) )
+						{
+							<Label class="leaderboard-row">@entry.TeamAbbreviation · @entry.DynastyScore pts · S@entry.Season</Label>
+						}
+					</div>
+				}
+
+				@if ( !string.IsNullOrEmpty( _error ) )
+
+				{
+
+					<div class="alert error">@_error</div>
+
+				}
+
+
+
+				@if ( !string.IsNullOrEmpty( DynastyApp.Session.StatusMessage ) )
+
+				{
+
+					<div class="alert info">@DynastyApp.Session.StatusMessage</div>
+
+				}
+
+
+
+				<div class="menu-tabs">
+
+					<Button class="@MenuTabClass( true )" Text="New Dynasty" onclick='@(() => SetNewGameMode( true ))' />
+
+					<Button class="@MenuTabClass( false )" Text="Load Dynasty" onclick='@(() => SetNewGameMode( false ))' />
+
+				</div>
+
+
+
+				@if ( _showNewGame )
+
+				{
+
+					<div class="menu-panel wizard">
+
+						<Label class="wizard-step-label">Step @_wizardStep of 3</Label>
+
+						@if ( _wizardStep == 1 )
+
+						{
+
+							<Label class="field-label">Save Name</Label>
+
+							<TextEntry class="text-input" placeholder="my-dynasty" Value:bind=@_newSaveName />
+
+							<Label class="field-label">League Name</Label>
+
+							<TextEntry class="text-input" placeholder="Sunday Dynasty" Value:bind=@_newLeagueName />
+
+							<Button class="btn primary full" Text="Next: Choose Team" onclick='@(() => SetWizardStep( 2 ))' />
+
+						}
+
+						else if ( _wizardStep == 2 )
+
+						{
+
+							<Label class="field-label">Select Your Franchise</Label>
+
+							<div class="team-picker">
+
+								@foreach ( var team in _teamOptions )
+
+								{
+
+									<Button class="@TeamPickClass( team.Abbr )" Text="@team.Label" onclick='@(() => SelectTeam( team.Abbr ))' />
+
+								}
+
+							</div>
+
+							<div class="wizard-nav">
+
+								<Button class="btn secondary" Text="Back" onclick='@(() => SetWizardStep( 1 ))' />
+
+								<Button class="btn primary" Text="Next: Draft Type" Disabled="@IsTeamNotSelected()" onclick='@(() => SetWizardStep( 3 ))' />
+
+							</div>
+
+						}
+
+						else
+
+						{
+
+							<Label class="field-label">How do you want to start?</Label>
+
+							<div class="mode-cards">
+
+								<div class="mode-card recommended @( _startMode == DynastyStartMode.QuickStart ? "selected" : "" )" @onclick='@(() => SetStartMode( DynastyStartMode.QuickStart ))'>
+
+									<Label class="mode-title">Quick Start ★ Recommended</Label>
+
+									<Label class="muted">Inherit a full roster and jump straight into a 1-week preseason. Fastest path to your first game.</Label>
+
+								</div>
+
+								<div class="mode-card @( _startMode == DynastyStartMode.RookieDraft ? "selected" : "" )" @onclick='@(() => SetStartMode( DynastyStartMode.RookieDraft ))'>
+
+									<Label class="mode-title">Rookie Draft</Label>
+
+									<Label class="muted">You inherit a full NFL roster. Draft rookies to build for the future before Year 1.</Label>
+
+								</div>
+
+								<div class="mode-card @( _startMode == DynastyStartMode.ExpansionDraft ? "selected" : "" )" @onclick='@(() => SetStartMode( DynastyStartMode.ExpansionDraft ))'>
+
+									<Label class="mode-title">Expansion Draft</Label>
+
+									<Label class="muted">Start with an empty roster. Draft veterans from a league-wide pool to build your team from scratch.</Label>
+
+								</div>
+
+							</div>
+
+							<Label class="field-label">Challenge mode (optional)</Label>
+
+							<div class="mode-cards challenge-cards">
+
+								<div class="mode-card recommended @( _challengeMode == ChallengeMode.Standard ? "selected" : "" )" @onclick='@(() => SetChallengeMode( ChallengeMode.Standard ))'>
+
+									<Label class="mode-title">Standard ★ Recommended for first dynasty</Label>
+
+									<Label class="muted">Classic franchise — no extra constraints.</Label>
+
+								</div>
+
+								<div class="mode-card @( _challengeMode == ChallengeMode.Rebuild ? "selected" : "" )" @onclick='@(() => SetChallengeMode( ChallengeMode.Rebuild ))'>
+
+									<Label class="mode-title">Rebuild</Label>
+
+									<Label class="muted">Tighter budget. Playoffs within three seasons.</Label>
+
+								</div>
+
+								<div class="mode-card @( _challengeMode == ChallengeMode.WinNow ? "selected" : "" )" @onclick='@(() => SetChallengeMode( ChallengeMode.WinNow ))'>
+
+									<Label class="mode-title">Win Now</Label>
+
+									<Label class="muted">Championship mandate within five seasons.</Label>
+
+								</div>
+
+								<div class="mode-card @( _challengeMode == ChallengeMode.DraftGenius ? "selected" : "" )" @onclick='@(() => SetChallengeMode( ChallengeMode.DraftGenius ))'>
+
+									<Label class="mode-title">Draft Genius</Label>
+
+									<Label class="muted">Boosted scouting — hunt three steals in your first class.</Label>
+
+								</div>
+
+							</div>
+
+							<div class="multi-gm-toggle">
+								<Button class="@(_enableMultiGm ? "btn primary small" : "btn secondary small")" Text="@(_enableMultiGm ? "Multi-GM: ON" : "Multi-GM: OFF")" onclick=@ToggleMultiGm />
+								<Label class="muted">Friends can claim teams in the same save (async league).</Label>
+							</div>
+
+							<Label class="muted">Team: @_selectedTeamAbbr · @StartModeLabel()</Label>
+
+							<div class="wizard-nav">
+
+								<Button class="btn secondary" Text="Back" onclick='@(() => SetWizardStep( 2 ))' />
+
+								<Button class="btn primary" Text="@StartButtonLabel()" onclick=@StartNewGame />
+
+							</div>
+
+						}
+
+					</div>
+
+				}
+
+				else
+
+				{
+
+					<div class="menu-panel">
+
+						@if ( _saveSlots.Count == 0 )
+
+						{
+
+							<Label class="muted">No saved dynasties yet. Start a new one to create your first save.</Label>
+
+						}
+
+						else
+
+						{
+
+							@if ( _mostRecentSave != null )
+
+							{
+
+								<div class="continue-card" @onclick=@ContinueMostRecent>
+
+									<Label class="continue-kicker">Continue Dynasty</Label>
+
+									<Label class="continue-title">@_mostRecentSave.LeagueName</Label>
+
+									<Label class="muted">Season @_mostRecentSave.Season · Week @_mostRecentSave.Week · @_mostRecentSave.Phase</Label>
+
+									@if ( !string.IsNullOrEmpty( _mostRecentSave.UrgentLabel ) )
+
+									{
+
+										<Label class="continue-urgent">@_mostRecentSave.UrgentLabel</Label>
+
+									}
+
+									<Label class="continue-hint">Last played @FormatSavedAt( _mostRecentSave.SavedUtc )</Label>
+
+								</div>
+
+							}
+
+							<div class="save-list">
+
+								@foreach ( var slot in _saveSlots )
+
+								{
+
+									<div class="save-row @( _selectedSlot == slot.SlotId ? "selected" : "" )" @onclick='@(() => SelectSlot( slot.SlotId ))'>
+
+										<div class="save-primary">
+
+											<Label class="save-name">@slot.LeagueName</Label>
+
+											<Label class="save-file">@slot.SlotId</Label>
+
+										</div>
+
+										<div class="save-meta">
+
+											<Label>Season @slot.Season · Week @slot.Week</Label>
+
+											<Label>@slot.Phase</Label>
+
+											<Label class="muted">@FormatSavedAt( slot.SavedUtc )</Label>
+
+										</div>
+
+									</div>
+
+								}
+
+							</div>
+
+
+
+							<div class="load-actions">
+
+								<Button class="btn primary" Text="Load Dynasty" Disabled="@IsSlotNotSelected()" onclick=@LoadSelectedGame />
+								<Button class="btn danger" Text="Delete" Disabled="@IsSlotNotSelected()" onclick=@DeleteSelectedSave />
+
+							</div>
+
+						}
+
+					</div>
+
+				}
+
+			</div>
+
+		</div>
+
+	}
+
+	else
+
+	{
+
+		<DynastyHud />
+
+	}
+
+</div>
+
+
+
+@code
+
+{
+
+	private bool _showNewGame = true;
+
+	private string _newSaveName = "";
+
+	private string _newLeagueName = "Sunday Dynasty";
+
+	private int _wizardStep = 1;
+
+	private string _selectedTeamAbbr = "";
+
+	private DynastyStartMode _startMode = DynastyStartMode.QuickStart;
+
+	private ChallengeMode _challengeMode = ChallengeMode.Standard;
+
+	private bool _enableMultiGm;
+
+	private List<LeaderboardEntry> _leaderboardEntries = new();
+
+	private readonly List<TeamPickOption> _teamOptions = BuildTeamOptions();
+
+	private string _selectedSlot = "";
+
+	private string _error = "";
+
+	private List<SaveSlotInfo> _saveSlots = new();
+
+	private SaveSlotInfo _mostRecentSave;
+
+	private int _lastSessionToken;
+
+	private ulong _lastLeagueRevision;
+
+	private int _lastDraftUiSecond = -1;
+
+
+
+	protected override void OnEnabled()
+
+	{
+
+		base.OnEnabled();
+
+		EnsureMenuInput();
+
+	}
+
+
+
+	protected override void OnStart()
+
+	{
+
+		Log.Info( "[Dynasty] Main menu shell started." );
+
+		DynastyApp.Initialize();
+
+		RefreshSaveList();
+		RefreshLeaderboard();
+
+		EnsureMenuInput();
+
+	}
+
+
+
+	protected override void OnUpdate()
+
+	{
+
+		EnsureMenuInput();
+
+		if ( Input.EscapePressed )
+			DynastyUiInput.HandleEscape();
+
+
+
+		if ( DynastyApp.Session.ChangeToken != _lastSessionToken )
+
+		{
+
+			_lastSessionToken = DynastyApp.Session.ChangeToken;
+
+			_error = "";
+
+			RefreshSaveList();
+
+		}
+
+
+
+		if ( DynastyApp.Session.Screen == GameScreen.InGame )
+
+		{
+
+			var state = DynastyApp.League.State;
+
+			var revision = state != null ? state.StateRevision : 0UL;
+
+			if ( state?.Phase == LeaguePhase.Draft && state.Draft.IsActive )
+
+			{
+
+				if ( !GameNetworking.IsActive || GameNetworking.IsHost )
+					DynastyApp.League.TickDraftTimer();
+
+				state = DynastyApp.League.State;
+				revision = state != null ? state.StateRevision : 0UL;
+
+				var uiSecond = (int)( DateTime.UtcNow.Ticks / TimeSpan.TicksPerSecond );
+				if ( uiSecond != _lastDraftUiSecond )
+
+				{
+
+					_lastDraftUiSecond = uiSecond;
+					StateHasChanged();
+
+				}
+
+			}
+
+			if ( revision != _lastLeagueRevision )
+
+			{
+
+				_lastLeagueRevision = revision;
+				_lastDraftUiSecond = -1;
+
+				StateHasChanged();
+
+			}
+
+		}
+
+	}
+
+
+
+	static void EnsureMenuInput()
+
+	{
+
+		if ( Game.IsEditor )
+
+			return;
+
+
+
+		Mouse.Visibility = MouseVisibility.Visible;
+
+	}
+
+
+
+	void RefreshSaveList()
+
+	{
+
+		_saveSlots = DynastyApp.Persistence != null
+
+			? DynastyApp.Persistence.ListSaveSlots()
+				.OrderByDescending( s => s.SavedUtc )
+				.ToList()
+
+			: new List<SaveSlotInfo>();
+
+		_mostRecentSave = _saveSlots.FirstOrDefault();
+
+		if ( _saveSlots.Count > 0 && string.IsNullOrEmpty( _selectedSlot ) )
+
+			_selectedSlot = _saveSlots[0].SlotId;
+
+	}
+
+	void ContinueMostRecent()
+	{
+		if ( _mostRecentSave == null )
+			return;
+
+		_selectedSlot = _mostRecentSave.SlotId;
+		LoadSelectedGame();
+	}
+
+
+
+	void SetNewGameMode( bool showNew )
+
+	{
+		_showNewGame = showNew;
+
+		_error = "";
+
+		if ( showNew )
+		{
+			_wizardStep = 1;
+			_selectedTeamAbbr = "";
+			_startMode = DynastyStartMode.QuickStart;
+			_challengeMode = ChallengeMode.Standard;
+			_enableMultiGm = false;
+		}
+
+	}
+
+	void SetWizardStep( int step )
+	{
+		_wizardStep = Math.Clamp( step, 1, 3 );
+	}
+
+	void SelectTeam( string abbr )
+	{
+		_selectedTeamAbbr = abbr;
+		StateHasChanged();
+	}
+
+	void SetStartMode( DynastyStartMode mode )
+	{
+		_startMode = mode;
+	}
+
+	void SetChallengeMode( ChallengeMode mode )
+	{
+		_challengeMode = mode;
+	}
+
+	void ToggleMultiGm() => _enableMultiGm = !_enableMultiGm;
+
+	void RefreshLeaderboard() => _leaderboardEntries = DynastyLeaderboardService.GetTopEntries( 10 ).ToList();
+
+	string StartModeLabel() => _startMode switch
+	{
+		DynastyStartMode.QuickStart => "Quick Start — preseason begins immediately",
+		DynastyStartMode.ExpansionDraft => "Expansion draft begins immediately",
+		_ => "Rookie draft begins immediately"
+	};
+
+	string StartButtonLabel() => _startMode == DynastyStartMode.QuickStart
+		? "Start Dynasty"
+		: "Start Dynasty and Draft";
+
+	string TeamPickClass( string abbr ) => _selectedTeamAbbr == abbr ? "team-pick selected" : "team-pick";
+
+	bool IsTeamNotSelected() => string.IsNullOrEmpty( _selectedTeamAbbr );
+
+	bool IsSlotNotSelected() => string.IsNullOrEmpty( _selectedSlot );
+
+	static List<TeamPickOption> BuildTeamOptions() => new List<TeamPickOption>
+	{
+		new TeamPickOption( "KC", "Kansas City Chiefs" ),
+		new TeamPickOption( "BUF", "Buffalo Bills" ),
+		new TeamPickOption( "PHI", "Philadelphia Eagles" ),
+		new TeamPickOption( "SF", "San Francisco 49ers" ),
+		new TeamPickOption( "DAL", "Dallas Cowboys" ),
+		new TeamPickOption( "MIA", "Miami Dolphins" ),
+		new TeamPickOption( "DET", "Detroit Lions" ),
+		new TeamPickOption( "BAL", "Baltimore Ravens" ),
+		new TeamPickOption( "CIN", "Cincinnati Bengals" ),
+		new TeamPickOption( "GB", "Green Bay Packers" ),
+		new TeamPickOption( "SEA", "Seattle Seahawks" ),
+		new TeamPickOption( "MIN", "Minnesota Vikings" ),
+		new TeamPickOption( "JAX", "Jacksonville Jaguars" ),
+		new TeamPickOption( "LAC", "Los Angeles Chargers" ),
+		new TeamPickOption( "CLE", "Cleveland Browns" ),
+		new TeamPickOption( "HOU", "Houston Texans" ),
+		new TeamPickOption( "PIT", "Pittsburgh Steelers" ),
+		new TeamPickOption( "ATL", "Atlanta Falcons" ),
+		new TeamPickOption( "TB", "Tampa Bay Buccaneers" ),
+		new TeamPickOption( "IND", "Indianapolis Colts" ),
+		new TeamPickOption( "NO", "New Orleans Saints" ),
+		new TeamPickOption( "LV", "Las Vegas Raiders" ),
+		new TeamPickOption( "DEN", "Denver Broncos" ),
+		new TeamPickOption( "ARI", "Arizona Cardinals" ),
+		new TeamPickOption( "CHI", "Chicago Bears" ),
+		new TeamPickOption( "LAR", "Los Angeles Rams" ),
+		new TeamPickOption( "NYG", "New York Giants" ),
+		new TeamPickOption( "NYJ", "New York Jets" ),
+		new TeamPickOption( "TEN", "Tennessee Titans" ),
+		new TeamPickOption( "NE", "New England Patriots" ),
+		new TeamPickOption( "WAS", "Washington Commanders" ),
+		new TeamPickOption( "CAR", "Carolina Panthers" )
+	};
+
+
+
+	string MenuTabClass( bool isNew ) => _showNewGame == isNew ? "menu-tab active" : "menu-tab";
+
+
+
+	void SelectSlot( string slotId )
+
+	{
+		_selectedSlot = slotId;
+
+		_error = "";
+
+	}
+
+
+
+	void StartNewGame()
+
+	{
+		_error = "";
+
+		DynastyApp.Initialize();
+
+
+
+		if ( !CanManageSaves() )
+
+		{
+
+			_error = "Only the host can start a new dynasty.";
+
+			return;
+
+		}
+
+
+
+		var saveName = string.IsNullOrWhiteSpace( _newSaveName ) ? _newLeagueName : _newSaveName;
+
+		if ( string.IsNullOrWhiteSpace( saveName ) )
+
+		{
+
+			_error = "Enter a save name.";
+
+			return;
+
+		}
+
+		if ( string.IsNullOrEmpty( _selectedTeamAbbr ) )
+
+		{
+
+			_error = "Select a team before starting.";
+
+			_wizardStep = 2;
+
+			return;
+
+		}
+
+
+
+		try
+
+		{
+
+			DynastyApp.Persistence.StartNewGame( saveName, _newLeagueName, _selectedTeamAbbr, _startMode, _challengeMode, _enableMultiGm );
+
+			_lastLeagueRevision = DynastyApp.League.State != null ? DynastyApp.League.State.StateRevision : 0;
+
+			DynastyApp.Session.EnterGame( $"Dynasty started — saved as '{PersistenceService.SanitizeSlotId( saveName )}'." );
+			DynastyAudio.PlayMilestone();
+
+		}
+
+		catch ( Exception ex )
+
+		{
+
+			_error = ex.Message;
+
+		}
+
+	}
+
+
+
+	void LoadSelectedGame()
+
+	{
+		_error = "";
+
+		DynastyApp.Initialize();
+
+
+
+		if ( string.IsNullOrEmpty( _selectedSlot ) )
+
+		{
+
+			_error = "Select a save to load.";
+
+			return;
+
+		}
+
+
+
+		if ( !CanManageSaves() )
+
+		{
+
+			_error = "Only the host can load a dynasty.";
+
+			return;
+
+		}
+
+
+
+		try
+
+		{
+
+			DynastyApp.Persistence.LoadGame( _selectedSlot );
+
+			_lastLeagueRevision = DynastyApp.League.State != null ? DynastyApp.League.State.StateRevision : 0;
+
+			DynastyApp.Session.EnterGame( $"Loaded '{_selectedSlot}'." );
+
+		}
+
+		catch ( Exception ex )
+
+		{
+
+			_error = ex.Message;
+
+		}
+
+	}
+
+
+
+	void DeleteSelectedSave()
+
+	{
+		_error = "";
+
+		DynastyApp.Initialize();
+
+
+
+		if ( string.IsNullOrEmpty( _selectedSlot ) )
+
+			return;
+
+
+
+		if ( !CanManageSaves() )
+
+		{
+
+			_error = "Only the host can delete saves.";
+
+			return;
+
+		}
+
+
+
+		try
+
+		{
+
+			if ( DynastyApp.Persistence.DeleteSaveSlot( _selectedSlot ) )
+
+			{
+
+				_selectedSlot = "";
+
+				RefreshSaveList();
+
+				DynastyApp.Session.SetStatus( "Save deleted." );
+
+			}
+
+		}
+
+		catch ( Exception ex )
+
+		{
+
+			_error = ex.Message;
+
+		}
+
+	}
+
+
+
+	static bool CanManageSaves() => !GameNetworking.IsActive || GameNetworking.IsHost;
+
+
+
+	static string FormatSavedAt( DateTime utc ) => utc.ToLocalTime().ToString( "g" );
+
+
+
+	protected override int BuildHash()
+	{
+		var draftUiSecond = 0;
+		if ( DynastyApp.Session.Screen == GameScreen.InGame )
+		{
+			var state = DynastyApp.League.State;
+			if ( state?.Phase == LeaguePhase.Draft && state.Draft.IsActive )
+				draftUiSecond = (int)( DateTime.UtcNow.Ticks / TimeSpan.TicksPerSecond );
+		}
+
+		return HashCode.Combine(
+			DynastyApp.Session.ChangeToken,
+			_showNewGame,
+			_selectedSlot,
+			_error,
+			_saveSlots.Count,
+			_lastLeagueRevision,
+			draftUiSecond );
+	}
+
+}
+
+

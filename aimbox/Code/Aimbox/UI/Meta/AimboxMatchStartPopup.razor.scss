@@ -1,0 +1,104 @@
+AimboxMatchStartPopup, aimboxmatchstartpopup, .aimbox-match-start-popup
+{
+	position: absolute;
+	left: 0;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	width: 100%;
+	height: 100%;
+	z-index: 420;
+	font-family: Poppins;
+	pointer-events: none;
+	overflow: hidden;
+	color: #f4f4f4;
+}
+
+AimboxMatchStartPopup.visible, .aimbox-match-start-popup.visible
+{
+	pointer-events: none;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+}
+
+AimboxMatchStartPopup.hidden, .aimbox-match-start-popup.hidden
+{
+	display: none;
+}
+
+AimboxMatchStartPopup .decor, .aimbox-match-start-popup .decor
+{
+	pointer-events: none;
+}
+
+AimboxMatchStartPopup .popup-backdrop, .aimbox-match-start-popup .popup-backdrop
+{
+	position: absolute;
+	left: 0;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	background-color: rgba(0, 0, 0, 0.72);
+}
+
+AimboxMatchStartPopup .popup-card, .aimbox-match-start-popup .popup-card
+{
+	position: relative;
+	z-index: 2;
+	flex-direction: column;
+	align-items: center;
+	gap: 10px;
+	padding: 36px 48px;
+	min-width: 420px;
+	background-color: rgba(12, 12, 16, 0.96);
+	border: 2px solid rgba(255, 42, 109, 0.55);
+	box-shadow: 0 24px 80px rgba(0, 0, 0, 0.55);
+}
+
+AimboxMatchStartPopup .popup-kicker, .aimbox-match-start-popup .popup-kicker
+{
+	font-size: 12px;
+	font-weight: 800;
+	letter-spacing: 2px;
+	color: rgba(255, 255, 255, 0.65);
+}
+
+AimboxMatchStartPopup .popup-title, .aimbox-match-start-popup .popup-title
+{
+	font-size: 34px;
+	font-weight: 900;
+	letter-spacing: 3px;
+}
+
+AimboxMatchStartPopup .popup-mode, .aimbox-match-start-popup .popup-mode
+{
+	font-size: 16px;
+	font-weight: 800;
+	color: #ff2a6d;
+}
+
+AimboxMatchStartPopup .popup-map, .aimbox-match-start-popup .popup-map
+{
+	font-size: 13px;
+	font-weight: 700;
+	color: rgba(255, 255, 255, 0.72);
+}
+
+AimboxMatchStartPopup .popup-countdown, .aimbox-match-start-popup .popup-countdown
+{
+	margin-top: 8px;
+	font-size: 56px;
+	font-weight: 900;
+	line-height: 1;
+	color: #ff2a6d;
+	text-shadow: 0 0 24px rgba(255, 42, 109, 0.45);
+}
+
+AimboxMatchStartPopup .popup-hint, .aimbox-match-start-popup .popup-hint
+{
+	margin-top: 4px;
+	font-size: 12px;
+	font-weight: 600;
+	color: rgba(255, 255, 255, 0.55);
+}

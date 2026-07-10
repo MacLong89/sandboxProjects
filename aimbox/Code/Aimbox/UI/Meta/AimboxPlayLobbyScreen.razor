@@ -1,0 +1,948 @@
+@using Sandbox
+
+@using Sandbox.UI
+
+@inherits PanelComponent
+
+@namespace Sandbox
+
+
+
+<root class="aimbox-play-lobby @(Visible ? "visible" : "hidden")">
+
+	<div class="lobby-vignette decor"></div>
+
+	<div class="splatter decor"></div>
+
+
+
+	@if ( Lobby is null )
+
+	{
+
+		<div class="lobby-empty">Lobby unavailable.</div>
+
+	}
+
+	else if ( !IsHost )
+
+	{
+
+	<div class="lobby-shell joiner-waiting">
+
+		<div class="joiner-waiting-card">
+
+			<div class="panel-kicker">// LOBBY</div>
+
+			<div class="joiner-waiting-title">WAITING FOR HOST</div>
+
+			<div class="joiner-waiting-copy">The host chooses the game mode and starts the match.</div>
+
+			<div class="joiner-waiting-detail">You will get a popup when the match is about to start.</div>
+
+			<div class="player-list joiner-player-list">
+
+				@foreach ( var entry in LobbyEntries )
+
+				{
+
+					<div class="player-row @(entry.IsLocal ? "local" : "")">
+
+						<div class="player-badge"></div>
+
+						<div class="player-level">@entry.Level</div>
+
+						<div class="player-name">@entry.Name</div>
+
+						@if ( entry.IsHost )
+
+						{
+
+							<div class="player-tag host">HOST</div>
+
+						}
+
+						@if ( entry.IsBot )
+
+						{
+
+							<div class="player-tag bot">BOT</div>
+
+						}
+
+					</div>
+
+				}
+
+			</div>
+
+			<button class="joiner-back-btn" onclick="@BackToMainMenu">BACK TO MENU</button>
+
+		</div>
+
+	</div>
+
+	}
+
+	else
+
+	{
+
+	<div class="lobby-shell">
+
+		<div class="lobby-top">
+
+			<div class="mode-panel">
+
+				<div class="panel-kicker">// CHOOSE GAME MODE</div>
+
+				<div class="mode-grid">
+
+					<div class="mode-grid-row aim-row">
+
+						@foreach ( var aimCard in AimboxPlayLobbyUiHelpers.AimModeCards )
+
+						{
+
+							@ModeCardButton( aimCard, false )
+
+						}
+
+					</div>
+
+					<div class="mode-grid-row aim-row">
+
+						@foreach ( var aimCard in AimboxPlayLobbyUiHelpers.AimModeCardsRow2 )
+
+						{
+
+							@ModeCardButton( aimCard, false )
+
+						}
+
+					</div>
+
+					@for ( int row = 0; row < 2; row++ )
+
+					{
+
+						<div class="mode-grid-row">
+
+							@for ( int col = 0; col < 3; col++ )
+
+							{
+
+								var index = row * 3 + col;
+
+								var card = AimboxPlayLobbyUiHelpers.ModeCards[index];
+
+								@ModeCardButton( card, false )
+
+							}
+
+						</div>
+
+					}
+
+				</div>
+
+			</div>
+
+
+
+			<div class="details-panel">
+
+				<div class="panel-kicker">// MODE DETAILS</div>
+
+				<div class="mode-preview" style="background-color: @ModePreviewColor();">
+
+					<div class="mode-preview-code">@AimboxClassUiHelpers.ModeShortCode(SelectedMode)</div>
+
+					<div class="mode-preview-map">@ModePreviewMapLabel()</div>
+
+				</div>
+
+				<div class="mode-detail-title">@AimboxGameModeLabels.Long(SelectedMode).ToUpperInvariant()</div>
+
+				<div class="mode-detail-desc">@AimboxPlayLobbyUiHelpers.ModeDescription(SelectedMode)</div>
+
+				<div class="mode-detail-stats">
+
+					<div class="detail-stat">
+
+						<div class="detail-stat-label">MATCH TIME</div>
+
+						<div class="detail-stat-value">@AimboxPlayLobbyUiHelpers.MatchTimeLabel(SelectedMode)</div>
+
+					</div>
+
+					<div class="detail-stat">
+
+						<div class="detail-stat-label">SCORE LIMIT</div>
+
+						<div class="detail-stat-value">@AimboxPlayLobbyUiHelpers.ScoreLimitLabel(SelectedMode)</div>
+
+					</div>
+
+					<div class="detail-stat">
+
+						<div class="detail-stat-label">PLAYERS</div>
+
+						<div class="detail-stat-value">@AimboxPlayLobbyUiHelpers.PlayersLabel(SelectedMode)</div>
+
+					</div>
+
+				</div>
+
+
+
+				<div class="map-vote @(SoloMapSelection ? "map-select" : "") @(MapSelectEnabled ? "" : "disabled")">
+
+					<div class="map-vote-head">
+
+						<div class="panel-kicker small">@(MapSelectEnabled ? (SoloMapSelection ? "// MAP SELECT" : "// MAP VOTE") : "// MAP SELECT")</div>
+
+						<div class="map-vote-hint">@(MapSelectEnabled ? (SoloMapSelection ? "CHOOSE YOUR MAP" : "VOTE FOR THE NEXT MAP") : "AIM TRAINER USES A PRIVATE ROOM")</div>
+
+					</div>
+
+					@{
+
+						var playableMaps = AimboxPlayLobbyUiHelpers.PlayableMaps;
+
+					}
+
+					<div class="map-vote-grid">
+
+						@for ( var i = 0; i < playableMaps.Count; i += 2 )
+
+						{
+
+							<div class="map-vote-row">
+
+								@MapVoteButton( playableMaps[i].Id )
+
+								@if ( i + 1 < playableMaps.Count )
+
+								{
+
+									@MapVoteButton( playableMaps[i + 1].Id )
+
+								}
+
+							</div>
+
+						}
+
+					</div>
+
+				</div>
+
+			</div>
+
+		</div>
+
+
+
+		<div class="lobby-bottom">
+
+			<div class="bottom-panel team-select-panel @(TeamSelectEnabled ? "" : "disabled")">
+
+				<div class="panel-kicker">// TEAM SELECT</div>
+
+				@if ( !TeamSelectEnabled )
+
+				{
+
+					<div class="team-select-disabled-copy">Teams are not used in this mode.</div>
+
+				}
+
+				<div class="team-select-grid">
+
+					@TeamSelectColumn( "ALPHA TEAM", AimboxTeam.Red, AlphaEntries, "alpha" )
+
+					@TeamSelectColumn( "NEUTRAL", AimboxTeam.None, NeutralEntries, "neutral" )
+
+					@TeamSelectColumn( "BRAVO TEAM", AimboxTeam.Blue, BravoEntries, "bravo" )
+
+				</div>
+
+				@if ( TeamSelectEnabled )
+
+				{
+
+					<div class="team-select-hint">Everyone starts neutral. Click a column to join a team. Unpicked players are auto-balanced at start.</div>
+
+				}
+
+			</div>
+
+		</div>
+
+
+
+		<div class="lobby-footer">
+
+			@if ( IsLocalReady )
+
+			{
+
+				<button class="start-btn counting" disabled="@true">STARTING @ReadySeconds()...</button>
+
+			}
+
+			else
+
+			{
+
+				<button class="start-btn" onclick="@(() => StartMatch())">START MATCH &gt;</button>
+
+			}
+
+		</div>
+
+	</div>
+
+	}
+
+</root>
+
+
+
+@code
+
+{
+
+	sealed record LobbyPlayerEntry( string ActorId, string Name, int Level, bool IsLocal, bool IsHost, bool IsBot );
+
+
+
+	bool Visible =>
+
+		AimboxMetaUiFlags.UseRedesignedPlayLobby
+
+		&& AimboxMetaNavigation.IsInIntermission
+
+		&& AimboxMetaNavigation.CurrentScreen == AimboxMetaScreen.ModeSelect;
+
+
+
+	AimboxGame Game => AimboxGame.Instance;
+
+	AimboxLobbyState Lobby => Game?.Lobby;
+
+	AimboxPlayerController LocalPlayer => FindLocalPlayer();
+
+
+
+	AimboxGameMode SelectedMode => Game?.NextMode ?? AimboxGameMode.TeamDeathmatch;
+
+	LobbyMapDefinition SelectedMap => AimboxPlayLobbyUiHelpers.GetMap( Lobby?.SelectedMapId ?? AimboxPlayLobbyUiHelpers.DefaultMapId );
+
+	string LocalMapVote => Lobby?.LocalMapVoteId ?? "";
+
+
+
+	bool IsLocalReady => Game?.IsLocalReady == true;
+
+	bool IsHost => Game?.IsLobbyHost != false;
+
+	bool MapSelectEnabled => AimboxLobbyTeamRules.UsesMapSelect( SelectedMode );
+
+	bool TeamSelectEnabled => AimboxLobbyTeamRules.UsesTeamSelect( SelectedMode );
+
+	bool SoloMapSelection => Game?.UsesLobbyMapVote != true;
+
+
+
+	IReadOnlyList<LobbyPlayerEntry> LobbyEntries => BuildLobbyEntries();
+
+	IReadOnlyList<LobbyPlayerEntry> AlphaEntries => FilterTeamEntries( AimboxTeam.Red );
+
+	IReadOnlyList<LobbyPlayerEntry> NeutralEntries => FilterTeamEntries( AimboxTeam.None );
+
+	IReadOnlyList<LobbyPlayerEntry> BravoEntries => FilterTeamEntries( AimboxTeam.Blue );
+
+
+
+	protected override void OnStart()
+
+	{
+
+		try
+
+		{
+
+			Log.Info( $"[Aimbox Lobby] Mode cards: {ModeCardTitles()}" );
+
+			Log.Info( $"[Aimbox Lobby] Map vote UI ready with {AimboxPlayLobbyUiHelpers.Maps.Count} maps." );
+
+		}
+
+		catch ( Exception ex )
+
+		{
+
+			Log.Warning( $"[Aimbox Lobby] Start log skipped: {ex.Message}" );
+
+		}
+
+	}
+
+
+
+	protected override void OnUpdate() => SyncLobby();
+
+
+
+	void SyncLobby()
+
+	{
+
+		try
+
+		{
+
+			if ( !Visible || Game is null || !IsHost )
+
+				return;
+
+
+
+			Game.ApplyLobbyBotPresence();
+
+		}
+
+		catch ( Exception ex )
+
+		{
+
+			Log.Warning( $"[Aimbox Lobby] Sync skipped: {ex.Message}" );
+
+		}
+
+	}
+
+
+
+	void SelectMode( LobbyModeCard card )
+
+	{
+
+		if ( !IsHost || !card.Available || card.Mode is not AimboxGameMode mode )
+
+			return;
+
+
+
+		Game?.SetNextMode( mode );
+
+	}
+
+
+
+	void SelectMap( string mapId )
+
+	{
+
+		if ( !MapSelectEnabled )
+
+			return;
+
+
+
+		if ( !IsHost && Game?.UsesLobbyMapVote != true )
+
+			return;
+
+
+
+		Game?.VoteLobbyMap( mapId );
+
+	}
+
+
+
+	void JoinTeam( AimboxTeam team )
+
+	{
+
+		if ( !TeamSelectEnabled )
+
+			return;
+
+
+
+		Game?.SelectLobbyTeam( team );
+
+	}
+
+
+
+	void BackToMainMenu() => AimboxMetaNavigation.OpenScreen( AimboxMetaScreen.PostMatch );
+
+
+
+	string MapThumbClasses( string mapId )
+
+	{
+
+		var normalized = AimboxPlayLobbyUiHelpers.NormalizeMapId( mapId );
+
+		var selected = string.Equals( SelectedMap.Id, normalized, StringComparison.OrdinalIgnoreCase );
+
+		var disabled = !MapSelectEnabled ? " locked" : "";
+
+		if ( SoloMapSelection )
+
+			return $"map-thumb{(selected ? " selected" : "")}{disabled}";
+
+
+
+		var voted = string.Equals( LocalMapVote, normalized, StringComparison.OrdinalIgnoreCase );
+
+		return $"map-thumb{(selected ? " selected" : "")}{(voted ? " voted" : "")}{disabled}";
+
+	}
+
+
+
+	void StartMatch() => Game?.SetLocalReady();
+
+
+
+	int MapVotes( string mapId ) => Lobby?.MapVotes( mapId ) ?? 0;
+
+
+
+	RenderFragment MapVoteButton( string mapId )
+
+	{
+
+		var map = AimboxPlayLobbyUiHelpers.GetMap( mapId );
+
+		return @<button class="@MapThumbClasses( mapId )" disabled="@(!MapSelectEnabled)" onclick="@(() => SelectMap( mapId ))">
+
+			<div class="map-thumb-bg" style="background-color: @map.AccentColor;"></div>
+
+			<div class="map-thumb-footer">
+
+				<div class="map-thumb-name">@map.Name</div>
+
+			</div>
+
+			@if ( !SoloMapSelection && MapSelectEnabled )
+
+			{
+
+				<div class="map-thumb-votes">@MapVotes( mapId )</div>
+
+			}
+
+		</button>;
+
+	}
+
+
+
+	AimboxPlayerController FindLocalPlayer()
+
+	{
+
+		if ( Game is null || Game.Players.Count == 0 )
+
+			return null;
+
+
+
+		for ( var i = 0; i < Game.Players.Count; i++ )
+
+		{
+
+			var player = Game.Players[i];
+
+			if ( !player.IsProxy )
+
+				return player;
+
+		}
+
+
+
+		return Game.Players[0];
+
+	}
+
+
+
+	static string ModeCardTitles()
+
+	{
+
+		var text = "";
+
+		for ( var i = 0; i < AimboxPlayLobbyUiHelpers.AimModeCards.Count; i++ )
+
+		{
+
+			if ( i > 0 )
+
+				text += ", ";
+
+
+
+			text += AimboxPlayLobbyUiHelpers.AimModeCards[i].Title;
+
+		}
+
+
+
+		for ( var i = 0; i < AimboxPlayLobbyUiHelpers.AimModeCardsRow2.Count; i++ )
+
+		{
+
+			if ( text.Length > 0 )
+
+				text += ", ";
+
+
+
+			text += AimboxPlayLobbyUiHelpers.AimModeCardsRow2[i].Title;
+
+		}
+
+
+
+		for ( var i = 0; i < AimboxPlayLobbyUiHelpers.ModeCards.Count; i++ )
+
+		{
+
+			if ( text.Length > 0 )
+
+				text += ", ";
+
+
+
+			text += AimboxPlayLobbyUiHelpers.ModeCards[i].Title;
+
+		}
+
+
+
+		return text;
+
+	}
+
+
+
+	RenderFragment ModeCardButton( LobbyModeCard card, bool featured )
+
+	{
+
+		var selected = card.Mode.HasValue && card.Mode.Value == SelectedMode;
+
+		return @<button class="mode-card @(featured ? "featured" : "") @(selected ? "selected" : "") @(card.Available ? "" : "locked")"
+
+			disabled="@(!card.Available)"
+
+			onclick="@(() => SelectMode(card))">
+
+			<div class="mode-card-accent" style="background-color: @(selected ? "rgba(255,255,255,0.35)" : ModeCardAccent(card));"></div>
+
+			<div class="mode-card-icon">@ModeCardIcon(card)</div>
+
+			<div class="mode-card-copy">
+
+				<div class="mode-card-title">@card.Title</div>
+
+				<div class="mode-card-meta">@card.PlayerLabel</div>
+
+			</div>
+
+			<div class="mode-card-lock">@(card.Available ? "" : "LOCKED")</div>
+
+		</button>;
+
+	}
+
+
+
+	RenderFragment TeamSelectColumn( string title, AimboxTeam team, IReadOnlyList<LobbyPlayerEntry> entries, string cssClass )
+
+	{
+
+		return @<div class="team-select-column @cssClass">
+
+			<button class="team-select-header @cssClass" disabled="@(!TeamSelectEnabled)" onclick="@(() => JoinTeam(team))">@title</button>
+
+			<div class="team-select-slots">
+
+				@foreach ( var entry in entries )
+
+				{
+
+					<div class="team-slot @(entry.IsLocal ? "local" : "")">
+
+						<div class="player-badge"></div>
+
+						<div class="player-level">@entry.Level</div>
+
+						<div class="player-name">@entry.Name</div>
+
+						@if ( entry.IsHost )
+
+						{
+
+							<div class="player-tag host">HOST</div>
+
+						}
+
+						@if ( entry.IsBot )
+
+						{
+
+							<div class="player-tag bot">BOT</div>
+
+						}
+
+					</div>
+
+				}
+
+				@if ( TeamSelectEnabled && entries.Count == 0 )
+
+				{
+
+					<button class="team-slot empty" onclick="@(() => JoinTeam(team))">CLICK TO JOIN</button>
+
+				}
+
+			</div>
+
+		</div>;
+
+	}
+
+
+
+	List<LobbyPlayerEntry> BuildLobbyEntries()
+
+	{
+
+		var entries = new List<LobbyPlayerEntry>();
+
+		if ( Game is null || Lobby is null )
+
+			return entries;
+
+
+
+		var hostId = Game?.LobbyHostAccountId ?? LocalPlayer?.AccountId ?? "offline";
+
+
+
+		var players = new List<AimboxPlayerController>();
+
+		foreach ( var player in Game.Players )
+
+			players.Add( player );
+
+
+
+		players.Sort( ( a, b ) =>
+
+		{
+
+			var proxyCompare = (a.IsProxy ? 1 : 0).CompareTo( b.IsProxy ? 1 : 0 );
+
+			return proxyCompare != 0 ? proxyCompare : string.Compare( a.AccountId, b.AccountId, StringComparison.Ordinal );
+
+		} );
+
+
+
+		foreach ( var player in players )
+
+		{
+
+			var isLocal = !player.IsProxy;
+
+			entries.Add( new LobbyPlayerEntry(
+
+				player.AccountId,
+
+				AimboxPlayLobbyUiHelpers.PlayerDisplayName( player ),
+
+				AimboxPlayLobbyUiHelpers.PlayerDisplayLevel( player ),
+
+				isLocal,
+
+				player.AccountId == hostId,
+
+				false ) );
+
+		}
+
+
+
+		var bots = new List<AimboxBotController>();
+
+		foreach ( var bot in Game.Bots )
+
+			bots.Add( bot );
+
+
+
+		bots.Sort( ( a, b ) => string.Compare( a.BotId, b.BotId, StringComparison.Ordinal ) );
+
+
+
+		foreach ( var bot in bots )
+
+		{
+
+			entries.Add( new LobbyPlayerEntry(
+
+				bot.BotId,
+
+				AimboxPlayLobbyUiHelpers.BotDisplayName( bot ),
+
+				1,
+
+				false,
+
+				false,
+
+				true ) );
+
+		}
+
+
+
+		return entries;
+
+	}
+
+
+
+	List<LobbyPlayerEntry> FilterTeamEntries( AimboxTeam team )
+
+	{
+
+		var entries = new List<LobbyPlayerEntry>();
+
+		if ( Lobby is null )
+
+			return entries;
+
+
+
+		foreach ( var entry in LobbyEntries )
+
+		{
+
+			if ( Lobby.GetTeamPick( entry.ActorId ) == team )
+
+				entries.Add( entry );
+
+		}
+
+
+
+		return entries;
+
+	}
+
+
+
+	string ModePreviewMapLabel() =>
+
+		MapSelectEnabled ? SelectedMap.Name : "TRAINER";
+
+
+
+	string ModePreviewColor() => AimboxClassUiHelpers.ModeAccent( SelectedMode );
+
+
+
+	static string ModeCardAccent( LobbyModeCard card ) =>
+
+		card.Mode is AimboxGameMode mode
+
+			? AimboxClassUiHelpers.ModeAccent( mode )
+
+			: "#333333";
+
+
+
+	static string ModeCardIcon( LobbyModeCard card ) =>
+
+		card.Mode is AimboxGameMode mode
+
+			? AimboxClassUiHelpers.ModeShortCode( mode )
+
+			: "??";
+
+
+
+	string ReadySeconds() => $"{(int)MathF.Ceiling( Game?.ReadyCountdownRemaining ?? 0f )}";
+
+
+
+	protected override int BuildHash() => HashCode.Combine(
+
+		HashCode.Combine( Visible, SelectedMode, SelectedMap.Id, LocalMapVote, SoloMapSelection, IsLocalReady, IsHost, Game?.ReadyCountdownRemaining ),
+
+		HashCode.Combine( MapSelectEnabled, TeamSelectEnabled, LobbyEntries.Count, Game?.Players.Count, Game?.Bots.Count, MapVoteHash(), TeamPickHash() ) );
+
+
+
+	int MapVoteHash()
+
+	{
+
+		if ( Lobby is null )
+
+			return 0;
+
+
+
+		var hash = new HashCode();
+
+		foreach ( var map in AimboxPlayLobbyUiHelpers.Maps )
+
+			hash.Add( Lobby.MapVotes( map.Id ) );
+
+
+
+		return hash.ToHashCode();
+
+	}
+
+
+
+	int TeamPickHash()
+
+	{
+
+		if ( Lobby is null )
+
+			return 0;
+
+
+
+		var hash = new HashCode();
+
+		foreach ( var entry in LobbyEntries )
+
+			hash.Add( (int)Lobby.GetTeamPick( entry.ActorId ) );
+
+
+
+		return hash.ToHashCode();
+
+	}
+
+}
+

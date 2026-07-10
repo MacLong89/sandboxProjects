@@ -1,0 +1,370 @@
+@using Sandbox
+@using Sandbox.UI
+
+@using Dynasty.UI.ViewModels
+
+@using Dynasty.UI.Management
+
+@using Dynasty.Visualization
+
+@using Dynasty.Core.Enums
+
+@using Dynasty.Core.Identifiers
+
+@using Dynasty.Domain.League
+
+@inherits Panel
+
+@namespace Dynasty.UI.Components
+@attribute [StyleSheet( "/Dynasty/UI/Components/GameViewerModal.razor.scss" )]
+
+<root class="game-viewer-modal-root">
+@if ( Model != null )
+{
+	<div class="ui-modal-backdrop ui-anim-fade" style="@UiModalHelpers.ZIndexStyle( UiWindowType.GameViewer )" @onclick='@(() => UiModalHelpers.BackdropClick( UiWindowType.GameViewer, () => OnClose?.Invoke() ))'>
+		<div class="ui-modal-card game-viewer" @onmousedown='@UiModalHelpers.StopPropagation'>
+
+		<Label class="modal-title">@Model.Away @@ @Model.Home</Label>
+
+		<Label class="muted">Season @Model.Season · Week @Model.Week</Label>
+
+
+
+		@if ( Model.IsComplete )
+
+		{
+
+			@if ( !string.IsNullOrEmpty( Model.WinnerLabel ) )
+
+			{
+
+				<Label class="game-winner-banner">@Model.WinnerLabel</Label>
+
+			}
+
+
+
+			<div class="scoreboard">
+
+				<div class="score-team @( Model.AwayWon ? "winner" : "" )">
+
+					<Label class="team-abbr">@Model.Away</Label>
+
+					<Label class="team-score">@Model.AwayScore</Label>
+
+				</div>
+
+				<Label class="score-final">FINAL</Label>
+
+				<div class="score-team @( Model.HomeWon ? "winner" : "" )">
+
+					<Label class="team-abbr">@Model.Home</Label>
+
+					<Label class="team-score">@Model.HomeScore</Label>
+
+				</div>
+
+			</div>
+
+
+
+			@if ( _fieldModel != null )
+
+			{
+
+				<div class="replay-controls">
+
+					<Button class="btn secondary small" Text="@(_replayPlaying ? "Pause" : "Play Replay")" onclick=@ToggleReplay />
+
+					<Button class="btn secondary small" Text="Step" onclick=@StepReplay />
+
+					<Label class="muted">@_replayIndex / @Model.TotalPlays</Label>
+
+				</div>
+
+				<GameFieldReplay Model="@_fieldModel" />
+
+			}
+
+			@if ( Model.Highlights != null && Model.Highlights.Count > 0 )
+			{
+				<Label class="panel-subtitle">Highlight Reel</Label>
+				<div class="highlight-reel">
+					@foreach ( var clip in Model.Highlights )
+					{
+						<div class="highlight-row">
+							<Label class="play-time">@clip.Quarter @clip.Clock</Label>
+							<Label class="play-desc">@clip.Description</Label>
+							<Label class="play-score">@clip.Score</Label>
+						</div>
+					}
+				</div>
+			}
+
+			<Label class="panel-subtitle">Play-by-Play</Label>
+
+			<div class="play-log">
+
+				@foreach ( var play in Model.PlayLog )
+
+				{
+
+					<div class="play-row @( play.IsScoring ? "scoring" : "" ) @( IsHighlight( play ) ? "replay-current" : "" )">
+
+						<Label class="play-time">@play.Quarter @play.Clock</Label>
+
+						<Label class="play-desc">@play.Description</Label>
+
+						<Label class="play-score">@play.Score</Label>
+
+					</div>
+
+				}
+
+			</div>
+
+		}
+
+		else
+
+		{
+
+			<Label class="muted">This game has not been played yet.</Label>
+
+			@if ( CanManage )
+
+			{
+
+				<Button class="btn primary" Text="Simulate Game" onclick=@(() => OnSimulate?.Invoke()) />
+
+			}
+
+		}
+
+
+
+		<div class="modal-actions">
+
+			<Button class="btn secondary" Text="Close" onclick=@(() => OnClose?.Invoke()) />
+
+		</div>
+
+		</div>
+	</div>
+}
+</root>
+
+
+
+@code
+
+{
+
+	[Parameter] public GameViewerViewModel Model { get; set; }
+
+	[Parameter] public LeagueState LeagueState { get; set; }
+
+	[Parameter] public GameVisualizationMode VisualizationMode { get; set; } = GameVisualizationMode.TopDownField;
+
+	[Parameter] public bool CanManage { get; set; }
+
+	[Parameter] public Action OnClose { get; set; }
+
+	[Parameter] public Action OnSimulate { get; set; }
+
+
+
+	GameReplayController _replay;
+
+	GameFieldReplayViewModel _fieldModel = new();
+
+	bool _replayPlaying;
+
+	int _replayIndex;
+
+	GameId _loadedGameId;
+	bool _autoReplayStarted;
+
+
+
+	void EnsureReplayLoaded()
+	{
+		if ( Model?.IsComplete != true || LeagueState == null )
+			return;
+
+		if ( _loadedGameId.Value == Model.GameId.Value && _replay != null )
+			return;
+
+		var game = LeagueState.Schedule.Games.FirstOrDefault( g => g.Id.Value == Model.GameId.Value );
+		var events = game?.Result?.SimulationEvents;
+		if ( events == null || events.Count == 0 )
+			return;
+
+		_replay ??= new GameReplayController( new GameVisualizerFactory() );
+		_replay.Load( VisualizationMode, events );
+		_replayIndex = 0;
+		_replayPlaying = false;
+		_loadedGameId = Model.GameId;
+		_autoReplayStarted = false;
+		UpdateFieldFromIndex();
+
+		if ( Model.AutoPlayReplay && !_autoReplayStarted )
+		{
+			_replay.Play();
+			_replayPlaying = true;
+			_autoReplayStarted = true;
+		}
+	}
+
+
+
+	public override void Tick()
+	{
+		base.Tick();
+
+		EnsureReplayLoaded();
+
+		if ( !_replayPlaying || _replay == null )
+			return;
+
+
+
+		var ev = _replay.Update( Time.Delta );
+
+		if ( ev != null )
+
+			ApplyEvent( ev );
+
+		else if ( _replay.Visualizer?.CurrentEventIndex >= _replay.Visualizer?.EventCount )
+
+			_replayPlaying = false;
+
+	}
+
+
+
+	void ToggleReplay()
+
+	{
+
+		if ( _replay == null )
+
+			return;
+
+
+
+		if ( _replayPlaying )
+
+			_replay.Pause();
+
+		else
+
+		{
+
+			if ( _replayIndex >= Model.TotalPlays )
+
+			{
+
+				_replay.Stop();
+
+				_replay.Load( VisualizationMode, LeagueState.Schedule.Games.First( g => g.Id.Value == Model.GameId.Value ).Result.SimulationEvents );
+
+				_replayIndex = 0;
+
+			}
+
+			_replay.Play();
+
+		}
+
+
+
+		_replayPlaying = !_replayPlaying;
+
+	}
+
+
+
+	void StepReplay()
+
+	{
+
+		if ( _replay == null )
+
+			return;
+
+
+
+		var ev = _replay.Step();
+
+		if ( ev != null )
+
+			ApplyEvent( ev );
+
+	}
+
+
+
+	void ApplyEvent( Domain.Simulation.SimEventRecord ev )
+
+	{
+
+		_replayIndex = _replay.Visualizer?.CurrentEventIndex ?? _replayIndex;
+
+		var game = LeagueState.Schedule.Games.First( g => g.Id.Value == Model.GameId.Value );
+
+		_fieldModel = GameFieldReplayViewModel.From( LeagueState, ev, game.HomeTeamId, game.AwayTeamId );
+
+	}
+
+
+
+	void UpdateFieldFromIndex()
+
+	{
+
+		if ( _replayIndex <= 0 || LeagueState == null || Model == null )
+
+		{
+
+			_fieldModel = new GameFieldReplayViewModel();
+
+			return;
+
+		}
+
+
+
+		var game = LeagueState.Schedule.Games.FirstOrDefault( g => g.Id.Value == Model.GameId.Value );
+
+		var events = game?.Result?.SimulationEvents;
+
+		if ( events == null || _replayIndex > events.Count )
+
+			return;
+
+
+
+		_fieldModel = GameFieldReplayViewModel.From( LeagueState, events[_replayIndex - 1], game.HomeTeamId, game.AwayTeamId );
+
+	}
+
+
+
+	bool IsHighlight( PlayLogRow play )
+
+	{
+
+		if ( _replayIndex <= 0 || _replayIndex > Model.PlayLog.Count )
+
+			return false;
+
+
+
+		return Model.PlayLog[_replayIndex - 1] == play;
+
+	}
+
+}
+
+

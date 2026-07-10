@@ -1,0 +1,392 @@
+// Self-contained in-game HUD shell — loads even if the themed companion sheet fails.
+
+.dynasty-hud
+{
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	width: 100%;
+	height: 100%;
+	font-family: Poppins;
+	font-size: 14px;
+	color: #e8eef7;
+	pointer-events: all;
+	flex-direction: column;
+	background-color: #0a0f18;
+	padding: 20px;
+	gap: 12px;
+	overflow: hidden;
+
+	.top-bar
+	{
+		flex-direction: row;
+		align-items: center;
+		gap: 20px;
+		padding-bottom: 14px;
+		border-bottom: 1px solid #243044;
+		flex-shrink: 0;
+	}
+
+	.brand-block
+	{
+		flex-direction: column;
+		gap: 2px;
+		min-width: 180px;
+	}
+
+	.brand-kicker
+	{
+		font-size: 10px;
+		font-weight: 700;
+		letter-spacing: 3px;
+		color: #34c759;
+	}
+
+	.brand-name
+	{
+		font-size: 22px;
+		font-weight: 800;
+		color: white;
+	}
+
+	.calendar-line
+	{
+		font-size: 12px;
+	}
+
+	.hud-actions
+	{
+		flex-direction: row;
+		align-items: center;
+		gap: 8px;
+		margin-left: auto;
+		flex-wrap: wrap;
+	}
+
+	.next-action-bar
+	{
+		flex-direction: row;
+		align-items: center;
+		gap: 10px;
+		padding: 12px 16px;
+		background-color: #151d2e;
+		border: 1px solid #243044;
+		border-radius: 10px;
+		flex-shrink: 0;
+		cursor: pointer;
+	}
+
+	.next-label
+	{
+		font-size: 12px;
+		font-weight: 700;
+		color: #34c759;
+		text-transform: uppercase;
+	}
+
+	.next-text
+	{
+		font-size: 14px;
+		color: white;
+		flex-grow: 1;
+	}
+
+	.hud-nav
+	{
+		flex-direction: row;
+		gap: 8px;
+		flex-wrap: wrap;
+		flex-shrink: 0;
+	}
+
+	Button.nav-btn
+	{
+		padding: 10px 16px;
+		font-size: 13px;
+		font-weight: 600;
+		color: #8b9cb3;
+		background-color: #151d2e;
+		border: 1px solid #243044;
+		border-radius: 10px;
+		cursor: pointer;
+
+		&.active
+		{
+			color: white;
+			background-color: #1a5c32;
+			border-color: #34c759;
+		}
+	}
+
+	.status-bar
+	{
+		padding: 8px 12px;
+		border-radius: 10px;
+		font-size: 13px;
+		flex-shrink: 0;
+
+		&.error
+		{
+			background-color: #3f1518;
+			color: #fecaca;
+		}
+
+		&.info
+		{
+			background-color: #13233d;
+			color: #bfdbfe;
+		}
+	}
+
+	.hud-main-row
+	{
+		flex-grow: 1;
+		flex-direction: row;
+		gap: 12px;
+		min-height: 0;
+	}
+
+	.hud-content
+	{
+		flex-grow: 1;
+		overflow: scroll;
+		min-width: 0;
+		flex-direction: column;
+		gap: 12px;
+	}
+
+	.action-sidebar
+	{
+		width: 280px;
+		flex-shrink: 0;
+		flex-direction: column;
+		gap: 10px;
+		padding: 16px;
+		background-color: #151d2e;
+		border: 1px solid #243044;
+		border-radius: 14px;
+		overflow: scroll;
+	}
+
+	.sidebar-header
+	{
+		flex-direction: row;
+		align-items: center;
+		justify-content: space-between;
+		padding-bottom: 10px;
+		border-bottom: 1px solid #243044;
+	}
+
+	.sidebar-title
+	{
+		font-size: 16px;
+		font-weight: 800;
+		color: white;
+		text-transform: uppercase;
+	}
+
+	.todo-item
+	{
+		flex-direction: column;
+		gap: 4px;
+		padding: 12px;
+		background-color: #0a0f18;
+		border: 1px solid #243044;
+		border-radius: 10px;
+		cursor: pointer;
+	}
+
+	.home-dashboard,
+	.home-grid,
+	.split-layout,
+	.team-layout
+	{
+		flex-direction: column;
+		gap: 16px;
+		width: 100%;
+	}
+
+	.home-grid,
+	.split-layout
+	{
+		flex-direction: row;
+		flex-wrap: wrap;
+		align-items: flex-start;
+	}
+
+	.panel
+	{
+		flex-direction: column;
+		gap: 10px;
+		padding: 20px;
+		background-color: #151d2e;
+		border: 1px solid #243044;
+		border-radius: 14px;
+	}
+
+	.panel.standings
+	{
+		width: 280px;
+		flex-shrink: 0;
+	}
+
+	.panel.news,
+	.detail-panel
+	{
+		flex-grow: 1;
+		min-width: 280px;
+	}
+
+	.panel-title
+	{
+		font-size: 18px;
+		font-weight: 700;
+		color: white;
+	}
+
+	.panel-subtitle
+	{
+		font-size: 14px;
+		font-weight: 600;
+		color: #8b9cb3;
+	}
+
+	.franchise-hero,
+	.franchise-identity,
+	.franchise-stats,
+	.hero-stat,
+	.standings-header,
+	.standings-row,
+	.news-row,
+	.inbox-row,
+	.schedule-row,
+	.depth-header,
+	.depth-row,
+	.team-subnav,
+	.facility-grid,
+	.trade-layout
+	{
+		flex-direction: row;
+		flex-wrap: wrap;
+		gap: 8px;
+		align-items: center;
+	}
+
+	.franchise-hero,
+	.next-game-card,
+	.continue-card
+	{
+		flex-direction: column;
+		gap: 8px;
+		padding: 16px;
+		background-color: #151d2e;
+		border: 1px solid #243044;
+		border-radius: 10px;
+	}
+
+	.muted
+	{
+		color: #8b9cb3;
+		font-size: 13px;
+	}
+
+	.clickable
+	{
+		cursor: pointer;
+		pointer-events: all;
+	}
+
+	Button.btn
+	{
+		justify-content: center;
+		padding: 10px 16px;
+		font-size: 13px;
+		font-weight: 600;
+		color: #e8eef7;
+		background-color: #111827;
+		border: 1px solid #243044;
+		border-radius: 10px;
+		cursor: pointer;
+
+		&.primary
+		{
+			color: white;
+			background-color: #34c759;
+			border-color: #34c759;
+		}
+
+		&.secondary
+		{
+			color: #e8eef7;
+			background-color: #111827;
+		}
+
+		&.danger
+		{
+			color: white;
+			background-color: #ef4444;
+			border-color: #ef4444;
+		}
+
+		&.small
+		{
+			padding: 6px 10px;
+			font-size: 12px;
+		}
+	}
+
+	TextEntry.text-input
+	{
+		width: 100%;
+		padding: 10px 12px;
+		font-size: 14px;
+		color: #e8eef7;
+		background-color: #0a0f18;
+		border: 1px solid #243044;
+		border-radius: 10px;
+	}
+
+	.ui-modal-backdrop
+	{
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		align-items: center;
+		justify-content: center;
+		background-color: rgba( 0, 0, 0, 0.88 );
+		pointer-events: all;
+	}
+
+	.ui-modal-card
+	{
+		flex-direction: column;
+		gap: 12px;
+		width: 480px;
+		max-width: 90%;
+		max-height: 85%;
+		padding: 24px;
+		background-color: #151d2e;
+		border: 1px solid #243044;
+		border-radius: 14px;
+		pointer-events: all;
+		overflow: scroll;
+	}
+
+	.modal-title
+	{
+		font-size: 18px;
+		font-weight: 700;
+		color: white;
+	}
+
+	.modal-actions
+	{
+		flex-direction: row;
+		gap: 10px;
+		justify-content: flex-end;
+	}
+}

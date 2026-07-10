@@ -1,0 +1,9 @@
+{
+	"DisplayName": "Spotted",
+	"Description": "Distinctive white spots on a rich coat — a forest classic.",
+	"RarityWeight": 35,
+	"AppealMultiplier": 1.6,
+	"ValueMultiplier": 1.8,
+	"Tint": "0.82,0.52,0.32,1",
+	"ApplicableSpecies": []
+}

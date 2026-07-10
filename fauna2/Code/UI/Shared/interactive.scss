@@ -1,0 +1,53 @@
+// Shared motion + interaction tokens for Fauna UI.
+// Imported by window.scss and standalone panels.
+
+$ui-ease: ease-out;
+$ui-fast: 0.1s;
+$ui-normal: 0.16s;
+$ui-slow: 0.22s;
+
+$ui-accent: #7bc96f;
+$ui-accent-soft: rgba(123, 201, 111, 0.15);
+$ui-accent-mid: rgba(123, 201, 111, 0.35);
+$ui-accent-strong: rgba(123, 201, 111, 0.55);
+$ui-accent-text: #b3e08a;
+$ui-danger-soft: rgba(220, 80, 70, 0.25);
+$ui-danger-mid: rgba(220, 80, 70, 0.45);
+
+@mixin ui-transition {
+	transition:
+		background $ui-normal $ui-ease,
+		border-color $ui-normal $ui-ease,
+		color $ui-fast $ui-ease,
+		transform $ui-fast $ui-ease,
+		opacity $ui-normal $ui-ease;
+}
+
+@mixin ui-hover-lift {
+	&:hover:not(.disabled):not(.locked) {
+		transform: translateY(-2px);
+	}
+
+	&:active:not(.disabled):not(.locked) {
+		transform: translateY(0);
+		transition-duration: $ui-fast;
+	}
+}
+
+@mixin ui-focus-ring {
+	&:hover:not(.disabled):not(.locked) {
+		border-color: $ui-accent-mid;
+	}
+
+	&:active:not(.disabled):not(.locked) {
+		border-color: $ui-accent-strong;
+	}
+}
+
+@mixin ui-surface-root( $z: 80 ) {
+	position: absolute;
+	width: 100%;
+	height: 100%;
+	pointer-events: none;
+	z-index: $z;
+}

@@ -1,0 +1,708 @@
+AimboxChallengesScreen, aimboxchallengesscreen, .aimbox-challenges
+{
+	position: absolute;
+	left: 0;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	width: 100%;
+	height: 100%;
+	z-index: 315;
+	font-family: Poppins;
+	pointer-events: none;
+	overflow: hidden;
+	color: #f4f4f4;
+}
+
+AimboxChallengesScreen.visible, .aimbox-challenges.visible
+{
+	pointer-events: all;
+	flex-direction: column;
+	padding-bottom: 56px;
+}
+
+AimboxChallengesScreen.with-pause-tabs.visible, .aimbox-challenges.with-pause-tabs.visible
+{
+	padding-top: 56px;
+}
+
+AimboxChallengesScreen.hidden, .aimbox-challenges.hidden
+{
+	display: none;
+}
+
+AimboxChallengesScreen .decor, .aimbox-challenges .decor
+{
+	pointer-events: none;
+}
+
+AimboxChallengesScreen .challenges-vignette, .aimbox-challenges .challenges-vignette
+{
+	position: absolute;
+	left: 0;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	background-color: rgba(6, 6, 8, 0.92);
+	background-image: linear-gradient(90deg, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.55) 28%, rgba(0, 0, 0, 0.35) 100%);
+}
+
+AimboxChallengesScreen .challenges-empty, .aimbox-challenges .challenges-empty
+{
+	padding: 48px;
+	font-size: 18px;
+}
+
+AimboxChallengesScreen .challenges-layout, .aimbox-challenges .challenges-layout
+{
+	position: relative;
+	z-index: 2;
+	flex-direction: row;
+	width: 100%;
+	height: 100%;
+	min-height: 0;
+}
+
+AimboxChallengesScreen .challenges-sidebar, .aimbox-challenges .challenges-sidebar
+{
+	width: 300px;
+	min-width: 300px;
+	flex-direction: column;
+	padding: 28px 20px 20px;
+	background-color: rgba(8, 8, 10, 0.95);
+	border-right: 3px solid rgba(255, 42, 109, 0.35);
+	gap: 16px;
+	flex-shrink: 0;
+}
+
+AimboxChallengesScreen .sidebar-title, .aimbox-challenges .sidebar-title
+{
+	font-size: 28px;
+	font-weight: 800;
+	letter-spacing: 2px;
+	font-style: italic;
+}
+
+AimboxChallengesScreen .sidebar-profile, .aimbox-challenges .sidebar-profile
+{
+	flex-direction: row;
+	align-items: center;
+	gap: 14px;
+	padding: 14px;
+	background-color: rgba(255, 255, 255, 0.04);
+	border: 2px solid rgba(255, 255, 255, 0.08);
+}
+
+AimboxChallengesScreen .profile-badge, .aimbox-challenges .profile-badge
+{
+	width: 56px;
+	height: 56px;
+	min-width: 56px;
+	background-color: rgba(255, 42, 109, 0.2);
+	border: 2px solid #ff2a6d;
+	transform: rotate(45deg);
+	align-items: center;
+	justify-content: center;
+}
+
+AimboxChallengesScreen .profile-badge-inner, .aimbox-challenges .profile-badge-inner
+{
+	width: 22px;
+	height: 22px;
+	background-color: #f4f4f4;
+	border-radius: 50%;
+	transform: rotate(-45deg);
+}
+
+AimboxChallengesScreen .profile-copy, .aimbox-challenges .profile-copy
+{
+	flex-direction: column;
+	flex-grow: 1;
+	gap: 4px;
+	min-width: 0;
+}
+
+AimboxChallengesScreen .profile-name, .aimbox-challenges .profile-name
+{
+	font-size: 16px;
+	font-weight: 700;
+	letter-spacing: 1px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+AimboxChallengesScreen .profile-level, .aimbox-challenges .profile-level
+{
+	font-size: 12px;
+	font-weight: 600;
+	color: rgba(255, 255, 255, 0.65);
+}
+
+AimboxChallengesScreen .profile-xp-track, .aimbox-challenges .profile-xp-track
+{
+	height: 8px;
+	background-color: rgba(255, 255, 255, 0.12);
+	overflow: hidden;
+}
+
+AimboxChallengesScreen .profile-xp-fill, .aimbox-challenges .profile-xp-fill
+{
+	height: 100%;
+	background-color: #ff2a6d;
+}
+
+AimboxChallengesScreen .profile-xp-label, .aimbox-challenges .profile-xp-label
+{
+	font-size: 11px;
+	color: rgba(255, 255, 255, 0.55);
+}
+
+AimboxChallengesScreen .section-rail, .aimbox-challenges .section-rail
+{
+	flex-direction: column;
+	gap: 8px;
+	flex-grow: 1;
+	min-height: 0;
+}
+
+AimboxChallengesScreen .section-btn, .aimbox-challenges .section-btn
+{
+	flex-direction: row;
+	align-items: center;
+	gap: 14px;
+	padding: 16px 14px;
+	border: 3px solid rgba(255, 255, 255, 0.08);
+	background-color: rgba(255, 255, 255, 0.03);
+	cursor: pointer;
+	transition: transform 0.12s ease;
+	text-align: left;
+}
+
+AimboxChallengesScreen .section-btn:hover, .aimbox-challenges .section-btn:hover
+{
+	transform: translateX(4px);
+}
+
+AimboxChallengesScreen .section-btn.active, .aimbox-challenges .section-btn.active
+{
+	border-color: rgba(255, 255, 255, 0.35);
+	background-color: rgba(255, 255, 255, 0.08);
+}
+
+AimboxChallengesScreen .section-btn.tone-orange, .aimbox-challenges .section-btn.tone-orange
+{
+	border-left: 6px solid #ff2a6d;
+}
+
+AimboxChallengesScreen .section-btn.tone-teal, .aimbox-challenges .section-btn.tone-teal
+{
+	border-left: 6px solid #2ad4c8;
+}
+
+AimboxChallengesScreen .section-icon, .aimbox-challenges .section-icon
+{
+	width: 42px;
+	height: 42px;
+	min-width: 42px;
+	border-radius: 6px;
+}
+
+AimboxChallengesScreen .section-icon.daily, .aimbox-challenges .section-icon.daily
+{
+	background-color: rgba(255, 184, 42, 0.35);
+}
+
+AimboxChallengesScreen .section-icon.attachments, .aimbox-challenges .section-icon.attachments
+{
+	background-color: rgba(42, 212, 200, 0.35);
+}
+
+AimboxChallengesScreen .section-copy, .aimbox-challenges .section-copy
+{
+	flex-direction: column;
+	gap: 2px;
+}
+
+AimboxChallengesScreen .section-label, .aimbox-challenges .section-label
+{
+	font-size: 15px;
+	font-weight: 800;
+	letter-spacing: 1px;
+}
+
+AimboxChallengesScreen .section-count, .aimbox-challenges .section-count
+{
+	font-size: 13px;
+	font-weight: 600;
+	color: rgba(255, 255, 255, 0.55);
+}
+
+AimboxChallengesScreen .sidebar-note, .aimbox-challenges .sidebar-note
+{
+	font-size: 11px;
+	line-height: 1.45;
+	color: rgba(255, 255, 255, 0.45);
+	padding-top: 8px;
+	border-top: 2px solid rgba(255, 255, 255, 0.08);
+	flex-shrink: 0;
+}
+
+AimboxChallengesScreen .challenges-main, .aimbox-challenges .challenges-main
+{
+	flex-grow: 1;
+	flex-direction: column;
+	padding: 28px 32px 24px;
+	background-color: rgba(220, 218, 214, 0.94);
+	color: #141414;
+	overflow-y: scroll;
+	gap: 18px;
+	position: relative;
+	min-width: 0;
+	min-height: 0;
+}
+
+AimboxChallengesScreen .main-splatter, .aimbox-challenges .main-splatter
+{
+	position: absolute;
+	right: 24px;
+	top: 8px;
+	width: 180px;
+	height: 180px;
+	border-radius: 50%;
+	background-color: rgba(255, 184, 42, 0.18);
+	z-index: 0;
+}
+
+AimboxChallengesScreen .panel-label, .aimbox-challenges .panel-label
+{
+	font-size: 13px;
+	font-weight: 800;
+	letter-spacing: 2px;
+	color: rgba(0, 0, 0, 0.55);
+	position: relative;
+	z-index: 2;
+	flex-shrink: 0;
+}
+
+AimboxChallengesScreen .daily-summary, .aimbox-challenges .daily-summary
+{
+	flex-direction: row;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 20px;
+	padding: 20px;
+	background-color: rgba(255, 255, 255, 0.62);
+	border: 3px solid rgba(0, 0, 0, 0.1);
+	position: relative;
+	z-index: 2;
+	flex-shrink: 0;
+}
+
+AimboxChallengesScreen .daily-summary-badge, .aimbox-challenges .daily-summary-badge
+{
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	width: 96px;
+	min-width: 96px;
+	height: 96px;
+	background-color: rgba(255, 184, 42, 0.18);
+	border: 3px solid rgba(255, 184, 42, 0.45);
+	flex-shrink: 0;
+}
+
+AimboxChallengesScreen .daily-summary-value, .aimbox-challenges .daily-summary-value
+{
+	font-size: 36px;
+	font-weight: 900;
+	color: #141414;
+	line-height: 1;
+}
+
+AimboxChallengesScreen .daily-summary-caption, .aimbox-challenges .daily-summary-caption
+{
+	font-size: 10px;
+	font-weight: 800;
+	letter-spacing: 1px;
+	color: rgba(0, 0, 0, 0.55);
+	text-align: center;
+}
+
+AimboxChallengesScreen .daily-summary-copy, .aimbox-challenges .daily-summary-copy
+{
+	flex-direction: column;
+	gap: 8px;
+	flex: 1 1 240px;
+	min-width: 0;
+}
+
+AimboxChallengesScreen .daily-summary-title, .aimbox-challenges .daily-summary-title
+{
+	font-size: 24px;
+	font-weight: 900;
+	letter-spacing: 1px;
+	color: #141414;
+	line-height: 1.1;
+}
+
+AimboxChallengesScreen .daily-summary-subtitle, .aimbox-challenges .daily-summary-subtitle
+{
+	font-size: 14px;
+	font-weight: 600;
+	color: rgba(0, 0, 0, 0.65);
+	line-height: 1.35;
+}
+
+AimboxChallengesScreen .daily-summary-track, .aimbox-challenges .daily-summary-track
+{
+	height: 14px;
+	background-color: rgba(0, 0, 0, 0.12);
+	overflow: hidden;
+}
+
+AimboxChallengesScreen .daily-summary-fill, .aimbox-challenges .daily-summary-fill
+{
+	height: 100%;
+	background-color: #ff2a6d;
+}
+
+AimboxChallengesScreen .daily-summary-xp, .aimbox-challenges .daily-summary-xp
+{
+	flex-direction: column;
+	align-items: flex-end;
+	gap: 4px;
+	flex-shrink: 0;
+	min-width: 120px;
+}
+
+AimboxChallengesScreen .daily-summary-xp-label, .aimbox-challenges .daily-summary-xp-label
+{
+	font-size: 10px;
+	font-weight: 800;
+	letter-spacing: 1px;
+	color: rgba(0, 0, 0, 0.5);
+}
+
+AimboxChallengesScreen .daily-summary-xp-value, .aimbox-challenges .daily-summary-xp-value
+{
+	font-size: 22px;
+	font-weight: 900;
+	color: #ff2a6d;
+	line-height: 1;
+}
+
+AimboxChallengesScreen .daily-grid, .aimbox-challenges .daily-grid
+{
+	flex-direction: row;
+	flex-wrap: wrap;
+	gap: 12px;
+	position: relative;
+	z-index: 2;
+}
+
+AimboxChallengesScreen .daily-card, .aimbox-challenges .daily-card
+{
+	flex-direction: column;
+	gap: 10px;
+	flex: 1 1 280px;
+	min-width: 260px;
+	max-width: calc(50% - 6px);
+	padding: 16px 18px;
+	background-color: rgba(255, 255, 255, 0.55);
+	border: 3px solid rgba(0, 0, 0, 0.12);
+	flex-shrink: 0;
+}
+
+AimboxChallengesScreen .daily-card.complete, .aimbox-challenges .daily-card.complete
+{
+	border-color: rgba(46, 160, 67, 0.45);
+	background-color: rgba(46, 160, 67, 0.1);
+}
+
+AimboxChallengesScreen .daily-card-head, .aimbox-challenges .daily-card-head
+{
+	flex-direction: row;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 12px;
+}
+
+AimboxChallengesScreen .daily-card-title, .aimbox-challenges .daily-card-title
+{
+	font-size: 16px;
+	font-weight: 800;
+	color: #141414;
+	line-height: 1.25;
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+AimboxChallengesScreen .daily-card-xp, .aimbox-challenges .daily-card-xp
+{
+	font-size: 12px;
+	font-weight: 900;
+	color: #ff2a6d;
+	letter-spacing: 0.5px;
+	flex-shrink: 0;
+	white-space: nowrap;
+}
+
+AimboxChallengesScreen .daily-card-track, .aimbox-challenges .daily-card-track
+{
+	height: 10px;
+	background-color: rgba(0, 0, 0, 0.12);
+	overflow: hidden;
+}
+
+AimboxChallengesScreen .daily-card-fill, .aimbox-challenges .daily-card-fill
+{
+	height: 100%;
+	background-color: #ff2a6d;
+}
+
+AimboxChallengesScreen .daily-card.complete .daily-card-fill, .aimbox-challenges .daily-card.complete .daily-card-fill
+{
+	background-color: #2ea043;
+}
+
+AimboxChallengesScreen .daily-card-meta, .aimbox-challenges .daily-card-meta
+{
+	font-size: 12px;
+	font-weight: 700;
+	color: rgba(0, 0, 0, 0.6);
+}
+
+AimboxChallengesScreen .daily-card-status, .aimbox-challenges .daily-card-status
+{
+	font-size: 11px;
+	font-weight: 900;
+	letter-spacing: 1px;
+	color: #1f7a35;
+}
+
+AimboxChallengesScreen .attachment-header, .aimbox-challenges .attachment-header
+{
+	flex-direction: row;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px;
+	position: relative;
+	z-index: 2;
+	flex-shrink: 0;
+}
+
+AimboxChallengesScreen .attachment-header-title, .aimbox-challenges .attachment-header-title
+{
+	font-size: 32px;
+	font-weight: 900;
+	color: #141414;
+	letter-spacing: 1px;
+	line-height: 1;
+}
+
+AimboxChallengesScreen .attachment-header-subtitle, .aimbox-challenges .attachment-header-subtitle
+{
+	font-size: 14px;
+	font-weight: 600;
+	color: rgba(0, 0, 0, 0.62);
+	margin-top: 6px;
+	line-height: 1.35;
+}
+
+AimboxChallengesScreen .attachment-header-stat, .aimbox-challenges .attachment-header-stat
+{
+	flex-direction: column;
+	align-items: flex-end;
+	gap: 4px;
+	flex-shrink: 0;
+}
+
+AimboxChallengesScreen .attachment-header-stat-value, .aimbox-challenges .attachment-header-stat-value
+{
+	font-size: 28px;
+	font-weight: 900;
+	color: #2ad4c8;
+	line-height: 1;
+}
+
+AimboxChallengesScreen .attachment-header-stat-label, .aimbox-challenges .attachment-header-stat-label
+{
+	font-size: 10px;
+	font-weight: 800;
+	letter-spacing: 1px;
+	color: rgba(0, 0, 0, 0.5);
+	text-align: right;
+}
+
+AimboxChallengesScreen .weapon-rail, .aimbox-challenges .weapon-rail
+{
+	flex-direction: row;
+	flex-wrap: wrap;
+	gap: 10px;
+	position: relative;
+	z-index: 2;
+	flex-shrink: 0;
+}
+
+AimboxChallengesScreen .weapon-chip, .aimbox-challenges .weapon-chip
+{
+	flex-direction: row;
+	align-items: center;
+	gap: 12px;
+	padding: 12px 14px;
+	background-color: rgba(255, 255, 255, 0.55);
+	border: 3px solid rgba(0, 0, 0, 0.12);
+	border-left-width: 6px;
+	cursor: pointer;
+	flex: 1 1 180px;
+	min-width: 170px;
+	max-width: 240px;
+}
+
+AimboxChallengesScreen .weapon-chip.active, .aimbox-challenges .weapon-chip.active
+{
+	background-color: rgba(255, 255, 255, 0.82);
+	border-color: rgba(0, 0, 0, 0.2);
+}
+
+AimboxChallengesScreen .weapon-chip-code, .aimbox-challenges .weapon-chip-code
+{
+	width: 44px;
+	height: 44px;
+	min-width: 44px;
+	align-items: center;
+	justify-content: center;
+	font-size: 11px;
+	font-weight: 900;
+	color: #ffffff;
+}
+
+AimboxChallengesScreen .weapon-chip-copy, .aimbox-challenges .weapon-chip-copy
+{
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+
+AimboxChallengesScreen .weapon-chip-name, .aimbox-challenges .weapon-chip-name
+{
+	font-size: 13px;
+	font-weight: 800;
+	color: #141414;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+AimboxChallengesScreen .weapon-chip-meta, .aimbox-challenges .weapon-chip-meta
+{
+	font-size: 11px;
+	font-weight: 600;
+	color: rgba(0, 0, 0, 0.55);
+}
+
+AimboxChallengesScreen .attachment-grid, .aimbox-challenges .attachment-grid
+{
+	flex-direction: column;
+	gap: 10px;
+	position: relative;
+	z-index: 2;
+}
+
+AimboxChallengesScreen .attachment-card, .aimbox-challenges .attachment-card
+{
+	flex-direction: column;
+	gap: 10px;
+	padding: 16px 18px;
+	background-color: rgba(255, 255, 255, 0.55);
+	border: 3px solid rgba(0, 0, 0, 0.12);
+	flex-shrink: 0;
+}
+
+AimboxChallengesScreen .attachment-card.complete, .aimbox-challenges .attachment-card.complete
+{
+	border-color: rgba(42, 212, 200, 0.45);
+	background-color: rgba(42, 212, 200, 0.1);
+}
+
+AimboxChallengesScreen .attachment-card-head, .aimbox-challenges .attachment-card-head
+{
+	flex-direction: row;
+	align-items: center;
+	gap: 14px;
+}
+
+AimboxChallengesScreen .attachment-card-icon, .aimbox-challenges .attachment-card-icon
+{
+	width: 48px;
+	height: 48px;
+	min-width: 48px;
+	align-items: center;
+	justify-content: center;
+	font-size: 11px;
+	font-weight: 900;
+	color: #ffffff;
+	border: 2px solid rgba(0, 0, 0, 0.12);
+}
+
+AimboxChallengesScreen .attachment-card-copy, .aimbox-challenges .attachment-card-copy
+{
+	flex-direction: column;
+	gap: 4px;
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+AimboxChallengesScreen .attachment-card-title, .aimbox-challenges .attachment-card-title
+{
+	font-size: 16px;
+	font-weight: 800;
+	color: #141414;
+	line-height: 1.2;
+}
+
+AimboxChallengesScreen .attachment-card-requirement, .aimbox-challenges .attachment-card-requirement
+{
+	font-size: 12px;
+	font-weight: 600;
+	color: rgba(0, 0, 0, 0.55);
+}
+
+AimboxChallengesScreen .attachment-card-status, .aimbox-challenges .attachment-card-status
+{
+	font-size: 11px;
+	font-weight: 900;
+	letter-spacing: 1px;
+	color: rgba(0, 0, 0, 0.55);
+	padding: 6px 10px;
+	background-color: rgba(0, 0, 0, 0.06);
+	flex-shrink: 0;
+	white-space: nowrap;
+}
+
+AimboxChallengesScreen .attachment-card-status.complete, .aimbox-challenges .attachment-card-status.complete
+{
+	color: #1a7a72;
+	background-color: rgba(42, 212, 200, 0.18);
+}
+
+AimboxChallengesScreen .attachment-card-track, .aimbox-challenges .attachment-card-track
+{
+	height: 8px;
+	background-color: rgba(0, 0, 0, 0.12);
+	overflow: hidden;
+}
+
+AimboxChallengesScreen .attachment-card-fill, .aimbox-challenges .attachment-card-fill
+{
+	height: 100%;
+}
+
+AimboxChallengesScreen .attachment-card-meta, .aimbox-challenges .attachment-card-meta
+{
+	font-size: 12px;
+	font-weight: 600;
+	color: rgba(0, 0, 0, 0.58);
+}

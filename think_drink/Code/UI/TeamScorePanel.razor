@@ -1,0 +1,59 @@
+@using Sandbox
+@using Sandbox.UI
+@using ThinkDrink.UI
+@using ThinkDrink.Studio
+@inherits PanelComponent
+@namespace ThinkDrink.UI
+
+<root>
+	<div class="panel">
+		<div class="label">@TeamLabel</div>
+		<div class="score">@TeamTotal</div>
+		<div class="sub">TEAM SCORE</div>
+	</div>
+</root>
+
+@code
+{
+	private bool IsTeamA => GameObject.Components.Get<TeamScoreSide>()?.IsTeamA ?? true;
+	private string TeamLabel => IsTeamA ? "TEAM A" : "TEAM B";
+
+	private int TeamTotal
+	{
+		get
+		{
+			var total = 0;
+			for ( var i = 0; i < ThinkDrinkPlayer.All.Count; i++ )
+			{
+				var p = ThinkDrinkPlayer.All[i];
+				if ( !p.IsParticipant ) continue;
+				var idx = StudioEnvironment.Instance?.GetContestantIndex( p ) ?? 0;
+				if ( StudioEnvironment.IsTeamA( idx ) != IsTeamA ) continue;
+				total += p.MatchScore;
+			}
+			return total;
+		}
+	}
+
+	private int _revision;
+
+	protected override void OnStart()
+	{
+		GameEvents.PlayerListChanged += Bump;
+		GameEvents.AnswerResolved += OnAnswer;
+		GameEvents.PhaseChanged += OnPhase;
+	}
+
+	protected override void OnDestroy()
+	{
+		GameEvents.PlayerListChanged -= Bump;
+		GameEvents.AnswerResolved -= OnAnswer;
+		GameEvents.PhaseChanged -= OnPhase;
+	}
+
+	private void OnAnswer( string key, bool correct ) => Bump();
+	private void OnPhase( MatchPhase phase ) => Bump();
+	private void Bump() => _revision++;
+
+	protected override int BuildHash() => HashCode.Combine( _revision, TeamTotal, IsTeamA );
+}

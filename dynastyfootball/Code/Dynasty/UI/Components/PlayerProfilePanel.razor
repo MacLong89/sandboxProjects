@@ -1,0 +1,374 @@
+@using System.Linq
+@using Sandbox.UI
+@using Dynasty.UI.ViewModels
+@inherits Panel
+@namespace Dynasty.UI.Components
+@attribute [StyleSheet( "/Dynasty/UI/Components/PlayerProfilePanel.razor.scss" )]
+
+<root class="player-profile-panel">
+	<div class="detail-header">
+		<Label class="detail-name">@Model.Name</Label>
+		@if ( ShowClose )
+		{
+			<Button class="btn secondary small" Text="Close" onclick=@HandleClose />
+		}
+	</div>
+
+	@if ( Model.ConsensusRank.HasValue )
+	{
+		<div class="profile-rank-row">
+			<Label class="profile-label">Draft Rank</Label>
+			<Label class="profile-value rank">#@Model.ConsensusRank</Label>
+		</div>
+	}
+
+	<div class="profile-tabs">
+		<Button class="@TabClass( "general" )" Text="General" onclick=@ShowGeneralTab />
+		<Button class="@TabClass( "ratings" )" Text="Ratings" onclick=@ShowRatingsTab />
+		<Button class="@TabClass( "stats" )" Text="Stats" onclick=@ShowStatsTab />
+	</div>
+
+	<div class="profile-tab-body">
+		@if ( _tab == "general" )
+		{
+			<div class="profile-summary">
+				<div class="profile-stat-grid">
+					<div class="profile-stat-cell">
+						<Label class="profile-label">Position</Label>
+						<Label class="profile-value">@Model.Position</Label>
+					</div>
+					<div class="profile-stat-cell">
+						<Label class="profile-label">Age</Label>
+						<Label class="profile-value">@Model.Age</Label>
+					</div>
+					<div class="profile-stat-cell">
+						<Label class="profile-label">Overall</Label>
+						<Label class="profile-value accent">@Model.Overall</Label>
+					</div>
+					<div class="profile-stat-cell">
+						<Label class="profile-label">Potential</Label>
+						<Label class="profile-value pot">@Model.Potential</Label>
+					</div>
+				</div>
+
+				<div class="profile-info-rows">
+					<div class="profile-info-row">
+						<Label class="profile-label">Hometown</Label>
+						<Label class="profile-value">@Model.Hometown</Label>
+					</div>
+					<div class="profile-info-row">
+						<Label class="profile-label">College</Label>
+						<Label class="profile-value">@Model.College</Label>
+					</div>
+					<div class="profile-info-row">
+						<Label class="profile-label">Health</Label>
+						<Label class="@($"profile-value {HealthClass( Model.Health )}")">@Model.Health</Label>
+					</div>
+					@if ( !string.IsNullOrEmpty( Model.InjuryDetail ) )
+					{
+						<div class="profile-info-row">
+							<Label class="profile-label">Injury</Label>
+							<Label class="profile-value injured">@Model.InjuryDetail</Label>
+						</div>
+					}
+					@if ( Model.ScoutConfidence.HasValue )
+					{
+						<div class="profile-info-row">
+							<Label class="profile-label">Scout Confidence</Label>
+							<Label class="profile-value">@Model.ScoutConfidence%</Label>
+						</div>
+					}
+				</div>
+			</div>
+
+			@if ( Model.ChampionshipRings > 0 )
+			{
+				<div class="profile-info-row">
+					<Label class="profile-label">Championships</Label>
+					<Label class="profile-value accent">@Model.ChampionshipRings</Label>
+				</div>
+			}
+
+			@if ( Model.TradeRequested )
+			{
+				<Label class="detail-warning">Requested a trade</Label>
+			}
+
+			@if ( Model.HasHiddenTraits )
+			{
+				<Label class="detail-warning">@Model.HiddenTraitHint</Label>
+			}
+
+			@if ( Model.Kind == PlayerProfileKind.Roster )
+			{
+				<div class="profile-section">
+					<Label class="panel-subtitle">Contract</Label>
+					<div class="profile-info-row">
+						<Label class="profile-label">Years Remaining</Label>
+						<Label class="profile-value">@Model.Contract.YearsRemaining</Label>
+					</div>
+					<div class="profile-info-row">
+						<Label class="profile-label">Annual Salary</Label>
+						<Label class="profile-value">$@Model.Contract.AnnualSalary.ToString( "N0" )</Label>
+					</div>
+					<div class="profile-info-row">
+						<Label class="profile-label">Guaranteed</Label>
+						<Label class="profile-value muted-value">$@Model.Contract.GuaranteedMoney.ToString( "N0" )</Label>
+					</div>
+					@if ( ShowContractActions && CanManage )
+					{
+						<div class="detail-actions">
+							<Button class="btn secondary small" Text="Extend" onclick=@HandleExtend />
+							<Button class="btn secondary small" Text="Trade" onclick=@HandleTrade />
+							<Button class="btn secondary small danger" Text="Release" onclick=@HandleRelease />
+						</div>
+					}
+				</div>
+			}
+
+			@if ( Model.Awards.Count > 0 )
+			{
+				<div class="profile-section">
+					<Label class="panel-subtitle">Awards</Label>
+					@foreach ( var award in Model.Awards )
+					{
+						<Label class="profile-body award-line">@award</Label>
+					}
+				</div>
+			}
+
+			<div class="profile-section">
+				<Label class="panel-subtitle">Personality</Label>
+				@if ( Model.Personality.Count == 0 )
+				{
+					<Label class="muted">@( string.IsNullOrEmpty( Model.PersonalityNote ) ? "No personality data." : Model.PersonalityNote )</Label>
+				}
+				else
+				{
+					@foreach ( var row in Model.Personality )
+					{
+						<div class="attr-row">
+							<Label class="attr-name">@row.Label</Label>
+							<Label class="attr-val">@row.Value</Label>
+						</div>
+					}
+				}
+			</div>
+
+			<div class="profile-section">
+				<Label class="panel-subtitle">Morale</Label>
+				<div class="profile-info-row">
+					<Label class="profile-label">Current Morale</Label>
+					<Label class="profile-value">@Model.Morale</Label>
+				</div>
+			</div>
+
+			@if ( !string.IsNullOrEmpty( Model.Backstory ) )
+			{
+				<div class="profile-section">
+					<Label class="panel-subtitle">Scouting Report</Label>
+					<Label class="profile-body muted">@Model.Backstory</Label>
+				</div>
+			}
+
+			@if ( Model.ShowDraftAction && CanManage )
+			{
+				<div class="profile-footer">
+					<Button class="btn primary draft-prospect-btn" Text="Draft Player" onclick=@HandleDraftPick />
+				</div>
+			}
+		}
+		else if ( _tab == "ratings" )
+		{
+			@if ( Model.Kind == PlayerProfileKind.Roster )
+			{
+				<div class="profile-info-row">
+					<Label class="profile-label">Development Points</Label>
+					<Label class="profile-value">@Model.DevelopmentPoints</Label>
+				</div>
+			}
+
+			<div class="profile-section">
+				<Label class="panel-subtitle">Attributes</Label>
+				@if ( Model.Attributes.Count == 0 )
+				{
+					<Label class="muted">No attributes available.</Label>
+				}
+				else
+				{
+					@foreach ( var attr in Model.Attributes )
+					{
+						<div class="attr-row">
+							<Label class="attr-name">@attr.Key</Label>
+							<Label class="@($"attr-val{(attr.IsHidden ? " muted" : "")}")">@attr.DisplayValue</Label>
+							@if ( CanManage && Model.IsUserTeam && !attr.IsHidden && Model.NumericPotential > 0 && attr.NumericValue < Model.NumericPotential )
+							{
+								<AttributeTrainButton AttributeKey="@attr.RawKey" OnTrainAttribute="@OnTrainAttribute" />
+							}
+						</div>
+					}
+				}
+			</div>
+
+			<div class="profile-section">
+				<Label class="panel-subtitle">Traits</Label>
+				@if ( Model.Traits.Count == 0 )
+				{
+					<Label class="muted">No traits revealed.</Label>
+				}
+				else
+				{
+					@foreach ( var trait in Model.Traits )
+					{
+						<Label class="trait-chip">@trait</Label>
+					}
+				}
+				@if ( CanManage && Model.IsUserTeam && Model.Kind == PlayerProfileKind.Roster )
+				{
+					<Button class="btn secondary small" Text="@UnlockTraitLabel()" onclick=@HandleUnlockTrait />
+				}
+			</div>
+		}
+		else
+		{
+			@if ( Model.Kind == PlayerProfileKind.Prospect )
+			{
+				<Label class="muted">No pro stats — prospect has not played in the league.</Label>
+			}
+			else
+			{
+				@if ( Model.SeasonStats.Count > 0 )
+				{
+					<div class="profile-section">
+						<Label class="panel-subtitle">Season Stats</Label>
+						<div class="stat-table">
+							@foreach ( var stat in Model.SeasonStats )
+							{
+								<div class="stat-row">
+									<Label class="stat-label">@stat.Label</Label>
+									<Label class="stat-value">@stat.Value</Label>
+								</div>
+							}
+						</div>
+					</div>
+				}
+
+				@if ( Model.CareerStats.Count > 0 )
+				{
+					<div class="profile-section">
+						<Label class="panel-subtitle">Career Stats</Label>
+						<div class="stat-table">
+							@foreach ( var stat in Model.CareerStats )
+							{
+								<div class="stat-row">
+									<Label class="stat-label">@stat.Label</Label>
+									<Label class="stat-value">@stat.Value</Label>
+								</div>
+							}
+						</div>
+					</div>
+				}
+
+				@if ( Model.SeasonHistory.Count > 0 )
+				{
+					<div class="profile-section">
+						<Label class="panel-subtitle">Season History</Label>
+						@foreach ( var season in Model.SeasonHistory )
+						{
+							<div class="season-history-block">
+								<Label class="profile-label">Season @season.Season</Label>
+								<div class="stat-table compact">
+									@foreach ( var stat in season.Stats )
+									{
+										<div class="stat-row">
+											<Label class="stat-label">@stat.Label</Label>
+											<Label class="stat-value">@stat.Value</Label>
+										</div>
+									}
+								</div>
+							</div>
+						}
+					</div>
+				}
+
+				@if ( Model.GameLogs.Count > 0 )
+				{
+					<div class="profile-section">
+						<Label class="panel-subtitle">Recent Games</Label>
+						@foreach ( var game in Model.GameLogs )
+						{
+							<div class="game-log-row">
+								<Label class="game-log-meta">@($"{game.Season} W{game.Week} {game.Result} vs {game.OpponentAbbreviation}")</Label>
+								<Label class="game-log-stats muted">@game.Line</Label>
+							</div>
+						}
+					</div>
+				}
+
+				@if ( Model.SeasonStats.Count == 0 && Model.CareerStats.Count == 0 && Model.SeasonHistory.Count == 0 && Model.GameLogs.Count == 0 )
+				{
+					<Label class="muted">No stats recorded yet.</Label>
+				}
+			}
+		}
+	</div>
+</root>
+
+@code
+{
+	[Parameter] public PlayerProfileViewModel Model { get; set; }
+	[Parameter] public bool CanManage { get; set; }
+	[Parameter] public bool ShowClose { get; set; } = true;
+	[Parameter] public bool ShowContractActions { get; set; } = true;
+	[Parameter] public Action OnClose { get; set; }
+	[Parameter] public Action OnExtend { get; set; }
+	[Parameter] public Action OnTrade { get; set; }
+	[Parameter] public Action OnRelease { get; set; }
+	[Parameter] public Action OnDraftPick { get; set; }
+	[Parameter] public Action<string> OnTrainAttribute { get; set; }
+	[Parameter] public Action OnUnlockTrait { get; set; }
+
+	string _tab = "general";
+
+	protected override void OnParametersSet()
+	{
+		if ( Model == null )
+			_tab = "general";
+	}
+
+	string TabClass( string tab ) => _tab == tab ? "btn primary small profile-tab" : "btn secondary small profile-tab";
+
+	void SetTab( string tab )
+	{
+		_tab = tab;
+		StateHasChanged();
+	}
+
+	void ShowGeneralTab() => SetTab( "general" );
+
+	void ShowRatingsTab() => SetTab( "ratings" );
+
+	void ShowStatsTab() => SetTab( "stats" );
+
+	void HandleClose() => OnClose?.Invoke();
+
+	void HandleExtend() => OnExtend?.Invoke();
+
+	void HandleTrade() => OnTrade?.Invoke();
+
+	void HandleRelease() => OnRelease?.Invoke();
+
+	void HandleDraftPick() => OnDraftPick?.Invoke();
+
+	void HandleUnlockTrait() => OnUnlockTrait?.Invoke();
+
+	string HealthClass( string health )
+	{
+		if ( string.Equals( health, "Healthy", StringComparison.OrdinalIgnoreCase ) )
+			return "healthy";
+
+		return "injured";
+	}
+
+	string UnlockTraitLabel() => $"Unlock Trait ({Model.TraitUnlockCost} DP)";
+}

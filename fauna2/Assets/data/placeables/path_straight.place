@@ -1,0 +1,19 @@
+{
+	"DisplayName": "Stone Path",
+	"Description": "Guides guests through your zoo. Guests linger near paths.",
+	"Category": "Paths",
+	"Cost": 40,
+	"UnlockLevel": 0,
+	"AppealBonus": 0.2,
+	"Footprint": "64,64",
+	"GridSnap": 64,
+	"RotationStep": 90,
+	"Visuals": [
+		{
+			"Model": "models/dev/box.vmdl",
+			"Offset": "0,0,1.5",
+			"Scale": "2.56,2.56,0.06",
+			"Tint": "0.74,0.70,0.58,1"
+		}
+	]
+}

@@ -1,0 +1,89 @@
+.ui-modal-backdrop
+{
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	align-items: center;
+	justify-content: center;
+	background-color: rgba( 0, 0, 0, 0.88 );
+	pointer-events: all;
+	z-index: 60;
+}
+
+.ui-modal-card
+{
+	flex-direction: column;
+	gap: 12px;
+	width: 520px;
+	max-width: 90%;
+	padding: 24px;
+	background-color: #151d2e;
+	border: 1px solid #243044;
+	border-radius: 14px;
+	pointer-events: all;
+	align-items: center;
+}
+
+DraftCeremonyModal,
+.draft-ceremony-modal-root
+{
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	pointer-events: none;
+
+	.ceremony-title
+	{
+		font-size: 22px;
+		font-weight: 800;
+		color: white;
+	}
+
+	.ceremony-pick
+	{
+		font-size: 16px;
+		font-weight: 700;
+		color: #fbbf24;
+	}
+
+	.ceremony-player
+	{
+		font-size: 28px;
+		font-weight: 900;
+		color: #34c759;
+	}
+
+	.ceremony-grade
+	{
+		font-size: 14px;
+		font-weight: 700;
+
+		&.steal { color: #34c759; }
+		&.reach { color: #ef4444; }
+		&.solid { color: #3b82f6; }
+	}
+
+	.muted
+	{
+		color: #8b9cb3;
+	}
+
+	Button.btn
+	{
+		padding: 10px 20px;
+		font-weight: 600;
+		color: white;
+		background-color: #34c759;
+		border: 1px solid #34c759;
+		border-radius: 10px;
+	}
+}
+
+Button:active
+{
+	sound-in: "sounds/button.sound";
+}

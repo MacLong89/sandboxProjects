@@ -1,0 +1,422 @@
+$accent: #ffd54a;
+$accent-deep: #ff9d2f;
+$good: #4ade5a;
+$bad: #ff4d4d;
+$panel: rgba(18, 20, 28, 0.94);
+$panel-soft: rgba(255, 255, 255, 0.06);
+
+root {
+	font-family: "Poppins", "Segoe UI", sans-serif;
+	color: white;
+	width: 100%;
+	height: 100%;
+	pointer-events: none;
+}
+
+.icon {
+	font-family: "Material Icons";
+	font-size: 30px;
+}
+
+// ---------- In-run HUD ----------
+.run-hud {
+	width: 100%;
+	height: 100%;
+
+	.stat {
+		position: absolute;
+		top: 34px;
+		left: 40px;
+		flex-direction: row;
+		align-items: center;
+		gap: 10px;
+		font-size: 40px;
+		font-weight: 800;
+		text-shadow: 0px 3px 8px rgba(0, 0, 0, 0.7);
+
+		.icon { color: $accent; font-size: 38px; }
+	}
+
+	.center-stats {
+		position: absolute;
+		top: 26px;
+		left: 0;
+		width: 100%;
+		flex-direction: column;
+		align-items: center;
+
+		.distance {
+			font-size: 52px;
+			font-weight: 800;
+			text-shadow: 0px 3px 10px rgba(0, 0, 0, 0.7);
+		}
+
+		.score {
+			font-size: 22px;
+			font-weight: 700;
+			opacity: 0.75;
+		}
+	}
+
+	.build-strip {
+		position: absolute;
+		top: 110px;
+		left: 0;
+		width: 100%;
+		justify-content: center;
+		flex-direction: row;
+		flex-wrap: wrap;
+		gap: 8px;
+		padding: 0 40px;
+
+		.build-chip {
+			flex-direction: row;
+			align-items: center;
+			gap: 6px;
+			padding: 6px 12px;
+			border-radius: 12px;
+			background: rgba(0, 0, 0, 0.45);
+			border: 2px solid rgba(255, 255, 255, 0.2);
+			font-size: 16px;
+			font-weight: 700;
+
+			.icon { font-size: 20px; }
+		}
+	}
+
+	.combo {
+		position: absolute;
+		top: 170px;
+		left: 0;
+		width: 100%;
+		justify-content: center;
+		font-size: 28px;
+		font-weight: 900;
+		color: #ff9d2f;
+		text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
+	}
+
+	.overdrive {
+		position: absolute;
+		bottom: 120px;
+		left: 50%;
+		margin-left: -220px;
+		width: 440px;
+		flex-direction: column;
+		gap: 6px;
+
+		.overdrive-label {
+			flex-direction: row;
+			align-items: center;
+			gap: 8px;
+			font-size: 15px;
+			font-weight: 700;
+			opacity: 0.85;
+
+			.icon { font-size: 20px; color: #7dd3fc; }
+		}
+
+		.overdrive-track {
+			width: 100%;
+			height: 14px;
+			background: rgba(0, 0, 0, 0.45);
+			border-radius: 8px;
+			overflow: hidden;
+
+			.overdrive-fill {
+				height: 100%;
+				background: linear-gradient(to right, #38bdf8, #818cf8);
+				border-radius: 8px;
+				transition: width 0.1s ease-out;
+
+				&.active {
+					background: linear-gradient(to right, #fbbf24, #f97316);
+				}
+			}
+		}
+	}
+
+	.missions {
+		position: absolute;
+		top: 34px;
+		right: 34px;
+		flex-direction: column;
+		gap: 4px;
+		align-items: flex-end;
+
+		.mission {
+			font-size: 14px;
+			opacity: 0.7;
+			background: rgba(0, 0, 0, 0.35);
+			padding: 4px 10px;
+			border-radius: 8px;
+
+			&.done { color: $good; opacity: 1; }
+		}
+	}
+
+	.shield-tag {
+		font-size: 14px;
+		font-weight: 700;
+		color: #7dd3fc;
+		margin-bottom: 4px;
+		justify-content: center;
+	}
+
+	.crew {
+		position: absolute;
+		bottom: 44px;
+		left: 50%;
+		margin-left: -160px;
+		width: 320px;
+		flex-direction: column;
+		align-items: center;
+		transition: transform 0.08s ease-out;
+
+		.crew-count {
+			flex-direction: row;
+			align-items: center;
+			gap: 12px;
+			font-size: 84px;
+			font-weight: 900;
+			color: $good;
+			text-shadow: 0px 4px 14px rgba(0, 0, 0, 0.8);
+
+			.icon { font-size: 60px; color: $good; }
+		}
+
+		.crew-label {
+			font-size: 20px;
+			font-weight: 800;
+			letter-spacing: 4px;
+			opacity: 0.7;
+			margin-top: -8px;
+		}
+
+		&.grow {
+			transform: scale(1.22);
+			.crew-count, .crew-count .icon { color: #b6ff9e; }
+		}
+
+		&.hit {
+			transform: scale(0.9);
+			.crew-count, .crew-count .icon { color: $bad; }
+		}
+	}
+
+	.hint {
+		position: absolute;
+		bottom: 20px;
+		left: 0;
+		width: 100%;
+		justify-content: center;
+		font-size: 17px;
+		opacity: 0.7;
+	}
+}
+
+// ---------- Full-screen menus ----------
+.screen {
+	position: absolute;
+	width: 100%;
+	height: 100%;
+	align-items: center;
+	justify-content: center;
+	background: rgba(0, 0, 0, 0.55);
+	pointer-events: all;
+}
+
+.panel {
+	flex-direction: column;
+	align-items: center;
+	background: $panel;
+	border: 2px solid rgba(255, 255, 255, 0.1);
+	border-radius: 26px;
+	padding: 48px 70px;
+	box-shadow: 0px 24px 70px rgba(0, 0, 0, 0.6);
+	min-width: 520px;
+
+	.title {
+		font-size: 76px;
+		font-weight: 900;
+		letter-spacing: 3px;
+		color: $accent;
+
+		.amp { color: white; }
+
+		&.wrecked { color: $bad; }
+	}
+
+	.subtitle {
+		font-size: 20px;
+		opacity: 0.8;
+		margin-top: 6px;
+		margin-bottom: 16px;
+		text-align: center;
+	}
+
+	.daily {
+		font-size: 15px;
+		opacity: 0.75;
+		margin-bottom: 20px;
+		text-align: center;
+
+		.k { font-weight: 700; }
+		.done { color: $good; }
+	}
+
+	.mission-bonus {
+		font-size: 18px;
+		color: $good;
+		margin-bottom: 12px;
+	}
+
+	.mission-results, .mission-line {
+		flex-direction: column;
+		align-items: center;
+		gap: 4px;
+		margin-bottom: 18px;
+		font-size: 15px;
+		opacity: 0.8;
+
+		&.done, .done { color: $good; }
+	}
+
+	.meta-row, .result-row {
+		flex-direction: row;
+		gap: 40px;
+		margin-bottom: 30px;
+	}
+
+	.meta, .result {
+		flex-direction: column;
+		align-items: center;
+
+		.k { font-size: 16px; opacity: 0.6; letter-spacing: 1px; }
+		.v { font-size: 34px; font-weight: 800; }
+		.v.gold { color: $accent; }
+	}
+
+	.result-row { gap: 54px; }
+}
+
+.btn {
+	pointer-events: all;
+	min-width: 320px;
+	justify-content: center;
+	padding: 16px 0;
+	margin-top: 12px;
+	border-radius: 16px;
+	background: $panel-soft;
+	border: 2px solid rgba(255, 255, 255, 0.14);
+	font-size: 24px;
+	font-weight: 800;
+	letter-spacing: 2px;
+	transition: all 0.1s ease-out;
+
+	&:hover { background: rgba(255, 255, 255, 0.14); }
+
+	&.primary {
+		background: linear-gradient(to bottom, $accent, $accent-deep);
+		border-color: transparent;
+		color: #201400;
+	}
+
+	&.primary:hover { filter: brightness(1.08); }
+
+	&.wide { min-width: 100%; margin-top: 20px; }
+	&.small { min-width: 160px; font-size: 16px; padding: 10px 0; }
+	&.locked { opacity: 0.45; pointer-events: none; }
+}
+
+// ---------- Shop ----------
+.shop {
+	flex-direction: column;
+	background: $panel;
+	border: 2px solid rgba(255, 255, 255, 0.1);
+	border-radius: 24px;
+	padding: 30px 34px;
+	width: 720px;
+	max-height: 82%;
+	box-shadow: 0px 24px 70px rgba(0, 0, 0, 0.6);
+
+	.shop-header {
+		flex-direction: row;
+		align-items: center;
+		margin-bottom: 18px;
+
+		.shop-title { font-size: 34px; font-weight: 900; letter-spacing: 2px; }
+		.shop-cash { margin-left: auto; margin-right: 18px; font-size: 30px; font-weight: 800; color: $accent; }
+		.shop-close {
+			pointer-events: all;
+			width: 42px; height: 42px;
+			justify-content: center; align-items: center;
+			border-radius: 10px; background: $panel-soft;
+			font-size: 22px;
+		}
+		.shop-close:hover { background: rgba(255, 255, 255, 0.16); }
+	}
+
+	.shop-list {
+		flex-direction: column;
+		gap: 10px;
+		overflow-y: scroll;
+	}
+
+	.prestige-row {
+		flex-direction: row;
+		align-items: center;
+		gap: 12px;
+		margin-bottom: 12px;
+
+		.prestige-text { flex-grow: 1; font-size: 15px; opacity: 0.75; }
+	}
+
+	.achievements {
+		flex-direction: row;
+		flex-wrap: wrap;
+		gap: 8px;
+		margin-top: 14px;
+
+		.ach {
+			font-size: 13px;
+			padding: 6px 10px;
+			border-radius: 8px;
+			background: $panel-soft;
+			opacity: 0.5;
+
+			.icon { font-size: 16px; margin-right: 4px; }
+			&.done { opacity: 1; color: $good; }
+		}
+	}
+
+	.up-row {
+		pointer-events: all;
+		flex-direction: row;
+		align-items: center;
+		gap: 16px;
+		padding: 14px 18px;
+		border-radius: 14px;
+		background: $panel-soft;
+		border: 2px solid transparent;
+		transition: all 0.1s ease-out;
+
+		.up-icon { color: $accent; font-size: 34px; }
+
+		.up-text {
+			flex-direction: column;
+			flex-grow: 1;
+
+			.up-name { font-size: 21px; font-weight: 700; }
+			.up-level { font-size: 15px; opacity: 0.55; margin-left: 8px; }
+			.up-desc { font-size: 15px; opacity: 0.65; }
+		}
+
+		.up-cost { font-size: 22px; font-weight: 800; }
+
+		&.afford { border-color: rgba(74, 222, 90, 0.5); }
+		&.afford:hover { background: rgba(74, 222, 90, 0.14); }
+		&.locked { opacity: 0.55; }
+		&.maxed .up-cost { color: $good; }
+	}
+}

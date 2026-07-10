@@ -1,0 +1,149 @@
+@using Sandbox
+@using Sandbox.UI
+@inherits PanelComponent
+@namespace Fauna2.UI
+
+<root class="@( _open ? $"open {ModeClass}" : "" )">
+	@if ( _open )
+	{
+		<div class="catch-overlay">
+			<div class="catch-panel">
+				<div class="title">@TitleText</div>
+				<div class="subtitle">@SubtitleText</div>
+
+				<div class="progress">
+					@for ( var i = 0; i < HitsRequired; i++ )
+					{
+						var filled = i < HitsLanded;
+						<div class="pip @(filled ? "filled" : "")"></div>
+					}
+					<div class="progress-label">@HitsLanded / @HitsRequired</div>
+				</div>
+
+				<div class="hint">@HintText</div>
+
+				<div class="bar-track">
+					<div class="bar-green" style="left: @(GreenLeft)%; width: @(GreenWidth)%"></div>
+					<div class="bar-marker" style="left: @(MarkerLeft)%"></div>
+				</div>
+
+				<div class="actions">
+					@if ( ThreatActive )
+					{
+						<div class="btn catch" onclick=@TryPrimary>Fend Off! (Space)</div>
+						<div class="btn cancel" onclick=@Cancel>Give Up</div>
+					}
+					else
+					{
+						<div class="btn bait" onclick=@UseBait>Use Bait</div>
+						<div class="btn catch" onclick=@TryPrimary>Catch! (Space)</div>
+						<div class="btn cancel" onclick=@Cancel>Cancel</div>
+					}
+				</div>
+			</div>
+		</div>
+	}
+</root>
+
+@code
+{
+	bool _open;
+	bool _usedBait;
+
+	protected override void OnUpdate()
+	{
+		var isOwner = PlayerState.Local?.IsZooOwner == true;
+		var active = isOwner && (CatchSystem.Instance?.MinigameActive == true || WildAttackSystem.Instance?.EncounterActive == true);
+		if ( active && !UiState.CatchMinigameOpen )
+			UiState.OpenCatchMinigame();
+		if ( !active && UiState.CatchMinigameOpen )
+			UiState.CloseCatchMinigame();
+
+		_open = active;
+		if ( !_open )
+		{
+			_usedBait = false;
+			return;
+		}
+
+		if ( Input.Pressed( "CatchConfirm" ) || Input.Pressed( "attack1" ) )
+			TryPrimary();
+		if ( Input.Pressed( "Cancel" ) )
+			Cancel();
+	}
+
+	bool ThreatActive => WildAttackSystem.Instance?.EncounterActive == true;
+	string ModeClass => ThreatActive ? "danger" : "capture";
+	int HitsRequired => ThreatActive ? WildAttackSystem.Instance?.HitsRequired ?? 3 : CatchSystem.Instance?.HitsRequired ?? 5;
+	int HitsLanded => ThreatActive ? WildAttackSystem.Instance?.HitsLanded ?? 0 : CatchSystem.Instance?.HitsLanded ?? 0;
+	float BarPosition => ThreatActive ? WildAttackSystem.Instance?.BarPosition ?? 0f : CatchSystem.Instance?.BarPosition ?? 0f;
+	float GreenStart => ThreatActive ? WildAttackSystem.Instance?.GreenStart ?? 0.35f : CatchSystem.Instance?.GreenStart ?? 0.35f;
+	float GreenEnd => ThreatActive ? WildAttackSystem.Instance?.GreenEnd ?? 0.55f : CatchSystem.Instance?.GreenEnd ?? 0.55f;
+	float MarkerLeft => BarPosition * 100f;
+	float GreenLeft => GreenStart * 100f;
+	float GreenWidth => (GreenEnd - GreenStart) * 100f;
+
+	string TitleText => ThreatActive
+		? $"{WildAttackSystem.Instance?.ThreatSpeciesName ?? "Wild Animal"} Attacks!"
+		: $"Catch {CatchSystem.Instance?.CatchSpeciesName ?? "Wild Animal"}!";
+
+	string SubtitleText => ThreatActive
+		? $"{WildAttackSystem.Instance?.ThreatLabel ?? "Danger"} - miss and lose up to ${WildAttackSystem.Instance?.PenaltyPreview ?? 0:n0}"
+		: $"{CatchSystem.Instance?.CatchRarityLabel ?? ""} - land {HitsRequired} timings in a row";
+
+	string HintText => ThreatActive
+		? "Press Space inside the green zone to fend it off - one miss knocks you back to the zoo entrance"
+		: "Press Space when the marker is in the green zone - one miss and it flees";
+
+	void TryPrimary()
+	{
+		UiState.PlayClick();
+		if ( ThreatActive )
+			WildAttackSystem.Instance?.TryResolveFend();
+		else
+			CatchSystem.Instance?.TryResolveCatch( _usedBait );
+
+		_usedBait = false;
+	}
+
+	void UseBait()
+	{
+		if ( ThreatActive )
+			return;
+
+		if ( (PlayerInventory.Local?.BaitCount ?? 0) <= 0 )
+		{
+			UiState.PushToast( "No bait left - buy more at the kiosk.", "block" );
+			return;
+		}
+
+		UiState.PlayClick();
+		_usedBait = true;
+		UiState.PushToast( "Bait ready - wider green zone on your next catch press.", "restaurant" );
+	}
+
+	void Cancel()
+	{
+		UiState.PlayClick();
+		if ( ThreatActive )
+			WildAttackSystem.Instance?.TryGiveUp();
+		else
+			CatchSystem.Instance?.TryCancelCatch();
+
+		_usedBait = false;
+	}
+
+	protected override int BuildHash() => System.HashCode.Combine(
+		UiState.Revision, _open, ThreatActive, MarkerLeft, GreenLeft, GreenWidth,
+		System.HashCode.Combine(
+			CatchSystem.Instance?.CatchSpeciesName,
+			CatchSystem.Instance?.CatchRarityLabel,
+			CatchSystem.Instance?.HitsRequired ?? 0,
+			CatchSystem.Instance?.HitsLanded ?? 0 ),
+		System.HashCode.Combine(
+			WildAttackSystem.Instance?.ThreatSpeciesName,
+			WildAttackSystem.Instance?.ThreatLabel,
+			WildAttackSystem.Instance?.HitsRequired ?? 0,
+			WildAttackSystem.Instance?.HitsLanded ?? 0,
+			WildAttackSystem.Instance?.PenaltyPreview ?? 0 ) );
+}

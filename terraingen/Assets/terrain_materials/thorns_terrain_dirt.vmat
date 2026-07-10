@@ -1,0 +1,36 @@
+// THIS FILE IS AUTO-GENERATED
+
+Layer0
+{
+	shader "shaders/complex.shader"
+
+	//---- Ambient Occlusion ----
+	g_flAmbientOcclusionDirectDiffuse "0.500"
+	TextureAmbientOcclusion "materials/default/default_ao.tga"
+
+	//---- Color ----
+	g_flModelTintAmount "1.000"
+	g_vColorTint "[0.78 0.96 0.66 1.000000]"
+	TextureColor "terrain_materials/dirt.png"
+
+	//---- Fade ----
+	g_flFadeExponent "1.000"
+
+	//---- Fog ----
+	g_bFogEnabled "1"
+
+	//---- Metalness ----
+	g_flMetalness "0.000"
+
+	//---- Normal ----
+	TextureNormal "materials/default/default_normal.tga"
+
+	//---- Roughness ----
+	g_flRoughnessScaleFactor "0.94"
+	TextureRoughness "terrain_materials/dirt_rough.png"
+
+	//---- Texture Coordinates ----
+	g_vTexCoordOffset "[0.000 0.000]"
+	g_vTexCoordScale "[1.000 1.000]"
+	g_vTexCoordScrollSpeed "[0.000 0.000]"
+}

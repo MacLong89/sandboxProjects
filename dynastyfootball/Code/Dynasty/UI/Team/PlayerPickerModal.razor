@@ -1,0 +1,91 @@
+@using Sandbox
+@using Sandbox.UI
+@using Dynasty.Core.Identifiers
+@using Dynasty.UI.ViewModels
+@using Dynasty.UI.Management
+@using Dynasty.UI.Components
+@inherits Panel
+@namespace Dynasty.UI.Team
+@attribute [StyleSheet( "/Dynasty/UI/Team/PlayerPickerModal.razor.scss" )]
+
+<root class="player-picker-modal-root">
+@if ( Picker != null )
+{
+	<div class="ui-modal-backdrop formation-picker-backdrop ui-anim-fade" style="@UiModalHelpers.ZIndexStyle( UiWindowType.FormationPicker )" @onclick='@(() => UiModalHelpers.BackdropClick( UiWindowType.FormationPicker, HandleClose ))'>
+		<div class="ui-modal-card formation-picker-card" @onmousedown='@UiModalHelpers.StopPropagation'>
+			<Label class="modal-title">Assign @Picker.SlotLabel</Label>
+			<Label class="muted picker-subtitle">Select a player to preview · assign when ready</Label>
+
+			<div class="picker-body">
+				<div class="picker-list">
+				@foreach ( var row in Picker.Candidates )
+				{
+					<PickerCandidateRow
+						Row="@row"
+						IsSelected="@(_selectedPlayerId.Value == row.PlayerId.Value)"
+						OnSelect="@SelectCandidate" />
+				}
+
+					@if ( Picker.Candidates.Count == 0 )
+					{
+						<Label class="muted">No eligible players on roster for this slot.</Label>
+					}
+				</div>
+
+				@if ( _playerProfile != null )
+				{
+					<div class="picker-profile-panel">
+						<PlayerProfilePanel
+							Model="@_playerProfile"
+							CanManage=@(false)
+							ShowClose=@(false)
+							ShowContractActions=@(false) />
+					</div>
+				}
+			</div>
+
+			<div class="modal-actions">
+				@if ( !_selectedPlayerId.IsEmpty )
+				{
+					<Button class="btn primary" Text="@($"Assign to {Picker.SlotLabel}")" onclick=@ConfirmAssign />
+				}
+				<Button class="btn secondary" Text="Cancel" onclick=@HandleClose />
+			</div>
+		</div>
+	</div>
+}
+</root>
+
+@code
+{
+	[Parameter] public PlayerPickerViewModel Picker { get; set; }
+	[Parameter] public Func<PlayerId, PlayerProfileViewModel> GetPlayerProfile { get; set; }
+	[Parameter] public Action OnClose { get; set; }
+	[Parameter] public Action<PlayerId> OnAssign { get; set; }
+
+	PlayerId _selectedPlayerId;
+	PlayerProfileViewModel _playerProfile;
+
+	protected override void OnParametersSet()
+	{
+		if ( Picker == null )
+		{
+			_selectedPlayerId = default;
+			_playerProfile = null;
+		}
+	}
+
+	void ConfirmAssign()
+	{
+		OnAssign?.Invoke( _selectedPlayerId );
+	}
+
+	void SelectCandidate( PlayerId playerId )
+	{
+		_selectedPlayerId = playerId;
+		_playerProfile = GetPlayerProfile?.Invoke( playerId );
+		StateHasChanged();
+	}
+
+	void HandleClose() => OnClose?.Invoke();
+}

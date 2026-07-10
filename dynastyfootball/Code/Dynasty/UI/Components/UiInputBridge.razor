@@ -1,0 +1,30 @@
+@using Sandbox
+@using Sandbox.UI
+@using Dynasty
+@using Dynasty.Bootstrap
+@using Dynasty.UI.Management
+@inherits PanelComponent
+@namespace Dynasty.UI.Components
+
+@code
+{
+	protected override void OnStart()
+	{
+		DynastyUiManager.Instance.StateChanged += OnUiStateChanged;
+	}
+
+	protected override void OnDestroy()
+	{
+		DynastyUiManager.Instance.StateChanged -= OnUiStateChanged;
+	}
+
+	protected override void OnUpdate()
+	{
+		if ( !Input.EscapePressed )
+			return;
+
+		DynastyUiInput.HandleEscape();
+	}
+
+	void OnUiStateChanged() => StateHasChanged();
+}

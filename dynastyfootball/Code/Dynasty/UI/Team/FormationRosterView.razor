@@ -1,0 +1,140 @@
+@using Sandbox
+@using Sandbox.UI
+@using Dynasty.Data
+@using Dynasty.UI.ViewModels
+@using Dynasty.UI.Components
+@inherits Panel
+@namespace Dynasty.UI.Team
+@attribute [StyleSheet( "/Dynasty/UI/Team/FormationRosterView.razor.scss" )]
+
+<root class="formation-roster-view">
+	<div class="formation-toolbar">
+		<div class="formation-header-block">
+			<Label class="formation-team">@Model.TeamName</Label>
+			<Label class="formation-meta muted">Season @Model.Season · Week @Model.Week · @Model.CompletionLabel</Label>
+		</div>
+
+		<div class="formation-controls">
+			@if ( Model.ActiveSide == FormationSide.SpecialTeams )
+			{
+				<Label class="formation-meta muted">Assign your kicker and punter.</Label>
+			}
+			else
+			{
+				<Button class="@SideButtonClass( FormationSide.Offense )" Text="Offense" onclick=@SelectOffenseSide />
+				<Button class="@SideButtonClass( FormationSide.Defense )" Text="Defense" onclick=@SelectDefenseSide />
+
+				<div class="formation-select-wrap">
+					<Label class="formation-select-label muted">Formation</Label>
+					@foreach ( var option in Model.FormationOptions )
+					{
+						<FormationOptionButton
+							Label="@option.Label"
+							IsSelected="@option.IsSelected"
+							FormationType="@option.Type"
+							OnSelect="@OnFormationChanged" />
+					}
+				</div>
+			}
+		</div>
+	</div>
+
+	<div class="formation-body">
+		<div class="@FieldPanelClass()">
+			<div class="field-lines"></div>
+			<div class="field-los"></div>
+
+			@foreach ( var slot in Model.Slots )
+			{
+				<div class="field-slot-anchor slot-@SlotClass( slot.SlotKey )" style="left: @(slot.NormalizedX * 100)%; top: @(slot.NormalizedY * 100)%">
+					<FormationPlayerCard
+						Slot="@slot"
+						SlotKey="@slot.SlotKey"
+						IsSelected="@( SelectedSlotKey == slot.SlotKey )"
+						OnSlotSelected="@OnSlotSelected" />
+				</div>
+			}
+		</div>
+
+		<div class="formation-detail-panel panel">
+			@if ( SelectedProfile != null )
+			{
+				<PlayerProfilePanel
+					Model="@SelectedProfile"
+					CanManage="@CanManage"
+					ShowClose=@(false)
+					OnExtend="@OnExtend"
+					OnTrade="@OnTrade"
+					OnRelease="@OnRelease"
+					OnTrainAttribute="@OnTrainAttribute"
+					OnUnlockTrait="@OnUnlockTrait" />
+
+				<div class="formation-quick-actions">
+					<Button class="btn secondary small" Text="Set Starter" onclick=@HandleSetStarter />
+					<Button class="btn secondary small" Text="Trade" onclick=@HandleTrade />
+					<Button class="btn danger small" Text="Release" onclick=@HandleRelease />
+				</div>
+			}
+			else if ( !string.IsNullOrEmpty( SelectedSlotKey ) )
+			{
+				<Label class="panel-title">@SelectedSlotLabel</Label>
+				<Label class="muted">No starter assigned to this slot.</Label>
+				<Button class="btn primary" Text="Assign Player" onclick=@HandleSetStarter />
+			}
+			else
+			{
+				<Label class="panel-title">Player Profile</Label>
+				<Label class="muted">Select a position on the field to view player details and actions.</Label>
+			}
+		</div>
+	</div>
+</root>
+
+@code
+{
+	[Parameter] public FormationRosterViewModel Model { get; set; } = new();
+	[Parameter] public string SelectedSlotKey { get; set; } = "";
+	[Parameter] public string SelectedSlotLabel { get; set; } = "";
+	[Parameter] public PlayerProfileViewModel SelectedProfile { get; set; }
+	[Parameter] public bool CanManage { get; set; }
+	[Parameter] public Action<string> OnSlotSelected { get; set; }
+	[Parameter] public Action<FormationSide> OnSideChanged { get; set; }
+	[Parameter] public Action<FormationType> OnFormationChanged { get; set; }
+	[Parameter] public Action OnSetStarter { get; set; }
+	[Parameter] public Action OnExtend { get; set; }
+	[Parameter] public Action OnTrade { get; set; }
+	[Parameter] public Action OnRelease { get; set; }
+	[Parameter] public Action<string> OnTrainAttribute { get; set; }
+	[Parameter] public Action OnUnlockTrait { get; set; }
+
+	string SideButtonClass( FormationSide side )
+		=> Model.ActiveSide == side ? "btn primary small" : "btn secondary small";
+
+	string FormationButtonClass( FormationOptionRow option )
+		=> option.IsSelected ? "btn primary small formation-pill active" : "btn secondary small formation-pill";
+
+	string FieldPanelClass()
+	{
+		var sideClass = Model.ActiveSide switch
+		{
+			FormationSide.Offense => "offense-field",
+			FormationSide.Defense => "defense-field",
+			_ => "special-field"
+		};
+
+		return $"formation-field-panel {sideClass}";
+	}
+
+	static string SlotClass( string slotKey )
+		=> string.IsNullOrWhiteSpace( slotKey ) ? "unknown" : slotKey.ToLowerInvariant();
+
+	void SelectOffenseSide() => OnSideChanged?.Invoke( FormationSide.Offense );
+
+	void SelectDefenseSide() => OnSideChanged?.Invoke( FormationSide.Defense );
+
+	void HandleSetStarter() => OnSetStarter?.Invoke();
+
+	void HandleTrade() => OnTrade?.Invoke();
+
+	void HandleRelease() => OnRelease?.Invoke();
+}

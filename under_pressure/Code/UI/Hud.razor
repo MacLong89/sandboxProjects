@@ -1,0 +1,670 @@
+@using Sandbox
+@using Sandbox.UI
+@using UnderPressure
+@inherits PanelComponent
+@namespace UnderPressure.UI
+
+<root class="@(ShopOpen ? "shop-open" : "")">
+
+	@if ( Core is not null )
+	{
+		<div class="gameplay-hud @(DepartBlackout >= 1f ? "off" : "")" style="opacity: @GameplayHudOpacityCss;">
+		<div class="topbar">
+			<div class="cash">@Cash</div>
+		</div>
+
+		@if ( Prestige.Level > 0 )
+		{
+			<div class="prestige-chip">★ x@(Prestige.Multiplier.ToString("0.00"))</div>
+		}
+
+		<div class="job-strip @(AlmostDone ? "almost" : "") @(Core.AwaitingDeparture ? "done" : "")">
+			<div class="level-badge">LEVEL @JobLevel</div>
+			<div class="job-name">@Core.Jobs.Current?.Name</div>
+			<div class="progress-track">
+				<div class="progress-fill" style="width: @(ProgressPercent)%;"></div>
+			</div>
+			<div class="progress-label">@ProgressLabel</div>
+		</div>
+
+		@if ( !ShopOpen && !VanMenuOpen && !IsDeparting && !ShowMissionBriefing && LeftFeedVisible )
+		{
+			<div class="left-feed">
+				@if ( PestSummary.Count > 0 )
+				{
+					<div class="pest-guide @(PestSummary.Count > 3 ? "many" : "")">
+						<div class="pg-title">
+							<i class="icon">pest_control</i>
+							<span>PESTS ON SITE</span>
+							<span class="pg-total">@PestCount</span>
+						</div>
+						<div class="pg-list">
+							@foreach ( var p in PestSummary )
+							{
+								var tool = ToolCatalog.Get( p.Def.DamagedBy );
+								var hostile = p.Def.Attack != AttackStyle.None && (Core.Jobs.Index >= GameConstants.PestAttackUnlockJob);
+								<div class="pg-row @(hostile ? "hostile" : "")">
+									<div class="pg-main">
+										<span class="pg-count">@p.Count×</span>
+										<span class="pg-name">@p.Def.Name</span>
+										<span class="pg-tool"><i class="icon" style="color: @Css(tool.Tint);">@tool.Icon</i> @tool.Name</span>
+									</div>
+									@if ( hostile )
+									{
+										<div class="pg-threat"><i class="icon">warning</i> @AttackLabel(p.Def.Attack)</div>
+									}
+								</div>
+							}
+						</div>
+					</div>
+				}
+
+				@if ( MissingTool is not null )
+				{
+					<div class="feed-card need-tool">
+						<i class="icon">@MissingTool.Icon</i>
+						<div class="fc-body">
+							<div class="fc-title">This job needs the @MissingTool.Name</div>
+							<div class="fc-sub warn">Right-click your van to buy it — @Format(MissingTool.Cost)</div>
+						</div>
+					</div>
+				}
+
+				@if ( ShowHarassment )
+				{
+					<div class="feed-card harassment">
+						<i class="icon">warning</i>
+						<div class="fc-body">
+							<div class="fc-title">@Core.HarassmentAlert</div>
+							@if ( !string.IsNullOrEmpty( Core.HarassmentSubtext ) )
+							{
+								<div class="fc-sub danger">@Core.HarassmentSubtext</div>
+							}
+						</div>
+					</div>
+				}
+
+				@if ( AimedPest is not null )
+				{
+					var pestTool = ToolCatalog.Get( AimedPest.DamagedBy );
+					var pestOk = Core.Tools.Equipped == AimedPest.DamagedBy;
+					<div class="feed-card pest-aim @(pestOk ? "ok" : "bad")">
+						<i class="icon" style="color: @Css(pestTool.Tint);">@pestTool.Icon</i>
+						<div class="fc-body">
+							<div class="fc-title">@AimedPest.Name</div>
+							<div class="fc-sub">Use a @pestTool.Name to get rid of this pest!</div>
+						</div>
+					</div>
+				}
+
+				@if ( FixerApproaching )
+				{
+					<div class="feed-card interact">
+						<i class="icon">record_voice_over</i>
+						<div class="fc-body">
+							<div class="fc-title">A man in a suit is walking toward you</div>
+						</div>
+					</div>
+				}
+
+				@if ( Core.VanFocused )
+				{
+					<div class="feed-card interact">
+						<i class="icon">local_shipping</i>
+						<div class="fc-body">
+							<div class="fc-title">@(Core.AwaitingDeparture ? "Right-click to leave in your van!" : "Right-click to open your van!")</div>
+						</div>
+					</div>
+				}
+			</div>
+		}
+
+		@if ( IsKnockedOut )
+		{
+			<div class="knockout-vignette"></div>
+		}
+
+		@if ( ShowKnockout )
+		{
+			<div class="popup-backdrop" onclick=@DismissKnockout></div>
+			<div class="popup knockout">
+				<div class="popup-title"><i class="icon">bedtime</i> YOU PASSED OUT</div>
+				<div class="popup-body">@Core.KnockoutContext</div>
+				@if ( Core.KnockoutPenalty > 0 )
+				{
+					<div class="popup-body ko-penalty">Site medic + lost gear: <b>−@Format(Core.KnockoutPenalty)</b></div>
+				}
+				<div class="popup-btn" onclick=@DismissKnockout>Back on the job</div>
+			</div>
+		}
+
+		@if ( !ShopOpen && !VanMenuOpen && !IsDeparting && !ShowMissionBriefing )
+		{
+			<div class="reticle @(Spraying ? "spraying" : "") @(Core.VanFocused ? "focus" : "")"></div>
+		}
+
+		<div class="bottombar">
+			<div class="tool-strip">
+				<div class="tool-chip @(ToolMatches ? "ok" : "mismatch")">
+					<i class="icon">@EquippedToolIcon</i>
+					<span>@EquippedToolName</span>
+				</div>
+				@if ( !ToolMatches )
+				{
+					<div class="tool-warn"><i class="icon">error</i> @(MissingTool is not null ? $"Buy the {MissingTool.Name} in your van" : "Wrong tool — visit your van")</div>
+				}
+			</div>
+			@if ( EquippedUsesStamina )
+			{
+				<div class="tank stamina">
+					<i class="icon">bolt</i>
+					<div class="tank-track">
+						<div class="tank-fill" style="width: @(StaminaPercent)%;"></div>
+					</div>
+				</div>
+			}
+			else
+			{
+				<div class="tank @(EquippedUsesWater ? "" : "idle")">
+					<i class="icon">water_drop</i>
+					<div class="tank-track">
+						<div class="tank-fill" style="width: @(WaterPercent)%;"></div>
+					</div>
+				</div>
+			}
+			<div class="hint">Hold <b>LMB</b> to clean &nbsp;·&nbsp; <b>Tab</b> for menu &nbsp;·&nbsp; walk to the <b>van</b> to swap tools</div>
+			<div class="shop-toggle" onclick=@ToggleShop>MENU</div>
+		</div>
+
+		@if ( ShowCompletion && !ShowPerfect )
+		{
+			<div class="completion-flash"></div>
+			<div class="completion">
+				<div class="completion-card">
+					<div class="completion-title">JOB COMPLETE!</div>
+					<div class="completion-sub">@Core.CompletedJobName</div>
+					<div class="completion-bonus">Bonus @Format(Core.CompletionBonus)</div>
+					<div class="completion-next">Return to your van to leave — or clean the last bit to <b>100%</b> for a bonus!</div>
+				</div>
+			</div>
+		}
+		else if ( ShowPerfect )
+		{
+			<div class="completion-flash perfect"></div>
+			<div class="completion">
+				<div class="completion-card perfect">
+					<div class="completion-title">@(Core.SpotlessAtCompletion ? "SPOTLESS · JOB COMPLETE!" : "SPOTLESS! ✨")</div>
+					<div class="completion-sub">@(Core.SpotlessAtCompletion ? Core.CompletedJobName : "100% cleaned")</div>
+					@if ( Core.SpotlessAtCompletion )
+					{
+						<div class="completion-bonus">Completion @Format(Core.CompletionBonus)</div>
+					}
+					<div class="completion-bonus">Perfect Bonus @Format(Core.PerfectBonus)</div>
+					@if ( Core.SpotlessAtCompletion )
+					{
+						<div class="completion-next">Return to your van to leave for the next job.</div>
+					}
+				</div>
+			</div>
+		}
+
+		@if ( ShowDaily )
+		{
+			<div class="popup-backdrop" onclick=@DismissDaily></div>
+			<div class="popup">
+				<div class="popup-title">Daily Reward · Day @Core.DailyPopup.Streak</div>
+				<div class="popup-body">Login streak bonus: <b>@Format(Core.DailyPopup.Amount)</b></div>
+				<div class="popup-btn" onclick=@DismissDaily>Nice!</div>
+			</div>
+		}
+
+		@if ( ShowHitmanBriefing )
+		{
+			<div class="popup-backdrop" onclick=@AdvanceHitmanBriefing></div>
+			<div class="popup hitman-brief">
+				<div class="popup-title"><i class="icon">record_voice_over</i> CLASSIFIED CONTACT</div>
+				<div class="popup-body hitman-line">@HitmanBriefingText</div>
+				<div class="popup-btn" onclick=@AdvanceHitmanBriefing>@(HitmanBriefingLast ? "Understood" : "Continue")</div>
+			</div>
+		}
+
+		@if ( VanMenuOpen )
+		{
+			<div class="popup-backdrop" onclick=@CloseVan></div>
+			<div class="van-locker">
+				<div class="vl-head">
+					<div class="vl-title"><i class="icon">local_shipping</i> WORK VAN</div>
+					<div class="menu-close" onclick=@CloseVan>✕</div>
+				</div>
+				<div class="vl-sub">Equip the right tool for the job — or buy new gear to unlock more surfaces.</div>
+
+				<div class="vl-tools">
+					@foreach ( var tool in ToolCatalog.All )
+					{
+						if ( tool.RequiresHitmanUnlock && !(Core.Save.HitmanContractUnlocked) )
+							continue;
+
+						var owned = Core.Tools.IsOwned( tool.Type );
+						var equipped = owned && Core.Tools.Equipped == tool.Type;
+						var needed = Core.Jobs.ToolMatchesJob( tool.Type );
+						var afford = !owned && Core.Wallet.Cash >= tool.Cost;
+						var cls = equipped ? "equipped" : !owned ? (afford ? "buyable" : "unaffordable") : "";
+						<div class="vl-tool @cls @(needed ? "needed" : "")" onclick=@(() => ToolClick(tool.Type))>
+							<i class="icon vl-icon">@tool.Icon</i>
+							<div class="vl-text">
+								<div class="vl-name">@tool.Name @if ( needed ) { <span class="vl-badge">NEEDED HERE</span> } @if ( !owned ) { <span class="vl-lock"><i class="icon">lock</i> LOCKED</span> }</div>
+								<div class="vl-blurb">@tool.Blurb</div>
+								<div class="vl-cleans"><i class="icon">check_circle</i> @tool.Cleans</div>
+							</div>
+							@if ( !owned )
+							{
+								<div class="vl-state buy"><i class="icon">shopping_cart</i> @Format(tool.Cost)</div>
+							}
+							else
+							{
+								<div class="vl-state">@(equipped ? "EQUIPPED" : "EQUIP")</div>
+							}
+						</div>
+					}
+				</div>
+
+				<div class="vl-depart @(Core.AwaitingDeparture ? "ready" : "locked")" onclick=@Depart>
+					<i class="icon">@(Core.AwaitingDeparture ? "local_shipping" : "lock")</i>
+					@(Core.AwaitingDeparture ? "DEPART → NEXT JOB" : "FINISH THE JOB TO LEAVE")
+				</div>
+			</div>
+		}
+
+		@if ( ShopOpen )
+		{
+			<div class="menu-backdrop" onclick=@ToggleShop></div>
+			<div class="menu">
+				<div class="menu-head">
+					<div class="menu-brand">UNDER <span>PRESSURE</span></div>
+					<div class="menu-cash">@Cash</div>
+					<div class="menu-close" onclick=@ToggleShop>✕</div>
+				</div>
+
+				<div class="menu-tabs">
+					<div class="mtab @(Tab == MenuTab.Overview ? "active" : "")" onclick=@(() => Tab = MenuTab.Overview)><i class="icon">dashboard</i> Overview</div>
+					<div class="mtab @(Tab == MenuTab.Upgrades ? "active" : "")" onclick=@(() => Tab = MenuTab.Upgrades)><i class="icon">upgrade</i> Upgrades</div>
+					<div class="mtab @(Tab == MenuTab.Leaderboard ? "active" : "")" onclick=@(() => OpenLeaderboard())><i class="icon">leaderboard</i> Leaderboard</div>
+					<div class="mtab @(Tab == MenuTab.Van ? "active" : "")" onclick=@(() => Tab = MenuTab.Van)><i class="icon">local_shipping</i> Van</div>
+				</div>
+
+				<div class="menu-body">
+					@if ( Tab == MenuTab.Overview )
+					{
+						<div class="ov-job">
+							<div class="ov-label">LEVEL @JobLevel · @(Core.Jobs.Current?.BriefingTag ?? "")</div>
+							<div class="ov-job-name">@Core.Jobs.Current?.Name</div>
+							@if ( !string.IsNullOrEmpty( Core.Jobs.Current?.Location ) )
+							{
+								<div class="ov-location">@Core.Jobs.Current?.Location</div>
+							}
+							<div class="ov-blurb">@Core.Jobs.Current?.Briefing</div>
+							<div class="progress-track big"><div class="progress-fill" style="width: @(ProgressPercent)%;"></div></div>
+							<div class="ov-progress">@ProgressPercent% clean · Next: <b>@NextJobName</b></div>
+						</div>
+
+						<div class="stat-grid">
+							<div class="stat"><div class="stat-val">@Cash</div><div class="stat-key">Cash</div></div>
+							<div class="stat"><div class="stat-val">@Format(Core.Wallet.LifetimeEarned)</div><div class="stat-key">Lifetime Earned</div></div>
+							<div class="stat"><div class="stat-val">x@(TotalMultiplier.ToString("0.00"))</div><div class="stat-key">Earn Multiplier</div></div>
+							<div class="stat"><div class="stat-val">@Prestige.Level</div><div class="stat-key">Prestige</div></div>
+							<div class="stat"><div class="stat-val">Tier @Upgrades.VanTier</div><div class="stat-key">Van Class</div></div>
+							<div class="stat"><div class="stat-val">@WaterPercent%</div><div class="stat-key">Water Tank</div></div>
+						</div>
+
+						<div class="reset-progress-panel">
+							<div class="reset-progress-copy">
+								<div class="reset-progress-head">START OVER</div>
+								<div class="reset-progress-desc">Wipe <b>all</b> progress — cash, upgrades, prestige, story flags, and level — back to level 1. This is <b>not</b> prestige.</div>
+							</div>
+							<div class="reset-progress-btn" onclick=@ResetAllProgress>RESET ALL PROGRESS</div>
+						</div>
+					}
+					else if ( Tab == MenuTab.Upgrades )
+					{
+						<div class="shop-list">
+							@foreach ( var group in UpgradeSystem.GroupOrder )
+							{
+								var info = UpgradeSystem.GroupInfo( group );
+								<div class="up-group"><span>@info.Name</span></div>
+								@foreach ( var def in UpgradeSystem.InGroup( group ) )
+								{
+									var level = Upgrades.Level( def.Id );
+									var maxed = Upgrades.IsMaxed( def.Id );
+									var cost = Upgrades.NextCost( def.Id );
+									var afford = !maxed && Core.Wallet.Cash >= cost;
+									<div class="up-row @(maxed ? "maxed" : afford ? "afford" : "locked")" onclick=@(() => Buy(def.Id))>
+										<i class="icon up-icon">@def.Icon</i>
+										<div class="up-text">
+											<div class="up-name">@def.Name <span class="up-level">Lv @level@(def.MaxLevel > 0 ? "/" + def.MaxLevel : "")</span></div>
+											<div class="up-desc">@def.Description</div>
+										</div>
+										<div class="up-cost">@(maxed ? "MAX" : Format(cost))</div>
+									</div>
+								}
+							}
+						</div>
+
+						<div class="prestige-panel">
+							<div class="prestige-info">
+								<div class="prestige-head">PRESTIGE</div>
+								<div class="prestige-desc">Reset upgrades &amp; cash for a permanent <b>+@((int)(GameConstants.PrestigeMultiplierPerLevel * 100))%</b> earnings boost.</div>
+								<div class="prestige-track">
+									<div class="prestige-fill" style="width: @(PrestigePercent)%;"></div>
+								</div>
+								<div class="prestige-req">@Format(Core.Wallet.RunEarned) / @Format(Prestige.Requirement) this run</div>
+							</div>
+							<div class="prestige-btn @(CanPrestige ? "ready" : "locked")" onclick=@DoPrestige>
+								@(CanPrestige ? $"PRESTIGE → x{Prestige.NextMultiplier:0.00}" : "LOCKED")
+							</div>
+						</div>
+					}
+					else if ( Tab == MenuTab.Leaderboard )
+					{
+						<div class="lb-table">
+							<div class="lb-header">
+								<div class="lb-col rank">Rank</div>
+								<div class="lb-col name">Name</div>
+								<div class="lb-col value">Lifetime Earnings</div>
+							</div>
+
+							<div class="lb-body">
+								@if ( !string.IsNullOrEmpty( LeaderboardError ) )
+								{
+									<div class="lb-msg">@LeaderboardError</div>
+								}
+								else if ( LeaderboardLoading && (Leaderboard?.Entries is null || Leaderboard.Entries.Length == 0) )
+								{
+									<div class="lb-msg">Loading...</div>
+								}
+								else if ( Leaderboard?.Entries is null || Leaderboard.Entries.Length == 0 )
+								{
+									<div class="lb-msg">No entries yet.</div>
+								}
+								else
+								{
+									@foreach ( var entry in Leaderboard.Entries )
+									{
+										<div class="lb-row @(entry.SteamId == LocalSteamId ? "me" : "")">
+											<div class="lb-col rank">@entry.Rank</div>
+											<div class="lb-col name">@entry.DisplayName</div>
+											<div class="lb-col value">@Format( entry.Value )</div>
+										</div>
+									}
+								}
+							</div>
+						</div>
+					}
+					else if ( Tab == MenuTab.Van )
+					{
+						var vlevel = Upgrades.VanTier;
+						var vmaxed = Upgrades.IsMaxed( UpgradeId.Van );
+						var vcost = Upgrades.NextCost( UpgradeId.Van );
+						var vafford = !vmaxed && Core.Wallet.Cash >= vcost;
+						<div class="van-panel">
+							<div class="van-hero">
+								<div class="van-emoji"><i class="icon">local_shipping</i></div>
+								<div class="van-title">@VanName</div>
+								<div class="van-tier">Van Class · Tier @vlevel / @UpgradeSystem.VanDef.MaxLevel</div>
+								<div class="van-bonus">+@((int)((Upgrades.VanMultiplier - 1.0) * 100))% earnings from your van</div>
+							</div>
+
+							<div class="van-track"><div class="van-fill" style="width: @(vlevel * 100 / Math.Max(1, UpgradeSystem.VanDef.MaxLevel))%;"></div></div>
+
+							<div class="van-desc">A sharper rig wins bigger contracts. Each tier permanently boosts everything you earn — and upgrades the van parked at every job.</div>
+
+							<div class="van-btn @(vmaxed ? "maxed" : vafford ? "ready" : "locked")" onclick=@BuyVan>
+								@(vmaxed ? "FULLY UPGRADED" : $"UPGRADE VAN → {Format(vcost)}")
+							</div>
+						</div>
+					}
+				</div>
+
+				<div class="menu-foot">
+					<div class="play-btn" onclick=@ToggleShop><i class="icon">cleaning_services</i> BACK TO WORK</div>
+				</div>
+			</div>
+		}
+
+		</div>
+
+		@if ( DepartBlackout > 0f )
+		{
+			<div class="depart-blackout" style="opacity: @DepartBlackoutCss;"></div>
+		}
+
+		@if ( ShowMissionBriefing )
+		{
+			<div class="mission-brief-layer">
+				<div class="popup-backdrop"></div>
+				<div class="popup mission-brief">
+					<div class="popup-title"><i class="icon">local_shipping</i> LEVEL @Core.MissionBriefingLevel</div>
+					@if ( !string.IsNullOrEmpty( Core.MissionBriefingAct ) )
+					{
+						<div class="mission-act">@Core.MissionBriefingAct</div>
+					}
+					@if ( !string.IsNullOrEmpty( Core.MissionBriefingTag ) )
+					{
+						<div class="mission-tag">@Core.MissionBriefingTag</div>
+					}
+					<div class="mission-name">@Core.MissionBriefingTitle</div>
+					@if ( !string.IsNullOrEmpty( Core.MissionBriefingLocation ) )
+					{
+						<div class="mission-location"><i class="icon">place</i> @Core.MissionBriefingLocation</div>
+					}
+					<div class="popup-body mission-copy">@Core.MissionBriefingBody</div>
+					@if ( !string.IsNullOrEmpty( Core.MissionBriefingRevealHook ) )
+					{
+						<div class="mission-reveal"><b>Wash to reveal:</b> @Core.MissionBriefingRevealHook</div>
+					}
+					<div class="popup-btn" onclick=@DismissMissionBriefing>Start Job</div>
+				</div>
+			</div>
+		}
+
+		@if ( ShowDiscovery )
+		{
+			<div class="popup-backdrop" onclick=@DismissDiscovery></div>
+			<div class="popup discovery">
+				<div class="popup-title"><i class="icon">psychology</i> LEO</div>
+				<div class="popup-body discovery-line">@Core.DiscoveryMonologue</div>
+				<div class="popup-btn" onclick=@DismissDiscovery>Keep washing</div>
+			</div>
+		}
+	}
+</root>
+
+@code
+{
+	private enum MenuTab { Overview, Upgrades, Leaderboard, Van }
+	private MenuTab Tab { get; set; } = MenuTab.Overview;
+
+	private Sandbox.Services.Leaderboards.Board2 Leaderboard { get; set; }
+	private bool LeaderboardLoading { get; set; }
+	private string LeaderboardError { get; set; }
+	private long LocalSteamId => (long)Connection.Local.SteamId;
+
+	private GameCore Core => GameCore.Instance;
+	private UpgradeSystem Upgrades => Core?.Upgrades;
+	private PrestigeSystem Prestige => Core?.Prestige;
+
+	private bool ShopOpen => Core?.ShopOpen ?? false;
+	private bool VanMenuOpen => Core?.VanMenuOpen ?? false;
+	private bool Spraying => PressureWasher.Instance?.IsSpraying ?? false;
+	private bool ShowCompletion => Core?.ShowCompletion ?? false;
+	private bool ShowPerfect => Core?.ShowPerfect ?? false;
+	private bool ShowDaily => Core?.ShowDailyPopup ?? false;
+	private bool ShowDiscovery => Core?.ShowDiscoveryPopup ?? false;
+	private bool ShowHitmanBriefing => Core?.ShowHitmanBriefing ?? false;
+	private bool HitmanBriefingLast => (Core?.HitmanBriefingLine ?? 0) >= 3;
+	private string HitmanBriefingText => Core?.HitmanBriefingLine switch
+	{
+		0 => "\"You're good at making messes disappear. I mean the wet kind.\"",
+		1 => "\"I've got a different cleanup for you — the permanent kind.\"",
+		2 => "\"There's a mark. You won't see him for a while. When you do, you'll know.\"",
+		_ => "\"Buy the hardware from your van. Take him out, then hose down every trace.\"",
+	};
+	private bool ShowHarassment => Core?.ShowHarassment ?? false;
+	private bool FixerApproaching => HitmanBriefingNpc.Instance.IsValid() && !(Core?.ShowHitmanBriefing ?? false);
+	private bool LeftFeedVisible => PestSummary.Count > 0 || MissingTool is not null || ShowHarassment
+		|| AimedPest is not null || (Core?.VanFocused ?? false) || FixerApproaching;
+	private bool ShowKnockout => Core?.ShowKnockoutPopup ?? false;
+	private bool IsKnockedOut => Core?.IsKnockedOut ?? false;
+	private bool IsDeparting => Core?.IsDeparting ?? false;
+	private bool ShowMissionBriefing => Core?.ShowMissionBriefing ?? false;
+	private float DepartBlackout => Core?.DepartBlackout ?? 0f;
+	private float GameplayHudOpacity => 1f - DepartBlackout;
+	private string DepartBlackoutCss => DepartBlackout.ToString( "0.###", System.Globalization.CultureInfo.InvariantCulture );
+	private string GameplayHudOpacityCss => GameplayHudOpacity.ToString( "0.###", System.Globalization.CultureInfo.InvariantCulture );
+	private bool AwaitingDeparture => Core?.AwaitingDeparture ?? false;
+	private bool Spotless => Core?.Jobs.IsSpotless ?? false;
+
+	private string Cash => GameConstants.FormatCash( Core?.Wallet.Cash ?? 0 );
+
+	// Floor so the HUD never reads "100%" until the job is truly spotless.
+	private int ProgressPercent => (int)MathF.Floor( (Core?.Jobs.Progress ?? 0f) * 100f );
+	private int JobLevel => (Core?.Jobs.Index ?? 0) + 1;
+
+	private string ProgressLabel => AwaitingDeparture
+		? (Spotless ? "SPOTLESS · 100%" : $"DONE · {ProgressPercent}% — reach 100% for a bonus")
+		: AlmostDone ? "ALMOST THERE!" : $"{ProgressPercent}% CLEAN";
+	private int WaterPercent => (int)MathF.Round( (PressureWasher.Instance?.WaterFraction ?? 0f) * 100f );
+	private int StaminaPercent => (int)MathF.Round( (PressureWasher.Instance?.StaminaFraction ?? 0f) * 100f );
+	private int PrestigePercent => Core is null ? 0 : (int)MathF.Round( Prestige.Progress( Core.Wallet ) * 100f );
+	private bool CanPrestige => Core is not null && Prestige.CanPrestige( Core.Wallet );
+	private bool AlmostDone => ProgressPercent >= 90 && ProgressPercent < 100;
+
+	private double TotalMultiplier => Core is null ? 1.0
+		: Upgrades.CashMultiplier * Upgrades.VanMultiplier * Prestige.Multiplier * (Core.Jobs.Current?.ValueMultiplier ?? 1.0);
+
+	private string NextJobName => JobCatalog.Get( (Core?.Jobs.Index ?? 0) + 1 ).Name;
+
+	private string EquippedToolName => Core?.Tools.EquippedDef.Name ?? "";
+	private string EquippedToolIcon => Core?.Tools.EquippedDef.Icon ?? "build";
+	private bool EquippedUsesWater => Core?.Tools.EquippedDef.UsesWater ?? true;
+	private bool EquippedUsesStamina => Core?.Tools.EquippedDef.UsesStamina ?? false;
+	private bool ToolMatches => Core is not null && Core.Jobs.ToolMatchesJob( Core.Tools.Equipped );
+
+	/// <summary>First tool the current job needs that the player hasn't bought yet, if any.</summary>
+	private ToolDef MissingTool
+	{
+		get
+		{
+			if ( Core is null ) return null;
+			foreach ( var t in Core.Jobs.RequiredTools )
+				if ( !Core.Tools.IsOwned( t ) )
+					return ToolCatalog.Get( t );
+			return null;
+		}
+	}
+	private int PestCount => EnemyManager.Instance?.ActiveCount ?? 0;
+	private List<(EnemyDef Def, int Count)> PestSummary => EnemyManager.Instance?.ActivePests() ?? new();
+	private int PestSummaryHash
+	{
+		get
+		{
+			var hash = new System.HashCode();
+			foreach ( var p in PestSummary )
+			{
+				hash.Add( p.Def.Kind );
+				hash.Add( p.Count );
+			}
+			return hash.ToHashCode();
+		}
+	}
+	private EnemyDef AimedPest => PressureWasher.Instance?.AimedEnemy;
+
+	private static string Css( Color c ) =>
+		$"rgb({(int)(c.r * 255)}, {(int)(c.g * 255)}, {(int)(c.b * 255)})";
+
+	private static readonly string[] VanNames = { "Rusty Runabout", "Clean Machine", "Sky Sprayer", "Pro Pressure Rig", "Platinum Powerwash" };
+	private string VanName => VanNames[Math.Clamp( Upgrades?.VanTier ?? 0, 0, VanNames.Length - 1 )];
+
+	private static string Format( double v ) => GameConstants.FormatCash( v );
+
+	private static string AttackLabel( AttackStyle attack ) => attack switch
+	{
+		AttackStyle.Sting => "STINGS",
+		AttackStyle.Dive => "DIVE-BOMBS",
+		AttackStyle.Rob => "ROBS YOU",
+		AttackStyle.SprayFight => "HOSE FIGHT",
+		_ => "",
+	};
+
+	private void ToggleShop() => Core?.ToggleShop();
+	private void CloseVan() => Core?.CloseVanMenu();
+
+	private void ToolClick( ToolType type )
+	{
+		if ( Core is null ) return;
+		if ( Core.Tools.IsOwned( type ) ) Core.EquipTool( type );
+		else Core.BuyTool( type );
+	}
+	private void Depart() => Core?.DepartJob();
+	private void Buy( UpgradeId id ) => Core?.BuyUpgrade( id );
+	private void BuyVan() => Core?.BuyUpgrade( UpgradeId.Van );
+	private void DoPrestige() { if ( Core?.DoPrestige() == true ) Core.SetShopOpen( false ); }
+	private void DismissDaily() => Core?.DismissDailyPopup();
+	private void DismissKnockout() => Core?.DismissKnockoutPopup();
+	private void DismissMissionBriefing() => Core?.DismissMissionBriefing();
+	private void DismissDiscovery() => Core?.DismissDiscoveryPopup();
+	private void AdvanceHitmanBriefing() => Core?.AdvanceHitmanBriefing();
+	private void ResetAllProgress() => Core?.ResetAllProgress();
+
+	private void OpenLeaderboard()
+	{
+		Tab = MenuTab.Leaderboard;
+		_ = RefreshLeaderboard();
+	}
+
+	private async Task RefreshLeaderboard()
+	{
+		if ( LeaderboardLoading ) return;
+
+		LeaderboardLoading = true;
+		LeaderboardError = null;
+		StateHasChanged();
+
+		try
+		{
+			Leaderboard = LeaderboardService.CreateBoard();
+			await Leaderboard.Refresh();
+		}
+		catch ( Exception e )
+		{
+			LeaderboardError = "Couldn't load the leaderboard. Try again in a moment.";
+			Log.Warning( $"[UnderPressure] Leaderboard refresh failed: {e.Message}" );
+		}
+
+		LeaderboardLoading = false;
+		StateHasChanged();
+	}
+
+	protected override void OnUpdate()
+	{
+		if ( Core is null ) return;
+
+		// Escape backs out of any open menu/popup, one layer at a time.
+		if ( Input.EscapePressed && Core.CloseTopmostMenu() )
+			Input.EscapePressed = false;
+
+		// Tab toggles the shop, but only when no popup or the van locker is up.
+		if ( Input.Pressed( "Score" ) && !ShowDaily && !VanMenuOpen )
+			Core.ToggleShop();
+	}
+
+	protected override int BuildHash() => System.HashCode.Combine(
+		System.HashCode.Combine( Core?.Wallet.Cash ?? 0, ProgressPercent, JobLevel ),
+		System.HashCode.Combine( WaterPercent, StaminaPercent, PestCount, PestSummaryHash, AimedPest?.Kind ?? (EnemyKind)(-1) ),
+		System.HashCode.Combine( ShopOpen, VanMenuOpen, Core?.VanFocused ?? false, Core?.AwaitingDeparture ?? false ),
+		System.HashCode.Combine( (int)(Core?.Tools.Equipped ?? ToolType.PressureWasher), ToolMatches, MissingTool is not null, Spraying ),
+		System.HashCode.Combine( ShowCompletion, ShowPerfect, Spotless, System.HashCode.Combine( ShowDaily, ShowHarassment, ShowKnockout, IsKnockedOut, IsDeparting, ShowMissionBriefing, ShowDiscovery ) ),
+		System.HashCode.Combine( ShowHitmanBriefing, Core?.HitmanBriefingLine ?? 0, FixerApproaching, Core?.HarassmentAlert?.GetHashCode() ?? 0, Core?.HarassmentSubtext?.GetHashCode() ?? 0, Core?.KnockoutContext?.GetHashCode() ?? 0, Core?.KnockoutPenalty ?? 0 ),
+		System.HashCode.Combine( Core?.DepartBlackout ?? 0, Core?.MissionBriefingLevel ?? 0, Core?.MissionBriefingTitle?.GetHashCode() ?? 0, Core?.MissionBriefingBody?.GetHashCode() ?? 0, Core?.MissionBriefingTag?.GetHashCode() ?? 0, Core?.DiscoveryMonologue?.GetHashCode() ?? 0 ),
+		System.HashCode.Combine( (int)Tab, Upgrades?.VanTier ?? 0, LeaderboardLoading ? 1 : 0, Leaderboard?.Entries?.Length ?? 0 )
+	);
+}

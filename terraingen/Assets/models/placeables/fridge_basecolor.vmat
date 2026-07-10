@@ -1,0 +1,12 @@
+﻿Layer0
+{
+	shader "shaders/complex.shader_c"
+
+	TextureColor "models/placeables/fridge_basecolor.png"
+	TextureAmbientOcclusion "materials/default/default_ao.tga"
+	TextureNormal "materials/default/default_normal.tga"
+	TextureRoughness "materials/default/default_rough.tga"
+
+	g_vTexCoordOffset "[0.000 0.000]"
+	g_vTexCoordScale "[1.000 1.000]"
+}

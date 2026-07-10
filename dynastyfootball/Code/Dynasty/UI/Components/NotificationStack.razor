@@ -1,0 +1,57 @@
+@using System
+@using System.Collections.Generic
+@using System.Linq
+@using Sandbox.UI
+@using Dynasty.UI.Management
+@inherits Panel
+@namespace Dynasty.UI.Components
+@attribute [StyleSheet( "/Dynasty/UI/Components/NotificationStack.razor.scss" )]
+
+<root class="notification-stack-root">
+	@foreach ( var note in _notifications )
+	{
+		<div class="notification-toast @( note.IsError ? "error" : "info" )">
+			<Label class="notification-text">@note.Message</Label>
+			<NotificationDismissButton NoteId="@note.Id" />
+		</div>
+	}
+</root>
+
+@code
+{
+	List<DynastyNotification> _notifications = new();
+	int _lastToken = -1;
+	bool _subscribed;
+
+	protected override int BuildHash()
+	{
+		if ( !_subscribed )
+		{
+			_subscribed = true;
+			DynastyUiManager.Instance.StateChanged += OnUiChanged;
+		}
+
+		var mgr = DynastyUiManager.Instance;
+		if ( mgr.ChangeToken == _lastToken && _notifications.Count == mgr.Notifications.Count )
+			return HashCode.Combine( _lastToken, _notifications.Count );
+
+		_lastToken = mgr.ChangeToken;
+		_notifications = mgr.ShouldShowNotifications ? mgr.Notifications.ToList() : new List<DynastyNotification>();
+		ScheduleAutoDismiss();
+		return HashCode.Combine( _lastToken, _notifications.Count );
+	}
+
+	void OnUiChanged() => StateHasChanged();
+
+	void ScheduleAutoDismiss()
+	{
+		foreach ( var note in _notifications )
+			_ = AutoDismiss( note );
+	}
+
+	async Task AutoDismiss( DynastyNotification note )
+	{
+		await Task.Delay( note.DurationMs );
+		DynastyUiManager.Instance.DismissNotification( note.Id );
+	}
+}

@@ -1,0 +1,70 @@
+@using Sandbox
+@using Sandbox.UI
+@inherits PanelComponent
+@namespace Sandbox
+
+<root class="aimbox-in-match-loadout-bar @(Visible ? "visible" : "hidden")">
+	<button class="screen-back-btn" onclick="@GoBack">ESC BACK</button>
+	<div class="loadout-bar-center">
+		<button class="loadout-bar-equip-btn" onclick="@EquipOrApply">@EquipLabel()</button>
+	</div>
+	<div class="loadout-bar-side"></div>
+</root>
+
+@code
+{
+	AimboxLoadoutEditorSession Session => AimboxLoadoutEditorSession.Shared;
+	int _syncKey;
+
+	bool Visible =>
+		AimboxMetaUiFlags.UseRedesignedLoadouts
+		&& AimboxMetaNavigation.CurrentScreen == AimboxMetaScreen.CreateClass
+		&& !AimboxMetaNavigation.IsInIntermission
+		&& AimboxGame.Instance?.Phase == AimboxSessionPhase.Playing
+		&& Session.CurrentLoadout is not null;
+
+	protected override void OnUpdate()
+	{
+		SyncSession();
+
+		if ( !Visible )
+			return;
+
+		if ( AimboxScreenNavigation.TryHandleMenuBack( Visible ) )
+			return;
+	}
+
+	void SyncSession()
+	{
+		var key = HashCode.Combine(
+			Visible,
+			AimboxMetaNavigation.CurrentScreen,
+			AimboxGame.Instance?.Phase );
+
+		if ( key == _syncKey )
+			return;
+
+		_syncKey = key;
+		if ( Visible )
+			Session.ResetFromPlayer();
+	}
+
+	void GoBack() => AimboxScreenNavigation.GoBack();
+
+	void EquipOrApply()
+	{
+		if ( Session.IsEditingLoadoutEquipped() )
+			Session.SaveLoadout();
+		else
+			Session.EquipLoadout();
+	}
+
+	string EquipLabel() =>
+		Session.IsEditingLoadoutEquipped() ? "APPLY LOADOUT" : "EQUIP LOADOUT";
+
+	protected override int BuildHash() => HashCode.Combine(
+		Visible,
+		Session.BuildHash(),
+		AimboxMetaNavigation.CurrentScreen,
+		AimboxGame.Instance?.Phase );
+}

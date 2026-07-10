@@ -1,0 +1,38 @@
+@using Sandbox.UI
+@namespace Terraingen.UI
+@inherits PanelComponent
+
+<root>
+	<div class="debug-bar">
+		<label class="coords">@ThornsDebugState.PositionLabel</label>
+		<label class="foliage">@ThornsDebugState.FoliageLine</label>
+		@if ( !string.IsNullOrEmpty( ThornsDebugState.SkyLine ) )
+		{
+			<label class="detail">@ThornsDebugState.SkyLine</label>
+		}
+		@if ( !string.IsNullOrEmpty( ThornsDebugState.DetailLine ) )
+		{
+			<label class="detail">@ThornsDebugState.DetailLine</label>
+		}
+		@if ( !string.IsNullOrEmpty( ThornsDebugState.SubsystemLine ) )
+		{
+			<label class="detail">@ThornsDebugState.SubsystemLine</label>
+		}
+		@if ( !string.IsNullOrEmpty( ThornsDebugState.MinimapLine ) )
+		{
+			<label class="detail">@ThornsDebugState.MinimapLine</label>
+		}
+	</div>
+</root>
+
+@code
+{
+	protected override int BuildHash() =>
+		HashCode.Combine(
+			ThornsDebugState.PositionLabel,
+			ThornsDebugState.FoliageLine,
+			ThornsDebugState.SkyLine,
+			ThornsDebugState.DetailLine,
+			ThornsDebugState.SubsystemLine,
+			ThornsDebugState.MinimapLine );
+}

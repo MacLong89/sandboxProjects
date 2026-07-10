@@ -1,0 +1,574 @@
+@using Sandbox
+@using Sandbox.UI
+@inherits PanelComponent
+@namespace Sandbox
+
+<root class="aimbox-progression @(Visible ? "visible" : "hidden") @(ShowPauseTabs ? "with-pause-tabs" : "")">
+	@if ( Visible )
+	{
+	<div class="progression-vignette decor"></div>
+
+	@if ( PlayerData is null )
+	{
+		<div class="progression-empty">Progression data unavailable.</div>
+	}
+	else
+	{
+		<div class="progression-layout">
+			<div class="progression-sidebar">
+				<div class="sidebar-title">// PROGRESSION</div>
+
+				<div class="sidebar-profile">
+					<div class="profile-badge"><div class="profile-badge-inner"></div></div>
+					<div class="profile-copy">
+						<div class="profile-name">@DisplayName</div>
+						<div class="profile-level">LEVEL @PlayerData.PlayerLevel</div>
+						<div class="profile-xp-track">
+							<div class="profile-xp-fill" style="width: @XpFillWidth();"></div>
+						</div>
+						<div class="profile-xp-label">@XpLabel</div>
+					</div>
+				</div>
+
+				<div class="category-rail">
+					@foreach ( var category in AimboxProgressionUiHelpers.Categories )
+					{
+						var item = category;
+						var progress = AimboxProgressionUiHelpers.CategoryProgress( PlayerData, item.Id );
+						<button class="category-btn @CategoryClass(item.Id)" onclick="@(() => SelectCategory(item.Id))">
+							<div class="category-icon @CategoryIconClass(item.Id)"></div>
+							<div class="category-copy">
+								<div class="category-label">@item.Label</div>
+								<div class="category-count">@FormatPair( progress.Unlocked, progress.Total )</div>
+							</div>
+						</button>
+					}
+				</div>
+
+				<div class="sidebar-footer">
+					<button class="reset-xp-btn" onclick="@ResetXpProgression">@ResetXpButtonLabel</button>
+					<div class="reset-xp-note">Resets rank XP and all gun mastery. Career stats are kept.</div>
+				</div>
+			</div>
+
+			<div class="progression-main @(ShowPostMatchRecap ? "post-match-view" : "")">
+				@if ( !ShowPostMatchRecap )
+				{
+					<div class="main-splatter decor"></div>
+				}
+
+				@if ( ShowPostMatchRecap && MatchSummary is not null )
+				{
+					<div class="post-match-recap @MatchResultClass()">
+						<div class="post-match-recap-head">
+							<div class="post-match-recap-kicker">// MATCH PROGRESS</div>
+							<div class="post-match-recap-result">@MatchResultText()</div>
+							<div class="post-match-recap-meta">@MatchSummary.Kills kills · @MatchSummary.Deaths deaths · +@FormatScore(MatchSummary.RankXpEarned) rank XP</div>
+						</div>
+						<div class="post-match-recap-grid">
+							<div class="post-match-recap-card">
+								<div class="post-match-recap-label">PLAYER RANK</div>
+								<div class="post-match-rank-row">
+									<span class="post-match-rank-from">@FormatRank(MatchSummary.StartingRank)</span>
+									<span class="post-match-rank-arrow">→</span>
+									<span class="post-match-rank-to">@FormatRank(MatchSummary.EndingRank)</span>
+								</div>
+								@if ( MatchSummary.RankedUp )
+								{
+									<div class="post-match-recap-badge">LEVEL UP</div>
+								}
+							</div>
+							<div class="post-match-recap-card">
+								<div class="post-match-recap-label">GUN MASTERY</div>
+								<div class="post-match-recap-value">+@FormatScore(MatchSummary.TotalMasteryXpEarned) XP</div>
+								@if ( TopMasteryEntry is not null )
+								{
+									<div class="post-match-recap-sub">@TopMasteryLabel()</div>
+								}
+							</div>
+						</div>
+						@if ( HasPostMatchUnlocks() )
+						{
+							<div class="post-match-unlocks">
+								<div class="post-match-unlocks-head">
+									<div class="post-match-unlocks-kicker">// NEW UNLOCKS</div>
+									<div class="post-match-unlocks-count">@PostMatchUnlockCount() unlocked this match</div>
+								</div>
+								<div class="post-match-unlocks-list">
+									@foreach ( var unlock in PostMatchUnlocks() )
+									{
+										<div class="post-match-unlock @UnlockCardClass(unlock)">
+											<div class="post-match-unlock-icon">+</div>
+											<div class="post-match-unlock-label">@unlock.Label</div>
+										</div>
+									}
+								</div>
+							</div>
+						}
+					</div>
+				}
+
+				@if ( !ShowPostMatchRecap )
+				{
+				<div class="level-header">
+					<div class="level-title">LEVEL @PlayerData.PlayerLevel</div>
+					<div class="level-xp-block">
+						<div class="level-xp-track">
+							<div class="level-xp-fill" style="width: @XpFillWidth();"></div>
+						</div>
+						<div class="level-xp-label">@XpLabel</div>
+					</div>
+				</div>
+
+				<div class="section-label">NEXT UNLOCKS</div>
+				<div class="timeline">
+					<div class="timeline-line decor"></div>
+					@foreach ( var entry in Timeline )
+					{
+						var item = entry;
+						<button class="timeline-card @TimelineCardClass(item)" onclick="@(() => SelectEntry(item))">
+							@if ( item.Level > 0 )
+							{
+								<div class="timeline-level">@item.Level</div>
+							}
+							<div class="timeline-icon" style="background-color: @item.AccentColor;">@item.IconCode</div>
+							<div class="timeline-name">@TimelineCardTitle(item)</div>
+							<div class="timeline-type">@TimelineCardSubtitle(item)</div>
+						</button>
+					}
+				</div>
+
+				<div class="section-label">LEVEL REWARDS PREVIEW</div>
+				@if ( SelectedEntry is not null )
+				{
+					<div class="reward-preview">
+						<div class="preview-icon-wrap">
+							<div class="preview-icon" style="background-color: @SelectedEntry.AccentColor;">
+								<div class="preview-icon-label">@SelectedEntry.IconCode</div>
+							</div>
+						</div>
+						<div class="preview-copy">
+							<div class="preview-name">@SelectedEntry.Name</div>
+							<div class="preview-type">@SelectedEntry.TypeLabel</div>
+							<div class="preview-status @PreviewStatusClass()">@AimboxProgressionUiHelpers.StatusLabel( PlayerData, SelectedEntry )</div>
+							<div class="preview-description">@SelectedEntry.Description</div>
+							<button class="preview-action @PreviewActionClass()" onclick="@OpenLoadouts">@AimboxProgressionUiHelpers.EquipPreviewLabel( SelectedEntry )</button>
+						</div>
+						<div class="preview-scene">
+							<div class="preview-scene-inner" style="background-color: @PreviewSceneColor();">
+								<div class="preview-scene-code">@SelectedEntry.IconCode</div>
+								<div class="preview-scene-caption">@PreviewSceneCaption()</div>
+							</div>
+						</div>
+					</div>
+				}
+
+				@if ( CategoryInventory.Count > 0 )
+				{
+					<div class="section-label">@ActiveCategoryLabel INVENTORY</div>
+					<div class="inventory-grid">
+						@foreach ( var entry in CategoryInventory )
+						{
+							var item = entry;
+							<button class="inventory-card @(item.IsUnlocked ? "unlocked" : "locked") @(SelectedEntry?.Key == item.Key ? "selected" : "")"
+							        onclick="@(() => SelectEntry(item))">
+								<div class="inventory-icon" style="background-color: @item.AccentColor;">@item.IconCode</div>
+								<div class="inventory-name">@item.Name</div>
+								<div class="inventory-meta">@AimboxProgressionUiHelpers.StatusLabel( PlayerData, item )</div>
+							</button>
+						}
+					</div>
+				}
+				}
+
+				@if ( ShowPostMatchRecap )
+				{
+					<div class="post-match-action-footer">
+						<div class="footer-tab">CAREER STATS</div>
+						<div class="footer-stats">
+							<div class="footer-stat">
+								<div class="footer-stat-value">@PlayerData.MatchesPlayed</div>
+								<div class="footer-stat-label">MATCHES</div>
+							</div>
+							<div class="footer-stat">
+								<div class="footer-stat-value">@PlayerData.Wins</div>
+								<div class="footer-stat-label">WINS</div>
+							</div>
+							<div class="footer-stat">
+								<div class="footer-stat-value">@FormatScore(PlayerData.Kills)</div>
+								<div class="footer-stat-label">KILLS</div>
+							</div>
+							<div class="footer-stat accent">
+								<div class="footer-stat-value">@FormatKd( PlayerData.KdRatio )</div>
+								<div class="footer-stat-label">K/D</div>
+							</div>
+						</div>
+						<button class="scoreboard-continue" onclick="@ContinueToMainMenu">CONTINUE</button>
+					</div>
+				}
+				else
+				{
+				<div class="stats-footer">
+					<div class="stat-chip">
+						<div class="stat-value">@PlayerData.MatchesPlayed</div>
+						<div class="stat-label">MATCHES</div>
+					</div>
+					<div class="stat-chip">
+						<div class="stat-value">@PlayerData.Wins</div>
+						<div class="stat-label">WINS</div>
+					</div>
+					<div class="stat-chip">
+						<div class="stat-value">@AimboxProgressionUiHelpers.WinRatePercent(PlayerData)%</div>
+						<div class="stat-label">WIN RATE</div>
+					</div>
+					<div class="stat-chip">
+						<div class="stat-value">@FormatScore(PlayerData.Kills)</div>
+						<div class="stat-label">KILLS</div>
+					</div>
+					<div class="stat-chip">
+						<div class="stat-value">@FormatKd( PlayerData.KdRatio )</div>
+						<div class="stat-label">K/D</div>
+					</div>
+					<div class="stat-chip">
+						<div class="stat-value">@AimboxProgressionUiHelpers.HeadshotPercent(PlayerData)%</div>
+						<div class="stat-label">HEADSHOT</div>
+					</div>
+					<div class="stat-chip">
+						<div class="stat-value">@AimboxProgressionUiHelpers.AccuracyPercent(PlayerData)%</div>
+						<div class="stat-label">ACCURACY</div>
+					</div>
+					<div class="stat-chip accent">
+						<div class="stat-value">x@(PlayerData.LongestKillStreak)</div>
+						<div class="stat-label">BEST STREAK</div>
+					</div>
+				</div>
+				}
+			</div>
+		</div>
+	}
+	}
+</root>
+
+@code
+{
+	AimboxProgressionCategory ActiveCategory { get; set; } = AimboxProgressionCategory.Overview;
+	AimboxProgressionRewardEntry SelectedEntry { get; set; }
+	int _syncKey;
+
+	bool ShowPostMatchRecap =>
+		AimboxMetaNavigation.IsPostMatchFlow
+		&& AimboxMetaNavigation.IsInIntermission
+		&& MatchSummary is not null;
+
+	AimboxMatchSummary MatchSummary => AimboxMetaNavigation.PendingMatchSummary;
+
+	AimboxMatchMasteryXpEntry TopMasteryEntry => FindTopMasteryEntry();
+
+	bool Visible =>
+		AimboxMetaUiFlags.UseRedesignedProgression
+		&& AimboxMetaNavigation.CurrentScreen == AimboxMetaScreen.Barracks;
+
+	bool ShowPauseTabs =>
+		AimboxPauseMenuTabsUi.Enabled
+		&& Visible
+		&& AimboxMetaNavigation.IsInGamePauseMenu;
+
+	AimboxPlayerController Player => FindPlayer();
+
+	AimboxPlayerData PlayerData => Player?.Data;
+
+	string DisplayName => AimboxLoadoutUiHelpers.PlayerDisplayName( Player );
+	string XpLabel => PlayerData is null ? $"0 / {AimboxXpSystem.XpStepForLevel( 1 ):N0} XP" : AimboxLoadoutUiHelpers.XpLabel( PlayerData );
+	string XpFillWidth() => PlayerData is null ? "0%" : AimboxLoadoutUiHelpers.XpFillWidth( PlayerData );
+
+	IReadOnlyList<AimboxProgressionRewardEntry> Timeline =>
+		PlayerData is null ? [] : AimboxProgressionUiHelpers.BuildTimeline( PlayerData, ActiveCategory );
+
+	IReadOnlyList<AimboxProgressionRewardEntry> CategoryInventory =>
+		PlayerData is null ? [] : AimboxProgressionUiHelpers.BuildCategoryInventory( PlayerData, ActiveCategory );
+
+	string ActiveCategoryLabel => FindActiveCategoryLabel();
+
+	protected override void OnStart() => SyncSelection();
+
+	protected override void OnUpdate()
+	{
+		SyncSelection();
+
+		if ( Visible && SelectedEntry?.IsUnlocked == true && Input.Pressed( "Reload" ) )
+			OpenLoadouts();
+
+		if ( Visible && ShowPostMatchRecap
+		     && (Input.Pressed( "Jump" ) || Input.Pressed( "Use" ) || Input.Pressed( "Attack1" )) )
+			ContinueToMainMenu();
+	}
+
+	void SyncSelection()
+	{
+		if ( !Visible )
+			return;
+
+		var key = HashCode.Combine(
+			Visible,
+			PlayerData?.TotalXp,
+			PlayerData?.PlayerLevel,
+			ActiveCategory,
+			AimboxMetaNavigation.CurrentScreen );
+
+		if ( key == _syncKey )
+			return;
+
+		_syncKey = key;
+
+		if ( PlayerData is null )
+			return;
+
+		var timeline = Timeline;
+		if ( SelectedEntry is null || !TimelineContainsSelection( timeline, SelectedEntry.Key ) )
+			SelectedEntry = AimboxProgressionUiHelpers.DefaultSelection( PlayerData, ActiveCategory, timeline );
+	}
+
+	void SelectCategory( AimboxProgressionCategory category )
+	{
+		ActiveCategory = category;
+		SelectedEntry = null;
+		SyncSelection();
+	}
+
+	void SelectEntry( AimboxProgressionRewardEntry entry ) => SelectedEntry = entry;
+
+	void OpenLoadouts()
+	{
+		if ( SelectedEntry is null || !SelectedEntry.IsUnlocked )
+			return;
+
+		AimboxMetaNavigation.OpenScreen( AimboxMetaScreen.CreateClass );
+	}
+
+	static string ResetXpButtonLabel => "RESET PLAYER & MASTERY XP";
+
+	void ContinueToMainMenu() => AimboxMetaNavigation.ContinuePostMatchToMainMenu();
+
+	void ResetXpProgression()
+	{
+		if ( AimboxGame.Instance is null || PlayerData is null )
+			return;
+
+		AimboxGame.Instance.ResetLocalXpProgression();
+		SelectedEntry = null;
+		SyncSelection();
+	}
+
+	string MatchResultClass() => MatchSummary?.Won == true ? "victory" : "defeat";
+
+	string MatchResultText() => MatchSummary?.Won == true ? "VICTORY" : "DEFEAT";
+
+	string TopMasteryLabel()
+	{
+		if ( TopMasteryEntry is not { } entry )
+			return "";
+
+		var name = AimboxWeapons.Get( entry.Weapon ).Name;
+		return entry.StartingLevel == entry.EndingLevel
+			? $"{name} +{FormatScore( entry.XpEarned )} XP"
+			: $"{name} Lv {entry.StartingLevel} → {entry.EndingLevel}";
+	}
+
+	bool HasPostMatchUnlocks()
+	{
+		if ( MatchSummary is null )
+			return false;
+
+		foreach ( var unlock in MatchSummary.Unlocks )
+		{
+			if ( AimboxMatchSummaryFilters.IsPlayerUnlock( unlock )
+			     || AimboxMatchSummaryFilters.IsMasteryUnlock( unlock ) )
+				return true;
+		}
+
+		return false;
+	}
+
+	List<AimboxUnlock> PostMatchUnlocks()
+	{
+		var unlocks = new List<AimboxUnlock>();
+		if ( MatchSummary is null )
+			return unlocks;
+
+		foreach ( var unlock in MatchSummary.Unlocks )
+		{
+			if ( AimboxMatchSummaryFilters.IsPlayerUnlock( unlock ) )
+				unlocks.Add( unlock );
+
+			if ( unlocks.Count >= 8 )
+				return unlocks;
+		}
+
+		foreach ( var unlock in MatchSummary.Unlocks )
+		{
+			if ( AimboxMatchSummaryFilters.IsMasteryUnlock( unlock ) )
+				unlocks.Add( unlock );
+
+			if ( unlocks.Count >= 8 )
+				return unlocks;
+		}
+
+		return unlocks;
+	}
+
+	int PostMatchUnlockCount()
+	{
+		if ( MatchSummary is null )
+			return 0;
+
+		var count = 0;
+		foreach ( var unlock in MatchSummary.Unlocks )
+		{
+			if ( AimboxMatchSummaryFilters.IsPlayerUnlock( unlock )
+			     || AimboxMatchSummaryFilters.IsMasteryUnlock( unlock ) )
+				count++;
+		}
+
+		return count;
+	}
+
+	AimboxMatchMasteryXpEntry FindTopMasteryEntry()
+	{
+		if ( MatchSummary is null )
+			return null;
+
+		AimboxMatchMasteryXpEntry top = null;
+		foreach ( var entry in MatchSummary.MasteryXpEntries )
+		{
+			if ( top is null || entry.XpEarned > top.XpEarned )
+				top = entry;
+		}
+
+		return top;
+	}
+
+	AimboxPlayerController FindPlayer()
+	{
+		var players = AimboxGame.Instance?.Players;
+		if ( players is null )
+			return null;
+
+		AimboxPlayerController fallback = null;
+		foreach ( var player in players )
+		{
+			fallback ??= player;
+			if ( !player.IsProxy )
+				return player;
+		}
+
+		return fallback;
+	}
+
+	string FindActiveCategoryLabel()
+	{
+		foreach ( var category in AimboxProgressionUiHelpers.Categories )
+		{
+			if ( category.Id == ActiveCategory )
+				return category.Label;
+		}
+
+		return "OVERVIEW";
+	}
+
+	bool TimelineContainsSelection( IReadOnlyList<AimboxProgressionRewardEntry> timeline, string key )
+	{
+		foreach ( var entry in timeline )
+		{
+			if ( entry.Key == key )
+				return true;
+		}
+
+		return false;
+	}
+
+	string UnlockCardClass( AimboxUnlock unlock ) =>
+		AimboxMatchSummaryFilters.IsMasteryUnlock( unlock ) ? "mastery" : "player";
+
+	static string FormatRank( int rank ) => rank.ToString( "00" );
+
+	static string FormatPair( int unlocked, int total ) => $"{unlocked:D2} / {total:D2}";
+
+	static string FormatKd( float kd ) => kd.ToString( "0.00" );
+
+	string CategoryClass( AimboxProgressionCategory id )
+	{
+		var tone = id switch
+		{
+			AimboxProgressionCategory.Perks => "tone-pink",
+			AimboxProgressionCategory.Weapons => "tone-blue",
+			AimboxProgressionCategory.Attachments => "tone-yellow",
+			AimboxProgressionCategory.KillEffects => "tone-teal",
+			_ => ""
+		};
+
+		return ActiveCategory == id ? $"{tone} active" : tone;
+	}
+
+	string CategoryIconClass( AimboxProgressionCategory id ) => id switch
+	{
+		AimboxProgressionCategory.Perks => "icon-perk",
+		AimboxProgressionCategory.Weapons => "icon-weapon",
+		AimboxProgressionCategory.Attachments => "icon-attachment",
+		AimboxProgressionCategory.KillEffects => "icon-kill",
+		_ => ""
+	};
+
+	string TimelineCardClass( AimboxProgressionRewardEntry entry )
+	{
+		var selected = SelectedEntry?.Key == entry.Key;
+		var current = entry.Level == PlayerData?.PlayerLevel;
+		var locked = entry.Kind == AimboxProgressionRewardKind.LevelGap || entry.IsFuture;
+
+		return $"{(selected ? "selected" : "")} {(current ? "current" : "")} {(locked ? "locked" : "unlocked")} {(entry.IsUnlocked ? "earned" : "")}";
+	}
+
+	string TimelineCardTitle( AimboxProgressionRewardEntry entry ) =>
+		entry.Kind == AimboxProgressionRewardKind.LevelGap ? "LOCKED" : entry.Name;
+
+	string TimelineCardSubtitle( AimboxProgressionRewardEntry entry ) =>
+		entry.Kind == AimboxProgressionRewardKind.LevelGap ? "RANK REWARD" : entry.TypeLabel;
+
+	string PreviewStatusClass() => SelectedEntry?.IsUnlocked == true ? "unlocked" : "locked";
+
+	string PreviewActionClass() => SelectedEntry?.IsUnlocked == true ? "ready" : "disabled";
+
+	string PreviewSceneColor() =>
+		SelectedEntry?.Weapon is { } weapon
+			? AimboxClassUiHelpers.WeaponAccent( weapon )
+			: SelectedEntry?.AccentColor ?? "#333333";
+
+	string PreviewSceneCaption() => SelectedEntry?.Kind switch
+	{
+		AimboxProgressionRewardKind.Weapon => "WEAPON PREVIEW",
+		AimboxProgressionRewardKind.Perk => "PERK PREVIEW",
+		AimboxProgressionRewardKind.Killstreak => "STREAK PREVIEW",
+		AimboxProgressionRewardKind.Attachment => "ATTACHMENT PREVIEW",
+		_ => "PREVIEW"
+	};
+
+	static string FormatScore( int value ) => AimboxUiFormat.CompactScore( value );
+
+	protected override int BuildHash()
+	{
+		if ( !Visible )
+			return 0;
+
+		return HashCode.Combine(
+			Visible,
+			ActiveCategory,
+			SelectedEntry?.Key,
+			ShowPostMatchRecap,
+			MatchSummary?.RankXpEarned,
+			HashCode.Combine(
+				PlayerData?.TotalXp,
+				PlayerData?.PlayerLevel,
+				PlayerData?.Kills,
+				PlayerData?.Wins,
+				PlayerData?.MatchesPlayed ) );
+	}
+}

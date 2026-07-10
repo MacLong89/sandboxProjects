@@ -1,0 +1,43 @@
+{
+	"DisplayName": "Zoo Entrance",
+	"Description": "Where guests arrive. Paths must connect here before visitors can enter your zoo.",
+	"Category": "Paths",
+	"Cost": 500,
+	"UnlockLevel": 0,
+	"AppealBonus": 8,
+	"Footprint": "256,384",
+	"GridSnap": 64,
+	"RotationStep": 90,
+	"Visuals": [
+		{
+			"Model": "models/dev/box.vmdl",
+			"Offset": "0,0,2",
+			"Scale": "5.12,2.56,0.08",
+			"Tint": "0.68,0.64,0.58,1"
+		},
+		{
+			"Model": "models/dev/box.vmdl",
+			"Offset": "-96,0,48",
+			"Scale": "0.5,0.5,1.8",
+			"Tint": "0.82,0.58,0.38,1"
+		},
+		{
+			"Model": "models/dev/box.vmdl",
+			"Offset": "96,0,48",
+			"Scale": "0.5,0.5,1.8",
+			"Tint": "0.82,0.58,0.38,1"
+		},
+		{
+			"Model": "models/dev/box.vmdl",
+			"Offset": "0,0,88",
+			"Scale": "2.8,0.35,0.35",
+			"Tint": "0.92,0.72,0.22,1"
+		},
+		{
+			"Model": "models/dev/box.vmdl",
+			"Offset": "0,-48,56",
+			"Scale": "1.2,0.15,0.8",
+			"Tint": "0.98,0.82,0.28,1"
+		}
+	]
+}

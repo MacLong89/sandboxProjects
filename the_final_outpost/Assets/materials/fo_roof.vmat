@@ -1,0 +1,22 @@
+// Clash-of-Clans style roof shingles
+Layer0
+{
+	shader "shaders/complex.shader"
+
+	//---- Color ----
+	g_flModelTintAmount "1.000"
+	g_vColorTint "[1.000000 1.000000 1.000000 1.000000]"
+
+	//---- Lighting ----
+	g_flMetalness "0.000"
+	g_flRoughnessScaleFactor "1.000"
+
+	//---- Texture Coordinates ----
+	g_vTexCoordOffset "[0.000 0.000]"
+	g_vTexCoordScale "[2.000 2.000]"
+
+	TextureColor "textures/roof_color.png"
+
+	TextureRoughness "[0.750000 0.750000 0.750000 0.000000]"
+	TextureMetalness "[0.000000 0.000000 0.000000 0.000000]"
+}

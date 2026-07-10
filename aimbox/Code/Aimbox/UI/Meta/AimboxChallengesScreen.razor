@@ -1,0 +1,256 @@
+@using Sandbox
+@using Sandbox.UI
+@inherits PanelComponent
+@namespace Sandbox
+
+<root class="aimbox-challenges @(Visible ? "visible" : "hidden") @(ShowPauseTabs ? "with-pause-tabs" : "")">
+	@if ( Visible )
+	{
+	<div class="challenges-vignette decor"></div>
+
+	@if ( PlayerData is null || Game is null )
+	{
+		<div class="challenges-empty">Challenge data unavailable.</div>
+	}
+	else
+	{
+		<div class="challenges-layout">
+			<div class="challenges-sidebar">
+				<div class="sidebar-title">// CHALLENGES</div>
+
+				<div class="sidebar-profile">
+					<div class="profile-badge"><div class="profile-badge-inner"></div></div>
+					<div class="profile-copy">
+						<div class="profile-name">@DisplayName</div>
+						<div class="profile-level">LEVEL @PlayerData.PlayerLevel</div>
+						<div class="profile-xp-track">
+							<div class="profile-xp-fill" style="width: @XpFillWidth();"></div>
+						</div>
+						<div class="profile-xp-label">@XpLabel</div>
+					</div>
+				</div>
+
+				<div class="section-rail">
+					<button class="section-btn @(ActiveSection == AimboxChallengesSection.Daily ? "active" : "") tone-orange"
+					        onclick="@(() => SelectSection(AimboxChallengesSection.Daily))">
+						<div class="section-icon daily"></div>
+						<div class="section-copy">
+							<div class="section-label">DAILY</div>
+							<div class="section-count">@FormatPair( DailyCompleted, DailyTotal )</div>
+						</div>
+					</button>
+					<button class="section-btn @(ActiveSection == AimboxChallengesSection.Attachments ? "active" : "") tone-teal"
+					        onclick="@(() => SelectSection(AimboxChallengesSection.Attachments))">
+						<div class="section-icon attachments"></div>
+						<div class="section-copy">
+							<div class="section-label">ATTACHMENTS</div>
+							<div class="section-count">@FormatPair( AttachmentUnlockedTotal, AttachmentTotalAll )</div>
+						</div>
+					</button>
+				</div>
+
+				<div class="sidebar-note">
+					Daily challenges reset at midnight UTC. Attachment unlocks are permanent.
+				</div>
+			</div>
+
+			<div class="challenges-main">
+				<div class="main-splatter decor"></div>
+
+				@if ( ActiveSection == AimboxChallengesSection.Daily )
+				{
+					<div class="daily-summary">
+						<div class="daily-summary-badge">
+							<div class="daily-summary-value">@DailyCompleted</div>
+							<div class="daily-summary-caption">/ @DailyTotal COMPLETE</div>
+						</div>
+						<div class="daily-summary-copy">
+							<div class="daily-summary-title">TODAY'S OBJECTIVES</div>
+							<div class="daily-summary-subtitle">@DailyRewardSummary</div>
+							<div class="daily-summary-track">
+								<div class="daily-summary-fill" style="width: @DailyProgressFill();"></div>
+							</div>
+						</div>
+						<div class="daily-summary-xp">
+							<div class="daily-summary-xp-label">AVAILABLE</div>
+							<div class="daily-summary-xp-value">+@FormatScore(DailyRemainingXp) XP</div>
+						</div>
+					</div>
+
+					<div class="panel-label">DAILY CHALLENGES</div>
+					<div class="daily-grid">
+						@foreach ( var challenge in Game.Challenges.DailyChallenges )
+						{
+							var item = challenge;
+							var done = AimboxChallengesUiHelpers.IsDailyComplete( PlayerData, item );
+							var progress = AimboxChallengesUiHelpers.DailyProgressValue( PlayerData, item );
+							var percent = AimboxChallengesUiHelpers.DailyProgressPercent( PlayerData, item );
+							<div class="daily-card @(done ? "complete" : "")">
+								<div class="daily-card-head">
+									<div class="daily-card-title">@item.Label</div>
+									<div class="daily-card-xp">+@FormatScore(item.RewardXp) XP</div>
+								</div>
+								<div class="daily-card-track">
+									<div class="daily-card-fill" style="width: @AimboxChallengesUiHelpers.ProgressFill(percent);"></div>
+								</div>
+								<div class="daily-card-meta">
+									@if ( done )
+									{
+										<span class="daily-card-status">COMPLETE</span>
+									}
+									else
+									{
+										<span>@progress / @item.Target</span>
+									}
+								</div>
+							</div>
+						}
+					</div>
+				}
+				else
+				{
+					<div class="attachment-header">
+						<div class="attachment-header-copy">
+							<div class="attachment-header-title">ATTACHMENT UNLOCKS</div>
+							<div class="attachment-header-subtitle">Earn weapon mastery to unlock attachments for your loadouts.</div>
+						</div>
+						<div class="attachment-header-stat">
+							<div class="attachment-header-stat-value">@AttachmentUnlockedForWeapon / @AttachmentTotalForWeapon</div>
+							<div class="attachment-header-stat-label">@SelectedWeaponName UNLOCKED</div>
+						</div>
+					</div>
+
+					<div class="weapon-rail">
+						@foreach ( var weaponId in AimboxAttachmentCatalog.AttachmentCapableWeapons )
+						{
+							var weapon = weaponId;
+							var unlocked = AimboxChallengesUiHelpers.AttachmentUnlockedCount( PlayerData, weapon );
+							var total = AimboxChallengesUiHelpers.AttachmentTotalCount( weapon );
+							<button class="weapon-chip @(SelectedWeapon == weapon ? "active" : "")"
+							        style="border-color: @AimboxClassUiHelpers.WeaponAccent(weapon);"
+							        onclick="@(() => SelectWeapon(weapon))">
+								<div class="weapon-chip-code" style="background-color: @AimboxClassUiHelpers.WeaponAccent(weapon);">
+									@AimboxClassUiHelpers.WeaponShortCode(weapon)
+								</div>
+								<div class="weapon-chip-copy">
+									<div class="weapon-chip-name">@AimboxWeapons.Get(weapon).Name</div>
+									<div class="weapon-chip-meta">@FormatPair( unlocked, total )</div>
+								</div>
+							</button>
+						}
+					</div>
+
+					<div class="panel-label">@SelectedWeaponName ATTACHMENTS</div>
+					<div class="attachment-grid">
+						@foreach ( var challenge in AimboxMw2Catalog.GetChallengesForWeapon( SelectedWeapon ) )
+						{
+							var item = challenge;
+							var unlocked = AimboxChallengesUiHelpers.IsAttachmentUnlocked( PlayerData, item );
+							var progress = AimboxChallengesUiHelpers.AttachmentProgress( PlayerData, item );
+							<div class="attachment-card @(unlocked ? "complete" : "")">
+								<div class="attachment-card-head">
+									<div class="attachment-card-icon" style="background-color: @AimboxClassUiHelpers.WeaponAccent(item.Weapon);">
+										@AimboxChallengesUiHelpers.AttachmentIconCode(item.Attachment)
+									</div>
+									<div class="attachment-card-copy">
+										<div class="attachment-card-title">@AimboxAttachmentCatalog.Label(item.Attachment)</div>
+										<div class="attachment-card-requirement">@AimboxChallengesUiHelpers.AttachmentRequirementText(item)</div>
+									</div>
+									<div class="attachment-card-status @(unlocked ? "complete" : "")">
+										@(unlocked ? "UNLOCKED" : AimboxChallengesUiHelpers.PercentLabel(progress))
+									</div>
+								</div>
+								<div class="attachment-card-track">
+									<div class="attachment-card-fill"
+									     style="width: @AimboxChallengesUiHelpers.ProgressFill(progress); background-color: @AimboxClassUiHelpers.WeaponAccent(item.Weapon);"></div>
+								</div>
+								<div class="attachment-card-meta">@AimboxChallengesUiHelpers.AttachmentProgressDetail(PlayerData, item)</div>
+							</div>
+						}
+					</div>
+				}
+			</div>
+		</div>
+	}
+	}
+</root>
+
+@code
+{
+	AimboxChallengesSection ActiveSection { get; set; } = AimboxChallengesSection.Daily;
+	AimboxWeaponId SelectedWeapon { get; set; } = AimboxWeaponId.M4A1;
+
+	bool Visible =>
+		AimboxMetaUiFlags.UseRedesignedChallenges
+		&& AimboxMetaNavigation.CurrentScreen == AimboxMetaScreen.Challenges;
+
+	bool ShowPauseTabs =>
+		AimboxPauseMenuTabsUi.Enabled
+		&& Visible
+		&& AimboxMetaNavigation.IsInGamePauseMenu;
+
+	AimboxGame Game => AimboxGame.Instance;
+
+	AimboxPlayerController Player => FindPlayer();
+
+	AimboxPlayerData PlayerData => Player?.Data;
+
+	string DisplayName => AimboxLoadoutUiHelpers.PlayerDisplayName( Player );
+	string XpLabel => PlayerData is null ? $"0 / {AimboxXpSystem.XpStepForLevel( 1 ):N0} XP" : AimboxLoadoutUiHelpers.XpLabel( PlayerData );
+	string XpFillWidth() => PlayerData is null ? "0%" : AimboxLoadoutUiHelpers.XpFillWidth( PlayerData );
+
+	int DailyTotal => AimboxChallengesUiHelpers.DailyTotal( Game );
+	int DailyCompleted => AimboxChallengesUiHelpers.DailyCompleted( PlayerData, Game );
+	int DailyRemainingXp => AimboxChallengesUiHelpers.DailyRemainingXp( PlayerData, Game );
+	int AttachmentUnlockedTotal => AimboxChallengesUiHelpers.AttachmentUnlockedTotal( PlayerData );
+	int AttachmentTotalAll => AimboxChallengesUiHelpers.AttachmentTotalAll();
+	int AttachmentUnlockedForWeapon => AimboxChallengesUiHelpers.AttachmentUnlockedCount( PlayerData, SelectedWeapon );
+	int AttachmentTotalForWeapon => AimboxChallengesUiHelpers.AttachmentTotalCount( SelectedWeapon );
+	string SelectedWeaponName => AimboxWeapons.Get( SelectedWeapon ).Name;
+	string DailyRewardSummary => AimboxChallengesUiHelpers.DailyRewardSummary( PlayerData, Game );
+
+	void SelectSection( AimboxChallengesSection section ) => ActiveSection = section;
+
+	void SelectWeapon( AimboxWeaponId weapon ) => SelectedWeapon = weapon;
+
+	string DailyProgressFill() => AimboxChallengesUiHelpers.ProgressFill( AimboxChallengesUiHelpers.DailyProgress( PlayerData, Game ) );
+
+	static string FormatScore( int value ) => AimboxUiFormat.CompactScore( value );
+
+	static string FormatPair( int unlocked, int total ) => $"{unlocked:D2} / {total:D2}";
+
+	AimboxPlayerController FindPlayer()
+	{
+		var players = Game?.Players;
+		if ( players is null )
+			return null;
+
+		AimboxPlayerController fallback = null;
+		foreach ( var player in players )
+		{
+			fallback ??= player;
+			if ( !player.IsProxy )
+				return player;
+		}
+
+		return fallback;
+	}
+
+	protected override int BuildHash()
+	{
+		if ( !Visible )
+			return 0;
+
+		return HashCode.Combine(
+			Visible,
+			ActiveSection,
+			SelectedWeapon,
+			DailyCompleted,
+			AttachmentUnlockedTotal,
+			HashCode.Combine(
+				PlayerData?.TotalXp,
+				PlayerData?.PlayerLevel,
+				PlayerData?.ChallengeProgress.Count,
+				PlayerData?.CompletedChallenges.Count ) );
+	}
+}

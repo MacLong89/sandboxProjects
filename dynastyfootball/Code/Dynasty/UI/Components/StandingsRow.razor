@@ -1,0 +1,20 @@
+@using Sandbox.UI
+@inherits Panel
+@namespace Dynasty.UI.Components
+@attribute [StyleSheet( "/Dynasty/UI/Components/StandingsRow.razor.scss" )]
+
+<root class="standings-row clickable @( IsUserTeam ? "user-team" : "" )" @onclick=@OnRowClick>
+	<Label class="rank-col">@Rank</Label>
+	<Label class="abbr-col">@Abbreviation</Label>
+	<Label class="record-col">@Record</Label>
+</root>
+
+@code
+{
+	[Parameter] public int Rank { get; set; }
+	[Parameter] public string Abbreviation { get; set; } = "";
+	[Parameter] public string Record { get; set; } = "";
+	[Parameter] public bool IsUserTeam { get; set; }
+
+	void OnRowClick() => StandingsEvents.RaiseTeamClicked( Abbreviation );
+}

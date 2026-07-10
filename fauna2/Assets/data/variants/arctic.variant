@@ -1,0 +1,9 @@
+{
+	"DisplayName": "Arctic",
+	"Description": "A frost-touched winter morph with an icy blue sheen.",
+	"RarityWeight": 25,
+	"AppealMultiplier": 2.8,
+	"ValueMultiplier": 3.5,
+	"Tint": "0.88,0.94,1,1",
+	"ApplicableSpecies": [ "fox", "wolf", "rabbit" ]
+}

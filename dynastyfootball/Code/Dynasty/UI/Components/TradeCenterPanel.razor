@@ -1,0 +1,269 @@
+@using System
+@using System.Linq
+@using Sandbox.UI
+@using Dynasty.Core.Identifiers
+@using Dynasty.UI.ViewModels
+@inherits Panel
+@namespace Dynasty.UI.Components
+@attribute [StyleSheet( "/Dynasty/UI/Components/TradeCenterPanel.razor.scss" )]
+
+<root class="trade-center-panel">
+	<div class="trade-header">
+		<Label class="panel-title">Trade Center — @Model.TeamName</Label>
+		<Label class="muted trade-steps">Select your player, choose a partner, pick their return player, then propose.</Label>
+	</div>
+
+	@if ( Model.PendingOffers.Count > 0 )
+	{
+		<div class="panel trade-offers-panel">
+			<Label class="panel-subtitle">Incoming Offers</Label>
+			@foreach ( var offer in Model.PendingOffers )
+			{
+				<div class="trade-offer-row">
+					<Label class="offer-from">@offer.FromTeam</Label>
+					<Label class="muted">@offer.Summary</Label>
+					<Label class="muted">Value edge: @offer.FairnessHint.ToString("0.0")</Label>
+					@if ( CanManage )
+					{
+						<div class="trade-offer-actions">
+							<Button class="btn primary small" Text="Accept" onclick='@(() => OnRespondOffer?.Invoke( offer.OfferId, true ))' />
+							<Button class="btn secondary small" Text="Decline" onclick='@(() => OnRespondOffer?.Invoke( offer.OfferId, false ))' />
+						</div>
+					}
+				</div>
+			}
+		</div>
+	}
+
+	@if ( Model.DraftPicks.Count > 0 )
+	{
+		<div class="panel trade-picks-panel">
+			<Label class="panel-subtitle">Your Draft Picks</Label>
+			@foreach ( var pick in Model.DraftPicks.Take( 12 ) )
+			{
+				<Label class="muted pick-row">@pick.Label</Label>
+			}
+		</div>
+	}
+
+	<div class="trade-body">
+		<div class="trade-column">
+			<Label class="column-title">Your Roster</Label>
+			<div class="trade-table panel">
+				<div class="trade-table-header">
+					<Label class="col-player">Player</Label>
+					<Label class="col-ovr">OVR</Label>
+				</div>
+				@if ( Model.Roster.Count == 0 )
+				{
+					<Label class="muted empty-hint">No players on roster.</Label>
+				}
+				else
+				{
+					@foreach ( var p in Model.Roster )
+					{
+						<TradeRosterRow
+							PlayerId="@p.PlayerId"
+							TeamId="@Model.TeamId"
+							Name="@p.Name"
+							Position="@p.Position"
+							Overall="@p.Overall"
+							IsSelected="@(SelectedPlayerId.Value == p.PlayerId.Value)"
+							OnSelect="@SelectOutgoingPlayerById" />
+					}
+				}
+			</div>
+		</div>
+
+		<div class="trade-column">
+			@if ( SelectedPartnerId.IsEmpty )
+			{
+				<Label class="column-title">Trade Partner</Label>
+				<div class="trade-table panel">
+					<div class="trade-table-header">
+						<Label class="col-player">Team</Label>
+						<Label class="col-ovr">Record</Label>
+					</div>
+					@foreach ( var t in Model.Partners )
+					{
+						<TradePartnerRow
+							TeamId="@t.TeamId"
+							PartnerName="@t.Label"
+							Abbreviation="@t.Abbreviation"
+							Record="@t.Record"
+							IsSelected="@(SelectedPartnerId.Value == t.TeamId.Value)"
+							OnSelect="@SelectPartner" />
+					}
+				</div>
+			}
+			else
+			{
+				<div class="partner-header">
+					<Label class="column-title partner-name">@PartnerLabel</Label>
+					<Button class="btn secondary small partner-change-btn" Text="Change Team" onclick=@ClearPartner />
+				</div>
+				<div class="trade-table panel">
+					<div class="trade-table-header">
+						<Label class="col-player">Player</Label>
+						<Label class="col-ovr">OVR</Label>
+					</div>
+					@if ( _partnerRoster.Count == 0 )
+					{
+						<Label class="muted empty-hint">No players on roster.</Label>
+					}
+					else
+					{
+						@foreach ( var p in _partnerRoster )
+						{
+							<TradeRosterRow
+								PlayerId="@p.PlayerId"
+								TeamId="@SelectedPartnerId"
+								Name="@p.Name"
+								Position="@p.Position"
+								Overall="@p.Overall"
+								IsSelected="@(SelectedReturnPlayerId.Value == p.PlayerId.Value)"
+								OnSelect="@SelectReturnPlayerById" />
+						}
+					}
+				</div>
+			}
+		</div>
+	</div>
+
+	<div class="trade-footer panel">
+		<div class="trade-summary">
+			<div class="trade-summary-item">
+				<Label class="trade-summary-key">Send</Label>
+				<Label class="trade-summary-val">@( SelectedPlayerId.IsEmpty ? "—" : OutgoingPlayerName )</Label>
+			</div>
+			<div class="trade-summary-item">
+				<Label class="trade-summary-key">To</Label>
+				<Label class="trade-summary-val">@( SelectedPartnerId.IsEmpty ? "—" : PartnerLabel )</Label>
+			</div>
+			<div class="trade-summary-item">
+				<Label class="trade-summary-key">Receive</Label>
+				<Label class="trade-summary-val">@( SelectedReturnPlayerId.IsEmpty ? "—" : ReturnPlayerName )</Label>
+			</div>
+		</div>
+
+		@if ( CanManage )
+		{
+			<div class="trade-footer-actions">
+				@if ( !CanSubmit )
+				{
+					<Label class="muted trade-hint">@SubmitHint()</Label>
+				}
+				<Button class="@SubmitButtonClass" Text="Propose Trade" onclick=@Submit />
+			</div>
+		}
+	</div>
+</root>
+
+@code
+{
+	[Parameter] public TradeCenterViewModel Model { get; set; } = new();
+	[Parameter] public bool CanManage { get; set; }
+	[Parameter] public Func<TeamId, IReadOnlyList<TradePlayerRow>> GetPartnerRoster { get; set; }
+	[Parameter] public Action<PlayerId, TeamId> OnPlayerView { get; set; }
+	[Parameter] public Action<PlayerId, TeamId, PlayerId> OnSubmitTrade { get; set; }
+	[Parameter] public Action<Guid, bool> OnRespondOffer { get; set; }
+
+	PlayerId SelectedPlayerId;
+	TeamId SelectedPartnerId;
+	PlayerId SelectedReturnPlayerId;
+	string OutgoingPlayerName = "";
+	string PartnerLabel = "";
+	string ReturnPlayerName = "";
+
+	IReadOnlyList<TradePlayerRow> _partnerRoster = Array.Empty<TradePlayerRow>();
+
+	bool CanSubmit => !SelectedPlayerId.IsEmpty && !SelectedPartnerId.IsEmpty && !SelectedReturnPlayerId.IsEmpty;
+
+	string SubmitButtonClass => CanSubmit ? "btn primary trade-submit-btn" : "btn primary trade-submit-btn not-ready";
+
+	string SubmitHint()
+	{
+		if ( SelectedPlayerId.IsEmpty )
+			return "Select a player from your roster to send.";
+
+		if ( SelectedPartnerId.IsEmpty )
+			return "Choose a trade partner team.";
+
+		if ( SelectedReturnPlayerId.IsEmpty )
+			return $"Select a player from {PartnerLabel} to receive.";
+
+		return "";
+	}
+
+	void SelectOutgoingPlayerById( PlayerId playerId )
+		=> SelectOutgoingPlayer( playerId, Model.TeamId );
+
+	void SelectReturnPlayerById( PlayerId playerId )
+		=> SelectReturnPlayer( playerId, SelectedPartnerId );
+
+	void SelectOutgoingPlayer( PlayerId playerId, TeamId teamId )
+	{
+		var player = Model.Roster.FirstOrDefault( p => p.PlayerId.Value == playerId.Value );
+		if ( player == null )
+			return;
+
+		SelectedPlayerId = player.PlayerId;
+		OutgoingPlayerName = player.Name;
+		SelectedReturnPlayerId = default;
+		ReturnPlayerName = "";
+		OnPlayerView?.Invoke( player.PlayerId, teamId );
+		StateHasChanged();
+	}
+
+	void SelectPartner( TeamId teamId )
+	{
+		var partner = Model.Partners.FirstOrDefault( t => t.TeamId.Value == teamId.Value );
+		if ( partner == null )
+			return;
+
+		SelectedPartnerId = partner.TeamId;
+		PartnerLabel = partner.Label;
+		SelectedReturnPlayerId = default;
+		ReturnPlayerName = "";
+		_partnerRoster = GetPartnerRoster?.Invoke( SelectedPartnerId ) ?? Array.Empty<TradePlayerRow>();
+		StateHasChanged();
+	}
+
+	void ClearPartner()
+	{
+		SelectedPartnerId = default;
+		PartnerLabel = "";
+		SelectedReturnPlayerId = default;
+		ReturnPlayerName = "";
+		_partnerRoster = Array.Empty<TradePlayerRow>();
+		StateHasChanged();
+	}
+
+	void SelectReturnPlayer( PlayerId playerId, TeamId teamId )
+	{
+		var row = _partnerRoster.FirstOrDefault( p => p.PlayerId.Value == playerId.Value );
+		if ( row == null )
+			return;
+
+		SelectedReturnPlayerId = row.PlayerId;
+		ReturnPlayerName = row.Name;
+		OnPlayerView?.Invoke( row.PlayerId, teamId );
+		StateHasChanged();
+	}
+
+	void Submit()
+	{
+		if ( !CanSubmit )
+			return;
+
+		OnSubmitTrade?.Invoke( SelectedPlayerId, SelectedPartnerId, SelectedReturnPlayerId );
+		SelectedPlayerId = default;
+		SelectedPartnerId = default;
+		SelectedReturnPlayerId = default;
+		OutgoingPlayerName = "";
+		PartnerLabel = "";
+		ReturnPlayerName = "";
+		_partnerRoster = Array.Empty<TradePlayerRow>();
+		StateHasChanged();
+	}
+}

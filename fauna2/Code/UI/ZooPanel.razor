@@ -1,0 +1,130 @@
+@using Sandbox
+@using Sandbox.UI
+@inherits PanelComponent
+@namespace Fauna2.UI
+
+<root>
+	@if ( UiState.ActivePage == UiPage.Zoo && UiState.GameplayHudVisible )
+	{
+		<div class="window">
+			<div class="window-header">
+				<i class="icon">diversity_3</i>
+				<div class="window-title">@ZooName</div>
+				<div class="close" onclick=@( () => UiState.Close() )><i class="icon">close</i></div>
+			</div>
+
+			<div class="rating-row">
+				<div class="stars">
+					@for ( var i = 1; i <= 5; i++ )
+					{
+						<i class="icon star @(i <= FullStars ? "filled" : "")">star</i>
+					}
+					<div class="rating-number">@RatingText</div>
+				</div>
+				<div class="rating-info">@Satisfaction% guest satisfaction · @Guests guests now · peak @PeakGuests</div>
+				<div class="rating-info amenity">@AmenityStatus</div>
+			</div>
+
+			<div class="social-row">
+				<div class="button @(AlreadyLiked ? "disabled" : "")" onclick=@( () => Like() )>
+					<i class="icon">thumb_up</i> @(AlreadyLiked ? $"Liked ({Likes})" : $"Like this zoo ({Likes})")
+				</div>
+				<div class="button" onclick=@( () => Favorite() )>
+					<i class="icon">@(IsFavorited ? "star" : "star_border")</i> @(IsFavorited ? "Favorited" : "Favorite")
+				</div>
+			</div>
+
+			<div class="section-title">Visitors</div>
+			<div class="players">
+				@foreach ( var player in Players )
+				{
+					<div class="player">
+						<i class="icon">@(player.IsZooOwner ? "home" : "directions_walk")</i>
+						<div class="player-name">@player.PlayerName</div>
+						<div class="player-role">@(player.IsZooOwner ? "Zoo Owner" : "Visiting")</div>
+					</div>
+				}
+			</div>
+			<div class="hint-text">Friends who join walk your zoo with you and bring a daily visitor gift (+$@GameConstants.VisitorGiftAmount). Total visitors: @TotalVisitors</div>
+
+			<div class="section-title">Weekly Showcase</div>
+			<div class="rating-row">
+				<div class="rating-info">@WeeklyTheme</div>
+				<div class="rating-info amenity">Current score @WeeklyScore · best @WeeklyBest</div>
+				<div class="hint-text">@ShareSummary</div>
+			</div>
+		</div>
+	}
+</root>
+
+@code
+{
+	private string ZooName => ZooState.Instance?.ZooName ?? "Zoo";
+	private int Guests => GuestSystem.Instance?.GuestCount ?? 0;
+	private int PeakGuests => GuestSystem.Instance?.PeakGuests ?? 0;
+	private string Satisfaction => $"{GuestSystem.Instance?.Satisfaction ?? 0f:0}";
+	private string AmenityStatus
+	{
+		get
+		{
+			var guests = GuestSystem.Instance;
+			if ( guests is null || guests.GuestCount <= 0 )
+				return "Restrooms, dining and shops matter once guests arrive.";
+
+			var rest = (int)guests.RestroomCoverage;
+			var food = (int)guests.RestaurantCoverage;
+			var shop = (int)guests.ShopCoverage;
+			var restCount = PlaceableRegistry.RestroomCount;
+			var foodCount = PlaceableRegistry.RestaurantCount;
+			var shopCount = PlaceableRegistry.ShopCount;
+
+			if ( restCount == 0 || foodCount == 0 )
+				return "Build restrooms and dining next to paths to satisfy guests.";
+
+			if ( shopCount > 0 )
+				return $"Restrooms {rest}% · Dining {food}% · Shops {shop}% coverage";
+
+			return $"Restrooms {rest}% · Dining {food}% coverage (unlock shops as you level up)";
+		}
+	}
+	private int Likes => SocialSystem.Instance?.Likes.Count ?? 0;
+	private int TotalVisitors => SocialSystem.Instance?.TotalVisitors ?? 0;
+	private string WeeklyTheme => SocialSystem.Instance?.WeeklyTheme ?? "Weekly Showcase";
+	private int WeeklyScore => SocialSystem.Instance?.WeeklyScore ?? 0;
+	private int WeeklyBest => SocialSystem.Instance?.WeeklyBestScore ?? 0;
+	private string ShareSummary => SocialSystem.Instance?.ShareSummary ?? "";
+
+	private long LocalSteamId => Connection.Local?.SteamId.Value ?? 0;
+	private bool AlreadyLiked => SocialSystem.Instance?.HasLiked( LocalSteamId ) ?? false;
+	private bool IsFavorited => SocialSystem.Instance?.HasFavorited( LocalSteamId ) ?? false;
+
+	private IEnumerable<PlayerState> Players =>
+		Scene.GetAllComponents<PlayerState>().OrderByDescending( p => p.IsZooOwner );
+
+	private int FullStars => (int)MathF.Round( GuestSystem.Instance?.ZooRating ?? 0f );
+	private string RatingText => $"{GuestSystem.Instance?.ZooRating ?? 0f:0.0}";
+
+	private void Like()
+	{
+		if ( AlreadyLiked ) return;
+		SocialSystem.Instance?.RequestLike();
+	}
+
+	private void Favorite()
+	{
+		SocialSystem.Instance?.RequestFavorite();
+	}
+
+	protected override int BuildHash() => System.HashCode.Combine(
+		(int)UiState.ActivePage, UiState.Revision, Guests, Likes, AlreadyLiked, IsFavorited,
+		System.HashCode.Combine(
+			System.HashCode.Combine(
+				GuestSystem.Instance?.RestroomCoverage, GuestSystem.Instance?.RestaurantCoverage, GuestSystem.Instance?.ShopCoverage,
+				PlaceableRegistry.RestroomCount, PlaceableRegistry.RestaurantCount ),
+			System.HashCode.Combine(
+				PlaceableRegistry.ShopCount,
+				Scene.GetAllComponents<PlayerState>().Count(),
+				WeeklyScore,
+				WeeklyBest,
+				WeeklyTheme ) ) );
+}

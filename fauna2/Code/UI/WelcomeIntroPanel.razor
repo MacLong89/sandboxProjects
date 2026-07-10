@@ -1,0 +1,34 @@
+@using Sandbox
+@using Sandbox.UI
+@using Fauna2
+@inherits PanelComponent
+@namespace Fauna2.UI
+
+<root class="@(UiState.WelcomeIntroVisible ? "visible" : "")">
+	@if ( UiState.WelcomeIntroVisible && SaveHost.CanStartSession )
+	{
+		<div class="welcome-intro">
+			<div class="welcome-card">
+				<div class="welcome-title"><i class="icon">park</i> Welcome to Fauna</div>
+				<div class="welcome-body">
+					<div class="paragraph">You've just moved here to start a zoo! Capture animals in the wild, buy and breed them, and customize your zoo with habitats, shops, and more. It's yours to customize — the only rule is, you can't run out of money!</div>
+					<div class="paragraph">At the top you'll see the day, biome, your cash, level, and more. At the top right, follow the goals to get started.</div>
+					<div class="paragraph">Press <span class="key">Tab</span> to open objectives, stats, and other zoo info.</div>
+					<div class="paragraph">Use the gear icon in the top right to change volume and difficulty.</div>
+					<div class="paragraph">At the bottom you'll see hotkeys, or press the toolbar buttons directly.</div>
+					<div class="paragraph closing">Have fun!</div>
+				</div>
+				<div class="welcome-dismiss" onclick=@DismissWelcomeIntro>Let's go!</div>
+			</div>
+		</div>
+	}
+</root>
+
+@code
+{
+	private void DismissWelcomeIntro() => UiState.DismissWelcomeIntro();
+
+	protected override int BuildHash() => System.HashCode.Combine(
+		UiState.WelcomeIntroVisible,
+		UiState.Revision );
+}

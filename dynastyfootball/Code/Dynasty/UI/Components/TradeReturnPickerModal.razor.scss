@@ -1,0 +1,114 @@
+TradeReturnPickerModal,
+.trade-return-picker-root
+{
+	width: 100%;
+	height: 100%;
+
+	.ui-modal-backdrop
+	{
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		align-items: center;
+		justify-content: center;
+		background-color: rgba( 0, 0, 0, 0.88 );
+		pointer-events: all;
+		z-index: 80;
+	}
+
+	.ui-modal-card
+	{
+		flex-direction: column;
+		gap: 12px;
+		width: 480px;
+		max-width: 92%;
+		max-height: 80%;
+		padding: 20px;
+		background-color: #151d2e;
+		border: 1px solid #243044;
+		border-radius: 14px;
+		overflow: scroll;
+	}
+
+	.modal-title
+	{
+		font-size: 18px;
+		font-weight: 700;
+		color: white;
+		width: 100%;
+	}
+
+	.picker-list
+	{
+		flex-direction: column;
+		gap: 0;
+		width: 100%;
+	}
+
+	.picker-row
+	{
+		flex-direction: row;
+		align-items: center;
+		justify-content: space-between;
+		gap: 12px;
+		padding: 10px 8px;
+		border-bottom: 1px solid #243044;
+		cursor: pointer;
+		flex-shrink: 0;
+	}
+
+	.picker-row:hover
+	{
+		background-color: #1a2d4a;
+	}
+
+	.picker-name
+	{
+		flex-grow: 1;
+		min-width: 0;
+		font-weight: 600;
+		color: white;
+	}
+
+	.picker-pos
+	{
+		width: 40px;
+		flex-shrink: 0;
+	}
+
+	.picker-ovr
+	{
+		width: 72px;
+		flex-shrink: 0;
+		text-align: right;
+		font-weight: 700;
+		color: white;
+	}
+
+	.modal-actions
+	{
+		flex-direction: row;
+		justify-content: flex-end;
+		gap: 8px;
+		width: 100%;
+		margin-top: 8px;
+		flex-shrink: 0;
+	}
+
+	Button.btn
+	{
+		padding: 8px 14px;
+		font-weight: 600;
+		color: white;
+		background-color: #111827;
+		border: 1px solid #243044;
+		border-radius: 10px;
+	}
+}
+
+Button:active
+{
+	sound-in: "sounds/button.sound";
+}

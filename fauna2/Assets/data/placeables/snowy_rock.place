@@ -1,0 +1,2 @@
+﻿{"DisplayName":"Snowy Rock","Description":"Arctic-themed enrichment and beauty piece.","Category":"Nature","Cost":260,"UnlockLevel":3,"AppealBonus":2,"EnrichmentValue":4,"EducationValue":1,"ComfortValue":0.5,"DecorSet":"arctic","Footprint":"128,128","GridSnap":64,"RotationStep":45,"Visuals":[{"Model":"models/dev/sphere.vmdl","Offset":"0,0,18","Scale":"1.4,1.0,0.55","Tint":"0.82,0.86,0.88,1"}]}
+

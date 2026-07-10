@@ -1,0 +1,84 @@
+@using System.Collections.Generic
+@using Sandbox.UI
+@using Dynasty.UI.ViewModels
+@inherits Panel
+@namespace Dynasty.UI.Team
+@attribute [StyleSheet( "/Dynasty/UI/Team/LineupPanel.razor.scss" )]
+
+<root class="panel team-depth-panel">
+	<Label class="panel-title">@PanelTitle()</Label>
+	<Label class="panel-subtitle">Offense · @FormationName</Label>
+
+	<div class="depth-table">
+		<div class="depth-header">
+			<Label class="depth-col-pos">Pos</Label>
+			<Label class="depth-col-starter">Starter</Label>
+			<Label class="depth-col-backup">Backups</Label>
+		</div>
+
+		@foreach ( var row in Model.OffenseSlots )
+		{
+			<div class="depth-row clickable" @onclick='@(() => OnSlotSelected?.Invoke( row.SlotKey ))'>
+				<Label class="depth-col-pos">@row.Label</Label>
+				<Label class="depth-col-starter">@row.StarterName</Label>
+				<Label class="depth-col-backup muted">@FormatBackups( row.Backups )</Label>
+			</div>
+		}
+	</div>
+
+	<Label class="panel-subtitle">Defense</Label>
+
+	<div class="depth-table">
+		@foreach ( var row in Model.DefenseSlots )
+		{
+			<div class="depth-row clickable" @onclick='@(() => OnSlotSelected?.Invoke( row.SlotKey ))'>
+				<Label class="depth-col-pos">@row.Label</Label>
+				<Label class="depth-col-starter">@row.StarterName</Label>
+				<Label class="depth-col-backup muted">@FormatBackups( row.Backups )</Label>
+			</div>
+		}
+	</div>
+
+	<Label class="panel-subtitle">Special Teams</Label>
+
+	<div class="depth-table">
+		@foreach ( var row in Model.SpecialTeamsSlots )
+		{
+			<div class="depth-row clickable" @onclick='@(() => OnSlotSelected?.Invoke( row.SlotKey ))'>
+				<Label class="depth-col-pos">@row.Label</Label>
+				<Label class="depth-col-starter">@row.StarterName</Label>
+				<Label class="depth-col-backup muted">@FormatBackups( row.Backups )</Label>
+			</div>
+		}
+	</div>
+
+	<Button class="btn secondary small" Text="Open Special Teams" onclick='@(() => OnOpenSpecialTeams?.Invoke())' />
+
+	<Label class="panel-subtitle">Roster by Position</Label>
+
+	<div class="depth-table">
+		@foreach ( var group in Model.PositionGroups )
+		{
+			<div class="depth-row">
+				<Label class="depth-col-pos">@group.Position (@group.Count)</Label>
+				<Label class="depth-col-backup muted">@string.Join( ", ", group.Players )</Label>
+			</div>
+		}
+	</div>
+
+	<Button class="btn secondary small" Text="Open Formation View" onclick='@(() => OnOpenFormation?.Invoke())' />
+</root>
+
+@code
+{
+	[Parameter] public DepthChartViewModel Model { get; set; } = new();
+	[Parameter] public string FormationName { get; set; }
+	[Parameter] public Action<string> OnSlotSelected { get; set; }
+	[Parameter] public Action OnOpenFormation { get; set; }
+	[Parameter] public Action OnOpenSpecialTeams { get; set; }
+
+	string PanelTitle() => $"{Model?.TeamName ?? ""} · Lineup";
+
+	static string FormatBackups( IReadOnlyList<string> backups )
+		=> backups == null || backups.Count == 0 ? "—" : string.Join( ", ", backups );
+}

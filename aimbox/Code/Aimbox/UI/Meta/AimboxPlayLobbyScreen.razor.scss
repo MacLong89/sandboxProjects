@@ -1,0 +1,982 @@
+AimboxPlayLobbyScreen, aimboxplaylobbyscreen, .aimbox-play-lobby
+{
+	position: absolute;
+	left: 0;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	width: 100%;
+	height: 100%;
+	z-index: 312;
+	font-family: Poppins;
+	pointer-events: none;
+	overflow: hidden;
+	color: #f4f4f4;
+}
+
+AimboxPlayLobbyScreen.visible, .aimbox-play-lobby.visible
+{
+	pointer-events: all;
+	flex-direction: column;
+	padding-bottom: 56px;
+}
+
+AimboxPlayLobbyScreen.hidden, .aimbox-play-lobby.hidden
+{
+	display: none;
+}
+
+AimboxPlayLobbyScreen .decor, .aimbox-play-lobby .decor
+{
+	pointer-events: none;
+}
+
+AimboxPlayLobbyScreen .lobby-vignette, .aimbox-play-lobby .lobby-vignette
+{
+	position: absolute;
+	left: 0;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	background-color: rgba(6, 6, 8, 0.92);
+	background-image: linear-gradient(90deg, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.55) 28%, rgba(0, 0, 0, 0.35) 100%);
+}
+
+AimboxPlayLobbyScreen .splatter, .aimbox-play-lobby .splatter
+{
+	position: absolute;
+	right: 120px;
+	top: 60px;
+	width: 160px;
+	height: 160px;
+	border-radius: 50%;
+	background-color: rgba(255, 184, 42, 0.18);
+}
+
+AimboxPlayLobbyScreen .lobby-shell, .aimbox-play-lobby .lobby-shell
+{
+	position: relative;
+	z-index: 2;
+	flex: 1;
+	flex-direction: column;
+	gap: 14px;
+	padding: 20px 36px 16px;
+	min-height: 0;
+	background-color: rgba(220, 218, 214, 0.94);
+	color: #141414;
+}
+
+AimboxPlayLobbyScreen .panel-kicker, .aimbox-play-lobby .panel-kicker
+{
+	font-size: 11px;
+	font-weight: 800;
+	letter-spacing: 2px;
+	color: #ff2a6d;
+	margin-bottom: 8px;
+}
+
+AimboxPlayLobbyScreen .panel-kicker.small, .aimbox-play-lobby .panel-kicker.small
+{
+	margin-bottom: 0;
+}
+
+AimboxPlayLobbyScreen .lobby-top, .aimbox-play-lobby .lobby-top
+{
+	flex-direction: row;
+	gap: 16px;
+	min-height: 0;
+	flex: 1 1 52%;
+}
+
+AimboxPlayLobbyScreen .mode-panel, .aimbox-play-lobby .mode-panel,
+AimboxPlayLobbyScreen .details-panel, .aimbox-play-lobby .details-panel,
+AimboxPlayLobbyScreen .bottom-panel, .aimbox-play-lobby .bottom-panel
+{
+	padding: 14px;
+	background-color: rgba(255, 255, 255, 0.62);
+	border: 3px solid rgba(0, 0, 0, 0.1);
+	flex-direction: column;
+	min-width: 0;
+	color: #141414;
+}
+
+AimboxPlayLobbyScreen .mode-panel, .aimbox-play-lobby .mode-panel
+{
+	flex: 1.2;
+	min-height: 0;
+	overflow: hidden;
+}
+
+AimboxPlayLobbyScreen .mode-panel .panel-kicker, .aimbox-play-lobby .mode-panel .panel-kicker
+{
+	flex-shrink: 0;
+	position: relative;
+	z-index: 2;
+}
+
+AimboxPlayLobbyScreen .details-panel, .aimbox-play-lobby .details-panel
+{
+	flex: 1;
+	width: 380px;
+	flex-shrink: 0;
+	min-width: 380px;
+	min-height: 0;
+	overflow-x: hidden;
+	overflow-y: auto;
+}
+
+AimboxPlayLobbyScreen .mode-grid, .aimbox-play-lobby .mode-grid
+{
+	flex-direction: column;
+	gap: 10px;
+	width: 100%;
+	min-height: 0;
+	flex-shrink: 0;
+	flex-grow: 0;
+}
+
+AimboxPlayLobbyScreen .mode-grid-row, .aimbox-play-lobby .mode-grid-row
+{
+	flex-direction: row;
+	align-items: stretch;
+	gap: 10px;
+	width: 100%;
+	min-width: 0;
+	height: 96px;
+	min-height: 96px;
+	max-height: 96px;
+	flex-shrink: 0;
+}
+
+AimboxPlayLobbyScreen .mode-grid-row.featured-row, .aimbox-play-lobby .mode-grid-row.featured-row
+{
+	height: 88px;
+	min-height: 88px;
+	max-height: 88px;
+}
+
+AimboxPlayLobbyScreen button.mode-card, .aimbox-play-lobby button.mode-card
+{
+	flex: 1 1 0;
+	min-width: 0;
+	width: 0;
+	height: 96px;
+	min-height: 96px;
+	max-height: 96px;
+	padding: 10px;
+	border-radius: 4px;
+	font-size: 11px;
+	font-weight: 800;
+	align-items: flex-start;
+	justify-content: flex-start;
+	text-align: left;
+	cursor: pointer;
+	flex-shrink: 0;
+	flex-grow: 1;
+	flex-direction: column;
+	gap: 4px;
+	background-color: rgba(255, 255, 255, 0.88);
+	border: 2px solid rgba(0, 0, 0, 0.12);
+	color: #141414;
+	position: relative;
+	overflow: hidden;
+	transform: none;
+	margin: 0;
+}
+
+AimboxPlayLobbyScreen button.mode-card.featured, .aimbox-play-lobby button.mode-card.featured
+{
+	flex: 1 1 auto;
+	width: 100%;
+	min-width: 0;
+	height: 88px;
+	min-height: 88px;
+	max-height: 88px;
+	flex-direction: row;
+	align-items: center;
+	gap: 12px;
+	padding: 12px 16px;
+}
+
+AimboxPlayLobbyScreen .mode-card-copy, .aimbox-play-lobby .mode-card-copy
+{
+	flex-direction: column;
+	gap: 4px;
+	min-width: 0;
+	flex-grow: 1;
+}
+
+AimboxPlayLobbyScreen button.mode-card.featured .mode-card-lock, .aimbox-play-lobby button.mode-card.featured .mode-card-lock
+{
+	margin-top: 0;
+	margin-left: auto;
+}
+
+AimboxPlayLobbyScreen button.mode-card.locked, .aimbox-play-lobby button.mode-card.locked
+{
+	opacity: 0.45;
+}
+
+AimboxPlayLobbyScreen .mode-card-accent, .aimbox-play-lobby .mode-card-accent
+{
+	position: absolute;
+	left: 0;
+	top: 0;
+	right: 0;
+	height: 4px;
+}
+
+AimboxPlayLobbyScreen .mode-card-icon, .aimbox-play-lobby .mode-card-icon
+{
+	font-size: 18px;
+	font-weight: 900;
+	color: #ff2a6d;
+	flex-shrink: 0;
+	line-height: 1;
+}
+
+AimboxPlayLobbyScreen .mode-card-title, .aimbox-play-lobby .mode-card-title
+{
+	font-size: 11px;
+	font-weight: 800;
+	line-height: 1.25;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	width: 100%;
+	flex-shrink: 0;
+}
+
+AimboxPlayLobbyScreen .mode-card-meta, .aimbox-play-lobby .mode-card-meta
+{
+	font-size: 10px;
+	font-weight: 700;
+	color: #ff2a6d;
+	flex-shrink: 0;
+	line-height: 1;
+}
+
+AimboxPlayLobbyScreen .mode-card-lock, .aimbox-play-lobby .mode-card-lock
+{
+	font-size: 9px;
+	font-weight: 800;
+	letter-spacing: 1px;
+	margin-top: auto;
+	min-height: 12px;
+	flex-shrink: 0;
+	line-height: 1;
+}
+
+AimboxPlayLobbyScreen button.mode-card:hover:not(.selected):not(.locked), .aimbox-play-lobby button.mode-card:hover:not(.selected):not(.locked)
+{
+	background-color: #fff;
+	border: 2px solid rgba(255, 42, 109, 0.55);
+	color: #141414;
+	transform: none;
+}
+
+AimboxPlayLobbyScreen button.mode-card.selected, .aimbox-play-lobby button.mode-card.selected
+{
+	border: 2px solid #ff2a6d;
+	background-color: #ff2a6d;
+	color: #fff;
+	box-shadow: 0 0 12px rgba(255, 42, 109, 0.45);
+	transform: none;
+}
+
+AimboxPlayLobbyScreen button.mode-card.selected:hover, .aimbox-play-lobby button.mode-card.selected:hover
+{
+	border: 2px solid #ff2a6d;
+	background-color: #ff2a6d;
+	color: #fff;
+	transform: none;
+}
+
+AimboxPlayLobbyScreen button.mode-card:active, .aimbox-play-lobby button.mode-card:active,
+AimboxPlayLobbyScreen button.mode-card:focus, .aimbox-play-lobby button.mode-card:focus
+{
+	transform: none;
+}
+
+AimboxPlayLobbyScreen .mode-card.selected .mode-card-icon, .aimbox-play-lobby .mode-card.selected .mode-card-icon,
+AimboxPlayLobbyScreen .mode-card.selected .mode-card-title, .aimbox-play-lobby .mode-card.selected .mode-card-title,
+AimboxPlayLobbyScreen .mode-card.selected .mode-card-meta, .aimbox-play-lobby .mode-card.selected .mode-card-meta,
+AimboxPlayLobbyScreen .mode-card.selected .mode-card-lock, .aimbox-play-lobby .mode-card.selected .mode-card-lock
+{
+	color: #fff;
+}
+
+AimboxPlayLobbyScreen .mode-preview, .aimbox-play-lobby .mode-preview
+{
+	height: 88px;
+	align-items: center;
+	justify-content: center;
+	flex-direction: column;
+	gap: 6px;
+	border: 2px solid rgba(0, 0, 0, 0.12);
+	margin-bottom: 10px;
+	color: #fff;
+}
+
+AimboxPlayLobbyScreen .mode-preview-code, .aimbox-play-lobby .mode-preview-code
+{
+	font-size: 32px;
+	font-weight: 900;
+}
+
+AimboxPlayLobbyScreen .mode-preview-map, .aimbox-play-lobby .mode-preview-map
+{
+	font-size: 11px;
+	font-weight: 700;
+	color: rgba(255, 255, 255, 0.88);
+}
+
+AimboxPlayLobbyScreen .mode-detail-title, .aimbox-play-lobby .mode-detail-title
+{
+	font-size: 16px;
+	font-weight: 900;
+	margin-bottom: 6px;
+	color: #141414;
+}
+
+AimboxPlayLobbyScreen .mode-detail-desc, .aimbox-play-lobby .mode-detail-desc
+{
+	font-size: 11px;
+	line-height: 1.4;
+	color: rgba(0, 0, 0, 0.65);
+	margin-bottom: 10px;
+}
+
+AimboxPlayLobbyScreen .mode-detail-stats, .aimbox-play-lobby .mode-detail-stats
+{
+	flex-direction: row;
+	gap: 8px;
+	margin-bottom: 12px;
+}
+
+AimboxPlayLobbyScreen .detail-stat, .aimbox-play-lobby .detail-stat
+{
+	flex: 1;
+	padding: 8px;
+	background-color: rgba(255, 255, 255, 0.85);
+	border: 2px solid rgba(0, 0, 0, 0.1);
+	flex-direction: column;
+	gap: 4px;
+}
+
+AimboxPlayLobbyScreen .detail-stat-label, .aimbox-play-lobby .detail-stat-label
+{
+	font-size: 9px;
+	font-weight: 700;
+	color: rgba(0, 0, 0, 0.5);
+}
+
+AimboxPlayLobbyScreen .detail-stat-value, .aimbox-play-lobby .detail-stat-value
+{
+	font-size: 14px;
+	font-weight: 900;
+	color: #ff2a6d;
+}
+
+AimboxPlayLobbyScreen .map-vote.map-select .map-thumb-votes, .aimbox-play-lobby .map-vote.map-select .map-thumb-votes
+{
+	display: none;
+}
+
+AimboxPlayLobbyScreen .map-vote, .aimbox-play-lobby .map-vote
+{
+	flex-direction: column;
+	width: 100%;
+	min-width: 0;
+}
+
+AimboxPlayLobbyScreen .map-vote-head, .aimbox-play-lobby .map-vote-head
+{
+	flex-direction: row;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 8px;
+	margin-bottom: 8px;
+}
+
+AimboxPlayLobbyScreen .map-vote-hint, .aimbox-play-lobby .map-vote-hint
+{
+	font-size: 10px;
+	font-weight: 700;
+	color: rgba(0, 0, 0, 0.5);
+}
+
+AimboxPlayLobbyScreen .map-vote-grid, .aimbox-play-lobby .map-vote-grid
+{
+	flex-direction: column;
+	align-items: stretch;
+	gap: 6px;
+	width: 100%;
+	min-width: 0;
+}
+
+AimboxPlayLobbyScreen .map-vote-list, .aimbox-play-lobby .map-vote-list
+{
+	flex-direction: column;
+	align-items: stretch;
+	gap: 6px;
+	width: 100%;
+	min-width: 0;
+}
+
+AimboxPlayLobbyScreen .map-vote-row, .aimbox-play-lobby .map-vote-row
+{
+	flex-direction: row;
+	align-items: stretch;
+	gap: 6px;
+	width: 100%;
+	min-width: 0;
+}
+
+AimboxPlayLobbyScreen .map-vote-row .map-thumb, .aimbox-play-lobby .map-vote-row .map-thumb
+{
+	flex: 1 1 0;
+	width: 0;
+	min-width: 0;
+	height: 48px;
+	min-height: 48px;
+	max-height: 48px;
+	padding: 0;
+	border: 2px solid rgba(0, 0, 0, 0.12);
+	background-color: rgba(255, 255, 255, 0.85);
+	position: relative;
+	overflow: hidden;
+	flex-direction: row;
+	justify-content: space-between;
+	align-items: stretch;
+	text-align: left;
+}
+
+AimboxPlayLobbyScreen .map-thumb, .aimbox-play-lobby .map-thumb
+{
+	flex: 0 0 auto;
+	width: 100%;
+	min-width: 0;
+	height: 44px;
+	min-height: 44px;
+	max-height: 44px;
+	padding: 0;
+	border: 2px solid rgba(0, 0, 0, 0.12);
+	background-color: rgba(255, 255, 255, 0.85);
+	position: relative;
+	overflow: hidden;
+	flex-direction: row;
+	justify-content: space-between;
+	align-items: stretch;
+	text-align: left;
+}
+
+AimboxPlayLobbyScreen .map-thumb.selected, .aimbox-play-lobby .map-thumb.selected,
+AimboxPlayLobbyScreen .map-thumb.voted, .aimbox-play-lobby .map-thumb.voted
+{
+	border-color: #ff2a6d;
+}
+
+AimboxPlayLobbyScreen .map-thumb.locked, .aimbox-play-lobby .map-thumb.locked
+{
+	opacity: 0.4;
+}
+
+AimboxPlayLobbyScreen .map-thumb-bg, .aimbox-play-lobby .map-thumb-bg
+{
+	position: absolute;
+	left: 0;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	opacity: 0.65;
+}
+
+AimboxPlayLobbyScreen .map-thumb-footer, .aimbox-play-lobby .map-thumb-footer
+{
+	position: relative;
+	z-index: 2;
+	flex: 1 1 auto;
+	min-width: 0;
+	padding: 0 10px;
+	flex-direction: row;
+	align-items: center;
+	justify-content: flex-start;
+	background-color: rgba(0, 0, 0, 0.72);
+}
+
+AimboxPlayLobbyScreen .map-thumb-name, .aimbox-play-lobby .map-thumb-name
+{
+	font-size: 10px;
+	font-weight: 800;
+	letter-spacing: 0.5px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	width: 100%;
+}
+
+AimboxPlayLobbyScreen .map-thumb-votes, .aimbox-play-lobby .map-thumb-votes
+{
+	position: relative;
+	z-index: 2;
+	flex: 0 0 36px;
+	width: 36px;
+	height: 100%;
+	min-width: 36px;
+	padding: 0;
+	align-items: center;
+	justify-content: center;
+	font-size: 12px;
+	font-weight: 900;
+	background-color: #ff2a6d;
+	color: #fff;
+	text-align: center;
+}
+
+AimboxPlayLobbyScreen .lobby-bottom, .aimbox-play-lobby .lobby-bottom
+{
+	flex-direction: row;
+	gap: 12px;
+	flex: 1 1 42%;
+	min-height: 220px;
+}
+
+AimboxPlayLobbyScreen .team-select-panel, .aimbox-play-lobby .team-select-panel
+{
+	flex: 1;
+	min-width: 0;
+	min-height: 0;
+}
+
+AimboxPlayLobbyScreen .team-select-panel.disabled, .aimbox-play-lobby .team-select-panel.disabled
+{
+	opacity: 0.72;
+}
+
+AimboxPlayLobbyScreen .team-select-disabled-copy, .aimbox-play-lobby .team-select-disabled-copy
+{
+	font-size: 11px;
+	font-weight: 700;
+	color: rgba(0, 0, 0, 0.55);
+	margin-bottom: 8px;
+}
+
+AimboxPlayLobbyScreen .team-select-grid, .aimbox-play-lobby .team-select-grid
+{
+	flex-direction: row;
+	align-items: stretch;
+	gap: 10px;
+	flex: 1;
+	min-height: 0;
+}
+
+AimboxPlayLobbyScreen .team-select-column, .aimbox-play-lobby .team-select-column
+{
+	flex: 1;
+	flex-direction: column;
+	min-width: 0;
+	min-height: 0;
+	background-color: rgba(255, 255, 255, 0.82);
+	border: 2px solid rgba(0, 0, 0, 0.1);
+}
+
+AimboxPlayLobbyScreen .team-select-header, .aimbox-play-lobby .team-select-header
+{
+	width: 100%;
+	padding: 10px 12px;
+	font-size: 11px;
+	font-weight: 900;
+	letter-spacing: 1px;
+	color: #fff;
+	text-align: center;
+	border: 0;
+	cursor: pointer;
+}
+
+AimboxPlayLobbyScreen .team-select-header.alpha, .aimbox-play-lobby .team-select-header.alpha
+{
+	background-color: #d94a6d;
+}
+
+AimboxPlayLobbyScreen .team-select-header.bravo, .aimbox-play-lobby .team-select-header.bravo
+{
+	background-color: #2ad4c8;
+	color: #102220;
+}
+
+AimboxPlayLobbyScreen .team-select-header.neutral, .aimbox-play-lobby .team-select-header.neutral
+{
+	background-color: #4a4a52;
+}
+
+AimboxPlayLobbyScreen .team-select-slots, .aimbox-play-lobby .team-select-slots
+{
+	flex-direction: column;
+	gap: 6px;
+	padding: 8px;
+	flex: 1;
+	min-height: 0;
+	overflow-y: scroll;
+}
+
+AimboxPlayLobbyScreen .team-slot, .aimbox-play-lobby .team-slot
+{
+	flex-direction: row;
+	align-items: center;
+	gap: 8px;
+	padding: 8px 10px;
+	background-color: rgba(255, 255, 255, 0.92);
+	border: 2px solid rgba(0, 0, 0, 0.08);
+	min-width: 0;
+	color: #141414;
+}
+
+AimboxPlayLobbyScreen .team-slot.local, .aimbox-play-lobby .team-slot.local
+{
+	border-color: rgba(255, 42, 109, 0.45);
+	background-color: rgba(255, 42, 109, 0.08);
+}
+
+AimboxPlayLobbyScreen button.team-slot.empty, .aimbox-play-lobby button.team-slot.empty
+{
+	justify-content: center;
+	font-size: 10px;
+	font-weight: 800;
+	letter-spacing: 0.5px;
+	color: rgba(0, 0, 0, 0.45);
+	border: 2px dashed rgba(0, 0, 0, 0.08);
+	background-color: rgba(255, 255, 255, 0.55);
+	cursor: pointer;
+}
+
+AimboxPlayLobbyScreen .team-select-hint, .aimbox-play-lobby .team-select-hint
+{
+	font-size: 10px;
+	font-weight: 700;
+	color: rgba(0, 0, 0, 0.5);
+	margin-top: 8px;
+}
+
+AimboxPlayLobbyScreen .map-vote.disabled, .aimbox-play-lobby .map-vote.disabled
+{
+	opacity: 0.55;
+}
+
+AimboxPlayLobbyScreen .lobby-players, .aimbox-play-lobby .lobby-players
+{
+	flex: 1.1;
+}
+
+AimboxPlayLobbyScreen .team-setup, .aimbox-play-lobby .team-setup
+{
+	flex: 0.9;
+}
+
+AimboxPlayLobbyScreen .match-settings, .aimbox-play-lobby .match-settings,
+AimboxPlayLobbyScreen .party-settings, .aimbox-play-lobby .party-settings
+{
+	flex: 1;
+}
+
+AimboxPlayLobbyScreen .player-list, .aimbox-play-lobby .player-list
+{
+	flex-direction: column;
+	gap: 6px;
+	flex: 1;
+	min-height: 0;
+	overflow-y: scroll;
+	margin-bottom: 10px;
+}
+
+AimboxPlayLobbyScreen .player-row, .aimbox-play-lobby .player-row
+{
+	flex-direction: row;
+	align-items: center;
+	gap: 8px;
+	padding: 6px 8px;
+	background-color: rgba(255, 255, 255, 0.85);
+	border: 2px solid rgba(0, 0, 0, 0.08);
+	min-width: 0;
+	color: #141414;
+}
+
+AimboxPlayLobbyScreen .player-row.local, .aimbox-play-lobby .player-row.local
+{
+	border-color: rgba(255, 42, 109, 0.45);
+	background-color: rgba(255, 42, 109, 0.08);
+}
+
+AimboxPlayLobbyScreen .player-badge, .aimbox-play-lobby .player-badge
+{
+	width: 18px;
+	height: 18px;
+	border-radius: 50%;
+	background-color: rgba(255, 42, 109, 0.35);
+	flex-shrink: 0;
+}
+
+AimboxPlayLobbyScreen .player-level, .aimbox-play-lobby .player-level
+{
+	font-size: 10px;
+	font-weight: 800;
+	color: rgba(0, 0, 0, 0.55);
+	width: 28px;
+	flex-shrink: 0;
+}
+
+AimboxPlayLobbyScreen .player-name, .aimbox-play-lobby .player-name
+{
+	flex: 1;
+	font-size: 11px;
+	font-weight: 700;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	min-width: 0;
+}
+
+AimboxPlayLobbyScreen .player-tag, .aimbox-play-lobby .player-tag
+{
+	font-size: 9px;
+	font-weight: 800;
+	padding: 2px 6px;
+	flex-shrink: 0;
+}
+
+AimboxPlayLobbyScreen .player-tag.host, .aimbox-play-lobby .player-tag.host
+{
+	background-color: #ff2a6d;
+	color: #fff;
+}
+
+AimboxPlayLobbyScreen .player-tag.bot, .aimbox-play-lobby .player-tag.bot
+{
+	background-color: rgba(0, 0, 0, 0.08);
+	color: rgba(0, 0, 0, 0.65);
+}
+
+AimboxPlayLobbyScreen .ghost-btn, .aimbox-play-lobby .ghost-btn
+{
+	padding: 8px 10px;
+	font-size: 10px;
+	font-weight: 800;
+	background-color: rgba(255, 255, 255, 0.85);
+	border: 2px solid rgba(0, 0, 0, 0.12);
+	color: #141414;
+	align-self: flex-start;
+}
+
+AimboxPlayLobbyScreen .team-columns, .aimbox-play-lobby .team-columns
+{
+	flex-direction: row;
+	align-items: center;
+	gap: 8px;
+	flex: 1;
+}
+
+AimboxPlayLobbyScreen .team-card, .aimbox-play-lobby .team-card
+{
+	flex: 1;
+	flex-direction: column;
+	align-items: center;
+	gap: 6px;
+	padding: 10px;
+	background-color: rgba(255, 255, 255, 0.85);
+	border: 2px solid rgba(0, 0, 0, 0.1);
+	min-width: 0;
+}
+
+AimboxPlayLobbyScreen .team-card.alpha, .aimbox-play-lobby .team-card.alpha
+{
+	border-color: rgba(255, 42, 109, 0.45);
+}
+
+AimboxPlayLobbyScreen .team-card.bravo, .aimbox-play-lobby .team-card.bravo
+{
+	border-color: rgba(42, 212, 200, 0.45);
+}
+
+AimboxPlayLobbyScreen .team-label, .aimbox-play-lobby .team-label
+{
+	font-size: 10px;
+	font-weight: 800;
+	letter-spacing: 1px;
+}
+
+AimboxPlayLobbyScreen .team-card.alpha .team-label, .aimbox-play-lobby .team-card.alpha .team-label
+{
+	color: #ff2a6d;
+}
+
+AimboxPlayLobbyScreen .team-card.bravo .team-label, .aimbox-play-lobby .team-card.bravo .team-label
+{
+	color: #2ad4c8;
+}
+
+AimboxPlayLobbyScreen .team-count, .aimbox-play-lobby .team-count
+{
+	font-size: 18px;
+	font-weight: 900;
+	color: #141414;
+}
+
+AimboxPlayLobbyScreen .team-skull, .aimbox-play-lobby .team-skull
+{
+	width: 48px;
+	height: 48px;
+	border-radius: 50%;
+	margin-top: 4px;
+}
+
+AimboxPlayLobbyScreen .alpha-skull, .aimbox-play-lobby .alpha-skull
+{
+	background-color: rgba(255, 42, 109, 0.35);
+}
+
+AimboxPlayLobbyScreen .bravo-skull, .aimbox-play-lobby .bravo-skull
+{
+	background-color: rgba(42, 212, 200, 0.35);
+}
+
+AimboxPlayLobbyScreen .team-vs, .aimbox-play-lobby .team-vs
+{
+	font-size: 12px;
+	font-weight: 900;
+	color: rgba(0, 0, 0, 0.45);
+	flex-shrink: 0;
+}
+
+AimboxPlayLobbyScreen .setting-row, .aimbox-play-lobby .setting-row
+{
+	flex-direction: row;
+	align-items: center;
+	gap: 8px;
+	padding: 5px 0;
+	border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+	min-width: 0;
+}
+
+AimboxPlayLobbyScreen .setting-label, .aimbox-play-lobby .setting-label
+{
+	flex: 1;
+	font-size: 10px;
+	font-weight: 700;
+	color: rgba(0, 0, 0, 0.55);
+	min-width: 0;
+}
+
+AimboxPlayLobbyScreen .setting-value, .aimbox-play-lobby .setting-value
+{
+	font-size: 10px;
+	font-weight: 800;
+	white-space: nowrap;
+	flex-shrink: 0;
+	color: #141414;
+}
+
+AimboxPlayLobbyScreen .setting-cycle, .aimbox-play-lobby .setting-cycle
+{
+	padding: 2px 6px;
+	font-size: 10px;
+	font-weight: 800;
+	background-color: rgba(255, 255, 255, 0.85);
+	border: 2px solid rgba(0, 0, 0, 0.12);
+	color: #141414;
+	flex-shrink: 0;
+}
+
+AimboxPlayLobbyScreen .lobby-footer, .aimbox-play-lobby .lobby-footer
+{
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	height: 56px;
+	z-index: 341;
+	flex-direction: row;
+	align-items: center;
+	justify-content: flex-end;
+	padding: 0 40px;
+	pointer-events: none;
+}
+
+AimboxPlayLobbyScreen .lobby-footer .start-btn, .aimbox-play-lobby .lobby-footer .start-btn
+{
+	pointer-events: all;
+}
+
+AimboxPlayLobbyScreen .start-btn, .aimbox-play-lobby .start-btn
+{
+	padding: 10px 32px;
+	font-size: 14px;
+	font-weight: 900;
+	letter-spacing: 1px;
+	background-color: #ff2a6d;
+	border: 2px solid #ff2a6d;
+	color: #fff;
+	min-width: 220px;
+	transition: transform 0.12s ease-out;
+}
+
+AimboxPlayLobbyScreen .start-btn:hover:not(.counting), .aimbox-play-lobby .start-btn:hover:not(.counting)
+{
+	transform: scale(1.05);
+}
+
+AimboxPlayLobbyScreen .start-btn.counting, .aimbox-play-lobby .start-btn.counting
+{
+	opacity: 0.85;
+}
+
+AimboxPlayLobbyScreen .joiner-waiting, .aimbox-play-lobby .joiner-waiting
+{
+	align-items: center;
+	justify-content: center;
+}
+
+AimboxPlayLobbyScreen .joiner-waiting-card, .aimbox-play-lobby .joiner-waiting-card
+{
+	flex-direction: column;
+	gap: 12px;
+	width: 560px;
+	max-width: calc(100% - 80px);
+	padding: 28px 32px;
+	background-color: rgba(255, 255, 255, 0.62);
+	border: 3px solid rgba(0, 0, 0, 0.1);
+	color: #141414;
+}
+
+AimboxPlayLobbyScreen .joiner-waiting-title, .aimbox-play-lobby .joiner-waiting-title
+{
+	font-size: 28px;
+	font-weight: 900;
+	letter-spacing: 2px;
+	color: #141414;
+}
+
+AimboxPlayLobbyScreen .joiner-waiting-copy, .aimbox-play-lobby .joiner-waiting-copy,
+AimboxPlayLobbyScreen .joiner-waiting-detail, .aimbox-play-lobby .joiner-waiting-detail
+{
+	font-size: 13px;
+	font-weight: 600;
+	color: rgba(0, 0, 0, 0.65);
+	line-height: 1.45;
+}
+
+AimboxPlayLobbyScreen .joiner-player-list, .aimbox-play-lobby .joiner-player-list
+{
+	margin-top: 8px;
+}
+
+AimboxPlayLobbyScreen .joiner-back-btn, .aimbox-play-lobby .joiner-back-btn
+{
+	align-self: flex-start;
+	margin-top: 8px;
+	padding: 8px 18px;
+	font-size: 12px;
+	font-weight: 800;
+	background-color: #141414;
+	border: none;
+	color: #fff;
+}

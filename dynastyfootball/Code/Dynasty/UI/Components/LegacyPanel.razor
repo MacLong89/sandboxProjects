@@ -1,0 +1,113 @@
+@using Sandbox.UI
+@using Dynasty.UI.ViewModels
+@inherits Panel
+@namespace Dynasty.UI.Components
+@attribute [StyleSheet( "/Dynasty/UI/Components/LegacyPanel.razor.scss" )]
+
+<root class="legacy-panel">
+	<div class="legacy-hero panel">
+		<Label class="panel-title">Franchise Legacy</Label>
+		<div class="legacy-record-block">
+			<Label class="legacy-record-label">Lifetime Record</Label>
+			<Label class="legacy-record-val">@Model.LifetimeRecord</Label>
+			<Label class="muted">@Model.LifetimeRecordDetail</Label>
+		</div>
+		<div class="legacy-stats">
+			<div class="hero-stat">
+				<Label class="hero-stat-val">@Model.DynastyScore</Label>
+				<Label class="hero-stat-label">Dynasty Score</Label>
+			</div>
+			<div class="hero-stat">
+				<Label class="hero-stat-val">@Model.ChampionshipCount</Label>
+				<Label class="hero-stat-label">Titles</Label>
+			</div>
+			<div class="hero-stat">
+				<Label class="hero-stat-val">@Model.OwnerJobSecurity</Label>
+				<Label class="hero-stat-label">Job Security</Label>
+			</div>
+			<div class="hero-stat">
+				<Label class="hero-stat-val">@Model.AwardCount</Label>
+				<Label class="hero-stat-label">Awards</Label>
+			</div>
+		</div>
+		<Label class="muted challenge-line">@Model.ChallengeStatus</Label>
+		@if ( !string.IsNullOrEmpty( Model.SeasonObjectiveStatus ) )
+		{
+			<Label class="muted objective-line">@Model.SeasonObjectiveStatus</Label>
+		}
+	</div>
+
+	<div class="panel">
+		<Label class="panel-subtitle">Season History</Label>
+		@if ( Model.SeasonHistory.Count == 0 )
+		{
+			<Label class="muted">Completed seasons appear here after each year ends.</Label>
+		}
+		else
+		{
+			@foreach ( var season in Model.SeasonHistory )
+			{
+				<div class="legacy-row">
+					<Label>Season @season.Season — @season.Record</Label>
+				</div>
+			}
+		}
+	</div>
+
+	<div class="panel">
+		<Label class="panel-subtitle">Championships</Label>
+		@if ( Model.Championships.Count == 0 )
+		{
+			<Label class="muted">No championships yet — win the Super Bowl to etch your name here.</Label>
+		}
+		else
+		{
+			@foreach ( var c in Model.Championships )
+			{
+				<div class="legacy-row @( c.IsUserTeam ? "user-highlight" : "" )">
+					<Label>Season @c.Season — @c.Label (@c.Score)</Label>
+				</div>
+			}
+		}
+	</div>
+
+	<div class="panel">
+		<Label class="panel-subtitle">Season Awards</Label>
+		@if ( Model.Awards.Count == 0 )
+		{
+			<Label class="muted">Awards are granted at season end.</Label>
+		}
+		else
+		{
+			@foreach ( var a in Model.Awards )
+			{
+				<div class="legacy-row @( a.IsUserTeam ? "user-highlight" : "" )">
+					<Label>@a.Season @a.AwardName — @a.PlayerName</Label>
+				</div>
+			}
+		}
+	</div>
+
+	<div class="panel">
+		<Label class="panel-subtitle">Hall of Fame</Label>
+		@if ( Model.HallOfFame.Count == 0 )
+		{
+			<Label class="muted">Hall of Fame inductees appear after legendary careers.</Label>
+		}
+		else
+		{
+			@foreach ( var h in Model.HallOfFame )
+			{
+				<div class="legacy-row">
+					<Label>@h.Season — @h.PlayerName</Label>
+					<Label class="muted">@h.Citation</Label>
+				</div>
+			}
+		}
+	</div>
+</root>
+
+@code
+{
+	[Parameter] public LegacyViewModel Model { get; set; } = new();
+}

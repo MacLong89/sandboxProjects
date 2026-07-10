@@ -1,0 +1,27 @@
+@using Sandbox
+@using Sandbox.UI
+@inherits PanelComponent
+@namespace Sandbox
+
+<root class="aimbox-screen-back @(Visible ? "visible" : "hidden")">
+	<button class="screen-back-btn" onclick="@GoBack">ESC BACK</button>
+</root>
+
+@code
+{
+	bool Visible => AimboxMetaScreenVisibility.ShouldShowScreenBackButton();
+
+	void GoBack() => AimboxScreenNavigation.GoBack();
+
+	protected override void OnUpdate()
+	{
+		if ( AimboxScreenNavigation.TryHandleMenuBack( Visible ) )
+			return;
+	}
+
+	protected override int BuildHash() => HashCode.Combine(
+		Visible,
+		AimboxMetaNavigation.CurrentScreen,
+		AimboxMetaNavigation.IsInIntermission,
+		AimboxMetaNavigation.ShouldShowMatchRecap );
+}

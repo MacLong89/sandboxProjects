@@ -1,0 +1,27 @@
+@using Sandbox.UI
+@using Dynasty.Core.Identifiers
+@using Dynasty.UI.ViewModels
+@inherits Panel
+@namespace Dynasty.UI.Team
+
+<root class="picker-row @( Row.IsCurrentStarter ? "current" : "" ) @( IsSelected ? "selected" : "" )" @onclick=@HandleClick>
+	<Label class="picker-name">@Row.Name</Label>
+	<Label class="picker-pos muted">@Row.Position</Label>
+	<Label class="picker-ovr">@Row.Overall OVR</Label>
+	<Label class="picker-age muted">Age @Row.Age</Label>
+</root>
+
+@code
+{
+	[Parameter] public PlayerPickerRow Row { get; set; }
+	[Parameter] public bool IsSelected { get; set; }
+	[Parameter] public Action<PlayerId> OnSelect { get; set; }
+
+	void HandleClick()
+	{
+		if ( OnSelect == null || Row == null )
+			return;
+
+		OnSelect.Invoke( Row.PlayerId );
+	}
+}

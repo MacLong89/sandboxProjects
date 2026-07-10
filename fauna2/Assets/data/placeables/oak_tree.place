@@ -1,0 +1,11 @@
+{
+	"DisplayName": "Oak Tree",
+	"Description": "Shade and habitat enrichment.",
+	"Category": "Nature",
+	"Cost": 120,
+	"UnlockLevel": 1,
+	"EnrichmentValue": 8,
+	"Footprint": "64,64",
+	"GridSnap": 64,
+	"Visuals": [{ "Model": "models/dev/box.vmdl", "Scale": "1,1,1" }]
+}

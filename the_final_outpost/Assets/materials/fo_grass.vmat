@@ -1,0 +1,25 @@
+// Clash-of-Clans style grass ground
+Layer0
+{
+	shader "shaders/complex.shader"
+
+	//---- Color ----
+	g_flModelTintAmount "1.000"
+	g_vColorTint "[1.000000 1.000000 1.000000 1.000000]"
+
+	//---- Fade ----
+	g_flFadeExponent "1.000"
+
+	//---- Lighting ----
+	g_flMetalness "0.000"
+	g_flRoughnessScaleFactor "1.000"
+
+	//---- Texture Coordinates ----
+	g_vTexCoordOffset "[0.000 0.000]"
+	g_vTexCoordScale "[1.000 1.000]"
+
+	TextureColor "textures/grass_color.png"
+
+	TextureRoughness "[0.900000 0.900000 0.900000 0.000000]"
+	TextureMetalness "[0.000000 0.000000 0.000000 0.000000]"
+}

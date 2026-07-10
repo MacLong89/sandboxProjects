@@ -1,0 +1,37 @@
+@using Sandbox
+@using Sandbox.UI
+@inherits PanelComponent
+@namespace Sandbox
+
+<root class="aimbox-match-start-popup @(Visible ? "visible" : "hidden")">
+	<div class="popup-backdrop decor"></div>
+	<div class="popup-card">
+		<div class="popup-kicker">// MATCH STARTING</div>
+		<div class="popup-title">GET READY</div>
+		<div class="popup-mode">@AimboxGameModeLabels.Long( SelectedMode ).ToUpperInvariant()</div>
+		<div class="popup-map">@SelectedMap.Name</div>
+		<div class="popup-countdown">@ReadySeconds()</div>
+		<div class="popup-hint">The host is starting the match.</div>
+	</div>
+</root>
+
+@code
+{
+	bool Visible =>
+		AimboxMetaUiFlags.UseRedesignedPlayLobby
+		&& AimboxMetaNavigation.IsInIntermission
+		&& Game?.IsLobbyJoiner == true
+		&& Game.IsLocalReady;
+
+	AimboxGame Game => AimboxGame.Instance;
+	AimboxGameMode SelectedMode => Game?.NextMode ?? AimboxGameMode.TeamDeathmatch;
+	LobbyMapDefinition SelectedMap => AimboxPlayLobbyUiHelpers.GetMap( Game?.Lobby?.SelectedMapId ?? AimboxPlayLobbyUiHelpers.DefaultMapId );
+
+	string ReadySeconds() => $"{(int)MathF.Ceiling( Game?.ReadyCountdownRemaining ?? 0f )}";
+
+	protected override int BuildHash() => HashCode.Combine(
+		Visible,
+		SelectedMode,
+		SelectedMap.Id,
+		Game?.ReadyCountdownRemaining );
+}

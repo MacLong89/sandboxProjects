@@ -1,0 +1,512 @@
+// Shared window chrome for Fauna's UI pages. Imported by each panel's scss.
+
+@import "interactive.scss";
+
+
+
+.window {
+
+	position: absolute;
+
+	top: 68px;
+
+	bottom: 104px;
+
+	left: 50%;
+
+	transform: translateX(-50%);
+
+	width: 720px;
+
+	max-width: 96%;
+
+	height: auto;
+
+	max-height: 100%;
+
+	flex-direction: column;
+
+	background: rgb(16, 22, 16);
+
+	border: 1px solid rgba(123, 201, 111, 0.35);
+
+	border-radius: 16px;
+
+	overflow: hidden;
+
+	pointer-events: all;
+
+	font-family: Poppins;
+
+	color: #eef3ec;
+
+	min-height: 0;
+
+	z-index: 100;
+
+	@include ui-transition;
+
+
+
+	.icon { font-family: "Material Icons"; }
+
+
+
+	.window-header {
+
+		flex-direction: row;
+
+		align-items: center;
+
+		gap: 10px;
+
+		padding: 16px 20px;
+
+		background: rgba(123, 201, 111, 0.1);
+
+		border-bottom: 1px solid rgba(123, 201, 111, 0.2);
+
+		flex-shrink: 0;
+
+
+
+		> .icon { font-size: 22px; color: #7bc96f; }
+
+
+
+		.window-title {
+
+			font-size: 18px;
+
+			font-weight: 800;
+
+			letter-spacing: 1px;
+
+			flex-grow: 1;
+
+		}
+
+
+
+		.close {
+
+			padding: 6px;
+
+			border-radius: 8px;
+
+			cursor: pointer;
+
+			border: 1px solid transparent;
+
+			@include ui-transition;
+
+
+
+			.icon { font-size: 20px; color: #9fb09a; transition: color $ui-fast $ui-ease; }
+
+
+
+			&:hover {
+
+				background: rgba(220, 80, 70, 0.28);
+
+				border-color: rgba(220, 80, 70, 0.45);
+
+				transform: scale(1.08);
+
+				.icon { color: white; }
+
+			}
+
+
+
+			&:active {
+
+				transform: scale(0.95);
+
+				background: rgba(220, 80, 70, 0.4);
+
+			}
+
+		}
+
+	}
+
+
+
+	.tabs {
+
+		flex-direction: row;
+
+		flex-wrap: wrap;
+
+		gap: 4px;
+
+		padding: 10px 16px 0 16px;
+
+		flex-shrink: 0;
+
+
+
+		.tab {
+
+			padding: 8px 14px;
+
+			border-radius: 8px 8px 0 0;
+
+			font-size: 13px;
+
+			font-weight: 600;
+
+			color: #9fb09a;
+
+			cursor: pointer;
+
+			border: 1px solid transparent;
+
+			border-bottom: 2px solid transparent;
+
+			flex-shrink: 0;
+
+			@include ui-transition;
+
+
+
+			&:hover {
+
+				color: white;
+
+				background: rgba(123, 201, 111, 0.1);
+
+				border-color: rgba(123, 201, 111, 0.2);
+
+				transform: translateY(-1px);
+
+			}
+
+
+
+			&:active {
+
+				transform: translateY(0);
+
+				background: rgba(123, 201, 111, 0.14);
+
+			}
+
+
+
+			&.active {
+
+				color: #b3e08a;
+
+				background: rgba(123, 201, 111, 0.18);
+
+				border-color: rgba(123, 201, 111, 0.35);
+
+				border-bottom-color: #7bc96f;
+
+			}
+
+
+
+			&.active:hover {
+
+				background: rgba(123, 201, 111, 0.22);
+
+				color: white;
+
+			}
+
+		}
+
+	}
+
+
+
+	.items {
+		flex-direction: column;
+
+		gap: 8px;
+
+		padding: 14px 16px 32px 16px;
+
+		flex: 1 1 auto;
+
+		min-height: 0;
+
+		overflow-y: scroll;
+
+		overflow-x: hidden;
+
+		pointer-events: all;
+
+
+
+		.item {
+
+			flex-direction: row;
+
+			gap: 14px;
+
+			padding: 12px;
+
+			border-radius: 10px;
+
+			background: rgba(255, 255, 255, 0.04);
+
+			border: 1px solid transparent;
+
+			cursor: pointer;
+
+			flex-shrink: 0;
+
+			@include ui-transition;
+
+			@include ui-hover-lift;
+
+			@include ui-focus-ring;
+
+
+
+			&:hover:not(.locked) {
+
+				background: rgba(123, 201, 111, 0.12);
+
+				border-color: rgba(123, 201, 111, 0.4);
+
+
+
+				.swatch {
+
+					border-color: rgba(123, 201, 111, 0.5);
+
+					transform: scale(1.06);
+
+				}
+
+
+
+				.name { color: white; }
+
+			}
+
+
+
+			&:active:not(.locked) {
+
+				background: rgba(123, 201, 111, 0.18);
+
+				transform: scale(0.99);
+
+			}
+
+
+
+			&.locked {
+
+				opacity: 0.45;
+
+				cursor: default;
+
+				&:hover {
+
+					background: rgba(255, 255, 255, 0.04);
+
+					border-color: transparent;
+
+					transform: none;
+
+				}
+
+			}
+
+
+
+			.swatch {
+
+				width: 52px;
+
+				height: 52px;
+
+				border-radius: 10px;
+
+				flex-shrink: 0;
+
+				border: 1px solid rgba(255, 255, 255, 0.15);
+
+				transition: transform $ui-normal $ui-ease, border-color $ui-normal $ui-ease;
+
+			}
+
+
+
+			.info {
+
+				flex-direction: column;
+
+				gap: 2px;
+
+				flex-grow: 1;
+
+
+
+				.name {
+
+					font-size: 15px;
+
+					font-weight: 700;
+
+					transition: color $ui-fast $ui-ease;
+
+				}
+
+				.desc { font-size: 12px; color: #9fb09a; }
+
+				.price { font-size: 13px; font-weight: 700; color: #ffd166; }
+
+				.income { font-size: 11px; color: #8fce6e; margin-top: 2px; }
+
+				.locked-text { color: #c98a6f; }
+
+			}
+
+
+
+			.actions {
+
+				flex-direction: column;
+
+				justify-content: center;
+
+				flex-shrink: 0;
+
+			}
+
+		}
+
+		.empty {
+			padding: 28px 20px;
+			align-items: center;
+			justify-content: center;
+			color: #76856f;
+			font-size: 14px;
+			text-align: center;
+			flex-shrink: 0;
+		}
+	}
+
+
+
+	.button {
+
+		padding: 8px 18px;
+
+		border-radius: 8px;
+
+		background: rgba(123, 201, 111, 0.2);
+
+		border: 1px solid rgba(123, 201, 111, 0.5);
+
+		font-size: 13px;
+
+		font-weight: 700;
+
+		color: #b3e08a;
+
+		cursor: pointer;
+
+		justify-content: center;
+
+		@include ui-transition;
+
+		@include ui-hover-lift;
+
+
+
+		&:hover:not(.disabled) {
+
+			background: rgba(123, 201, 111, 0.42);
+
+			border-color: rgba(123, 201, 111, 0.75);
+
+			color: white;
+
+		}
+
+
+
+		&:active:not(.disabled) {
+
+			background: rgba(123, 201, 111, 0.55);
+
+			transform: scale(0.97);
+
+		}
+
+
+
+		&.disabled {
+
+			opacity: 0.4;
+
+			cursor: default;
+
+			&:hover {
+
+				background: rgba(123, 201, 111, 0.2);
+
+				color: #b3e08a;
+
+				transform: none;
+
+			}
+
+		}
+
+
+
+		&.danger {
+
+			background: rgba(220, 80, 70, 0.15);
+
+			border-color: rgba(220, 80, 70, 0.4);
+
+			color: #ff8a80;
+
+
+
+			&:hover:not(.disabled) {
+
+				background: rgba(220, 80, 70, 0.38);
+
+				border-color: rgba(220, 80, 70, 0.65);
+
+				color: white;
+
+			}
+
+
+
+			&:active:not(.disabled) {
+
+				background: rgba(220, 80, 70, 0.5);
+
+			}
+
+		}
+
+
+
+		&.primary {
+
+			background: rgba(123, 201, 111, 0.28);
+
+			border-color: rgba(123, 201, 111, 0.65);
+
+		}
+
+	}
+
+}
+

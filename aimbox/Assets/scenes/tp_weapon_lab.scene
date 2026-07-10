@@ -1,0 +1,263 @@
+{
+  "__guid": "a1b2c3d4-e5f6-7890-abcd-ef1234567893",
+  "GameObjects": [
+    {
+      "__guid": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+      "__version": 2,
+      "Flags": 0,
+      "Name": "Scene Information",
+      "Position": "0,0,0",
+      "Rotation": "0,0,0,1",
+      "Scale": "1,1,1",
+      "Tags": "",
+      "Enabled": true,
+      "NetworkMode": 2,
+      "NetworkFlags": 0,
+      "NetworkOrphaned": 0,
+      "NetworkTransmit": true,
+      "OwnerTransfer": 1,
+      "Components": [
+        {
+          "__type": "Sandbox.SceneInformation",
+          "__guid": "c3d4e5f6-a7b8-9012-cdef-123456789012",
+          "__enabled": true,
+          "Flags": 0,
+          "Description": "Third-person world weapon lab — tune hand-bone position/rotation/scale on the bandit dummy.",
+          "SceneTags": "",
+          "Title": "tp_weapon_lab"
+        }
+      ],
+      "Children": []
+    },
+    {
+      "__guid": "d4e5f6a7-b8c9-0123-def0-234567890123",
+      "__version": 2,
+      "Flags": 0,
+      "Name": "Aimbox Game",
+      "Position": "0,0,0",
+      "Rotation": "0,0,0,1",
+      "Scale": "1,1,1",
+      "Tags": "",
+      "Enabled": true,
+      "NetworkMode": 2,
+      "NetworkFlags": 0,
+      "NetworkOrphaned": 0,
+      "NetworkTransmit": true,
+      "OwnerTransfer": 1,
+      "Components": [
+        {
+          "__type": "Sandbox.AimboxGame",
+          "__guid": "e5f6a7b8-c9d0-1234-ef01-345678901234",
+          "__enabled": true,
+          "Flags": 0,
+          "AutoCreateLocalPlayer": false,
+          "AutoStartMatch": true,
+          "BotCount": 0,
+          "SkipBots": true,
+          "SkipMetaMenu": true,
+          "ThirdPersonWeaponLabScene": true
+        }
+      ],
+      "Children": []
+    },
+    {
+      "__guid": "f6a7b8c9-d0e1-2345-f012-456789012345",
+      "__version": 2,
+      "Flags": 0,
+      "Name": "TP Weapon Lab",
+      "Position": "0,0,0",
+      "Rotation": "0,0,0,1",
+      "Scale": "1,1,1",
+      "Tags": "",
+      "Enabled": true,
+      "NetworkMode": 2,
+      "NetworkFlags": 0,
+      "NetworkOrphaned": 0,
+      "NetworkTransmit": true,
+      "OwnerTransfer": 1,
+      "Components": [
+        {
+          "__type": "Sandbox.AimboxThirdPersonWeaponLab",
+          "__guid": "a7b8c9d0-e1f2-3456-0123-567890123456",
+          "__enabled": true,
+          "Flags": 0,
+          "Weapon": "M4A1",
+          "WeaponLocalPosition": "10,-6,-3",
+          "WeaponLocalRotation": "0,0,-90",
+          "WeaponLocalScale": "1.5,1.5,1.5",
+          "PreferredParentBone": "hand_R_IK_target",
+          "UseBodyFallback": false,
+          "BodyFallbackLocalPosition": "18,-12,18",
+          "PreviewCrouch": false
+        }
+      ],
+      "Children": [
+        {
+          "__guid": "b8c9d0e1-f2a3-4567-1234-678901234567",
+          "__version": 2,
+          "Flags": 0,
+          "Name": "Bandit Dummy",
+          "Position": "0,0,0",
+          "Rotation": "0,0,0,1",
+          "Scale": "1,1,1",
+          "Tags": "",
+          "Enabled": true,
+          "NetworkMode": 2,
+          "NetworkFlags": 0,
+          "NetworkOrphaned": 0,
+          "NetworkTransmit": true,
+          "OwnerTransfer": 1,
+          "Components": [
+            {
+              "__type": "Sandbox.AimboxTpWeaponLabDummy",
+              "__guid": "c9d0e1f2-a3b4-5678-2345-789012345678",
+              "__enabled": true,
+              "Flags": 0
+            }
+          ],
+          "Children": []
+        }
+      ]
+    },
+    {
+      "__guid": "d0e1f2a3-b4c5-6789-3456-890123456789",
+      "__version": 2,
+      "Flags": 0,
+      "Name": "Sun",
+      "Position": "0,0,0",
+      "Rotation": "-0.0729314983,0.482239604,0.130543306,0.863182724",
+      "Scale": "1,1,1",
+      "Tags": "light_directional,light",
+      "Enabled": true,
+      "NetworkMode": 2,
+      "NetworkFlags": 0,
+      "NetworkOrphaned": 0,
+      "NetworkTransmit": true,
+      "OwnerTransfer": 1,
+      "Components": [
+        {
+          "__type": "Sandbox.DirectionalLight",
+          "__guid": "e1f2a3b4-c5d6-7890-4567-901234567890",
+          "__enabled": true,
+          "Flags": 0,
+          "LightColor": "0.94419,0.97767,1,1",
+          "Shadows": true
+        }
+      ],
+      "Children": []
+    },
+    {
+      "__guid": "f2a3b4c5-d6e7-8901-5678-012345678901",
+      "__version": 2,
+      "Flags": 0,
+      "Name": "2D Skybox",
+      "Position": "0,0,0",
+      "Rotation": "0,0,0,1",
+      "Scale": "1,1,1",
+      "Tags": "skybox",
+      "Enabled": true,
+      "NetworkMode": 2,
+      "NetworkFlags": 0,
+      "NetworkOrphaned": 0,
+      "NetworkTransmit": true,
+      "OwnerTransfer": 1,
+      "Components": [
+        {
+          "__type": "Sandbox.SkyBox2D",
+          "__guid": "a3b4c5d6-e7f8-9012-6789-123456789012",
+          "__enabled": true,
+          "Flags": 0,
+          "SkyMaterial": "materials/skybox/skybox_day_01.vmat",
+          "Tint": "1,1,1,1"
+        }
+      ],
+      "Children": []
+    },
+    {
+      "__guid": "b4c5d6e7-f8a9-0123-7890-234567890123",
+      "__version": 2,
+      "Flags": 0,
+      "Name": "Floor",
+      "Position": "0,0,0",
+      "Rotation": "0,0,0,1",
+      "Scale": "50,50,1",
+      "Tags": "",
+      "Enabled": true,
+      "NetworkMode": 2,
+      "NetworkFlags": 0,
+      "NetworkOrphaned": 0,
+      "NetworkTransmit": true,
+      "OwnerTransfer": 1,
+      "Components": [
+        {
+          "__type": "Sandbox.ModelRenderer",
+          "__guid": "c5d6e7f8-a9b0-1234-8901-345678901234",
+          "__enabled": true,
+          "Flags": 0,
+          "MaterialOverride": "materials/default.vmat",
+          "Model": "models/dev/plane.vmdl",
+          "Tint": "0.25,0.29,0.31,1"
+        },
+        {
+          "__type": "Sandbox.BoxCollider",
+          "__guid": "d6e7f8a9-b0c1-2345-9012-456789012345",
+          "__enabled": true,
+          "Flags": 0,
+          "Center": "0,0,-5",
+          "Scale": "5000,5000,10",
+          "Static": true
+        }
+      ],
+      "Children": []
+    },
+    {
+      "__guid": "e7f8a9b0-c1d2-3456-0123-567890123456",
+      "__version": 2,
+      "Flags": 0,
+      "Name": "Camera",
+      "Position": "0,-220,66",
+      "Rotation": "0.12,0,0,0.992",
+      "Scale": "1,1,1",
+      "Tags": "",
+      "Enabled": true,
+      "NetworkMode": 2,
+      "NetworkFlags": 0,
+      "NetworkOrphaned": 0,
+      "NetworkTransmit": true,
+      "OwnerTransfer": 1,
+      "Components": [
+        {
+          "__type": "Sandbox.CameraComponent",
+          "__guid": "f8a9b0c1-d2e3-4567-1234-678901234567",
+          "__enabled": true,
+          "Flags": 0,
+          "BackgroundColor": "0.33333,0.46275,0.52157,1",
+          "ClearFlags": "All",
+          "FieldOfView": 74,
+          "IsMainCamera": true,
+          "Priority": 1,
+          "ZFar": 10000,
+          "ZNear": 2
+        }
+      ],
+      "Children": []
+    }
+  ],
+  "SceneProperties": {
+    "NetworkInterpolation": true,
+    "TimeScale": 1,
+    "WantsSystemScene": true,
+    "Metadata": {
+      "Title": "tp_weapon_lab",
+      "Description": "Third-person weapon tuning — Play, select TP Weapon Lab, edit transform and weapon while running."
+    },
+    "NavMesh": {
+      "Enabled": false
+    }
+  },
+  "ResourceVersion": 3,
+  "Title": "tp_weapon_lab",
+  "Description": "Third-person weapon tuning — Play, select TP Weapon Lab, edit transform and weapon while running.",
+  "__references": [],
+  "__version": 3
+}

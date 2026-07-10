@@ -1,0 +1,28 @@
+{
+  "Title": "Run&Gun",
+  "Type": "game",
+  "Org": "local",
+  "Ident": "run_gun",
+  "Schema": 1,
+  "IncludeSourceFiles": false,
+  "Resources": null,
+  "PackageReferences": [
+    "facepunch.sboxweapons"
+  ],
+  "EditorReferences": null,
+  "Mounts": null,
+  "IsStandaloneOnly": false,
+  "Metadata": {
+    "MaxPlayers": 1,
+    "MinPlayers": 1,
+    "TickRate": 50,
+    "GameNetworkType": "Multiplayer",
+    "MapSelect": "Hidden",
+    "MapList": [],
+    "RankType": "None",
+    "PerMapRanking": false,
+    "LeaderboardType": "None",
+    "CsProjName": "",
+    "StartupScene": "scenes/game.scene"
+  }
+}

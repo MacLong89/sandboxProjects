@@ -1,0 +1,571 @@
+@using Sandbox
+@using Sandbox.UI
+@using Fauna2
+@inherits PanelComponent
+@namespace Fauna2.UI
+
+<root>
+	@if ( UiState.GameplayHudVisible )
+	{
+	@if ( !UiState.HideTopBar )
+	{
+	<div class="topbar">
+		<div class="brand">
+			<i class="icon">park</i>
+			<div class="title">FAUNA2</div>
+			<div class="zooname">@ZooName</div>
+			<div class="calendar-chip">
+				<i class="icon">@WeatherIcon</i>
+				<div class="calendar-main">
+					<div class="calendar-title">@SeasonDayText</div>
+					<div class="calendar-sub">@TimeWeatherText</div>
+				</div>
+			</div>
+		</div>
+
+		<div class="topbar-end">
+			<div class="stats">
+				<div class="stat money">
+					<i class="icon">paid</i>
+					<div class="money-row float-anchor">
+						@foreach ( var pop in UiState.FloatPopups.Where( p => p.Style == "money" ) )
+						{
+							<div class="float-popup money">@pop.Text</div>
+						}
+						<div class="value">$@MoneyText</div>
+					</div>
+					<div class="sub @(IncomeSubClass)">@IncomeRateText</div>
+				</div>
+
+				<div class="stat level @(XpPulse ? "xp-pulse" : "")">
+					<div class="level-row">
+						<div class="level-badge">@Level</div>
+						<div class="xpbar">
+							<div class="fill" style="width: @(XpPercent)%"></div>
+						</div>
+					</div>
+					<div class="level-meta">
+						<span class="meta xp-meta">@XpLabel</span>
+						<span class="meta-dot">·</span>
+						<span class="meta codex-meta">Codex @CodexPercentText</span>
+					</div>
+					@foreach ( var pop in UiState.FloatPopups.Where( p => p.Style == "xp" ) )
+					{
+						<div class="float-popup xp">@pop.Text</div>
+					}
+				</div>
+
+				<div class="stat prestige">
+					<i class="icon">workspace_premium</i>
+					<div class="value">@Prestige</div>
+					<div class="sub">Prestige</div>
+				</div>
+
+				<div class="stat guests">
+					<i class="icon">groups</i>
+					<div class="value">@Guests</div>
+					<div class="sub">@StarsText</div>
+				</div>
+			</div>
+
+			<div class="settings-anchor">
+				<div class="settings-btn @(_settingsOpen ? "active" : "")" onclick=@ToggleSettings>
+					<i class="icon">settings</i>
+				</div>
+
+				@if ( _settingsOpen )
+				{
+					<div class="settings-popout">
+						<div class="setting-row">
+							<div class="setting-name">Difficulty</div>
+							<div class="value">@(_settings.GuestRevenueMultiplier.ToString( "0.00" ))×</div>
+						</div>
+						<div class="setting-desc">Higher guest revenue = easier economy.</div>
+						<div class="preset-row">
+							<div class="preset @GameSettingsUi.RevenuePresetClass( _settings, 1.0f )" onclick=@( () => GameSettingsUi.SetRevenueMultiplier( _settings, 1.0f ) )>Classic</div>
+							<div class="preset @GameSettingsUi.RevenuePresetClass( _settings, 1.25f )" onclick=@( () => GameSettingsUi.SetRevenueMultiplier( _settings, 1.25f ) )>Balanced</div>
+							<div class="preset @GameSettingsUi.RevenuePresetClass( _settings, 1.45f )" onclick=@( () => GameSettingsUi.SetRevenueMultiplier( _settings, 1.45f ) )>Relaxed</div>
+							<div class="preset @GameSettingsUi.RevenuePresetClass( _settings, 1.75f )" onclick=@( () => GameSettingsUi.SetRevenueMultiplier( _settings, 1.75f ) )>Generous</div>
+						</div>
+
+						<div class="volume-control">
+							<div class="volume-label-row">
+								<div class="label">Volume</div>
+								<div class="value">@(GameSettingsUi.VolumePercent( _settings ))%</div>
+							</div>
+							<div class="volume-bar">
+								@for ( var i = 1; i <= 10; i++ )
+								{
+									var segment = i;
+									<div class="segment @GameSettingsUi.VolumeSegmentClass( _settings, segment )"
+										 onclick=@( () => GameSettingsUi.SetVolume( _settings, segment / 10f ) )></div>
+								}
+							</div>
+						</div>
+					</div>
+				}
+			</div>
+		</div>
+	</div>
+	}
+
+	@if ( !UiState.HideSecondaryHud )
+	{
+	@if ( UpcomingUnlocks.Count > 0 )
+	{
+		<div class="unlock-card">
+			<div class="unlock-header">
+				<i class="icon">upgrade</i>
+				<span>Next unlocks</span>
+			</div>
+			@foreach ( var unlock in UpcomingUnlocks )
+			{
+				<div class="unlock-row">
+					<span class="unlock-kind">@UnlockKindLabel( unlock.Kind )</span>
+					<span class="unlock-name">@unlock.Name</span>
+					<span class="unlock-level">Lv @unlock.Level</span>
+				</div>
+			}
+		</div>
+	}
+
+	@if ( GuestAlert != null )
+	{
+		<div class="guest-alert" onclick=@OpenGuestAlert>
+			<i class="icon">@GuestAlert.Value.Icon</i>
+			<div class="text">
+				<div class="title">@GuestAlert.Value.Title</div>
+				<div class="detail">@GuestAlert.Value.Detail</div>
+			</div>
+			<div class="action">@GuestAlertActionLabel</div>
+		</div>
+	}
+
+	@if ( GameSettings.Current.ShowTutorialHints && ActiveGoals.Count > 0 )
+	{
+		<div class="goal-board">
+			@foreach ( var goal in ActiveGoals )
+			{
+				<div class="goal-row @(goal.Clickable && IsZooOwner ? "clickable" : "")" onclick=@( () => OpenGoal( goal ) )>
+					<i class="icon">@goal.Icon</i>
+					<div class="goal-body">
+						<div class="goal-top">
+							<span class="goal-cat">@goal.Category</span>
+							<span class="goal-progress-label">@goal.ProgressLabel</span>
+						</div>
+						<div class="goal-title">@goal.Title</div>
+						@if ( goal.Progress > 0f )
+						{
+							<div class="goal-bar"><div class="fill" style="width: @(goal.ProgressPercent)%"></div></div>
+						}
+						<div class="goal-desc">@goal.Detail</div>
+						@if ( goal.Clickable && IsZooOwner )
+						{
+							<div class="goal-action">CLICK HERE TO COMPLETE</div>
+						}
+					</div>
+				</div>
+			}
+		</div>
+	}
+	}
+
+	@if ( !IsZooOwner )
+	{
+		<div class="visitor-banner">
+			<i class="icon">directions_walk</i>
+			<div class="text">Visiting — explore the zoo, like exhibits, and cheer on the owner.</div>
+		</div>
+	}
+
+	@if ( UiState.ControlsHintVisible && IsZooOwner && !UiState.WelcomeIntroVisible )
+	{
+		<div class="controls-hint">
+			<div class="title"><i class="icon">sports_esports</i> Controls</div>
+			<div class="line">
+				<span class="key">WASD</span><span>Move</span><span>·</span>
+				<span class="key">Shift</span><span>Run</span><span>·</span>
+				<span class="key">Wheel</span><span>Zoom</span>
+			</div>
+			<div class="line">
+				<span class="key">E</span><span>Interact</span><span>·</span>
+				<span class="key">Click</span><span>Inspect</span><span>·</span>
+				<span class="key">B/N/C/P/I</span><span>Menus</span>
+			</div>
+			<div class="line">Click a goal on the right to jump to the right tool.</div>
+			<div class="dismiss" onclick=@DismissControlsHint>Got it</div>
+		</div>
+	}
+
+	@if ( HintText != "" && !UiState.HideSecondaryHud )
+	{
+		<div class="hintbar">@HintText</div>
+	}
+	else if ( LandClearActive && !UiState.HideSecondaryHud )
+	{
+		var clearPct = (int)(UiState.ObstacleClearPercent * 100f);
+		<div class="hintbar land-clear">
+			<i class="icon">forest</i>
+			<div class="clear-bar"><div class="fill" style="width: @clearPct%"></div></div>
+		</div>
+	}
+
+	@if ( CurrentCelebration != null )
+	{
+		<div class="celebration">
+			<i class="icon big">@CurrentCelebration.Icon</i>
+			<div class="cel-title">@CurrentCelebration.Title</div>
+			<div class="cel-sub">@CurrentCelebration.Subtitle</div>
+		</div>
+	}
+
+	@if ( !UiState.HideSecondaryHud && !UiState.WelcomeIntroVisible )
+	{
+	<div class="toasts">
+		@foreach ( var toast in UiState.Toasts )
+		{
+			<div class="toast">
+				<i class="icon">@toast.Icon</i>
+				<div class="msg">@toast.Message</div>
+			</div>
+		}
+	</div>
+
+	<div class="toolbar">
+		@if ( IsZooOwner )
+		{
+		<div class="tool @(UiState.ActivePage == UiPage.Build ? "active" : "")" onclick=@( () => TogglePage( UiPage.Build ) )>
+			<i class="icon">construction</i><div class="label">Build</div><div class="key">B</div>
+		</div>
+		<div class="tool @(UiState.ActivePage == UiPage.Market ? "active" : "")" onclick=@( () => TogglePage( UiPage.Market ) )>
+			<i class="icon">pets</i><div class="label">Animals</div><div class="key">N</div>
+		</div>
+		}
+		<div class="tool @(UiState.ActivePage == UiPage.Codex ? "active" : "")" onclick=@( () => TogglePage( UiPage.Codex ) )>
+			<i class="icon">menu_book</i><div class="label">Codex</div><div class="key">C</div>
+		</div>
+		<div class="tool @(UiState.ActivePage == UiPage.Progression ? "active" : "")" onclick=@( () => TogglePage( UiPage.Progression ) )>
+			<i class="icon">trending_up</i><div class="label">Progress</div><div class="key">P</div>
+		</div>
+		<div class="tool @(UiState.ActivePage == UiPage.Zoo ? "active" : "")" onclick=@( () => TogglePage( UiPage.Zoo ) )>
+			<i class="icon">diversity_3</i><div class="label">Zoo</div><div class="key">L</div>
+		</div>
+		<div class="tool @(UiState.ActivePage == UiPage.Stats ? "active" : "")" onclick=@( () => TogglePage( UiPage.Stats ) )>
+			<i class="icon">analytics</i><div class="label">Stats</div><div class="key">Tab</div>
+		</div>
+		@if ( IsZooOwner )
+		{
+		<div class="divider"></div>
+		<div class="tool" onclick=@( () => BeginExpand() )>
+			<i class="icon">map</i><div class="label">Land</div><div class="key">V</div>
+		</div>
+		<div class="tool danger" onclick=@( () => BeginDemolish() )>
+			<i class="icon">delete</i><div class="label">Demolish</div><div class="key">X</div>
+		</div>
+		}
+	</div>
+	}
+	}
+</root>
+
+@code
+{
+	private bool _settingsOpen;
+	private GameSettingsData _settings = GameSettings.Current;
+
+	private bool GameStarted => UiState.GameplayHudVisible;
+	private BuildMode BuildMode => BuildController.Instance?.Mode ?? BuildMode.None;
+
+	private string ZooName => ZooState.Instance?.ZooName ?? "Loading zoo...";
+	private int Level => ZooState.Instance?.Level ?? 1;
+	private int Prestige => ZooState.Instance?.Prestige ?? 0;
+	private int Guests => GuestSystem.Instance?.GuestCount ?? 0;
+	private string MoneyText => $"{ZooState.Instance?.Money ?? 0:n0}";
+	private string CodexPercentText => $"{CollectionSystem.Instance?.CompletionPercent ?? 0f:0}%";
+	private bool XpPulse => UiState.XpPulse;
+	private Celebration CurrentCelebration => UiState.ActiveCelebration;
+	private WeatherSeasonSystem Weather => WeatherSeasonSystem.Instance;
+	private string WeatherIcon => Weather?.WeatherIcon ?? "wb_sunny";
+	private string SeasonDayText => Weather is null
+		? $"Spring Day 1 · {PlayerBiomeLabel}"
+		: $"{Weather.Season} Day {Weather.Day} · {PlayerBiomeLabel}";
+	private string TimeWeatherText => Weather is null ? "Morning · Clear" : $"{Weather.ClockLabel} · {Weather.TimeOfDayLabel} · {Weather.Weather}";
+
+	private string PlayerBiomeLabel => UiFormat.BiomeLabel( PlayerBiome );
+
+	private Biome PlayerBiome
+	{
+		get
+		{
+			var starter = ZooState.Instance?.StarterBiome ?? Biome.Grassland;
+			var player = PlayerState.Local;
+			if ( player is null || !GameStarted )
+				return starter;
+
+			return WildernessBiomeMap.BiomeAtWorld( player.FeetPosition, starter );
+		}
+	}
+
+	private int PlayerBiomeHash
+	{
+		get
+		{
+			var pos = PlayerState.Local?.FeetPosition ?? Vector3.Zero;
+			var plotSize = GameConstants.PlotSize;
+			return System.HashCode.Combine(
+				(int)MathF.Floor( pos.x / (plotSize * 0.5f) ),
+				(int)MathF.Floor( pos.y / (plotSize * 0.5f) ) );
+		}
+	}
+
+	private string IncomeRateText
+	{
+		get
+		{
+			if ( !PathNetwork.HasGuestAccess )
+				return "Setup — revenue starts when gates open";
+
+			var income = EconomySystem.Instance?.IncomePerMinute ?? 0f;
+			var rate = income >= 0f ? $"+${income:0}" : $"−${Math.Abs( income ):0}";
+			return $"{rate}/min";
+		}
+	}
+
+	private string IncomeSubClass
+	{
+		get
+		{
+			if ( !PathNetwork.HasGuestAccess ) return "setup";
+			return (EconomySystem.Instance?.IncomePerMinute ?? 0f) < 0f ? "negative" : "positive";
+		}
+	}
+
+	private string HintText => BuildController.Instance?.HintText ?? "";
+
+	private bool LandClearActive => UiState.ObstacleClearActive;
+
+	private int XpPercent
+	{
+		get
+		{
+			var state = ZooState.Instance;
+			if ( state is null ) return 0;
+			if ( state.Level >= GameConstants.MaxLevel ) return 100;
+			return (int)(state.Xp * 100f / ZooState.XpForLevel( state.Level ));
+		}
+	}
+
+	private string XpLabel
+	{
+		get
+		{
+			var state = ZooState.Instance;
+			if ( state is null ) return "0 XP";
+			if ( state.Level >= GameConstants.MaxLevel ) return "Max level";
+			var needed = ZooState.XpForLevel( state.Level );
+			return $"{state.Xp:n0} / {needed:n0} XP";
+		}
+	}
+
+	private string StarsText
+	{
+		get
+		{
+			var rating = GuestSystem.Instance?.ZooRating ?? 0f;
+			return $"{rating:0.0}/5 rating";
+		}
+	}
+
+	private bool IsZooOwner => PlayerState.Local?.IsZooOwner == true;
+
+	private IReadOnlyList<HudGoal> ActiveGoals => GoalBoard.HudGoals();
+
+	private IReadOnlyList<UnlockEntry> UpcomingUnlocks =>
+		ProgressionHelper.UpcomingUnlocks( 3 ).ToList();
+
+	private GuestInsight? GuestAlert
+	{
+		get
+		{
+			if ( (GuestSystem.Instance?.Satisfaction ?? 100f) >= 60f ) return null;
+			var harms = ZooStatsReport.GetRatingHarms();
+			return harms.Count > 0 ? harms[0] : null;
+		}
+	}
+
+	private string GuestAlertActionLabel =>
+		GuestAlert is null ? "" : InsightNavigator.ActionLabel( GuestAlert.Value );
+
+	private void OpenGoal( HudGoal goal )
+	{
+		if ( !goal.Clickable || !IsZooOwner ) return;
+
+		if ( goal.Nav == HudGoalNav.Goal )
+		{
+			var current = ObjectiveSystem.Instance?.Current;
+			if ( current is not null )
+				ObjectiveNavigator.Open( current.Action );
+		}
+	}
+
+	private void DismissControlsHint() => UiState.DismissControlsHint();
+
+	private void OpenGuestAlert()
+	{
+		if ( GuestAlert is null ) return;
+		InsightNavigator.Open( GuestAlert.Value );
+	}
+
+	private void ToggleSettings()
+	{
+		if ( !_settingsOpen )
+			_settings = GameSettings.Current;
+
+		_settingsOpen = !_settingsOpen;
+	}
+
+	private void CloseSettings() => _settingsOpen = false;
+
+	private static string UnlockKindLabel( string kind ) => kind switch
+	{
+		"Animal" => "Pet",
+		"Shop" => "Shop",
+		"Dining" => "Food",
+		"Habitats" => "Habitat",
+		"Paths" => "Path",
+		"Nature" => "Nature",
+		"Services" => "Service",
+		_ => kind,
+	};
+
+	private void TogglePage( UiPage page )
+	{
+		if ( !IsZooOwner && page is UiPage.Build or UiPage.Market )
+			return;
+
+		CloseSettings();
+		UiState.Toggle( page );
+	}
+
+	private void BeginExpand()
+	{
+		CloseSettings();
+		UiState.CloseModals();
+		if ( BuildController.Instance?.Mode == BuildMode.ExpandLand )
+			BuildController.Instance.CancelMode();
+		else
+			BuildController.Instance?.BeginExpandLand();
+	}
+
+	private void BeginDemolish()
+	{
+		CloseSettings();
+		UiState.CloseModals();
+		if ( BuildController.Instance?.Mode == BuildMode.Demolish )
+			BuildController.Instance.CancelMode();
+		else
+			BuildController.Instance?.BeginDemolish();
+	}
+
+	private void HandleCancelInput()
+	{
+		if ( UiState.CatchMinigameOpen )
+		{
+			if ( WildAttackSystem.Instance?.EncounterActive == true )
+				WildAttackSystem.Instance.TryGiveUp();
+			else
+				CatchSystem.Instance?.TryCancelCatch();
+			return;
+		}
+
+		if ( _settingsOpen )
+		{
+			CloseSettings();
+			return;
+		}
+
+		if ( UiState.BackpackOpen )
+		{
+			UiState.CloseBackpack();
+			return;
+		}
+
+		if ( UiState.IsPageOpen || UiState.HasInspectOpen )
+		{
+			UiState.CloseModals();
+			return;
+		}
+
+		if ( BuildController.Instance?.Mode != BuildMode.None )
+			BuildController.Instance.CancelMode();
+	}
+
+	protected override void OnUpdate()
+	{
+		UiState.Update();
+
+		if ( !GameStarted )
+			return;
+
+		UiState.RefreshPointerState( Scene );
+
+		if ( IsZooOwner && Input.Pressed( "Backpack" ) ) UiState.ToggleBackpack();
+		if ( Input.Pressed( "BuildMenu" ) ) UiState.Toggle( UiPage.Build );
+		if ( Input.Pressed( "Market" ) ) UiState.Toggle( UiPage.Market );
+		if ( Input.Pressed( "Codex" ) ) UiState.Toggle( UiPage.Codex );
+		if ( Input.Pressed( "Progression" ) ) UiState.Toggle( UiPage.Progression );
+		if ( Input.Pressed( "ZooPanel" ) ) UiState.Toggle( UiPage.Zoo );
+		if ( Input.Pressed( "StatsMenu" ) ) UiState.Toggle( UiPage.Stats );
+		if ( Input.Pressed( "ExpandLand" ) ) BeginExpand();
+		if ( Input.Pressed( "Demolish" ) ) BeginDemolish();
+		if ( Input.Pressed( "Cancel" ) ) HandleCancelInput();
+		if ( Input.Pressed( "DebugPanel" ) ) UiState.ToggleDebug();
+	}
+
+	protected override int BuildHash()
+	{
+		var hash = new System.HashCode();
+		hash.Add( UiState.SessionLoading );
+		hash.Add( UiState.GameplayHudVisible );
+		hash.Add( GameStarted );
+		hash.Add( (int)BuildMode );
+		hash.Add( _settingsOpen );
+		hash.Add( UiState.HideSecondaryHud );
+		hash.Add( UiState.HideTopBar );
+		hash.Add( ZooState.Instance?.Money );
+		hash.Add( ZooState.Instance?.Xp );
+		hash.Add( ZooState.Instance?.Level );
+		hash.Add( ZooState.Instance?.Prestige );
+		hash.Add( Guests );
+		hash.Add( UiState.Revision );
+		hash.Add( UiState.XpPulse );
+		hash.Add( UiState.WelcomeIntroVisible );
+		hash.Add( UiState.ControlsHintVisible );
+		hash.Add( (int)(EconomySystem.Instance?.IncomePerMinute ?? 0f) );
+		hash.Add( PathNetwork.HasGuestAccess );
+		hash.Add( PathNetwork.HasEntrance );
+		hash.Add( HintText );
+		hash.Add( ObjectiveSystem.Instance?.CurrentIndex ?? -1 );
+		hash.Add( ObjectiveSystem.Instance?.GetProgressLabel() ?? "" );
+		hash.Add( PlaceableRegistry.RestroomCount );
+		hash.Add( PlaceableRegistry.RestaurantCount );
+		hash.Add( HabitatRegistry.Count );
+		hash.Add( AnimalRegistry.Count );
+		hash.Add( PlotSystem.Instance?.PlotCount ?? 1 );
+		hash.Add( ZooState.Instance?.TotalAnimalsCaught ?? 0 );
+		hash.Add( ZooState.Instance?.TotalAnimalsBred ?? 0 );
+		hash.Add( TerrainObstacleSystem.Instance?.TotalCleared ?? 0 );
+		hash.Add( (int)(CollectionSystem.Instance?.CompletionPercent ?? 0f) );
+		hash.Add( GuestSystem.Instance?.GuestCount ?? 0 );
+		hash.Add( LandClearActive );
+		hash.Add( (int)(UiState.ObstacleClearPercent * 100f) );
+		hash.Add( DailyBonusSystem.Instance?.LoginStreak ?? 0 );
+		hash.Add( SeasonDayText );
+		hash.Add( PlayerBiomeHash );
+		hash.Add( TimeWeatherText );
+		hash.Add( ZooState.Instance?.Xp ?? 0 );
+		hash.Add( _settings.MasterVolume );
+		hash.Add( _settings.GuestRevenueMultiplier );
+		return hash.ToHashCode();
+	}
+}

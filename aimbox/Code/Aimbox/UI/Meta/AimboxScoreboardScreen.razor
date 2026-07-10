@@ -1,0 +1,337 @@
+@using Sandbox
+@using Sandbox.UI
+@inherits PanelComponent
+@namespace Sandbox
+
+<root class="aimbox-scoreboard @(Visible ? "visible" : "hidden") @(ShowPauseTabs ? "with-pause-tabs" : "")">
+	@if ( Visible )
+	{
+	<div class="scoreboard-vignette decor"></div>
+
+	@if ( Scoreboard is null )
+	{
+		<div class="scoreboard-empty">Scoreboard unavailable.</div>
+	}
+	else
+	{
+		<div class="scoreboard-shell">
+			<div class="scoreboard-header">
+				<div class="header-left">
+					<div class="header-title">// SCOREBOARD</div>
+					<div class="header-subtitle">@Scoreboard.Subtitle</div>
+				</div>
+
+				@if ( Scoreboard.IsTeamLayout && AlphaColumn is not null && BravoColumn is not null )
+				{
+					<div class="header-scores">
+						<div class="team-score tone-alpha">
+							<div class="team-score-value">@FormatScore(AlphaColumn.TeamScore)</div>
+							<div class="team-score-label">@AimboxScoreboardUiHelpers.TeamLabel(AlphaColumn.Team)</div>
+						</div>
+						<div class="header-center">
+							<div class="header-vs">VS</div>
+							<div class="header-timer-label">@TimerCaption</div>
+							<div class="header-timer">@Scoreboard.TimerLabel</div>
+						</div>
+						<div class="team-score tone-bravo">
+							<div class="team-score-value">@FormatScore(BravoColumn.TeamScore)</div>
+							<div class="team-score-label">@AimboxScoreboardUiHelpers.TeamLabel(BravoColumn.Team)</div>
+						</div>
+					</div>
+				}
+				else
+				{
+					<div class="header-scores solo">
+						<div class="header-mode">@Scoreboard.Title.ToUpperInvariant()</div>
+						<div class="header-center">
+							<div class="header-timer-label">@TimerCaption</div>
+							<div class="header-timer">@Scoreboard.TimerLabel</div>
+						</div>
+					</div>
+				}
+
+				<div class="header-splatter decor"></div>
+			</div>
+
+			@if ( Scoreboard.IsTeamLayout )
+			{
+				<div class="team-grid">
+					@foreach ( var column in Scoreboard.TeamColumns )
+					{
+						<div class="team-panel @AimboxScoreboardUiHelpers.TeamToneClass(column.Team)">
+							<div class="team-panel-header">
+								<div class="team-header-main">
+									<div class="team-badge"></div>
+									<div class="team-panel-title">@AimboxScoreboardUiHelpers.RosterLabel(column)</div>
+								</div>
+								<div class="team-stat-header">
+									<div class="col-stat">SCORE</div>
+									<div class="col-stat">KILLS</div>
+									<div class="col-stat">DEATHS</div>
+									<div class="col-stat">K/D</div>
+								</div>
+							</div>
+							<div class="team-rows">
+								@{
+									var rank = 1;
+								}
+								@foreach ( var entry in column.Entries )
+								{
+									var item = entry;
+									var rowRank = rank;
+									rank++;
+									<div class="player-row @(item.IsLocal ? "local" : "")">
+										<div class="row-leading">
+											<div class="row-rank">@rowRank</div>
+											<div class="row-badge">@AimboxScoreboardUiHelpers.PlayerBadge(item)</div>
+											<div class="row-name">@item.Name.ToUpperInvariant()</div>
+										</div>
+										<div class="row-stats">
+											<div class="row-stat">@FormatScore(item.Score)</div>
+											<div class="row-stat">@item.Kills</div>
+											<div class="row-stat">@item.Deaths</div>
+											<div class="row-stat">@AimboxScoreboardUiHelpers.FormatKd(item)</div>
+										</div>
+									</div>
+								}
+							</div>
+						</div>
+					}
+				</div>
+			}
+			else
+			{
+				<div class="solo-panel">
+					<div class="solo-header">
+						<div class="solo-header-label">PLAYERS</div>
+						<div class="team-stat-header">
+							<div class="col-stat">SCORE</div>
+							<div class="col-stat">KILLS</div>
+							<div class="col-stat">DEATHS</div>
+							<div class="col-stat">K/D</div>
+						</div>
+					</div>
+					<div class="solo-rows">
+						@{
+							var rank = 1;
+						}
+						@foreach ( var entry in Scoreboard.Entries )
+						{
+							var item = entry;
+							var rowRank = rank;
+							rank++;
+							<div class="player-row solo @(item.IsLocal ? "local" : "")">
+								<div class="row-leading">
+									<div class="row-rank">@rowRank</div>
+									<div class="row-badge">@AimboxScoreboardUiHelpers.PlayerBadge(item)</div>
+									<div class="row-name">@item.Name.ToUpperInvariant()</div>
+								</div>
+								<div class="row-stats">
+									<div class="row-stat">@FormatScore(item.Score)</div>
+									<div class="row-stat">@item.Kills</div>
+									<div class="row-stat">@item.Deaths</div>
+									<div class="row-stat">@AimboxScoreboardUiHelpers.FormatKd(item)</div>
+								</div>
+							</div>
+						}
+					</div>
+				</div>
+			}
+
+			<div class="scoreboard-footer">
+				<div class="footer-tab">YOUR STATS</div>
+				@if ( LocalStats is not null )
+				{
+					var stats = LocalStats.Value;
+					<div class="footer-stats">
+						<div class="footer-stat">
+							<div class="footer-stat-value">@FormatScore(stats.Score)</div>
+							<div class="footer-stat-label">SCORE</div>
+						</div>
+						<div class="footer-stat">
+							<div class="footer-stat-value">@stats.Kills</div>
+							<div class="footer-stat-label">KILLS</div>
+						</div>
+						<div class="footer-stat">
+							<div class="footer-stat-value">@stats.Deaths</div>
+							<div class="footer-stat-label">DEATHS</div>
+						</div>
+						<div class="footer-stat accent">
+							<div class="footer-stat-value">@AimboxScoreboardUiHelpers.FormatKd(stats)</div>
+							<div class="footer-stat-label">K/D</div>
+						</div>
+					</div>
+				}
+				@if ( IsPostMatchScoreboard )
+				{
+					<button class="scoreboard-continue" onclick="@ContinuePostMatch">CONTINUE</button>
+				}
+			</div>
+		</div>
+	}
+	}
+</root>
+
+@code
+{
+	bool IsPostMatchScoreboard =>
+		AimboxMetaNavigation.IsInIntermission
+		&& AimboxMetaNavigation.IsPostMatchFlow
+		&& Scoreboard?.IsFinal == true;
+
+	bool Visible =>
+		AimboxMetaUiFlags.UseRedesignedScoreboard
+		&& AimboxMetaNavigation.CurrentScreen == AimboxMetaScreen.Scoreboard;
+
+	bool ShowPauseTabs =>
+		AimboxPauseMenuTabsUi.Enabled
+		&& AimboxMetaNavigation.IsInGamePauseMenu;
+
+	AimboxGame Game => AimboxGame.Instance;
+
+	AimboxPlayerController Player => FindPlayer();
+
+	AimboxScoreboardView _scoreboard;
+	int _scoreboardKey;
+
+	AimboxScoreboardView Scoreboard => GetScoreboard();
+
+	AimboxScoreboardView GetScoreboard()
+	{
+		if ( !Visible || Game is null )
+			return null;
+
+		var key = ScoreboardCacheKey();
+		if ( _scoreboard is not null && key == _scoreboardKey )
+			return _scoreboard;
+
+		_scoreboardKey = key;
+		_scoreboard = AimboxScoreboardBuilder.Build( Game );
+		return _scoreboard;
+	}
+
+	int ScoreboardCacheKey()
+	{
+		var match = Game?.Match;
+		if ( match is not { IsRunning: true } )
+			return HashCode.Combine( Game?.Phase, Game?.LastScoreboard?.Entries.Count ?? 0 );
+
+		return ScoreHash();
+	}
+
+	AimboxScoreboardTeamColumn AlphaColumn => TeamColumnByTeam( AimboxTeam.Red, 0 );
+
+	AimboxScoreboardTeamColumn BravoColumn => TeamColumnByTeam( AimboxTeam.Blue, 1 );
+
+	AimboxScoreboardEntry? LocalStats =>
+		Scoreboard is null ? null : AimboxScoreboardUiHelpers.LocalEntry( Scoreboard, Player );
+
+	string TimerCaption => Scoreboard?.IsFinal == true ? "MATCH ENDED" : "TIME REMAINING";
+
+	void ContinuePostMatch() => AimboxMetaNavigation.ContinuePostMatchFromScoreboard();
+
+	protected override void OnUpdate()
+	{
+		if ( !Visible || !IsPostMatchScoreboard )
+			return;
+
+		if ( Input.Pressed( "Jump" ) || Input.Pressed( "Use" ) || Input.Pressed( "Attack1" ) )
+			ContinuePostMatch();
+	}
+
+	static string FormatScore( int value ) => AimboxUiFormat.Score( value );
+
+	protected override int BuildHash()
+	{
+		if ( !Visible )
+			return 0;
+
+		return HashCode.Combine(
+			Visible,
+			ShowPauseTabs,
+			IsPostMatchScoreboard,
+			Game?.Phase,
+			ScoreboardCacheKey(),
+			HashCode.Combine(
+				LocalStats?.Score,
+				LocalStats?.Kills,
+				LocalStats?.Deaths,
+				Scoreboard?.IsFinal,
+				Scoreboard?.Entries.Count ) );
+	}
+
+	int ScoreHash()
+	{
+		var match = Game?.Match;
+		if ( match is null )
+			return 0;
+
+		var hash = new HashCode();
+		AddSortedStringScores( ref hash, match.PlayerScores );
+		AddSortedTeamScores( ref hash, match.TeamScores );
+		AddSortedStringScores( ref hash, match.PlayerKills );
+		AddSortedStringScores( ref hash, match.PlayerDeaths );
+
+		return hash.ToHashCode();
+	}
+
+	AimboxPlayerController FindPlayer()
+	{
+		if ( Game?.Players is null )
+			return null;
+
+		AimboxPlayerController fallback = null;
+		foreach ( var player in Game.Players )
+		{
+			fallback ??= player;
+			if ( !player.IsProxy )
+				return player;
+		}
+
+		return fallback;
+	}
+
+	AimboxScoreboardTeamColumn TeamColumnByTeam( AimboxTeam team, int fallbackIndex )
+	{
+		if ( Scoreboard is null )
+			return null;
+
+		foreach ( var column in Scoreboard.TeamColumns )
+		{
+			if ( column.Team == team )
+				return column;
+		}
+
+		return fallbackIndex >= 0 && fallbackIndex < Scoreboard.TeamColumns.Count
+			? Scoreboard.TeamColumns[fallbackIndex]
+			: null;
+	}
+
+	static void AddSortedStringScores( ref HashCode hash, Dictionary<string, int> values )
+	{
+		var keys = new List<string>();
+		foreach ( var pair in values )
+			keys.Add( pair.Key );
+
+		keys.Sort( string.CompareOrdinal );
+		foreach ( var key in keys )
+		{
+			if ( values.TryGetValue( key, out var value ) )
+				hash.Add( value );
+		}
+	}
+
+	static void AddSortedTeamScores( ref HashCode hash, Dictionary<AimboxTeam, int> values )
+	{
+		var keys = new List<AimboxTeam>();
+		foreach ( var pair in values )
+			keys.Add( pair.Key );
+
+		keys.Sort( ( a, b ) => a.CompareTo( b ) );
+		foreach ( var key in keys )
+		{
+			if ( values.TryGetValue( key, out var value ) )
+				hash.Add( value );
+		}
+	}
+}

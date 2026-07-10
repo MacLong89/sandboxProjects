@@ -1,0 +1,32 @@
+@using Sandbox.UI
+@using Dynasty.UI.ViewModels
+@using Dynasty.Visualization
+@using Dynasty.Core.Enums
+@inherits Panel
+@namespace Dynasty.UI.Components
+@attribute [StyleSheet( "/Dynasty/UI/Components/GameFieldReplay.razor.scss" )]
+
+<root class="game-field-replay">
+	<div class="field-surface">
+		<div class="field-endzone field-endzone-away">AWAY</div>
+		<div class="field-mid">
+			<div class="field-yard-lines"></div>
+			<div class="field-ball @Model.EventClass" style="left: @(Model.BallNormalizedX * 100)%"></div>
+		</div>
+		<div class="field-endzone field-endzone-home">HOME</div>
+	</div>
+	<div class="field-hud">
+		<Label class="field-possession">@Model.PossessionAbbr possession</Label>
+		<Label class="@($"field-event {Model.EventClass}")">@Model.EventLabel</Label>
+		@if ( !string.IsNullOrEmpty( Model.DownDistance ) )
+		{
+			<Label class="muted">@Model.DownDistance</Label>
+		}
+		<Label class="field-score">@Model.ScoreLine</Label>
+	</div>
+</root>
+
+@code
+{
+	[Parameter] public GameFieldReplayViewModel Model { get; set; } = new();
+}

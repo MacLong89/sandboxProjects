@@ -1,0 +1,47 @@
+@using Sandbox
+@using Sandbox.UI
+@inherits PanelComponent
+@namespace Fauna2.UI
+
+<root class="@(UiState.SessionLoading ? "visible" : "")">
+	@if ( UiState.SessionLoading )
+	{
+		<div class="loading-backdrop"></div>
+		<div class="loading-card">
+			<div class="brand-row">
+				<div class="brand-title">FAUNA</div>
+				<div class="brand-accent">2</div>
+			</div>
+			<div class="loading-status">@StatusText</div>
+			<div class="loading-bar">
+				<div class="loading-bar-fill" style="width: @ProgressWidth;"></div>
+			</div>
+			<div class="loading-hint">Preparing your sanctuary…</div>
+		</div>
+	}
+</root>
+
+@code
+{
+	private string StatusText => ZooState.Instance?.ZooName ?? "Loading zoo";
+
+	private string ProgressWidth =>
+		$"{Math.Clamp( (int)(_loadAge * 100f / Math.Max( UiState.LoadingMinSeconds, 0.01f )), 12, 100 )}%";
+
+	private TimeSince _loadAge;
+	private bool _wasLoading;
+
+	protected override void OnUpdate()
+	{
+		if ( UiState.SessionLoading && !_wasLoading )
+			_loadAge = 0f;
+
+		_wasLoading = UiState.SessionLoading;
+	}
+
+	protected override int BuildHash() => System.HashCode.Combine(
+		UiState.SessionLoading,
+		UiState.Revision,
+		StatusText,
+		(int)(_loadAge * 1000f) );
+}

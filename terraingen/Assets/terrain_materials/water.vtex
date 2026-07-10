@@ -1,0 +1,18 @@
+{
+  "Images": null,
+  "Sequences": [
+    {
+      "Source": "terrain_materials/water_1024.png",
+      "IsLooping": true,
+      "FlipBook": false,
+      "Columns": 0,
+      "Rows": 0,
+      "Frames": 1
+    }
+  ],
+  "InputColorSpace": "SRGB",
+  "OutputFormat": "DXT5",
+  "OutputColorSpace": "SRGB",
+  "OutputMipAlgorithm": "None",
+  "OutputTypeString": "2D"
+}

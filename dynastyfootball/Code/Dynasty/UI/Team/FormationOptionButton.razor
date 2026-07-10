@@ -1,0 +1,24 @@
+@using Sandbox.UI
+@using Dynasty.Data
+@inherits Panel
+@namespace Dynasty.UI.Team
+
+<Button class="@ButtonClass" Text="@Label" onclick=@HandleClick />
+
+@code
+{
+	[Parameter] public string Label { get; set; } = "";
+	[Parameter] public bool IsSelected { get; set; }
+	[Parameter] public FormationType FormationType { get; set; }
+	[Parameter] public Action<FormationType> OnSelect { get; set; }
+
+	string ButtonClass => IsSelected ? "btn primary small formation-pill active" : "btn secondary small formation-pill";
+
+	void HandleClick()
+	{
+		if ( OnSelect == null )
+			return;
+
+		OnSelect.Invoke( FormationType );
+	}
+}

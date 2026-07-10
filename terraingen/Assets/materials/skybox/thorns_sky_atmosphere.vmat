@@ -1,0 +1,14 @@
+// Procedural atmosphere sky — no equirectangular seam (driven by ThornsAtmosphere + directional sun).
+
+Layer0
+{
+	shader "shaders/thorns_atmosphere_sky.shader"
+	SkyHorizonDay "0.56 0.76 0.98"
+	SkyZenithDay "0.11 0.30 0.58"
+	SkyHorizonTwilight "1.0 0.42 0.12"
+	SkyZenithTwilight "0.78 0.22 0.08"
+	SkyHorizonNight "0.012 0.014 0.028"
+	SkyZenithNight "0.003 0.004 0.010"
+	SunDiscColorDay "1.0 0.75 0.0"
+	SunDiscColorTwilight "1.0 0.35 0.05"
+}

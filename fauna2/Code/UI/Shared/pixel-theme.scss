@@ -1,0 +1,25 @@
+@font-face {
+	font-family: "Fauna Pixel";
+	src: url("/ui/fonts/VT323-Regular.ttf");
+}
+
+$pixel-bg-dark: #3b240c;
+$pixel-bg-panel: #e8c170;
+$pixel-bg-panel-dark: #c9a04a;
+$pixel-border: #8b5a2b;
+$pixel-border-light: #d4a85a;
+$pixel-text: #3b240c;
+$pixel-text-light: #f5e6c8;
+$pixel-accent: #6ab04c;
+$pixel-accent-dark: #4a7c32;
+$pixel-danger: #c0392b;
+
+@mixin pix-icon($name) {
+	width: 22px;
+	height: 22px;
+	background-image: url("/ui/icons/#{$name}.png");
+	background-size: contain;
+	background-repeat: no-repeat;
+	image-rendering: pixelated;
+	flex-shrink: 0;
+}

@@ -1,0 +1,22 @@
+@using Sandbox.UI
+@inherits Panel
+@namespace Dynasty.UI.Components
+@attribute [StyleSheet( "/Dynasty/UI/Components/ProposeTradeButton.razor.scss" )]
+
+<Button class="@ButtonClass" Text="Propose Trade" onclick=@HandleClick />
+
+@code
+{
+	[Parameter] public bool IsReady { get; set; }
+	[Parameter] public Action OnPropose { get; set; }
+
+	string ButtonClass => IsReady ? "btn primary trade-submit-btn" : "btn primary trade-submit-btn not-ready";
+
+	void HandleClick()
+	{
+		if ( !IsReady || OnPropose == null )
+			return;
+
+		OnPropose.Invoke();
+	}
+}

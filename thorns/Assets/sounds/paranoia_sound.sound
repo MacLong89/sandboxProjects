@@ -1,0 +1,22 @@
+{
+  "UI": true,
+  "Volume": "1",
+  "Pitch": "0.98 1.02",
+  "Decibels": 58,
+  "SelectionMode": "Random",
+  "Sounds": [
+    "sounds/paranoia_sound.mp3"
+  ],
+  "Occlusion": false,
+  "AirAbsorption": false,
+  "Transmission": false,
+  "OcclusionRadius": 64,
+  "DistanceAttenuation": false,
+  "Distance": 100000,
+  "Falloff": [
+    { "x": 0, "y": 1, "in": 0, "out": 0, "mode": "Mirrored" },
+    { "x": 1, "y": 0, "in": 0, "out": 0, "mode": "Mirrored" }
+  ],
+  "__references": [],
+  "__version": 1
+}

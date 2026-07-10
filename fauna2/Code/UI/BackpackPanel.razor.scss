@@ -1,0 +1,167 @@
+@import "Shared/window.scss";
+
+BackpackPanel {
+	position: absolute;
+	width: 100%;
+	height: 100%;
+	pointer-events: none;
+
+	.backdrop {
+		position: absolute;
+		width: 100%;
+		height: 100%;
+		background: rgba(4, 8, 4, 0.45);
+		pointer-events: all;
+	}
+
+	.backpack-window {
+		position: absolute;
+		left: 50%;
+		top: 50%;
+		transform: translate(-50%, -50%);
+		width: 360px;
+		flex-direction: column;
+		padding: 0 0 14px 0;
+		background: rgb(16, 22, 16);
+		border: 1px solid rgba(123, 201, 111, 0.35);
+		border-radius: 14px;
+		overflow: hidden;
+		pointer-events: all;
+		font-family: Poppins;
+		color: #eef3ec;
+
+		.icon { font-family: "Material Icons"; }
+
+		.window-header {
+			flex-direction: row;
+			align-items: center;
+			gap: 10px;
+			padding: 14px 16px;
+			background: rgba(123, 201, 111, 0.1);
+			border-bottom: 1px solid rgba(123, 201, 111, 0.2);
+			flex-shrink: 0;
+
+			> .icon { font-size: 22px; color: #7bc96f; }
+			.window-title { font-size: 17px; font-weight: 700; flex-grow: 1; }
+			.key-hint {
+				font-size: 10px;
+				font-weight: 700;
+				padding: 2px 7px;
+				border-radius: 6px;
+				color: #9fb09a;
+				background: rgba(255, 255, 255, 0.06);
+				border: 1px solid rgba(123, 201, 111, 0.2);
+			}
+			.close {
+				width: 28px;
+				height: 28px;
+				border-radius: 8px;
+				justify-content: center;
+				align-items: center;
+				cursor: pointer;
+				@include ui-transition;
+				&:hover { background: rgba(255, 255, 255, 0.08); }
+			}
+		}
+
+		.section-label {
+			font-size: 10px;
+			font-weight: 700;
+			letter-spacing: 0.8px;
+			text-transform: uppercase;
+			color: #7bc96f;
+			padding: 12px 16px 6px 16px;
+		}
+
+		.carry-slots {
+			flex-direction: row;
+			gap: 10px;
+			padding: 0 16px;
+		}
+
+		.carry-slot {
+			flex-direction: column;
+			align-items: center;
+			flex-grow: 1;
+			gap: 6px;
+			padding: 12px 10px;
+			border-radius: 10px;
+			border: 1px solid rgba(123, 201, 111, 0.2);
+			background: rgba(255, 255, 255, 0.03);
+
+			&.filled {
+				border-color: rgba(123, 201, 111, 0.45);
+				background: rgba(123, 201, 111, 0.1);
+			}
+
+			&.empty .slot-label { color: #6d7a68; }
+
+			.icon { font-size: 22px; color: #cfdcc9; }
+			.slot-label {
+				font-size: 12px;
+				font-weight: 600;
+				text-align: center;
+				max-width: 120px;
+			}
+
+			.place-btn {
+				margin-top: 2px;
+				padding: 4px 10px;
+				border-radius: 8px;
+				font-size: 11px;
+				font-weight: 700;
+				color: #b3e08a;
+				background: rgba(123, 201, 111, 0.18);
+				border: 1px solid rgba(123, 201, 111, 0.35);
+				cursor: pointer;
+				@include ui-transition;
+				&:hover {
+					background: rgba(123, 201, 111, 0.3);
+					color: white;
+				}
+			}
+		}
+
+		.tool-counts {
+			flex-direction: row;
+			gap: 8px;
+			padding: 0 16px;
+		}
+
+		.tool-chip {
+			flex-direction: row;
+			align-items: center;
+			gap: 8px;
+			flex-grow: 1;
+			padding: 8px 10px;
+			border-radius: 10px;
+			background: rgba(255, 255, 255, 0.04);
+			border: 1px solid rgba(123, 201, 111, 0.15);
+
+			&.missing {
+				border-color: rgba(240, 120, 120, 0.35);
+				.tool-meta { color: #f0a0a0; }
+			}
+
+			.icon { font-size: 18px; color: #7bc96f; }
+			.tool-body { flex-direction: column; gap: 1px; }
+			.tool-name { font-size: 11px; font-weight: 700; }
+			.tool-meta { font-size: 10px; color: #9fb09a; }
+		}
+
+		.footer-hint {
+			margin-top: 12px;
+			padding: 0 16px;
+			font-size: 11px;
+			color: #76856f;
+			text-align: center;
+
+			.key {
+				padding: 1px 5px;
+				border-radius: 4px;
+				background: rgba(255, 255, 255, 0.06);
+				color: #b9c7b4;
+			}
+		}
+	}
+}

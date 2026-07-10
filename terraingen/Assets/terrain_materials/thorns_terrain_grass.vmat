@@ -1,0 +1,14 @@
+
+Layer0
+{
+	shader "shaders/complex.shader_c"
+
+	TextureColor "terrain_materials/grass_new_blend.png"
+	TextureAmbientOcclusion "materials/default/default_ao.tga"
+	TextureNormal "materials/default/default_normal.tga"
+	TextureRoughness "terrain_materials/grass_rough.png"
+
+	g_flRoughnessScaleFactor "0.92"
+	g_vColorTint "[0.72 1.06 0.58 1]"
+	g_flAmbientOcclusionDirectDiffuse "0.54"
+}

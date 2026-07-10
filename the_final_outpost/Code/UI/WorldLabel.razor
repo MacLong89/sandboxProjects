@@ -1,0 +1,15 @@
+@using Sandbox
+@using Sandbox.UI
+@inherits PanelComponent
+@namespace FinalOutpost.UI
+
+<root class="world-label">
+	<div class="wl-text">@Text</div>
+</root>
+
+@code
+{
+	public string Text { get; set; } = "";
+
+	protected override int BuildHash() => Text?.GetHashCode() ?? 0;
+}

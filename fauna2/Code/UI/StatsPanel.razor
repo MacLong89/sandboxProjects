@@ -1,0 +1,303 @@
+@using Sandbox
+@using Sandbox.UI
+@inherits PanelComponent
+@namespace Fauna2.UI
+
+<root>
+	@if ( UiState.ActivePage == UiPage.Stats && UiState.GameplayHudVisible )
+	{
+		<div class="window stats-window">
+			<div class="window-header">
+				<i class="icon">analytics</i>
+				<div class="window-title">Zoo Stats</div>
+				<div class="header-hint">TAB</div>
+				<div class="close" onclick=@( () => UiState.Close() )><i class="icon">close</i></div>
+			</div>
+
+			<div class="tabs">
+				@foreach ( var tab in Tabs )
+				{
+					<div class="tab @(_tab == tab ? "active" : "")" onclick=@( () => SelectTab( tab ) )>@tab</div>
+				}
+			</div>
+
+			<div class="items stats-scroll">
+				@if ( _tab == "Overview" )
+				{
+					<div class="summary">
+						<div class="big-stat">
+							<div class="value">@Level</div>
+							<div class="label">Level</div>
+						</div>
+						<div class="xp-block">
+							<div class="xpbar"><div class="fill" style="width: @(XpPercent)%"></div></div>
+							<div class="xp-text">@XpText</div>
+						</div>
+						<div class="big-stat prestige">
+							<div class="value">@Prestige</div>
+							<div class="label">Prestige</div>
+						</div>
+						<div class="big-stat rating">
+							<div class="value">@RatingText</div>
+							<div class="label">Rating</div>
+						</div>
+					</div>
+
+					<div class="stat-grid">
+						<div class="stat-card">
+							<div class="k">Treasury</div>
+							<div class="v money">$@MoneyText</div>
+						</div>
+						<div class="stat-card">
+							<div class="k">Cash flow</div>
+							<div class="v @(IncomeNegative ? "negative" : "positive")">@IncomeRateText/min</div>
+						</div>
+						<div class="stat-card">
+							<div class="k">Lifetime profit</div>
+							<div class="v @(ProfitPositive ? "positive" : "negative")">$@ProfitText</div>
+						</div>
+						<div class="stat-card">
+							<div class="k">Guests now</div>
+							<div class="v">@Guests / @GuestCap</div>
+						</div>
+						<div class="stat-card">
+							<div class="k">Satisfaction</div>
+							<div class="v">@UiFormat.Percent( GuestSystem.Instance?.Satisfaction ?? 0f )</div>
+						</div>
+						<div class="stat-card">
+							<div class="k">Appeal</div>
+							<div class="v">@AppealText</div>
+						</div>
+					</div>
+
+					@if ( Harms.Count > 0 )
+					{
+						var harm = Harms[0];
+						<div class="alert harm clickable" onclick=@( () => OpenInsight( harm ) )>
+							<i class="icon">@harm.Icon</i>
+							<div class="alert-text">
+								<div class="title">@harm.Title</div>
+								<div class="detail">@harm.Detail</div>
+							</div>
+							<div class="action">@ActionLabel( harm )</div>
+						</div>
+					}
+					else if ( Wants.Count > 0 )
+					{
+						var want = Wants[0];
+						<div class="alert want clickable" onclick=@( () => OpenInsight( want ) )>
+							<i class="icon">@want.Icon</i>
+							<div class="alert-text">
+								<div class="title">@want.Title</div>
+								<div class="detail">@want.Detail</div>
+							</div>
+							<div class="action">@ActionLabel( want )</div>
+						</div>
+					}
+				}
+				else if ( _tab == "Finances" )
+				{
+					<div class="section-title">Cash flow</div>
+					<div class="rows">
+						<div class="row"><div class="k">Treasury balance</div><div class="v money">$@MoneyText</div></div>
+						<div class="row"><div class="k">Guest revenue</div><div class="v positive">+$@RevenueText / min</div></div>
+						<div class="row"><div class="k">Operating costs</div><div class="v negative">−$@ExpenseText / min</div></div>
+						<div class="row total"><div class="k">Net cash flow</div><div class="v @(IncomeNegative ? "negative" : "positive")">@IncomeRateText / min</div></div>
+						<div class="row formula"><div class="k">Guests spending</div><div class="v mono">@GuestSpendingDetail</div></div>
+					</div>
+
+					<div class="section-title">Lifetime</div>
+					<div class="rows">
+						<div class="row"><div class="k">Total revenue</div><div class="v positive">+$@EarnedText</div></div>
+						<div class="row"><div class="k">Total costs</div><div class="v negative">−$@SpentText</div></div>
+						<div class="row total"><div class="k">Net profit</div><div class="v @(ProfitPositive ? "positive" : "negative")">$@ProfitText</div></div>
+					</div>
+
+					<div class="hint-text">Operating costs cover staff, animal care and maintenance. Grow guest revenue with animals, paths and amenities before costs outpace you.</div>
+				}
+				else if ( _tab == "Guests" )
+				{
+					<div class="guests-tab">
+					<div class="guest-header">
+						<div class="stars">
+							@for ( var i = 1; i <= 5; i++ )
+							{
+								<i class="icon star @(i <= FullStars ? "filled" : "")">star</i>
+							}
+							<div class="rating-number">@RatingText</div>
+						</div>
+						<div class="sub">@GuestSubline</div>
+					</div>
+
+					<div class="section-title">Satisfaction breakdown</div>
+					<div class="rows compact">
+						<div class="row"><div class="k">Habitat quality</div><div class="v">@HabitatScoreText <span class="weight">(30%)</span></div></div>
+						<div class="row"><div class="k">Cleanliness</div><div class="v">@CleanlinessText <span class="weight">(20%)</span></div></div>
+						<div class="row"><div class="k">Species variety</div><div class="v">@VarietyText <span class="weight">(15%)</span></div></div>
+						<div class="row"><div class="k">Restrooms &amp; restaurants</div><div class="v">@AmenityText <span class="weight">(35%)</span></div></div>
+					</div>
+
+					<div class="section-title">Hurting your rating</div>
+					@if ( Harms.Count == 0 )
+					{
+						<div class="hint-text good">No major issues — guests are happy with the basics.</div>
+					}
+					else
+					{
+						<div class="insights compact">
+							@foreach ( var item in Harms )
+							{
+								<div class="insight harm clickable" onclick=@( () => OpenInsight( item ) )>
+									<i class="icon">@item.Icon</i>
+									<div class="info">
+										<div class="name">@item.Title</div>
+										<div class="desc">@item.Detail</div>
+									</div>
+									<div class="action">@ActionLabel( item )</div>
+								</div>
+							}
+						</div>
+					}
+
+					<div class="section-title">What guests want</div>
+					<div class="wants-scroll">
+						<div class="insights wants">
+							@foreach ( var item in Wants )
+							{
+								<div class="insight @(item.IsPositive ? "want" : "harm") clickable" onclick=@( () => OpenInsight( item ) )>
+									<i class="icon">@item.Icon</i>
+									<div class="info">
+										<div class="name">@item.Title</div>
+										<div class="desc">@item.Detail</div>
+									</div>
+									<div class="action">@ActionLabel( item )</div>
+								</div>
+							}
+						</div>
+					</div>
+					</div>
+				}
+			</div>
+		</div>
+	}
+</root>
+
+@code
+{
+	private string _tab = "Overview";
+
+	private static readonly string[] Tabs = { "Overview", "Finances", "Guests" };
+
+	private string ZooName => ZooState.Instance?.ZooName ?? "Zoo";
+	private int Level => ZooState.Instance?.Level ?? 1;
+	private int Prestige => ZooState.Instance?.Prestige ?? 0;
+	private int Guests => GuestSystem.Instance?.GuestCount ?? 0;
+	private int PeakGuests => GuestSystem.Instance?.PeakGuests ?? 0;
+	private int GuestCap => PlotSystem.Instance?.GuestCap ?? 0;
+	private string MoneyText => $"{ZooState.Instance?.Money ?? 0:n0}";
+	private string IncomeRateText
+	{
+		get
+		{
+			var income = ZooStatsReport.IncomePerMinute;
+			return income >= 0f ? $"+${income:0}" : $"−${Math.Abs( income ):0}";
+		}
+	}
+
+	private bool IncomeNegative => ZooStatsReport.IncomePerMinute < 0f;
+	private string RevenueText => $"{ZooStatsReport.RevenuePerMinute:0}";
+	private string ExpenseText => $"{ZooStatsReport.ExpensePerMinute:0}";
+	private string EarnedText => $"{ZooState.Instance?.TotalEarned ?? 0:n0}";
+	private string SpentText => $"{ZooState.Instance?.TotalSpent ?? 0:n0}";
+	private string ProfitText => $"{ZooStatsReport.LifetimeProfit:n0}";
+	private bool ProfitPositive => ZooStatsReport.LifetimeProfit >= 0;
+
+	private string GuestSpendingDetail
+	{
+		get
+		{
+			var guestCount = Guests;
+			var satisfaction = GuestSystem.Instance?.Satisfaction ?? 0f;
+			var satMult = GuestRevenue.SatisfactionMultiplier( satisfaction );
+			var difficulty = GuestRevenue.Multiplier;
+			var perMin = GuestRevenue.PerMinute( guestCount, satisfaction );
+
+			return $"{guestCount} × $0.052/s × {satMult:0.00} ({satisfaction:0}% sat) × {difficulty:0.00} = ${perMin:0}/min";
+		}
+	}
+
+	private string AppealText => $"{GuestSystem.Instance?.Appeal ?? 0f:0}";
+	private string RatingText => $"{GuestSystem.Instance?.ZooRating ?? 0f:0.0}";
+	private int FullStars => (int)MathF.Round( GuestSystem.Instance?.ZooRating ?? 0f );
+
+	private string GuestSubline =>
+		$"{UiFormat.Percent( GuestSystem.Instance?.Satisfaction ?? 0f )} satisfaction · {Guests:n0} guests · peak {PeakGuests:n0}";
+
+	private float XpPercent
+	{
+		get
+		{
+			var state = ZooState.Instance;
+			if ( state is null ) return 0f;
+			if ( state.Level >= GameConstants.MaxLevel ) return 100f;
+			return state.Xp * 100f / ZooState.XpForLevel( state.Level );
+		}
+	}
+
+	private string XpText
+	{
+		get
+		{
+			var state = ZooState.Instance;
+			if ( state is null ) return "0";
+			if ( state.Level >= GameConstants.MaxLevel ) return "MAX level";
+			return $"{state.Xp} / {ZooState.XpForLevel( state.Level )} XP";
+		}
+	}
+
+	private string HabitatScoreText =>
+		$"{(HabitatRegistry.Count > 0 ? HabitatRegistry.AverageScore() : 50f):0} / 100";
+
+	private string CleanlinessText => UiFormat.Percent( GuestSystem.Instance?.Cleanliness ?? 0f );
+
+	private string VarietyText
+	{
+		get
+		{
+			var species = AnimalRegistry.DistinctSpeciesCount();
+			return $"{species} species";
+		}
+	}
+
+	private string AmenityText
+	{
+		get
+		{
+			if ( Guests <= 0 ) return "—";
+			var g = GuestSystem.Instance;
+			return $"Restrooms {UiFormat.Percent( g?.RestroomCoverage ?? 0f )} · Food {UiFormat.Percent( g?.RestaurantCoverage ?? 0f )} · Shops {UiFormat.Percent( g?.ShopCoverage ?? 0f )}";
+		}
+	}
+
+	private IReadOnlyList<GuestInsight> Harms => ZooStatsReport.GetRatingHarms();
+	private IReadOnlyList<GuestInsight> Wants => ZooStatsReport.GetGuestWants();
+	private IReadOnlyList<LeaderboardRow> Standings => ZooStatsReport.GetLocalStandings();
+
+	private void SelectTab( string tab )
+	{
+		_tab = tab;
+		StateHasChanged();
+	}
+
+	private void OpenInsight( GuestInsight insight ) => InsightNavigator.Open( insight );
+
+	private static string ActionLabel( GuestInsight insight ) => InsightNavigator.ActionLabel( insight );
+
+	protected override int BuildHash() => System.HashCode.Combine(
+		(int)UiState.ActivePage, UiState.Revision, _tab,
+		System.HashCode.Combine(
+			ZooState.Instance?.Money, ZooState.Instance?.TotalEarned, ZooState.Instance?.TotalSpent,
+			ZooState.Instance?.Xp, Level, Prestige,
+			Guests, System.HashCode.Combine(
+				GuestSystem.Instance?.Satisfaction, GuestSystem.Instance?.ZooRating ) ) );
+}

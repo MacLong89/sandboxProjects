@@ -1,0 +1,17 @@
+// Solid stone albedo — no external PNG (avoids pink error when texture file is missing).
+Layer0
+{
+	shader "shaders/complex.shader_c"
+
+	g_flModelTintAmount "1.000"
+	g_vColorTint "[1.000000 1.000000 1.000000 0.000000]"
+	TextureColor "[0.480000 0.470000 0.440000 1.000000]"
+
+	TextureAmbientOcclusion "materials/default/default_ao.tga"
+	TextureNormal "materials/default/default_normal.tga"
+	TextureRoughness "materials/default/default_rough.tga"
+
+	g_vTexCoordOffset "[0.000 0.000]"
+	g_vTexCoordScale "[1.000 1.000]"
+	g_vTexCoordScrollSpeed "[0.000 0.000]"
+}

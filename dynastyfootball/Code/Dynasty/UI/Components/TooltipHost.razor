@@ -1,0 +1,68 @@
+@using System
+@using Sandbox
+@using Sandbox.UI
+@using Dynasty.UI.Management
+@inherits Panel
+@namespace Dynasty.UI.Components
+@attribute [StyleSheet( "/Dynasty/UI/Components/TooltipHost.razor.scss" )]
+
+<root class="tooltip-host-root">
+	@if ( _tooltip != null )
+	{
+		<div class="tooltip-host ui-anim-fade" style="@StylePosition()">
+			<Label class="tooltip-text">@_tooltip.Text</Label>
+		</div>
+	}
+</root>
+
+@code
+{
+	DynastyTooltipRequest _tooltip;
+	int _lastToken = -1;
+	bool _subscribed;
+
+	protected override int BuildHash()
+	{
+		if ( !_subscribed )
+		{
+			_subscribed = true;
+			DynastyUiManager.Instance.StateChanged += OnUiChanged;
+		}
+
+		var mgr = DynastyUiManager.Instance;
+		if ( mgr.ChangeToken == _lastToken )
+			return _lastToken;
+
+		_lastToken = mgr.ChangeToken;
+		_tooltip = mgr.ShouldShowTooltips ? mgr.Tooltip : null;
+		return HashCode.Combine( _lastToken, _tooltip?.Text );
+	}
+
+	void OnUiChanged() => StateHasChanged();
+
+	string StylePosition()
+	{
+		if ( _tooltip == null )
+			return "";
+
+		const float offset = 14f;
+		const float margin = 12f;
+		const float maxWidth = 280f;
+
+		var screenW = Screen.Width;
+		var screenH = Screen.Height;
+		var x = _tooltip.ScreenX + offset;
+		var y = _tooltip.ScreenY + offset;
+
+		if ( x + maxWidth > screenW - margin )
+			x = MathF.Max( margin, _tooltip.ScreenX - maxWidth - offset );
+
+		if ( y + 80f > screenH - margin )
+			y = MathF.Max( margin, _tooltip.ScreenY - 60f );
+
+		x = MathF.Max( margin, x );
+		y = MathF.Max( margin, y );
+
+		return $"left: {x}px; top: {y}px; z-index: {DynastyUiManager.Instance.GetZIndex( DynastyUiPriority.Tooltip )};";
+	}
+}

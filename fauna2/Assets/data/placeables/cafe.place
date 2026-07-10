@@ -1,0 +1,13 @@
+{
+	"DisplayName": "Cafe",
+	"Description": "Coffee and snacks for guests.",
+	"Category": "Utility",
+	"Cost": 1800,
+	"UnlockLevel": 3,
+	"IsRestaurant": true,
+	"GuestsServed": 30,
+	"CollectIncomePerMinute": 52,
+	"Footprint": "256,384",
+	"GridSnap": 64,
+	"Visuals": [{ "Model": "models/dev/box.vmdl", "Scale": "1,1,1" }]
+}

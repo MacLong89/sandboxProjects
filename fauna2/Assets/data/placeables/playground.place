@@ -1,0 +1,43 @@
+{
+	"DisplayName": "Playground",
+	"Description": "Families linger longer — satisfaction and spending both rise.",
+	"Category": "Decorations",
+	"Cost": 900,
+	"UnlockLevel": 6,
+	"AppealBonus": 10,
+	"Footprint": "256,384",
+	"GridSnap": 64,
+	"RotationStep": 90,
+	"Visuals": [
+		{
+			"Model": "models/dev/box.vmdl",
+			"Offset": "0,0,4",
+			"Scale": "4.8,4.8,0.12",
+			"Tint": "0.82,0.78,0.42,1"
+		},
+		{
+			"Model": "models/dev/box.vmdl",
+			"Offset": "-60,0,24",
+			"Scale": "0.5,0.5,0.9",
+			"Tint": "0.95,0.28,0.32,1"
+		},
+		{
+			"Model": "models/dev/box.vmdl",
+			"Offset": "60,0,24",
+			"Scale": "0.5,0.5,0.9",
+			"Tint": "0.28,0.58,0.95,1"
+		},
+		{
+			"Model": "models/dev/box.vmdl",
+			"Offset": "0,60,18",
+			"Scale": "1.2,0.4,0.35",
+			"Tint": "0.32,0.78,0.48,1"
+		},
+		{
+			"Model": "models/dev/sphere.vmdl",
+			"Offset": "0,-50,36",
+			"Scale": "0.7,0.7,0.7",
+			"Tint": "0.98,0.58,0.18,1"
+		}
+	]
+}

@@ -1,0 +1,283 @@
+@using Sandbox
+@using Sandbox.UI
+@using RunGun
+@inherits PanelComponent
+@namespace RunGun.UI
+
+<root>
+	@if ( Core is not null )
+	{
+		@if ( Phase == GamePhase.Running )
+		{
+			<div class="run-hud">
+				<div class="stat coins">
+					<i class="icon">payments</i>
+					<span>@Format(Core.Run.Coins)</span>
+				</div>
+
+				<div class="center-stats">
+					<div class="distance">@((int)Core.Run.DistanceMeters)m</div>
+					<div class="score">@((int)Core.Run.Score) pts</div>
+				</div>
+
+				<div class="build-strip">
+					@foreach ( var chip in BuildChips )
+					{
+						<div class="build-chip" style="border-color: @chip.Color.Hex;">
+							<i class="icon">@chip.Icon</i>
+							<span>@chip.Text</span>
+						</div>
+					}
+				</div>
+
+				@if ( Core.Run.ComboCount > 1 )
+				{
+					<div class="combo">@($"x{Core.Run.ComboCount} COMBO")</div>
+				}
+
+				<div class="overdrive">
+					<div class="overdrive-label">
+						<i class="icon">flash_on</i>
+						@(Core.Run.OverdriveActive ? "OVERDRIVE" : "SPACE — Overdrive")
+					</div>
+					<div class="overdrive-track">
+						<div class="overdrive-fill @(Core.Run.OverdriveActive ? "active" : "")" style="width: @(OverdrivePercent)%;"></div>
+					</div>
+				</div>
+
+				<div class="crew @(CrewFlashClass)">
+					@if ( Core.Run.Shield > 0f )
+					{
+						<div class="shield-tag">+@((int)Core.Run.Shield) shield</div>
+					}
+					<div class="crew-count">
+						<i class="icon">groups</i>
+						<span>@SquadCount</span>
+					</div>
+					<div class="crew-label">CREW</div>
+				</div>
+
+				<div class="missions">
+					@foreach ( var mission in Core.Missions.Active )
+					{
+						<div class="mission @(mission.Complete ? "done" : "")">
+							@Core.Missions.FormatDescription(mission) — @mission.Progress / @mission.Def.Target
+						</div>
+					}
+				</div>
+
+				<div class="hint">A / D strafe &nbsp;·&nbsp; grow your crew at gates &nbsp;·&nbsp; dodge red walls &nbsp;·&nbsp; SPACE overdrive</div>
+			</div>
+		}
+
+		@if ( Phase == GamePhase.Start && !ShopOpen && !CharacterSelectOpen )
+		{
+			<div class="screen">
+				<div class="panel">
+					<div class="title">RUN <span class="amp">&amp;</span> GUN</div>
+					<div class="subtitle">Grow your crew. Pick the bigger gate. Don't get wrecked.</div>
+					<div class="meta-row">
+						<div class="meta"><span class="k">Best</span><span class="v">@((int)Core.Save.BestDistance)m</span></div>
+						<div class="meta"><span class="k">Score</span><span class="v">@((int)Core.Save.BestScore)</span></div>
+						<div class="meta"><span class="k">Bank</span><span class="v">@Cash</span></div>
+					</div>
+					<div class="daily">
+						<span class="k">Daily:</span> @Core.Daily.ModifierName — @Core.Daily.ModifierDescription
+						@if ( Core.Daily.CompletedToday ) { <span class="done"> ✓</span> }
+					</div>
+					<div class="btn primary" onclick=@Play>PLAY</div>
+					<div class="btn" onclick=@OpenShop>UPGRADES</div>
+					<div class="btn" onclick=@OpenCharacters>RUNNERS</div>
+				</div>
+			</div>
+		}
+
+		@if ( Phase == GamePhase.GameOver && !ShopOpen && !CharacterSelectOpen )
+		{
+			<div class="screen">
+				<div class="panel">
+					<div class="title wrecked">WRECKED</div>
+					<div class="result-row">
+						<div class="result"><span class="k">Distance</span><span class="v">@((int)Core.LastRunDistance)m</span></div>
+						<div class="result"><span class="k">Score</span><span class="v">@((int)Core.LastRunScore)</span></div>
+						<div class="result"><span class="k">Earned</span><span class="v gold">@Format(Core.LastRunReward)</span></div>
+					</div>
+					@if ( Core.LastMissionReward > 0 )
+					{
+						<div class="mission-bonus">Mission bonus: @Format(Core.LastMissionReward)</div>
+					}
+					<div class="mission-results">
+						@foreach ( var mission in Core.Missions.Active )
+						{
+							<div class="mission-line @(mission.Complete ? "done" : "")">
+								@(mission.Complete ? "✓" : "○") @Core.Missions.FormatDescription(mission)
+							</div>
+						}
+					</div>
+					<div class="btn primary" onclick=@Play>RUN AGAIN</div>
+					<div class="btn" onclick=@OpenShop>UPGRADES</div>
+					<div class="btn" onclick=@OpenCharacters>RUNNERS</div>
+				</div>
+			</div>
+		}
+
+		@if ( ShopOpen )
+		{
+			<div class="screen">
+				<div class="shop">
+					<div class="shop-header">
+						<div class="shop-title">UPGRADES</div>
+						<div class="shop-cash">@Cash</div>
+						<div class="shop-close" onclick=@CloseShop>✕</div>
+					</div>
+
+					<div class="prestige-row">
+						<div class="prestige-text">Prestige @Core.Save.PrestigeLevel — permanent coin bonus</div>
+						<div class="btn small @(CanPrestige ? "" : "locked")" onclick=@Prestige>ASCEND</div>
+					</div>
+
+					<div class="shop-list">
+						@foreach ( var def in UpgradeSystem.All )
+						{
+							var level = Upgrades.Level( def.Id );
+							var maxed = Upgrades.IsMaxed( def.Id );
+							var cost = Upgrades.NextCost( def.Id );
+							var afford = !maxed && Core.Wallet.Cash >= cost;
+							<div class="up-row @(maxed ? "maxed" : afford ? "afford" : "locked")" onclick=@(() => Buy(def.Id))>
+								<i class="icon up-icon">@def.Icon</i>
+								<div class="up-text">
+									<div class="up-name">@def.Name <span class="up-level">Lv @level / @def.MaxLevel</span></div>
+									<div class="up-desc">@def.Description</div>
+								</div>
+								<div class="up-cost">@(maxed ? "MAX" : Format(cost))</div>
+							</div>
+						}
+					</div>
+
+					<div class="achievements">
+						@foreach ( var ach in AchievementSystem.All )
+						{
+							<div class="ach @(Achievements.IsComplete(ach.Id) ? "done" : "")">
+								<i class="icon">@ach.Icon</i> @ach.Name
+							</div>
+						}
+					</div>
+
+					<div class="btn wide" onclick=@CloseShop>BACK</div>
+				</div>
+			</div>
+		}
+
+		@if ( CharacterSelectOpen )
+		{
+			<div class="screen">
+				<div class="shop">
+					<div class="shop-header">
+						<div class="shop-title">RUNNERS</div>
+						<div class="shop-cash">@Cash</div>
+						<div class="shop-close" onclick=@CloseCharacters>✕</div>
+					</div>
+
+					<div class="shop-list">
+						@foreach ( var character in CharacterSystem.All )
+						{
+							var unlocked = Characters.IsUnlocked( character.Id );
+							var selected = Core.Save.SelectedCharacter == character.Id;
+							var afford = !unlocked && Core.Wallet.Cash >= character.UnlockCost;
+							<div class="up-row @(selected ? "afford" : unlocked ? "" : afford ? "afford" : "locked")" onclick=@(() => PickCharacter(character.Id))>
+								<i class="icon up-icon">@character.Icon</i>
+								<div class="up-text">
+									<div class="up-name">@character.Name @(selected ? "(ACTIVE)" : "")</div>
+									<div class="up-desc">@character.Description</div>
+								</div>
+								<div class="up-cost">@(unlocked ? (selected ? "ACTIVE" : "SELECT") : Format(character.UnlockCost))</div>
+							</div>
+						}
+					</div>
+
+					<div class="btn wide" onclick=@CloseCharacters>BACK</div>
+				</div>
+			</div>
+		}
+	}
+</root>
+
+@code
+{
+	private sealed record BuildChip( string Icon, string Text, Color Color );
+
+	private GameCore Core => GameCore.Instance;
+	private UpgradeSystem Upgrades => Core?.Upgrades;
+	private CharacterSystem Characters => Core?.Characters;
+	private AchievementSystem Achievements => Core?.Achievements;
+
+	private GamePhase Phase => Core?.Phase ?? GamePhase.Start;
+	private bool ShopOpen => Core?.ShopOpen ?? false;
+	private bool CharacterSelectOpen => Core?.CharacterSelectOpen ?? false;
+
+	private string Cash => GameConstants.FormatCash( Core?.Wallet.Cash ?? 0 );
+	private int SquadCount => Core?.Run.SquadInt ?? 0;
+	private string CrewFlashClass => (Core?.Run.SquadFlashTimer ?? 0f) <= 0f
+		? "" : (Core?.Run.LastSquadDelta ?? 0) < 0 ? "hit" : "grow";
+	private int OverdrivePercent => (int)MathF.Round( MathF.Min( 100f, Core?.Run.OverdriveMeter ?? 0f ) );
+	private bool CanPrestige => Core is not null && Core.Save.PrestigeLevel < 10
+		&& UpgradeSystem.All.Sum( u => Upgrades.Level( u.Id ) ) >= 25;
+
+	private IEnumerable<BuildChip> BuildChips
+	{
+		get
+		{
+			if ( Core?.Run is null ) yield break;
+			var run = Core.Run;
+			yield return Chip( BuildStat.Damage, $"{run.Damage:0.#}" );
+			yield return Chip( BuildStat.FireRate, $"x{run.FireRateMult:0.0}" );
+			if ( run.Multishot > 1 ) yield return Chip( BuildStat.Multishot, $"{run.Multishot}" );
+			if ( run.Pierce > 0 ) yield return Chip( BuildStat.Pierce, $"{run.Pierce}" );
+			if ( run.CritChance > 0f ) yield return Chip( BuildStat.CritChance, $"{run.CritChance * 100f:0}%" );
+			if ( run.RunCoinMult > 1f ) yield return Chip( BuildStat.CoinMult, $"x{run.RunCoinMult:0.0}" );
+		}
+	}
+
+	private static BuildChip Chip( BuildStat stat, string text ) =>
+		new( BuildStatPresentation.IconFor( stat ), text, BuildStatPresentation.ColorFor( stat ) );
+
+	private static string Format( double v ) => GameConstants.FormatCash( v );
+
+	private void Play() => Core?.StartRun();
+	private void OpenShop() => Core?.OpenShop();
+	private void CloseShop() => Core?.CloseShop();
+	private void OpenCharacters() => Core?.OpenCharacters();
+	private void CloseCharacters() => Core?.CloseCharacters();
+	private void Buy( UpgradeId id ) => Core?.BuyUpgrade( id );
+	private void Prestige() => Core?.TryPrestige();
+	private void PickCharacter( string id )
+	{
+		if ( Characters.IsUnlocked( id ) ) Core?.SelectCharacter( id );
+		else Core?.UnlockCharacter( id );
+	}
+
+	protected override void OnUpdate()
+	{
+		if ( Core is null ) return;
+		if ( Phase != GamePhase.Running && Input.Pressed( "Score" ) )
+			Core.ToggleShop();
+	}
+
+	protected override int BuildHash() => System.HashCode.Combine(
+		Phase,
+		ShopOpen,
+		CharacterSelectOpen,
+		Core?.Wallet.Cash ?? 0,
+		(int)(Core?.Run.Coins ?? 0),
+		System.HashCode.Combine(
+			(int)(Core?.Run.DistanceMeters ?? 0),
+			(int)(Core?.Run.Damage ?? 0),
+			(int)(Core?.Run.ComboCount ?? 0),
+			(int)(Core?.Run.OverdriveMeter ?? 0),
+			SquadCount,
+			CrewFlashClass,
+			Core?.Run.OverdriveActive ?? false ),
+		(int)(Core?.Save.BestDistance ?? 0),
+		(int)(Core?.Save.BestScore ?? 0)
+	);
+}

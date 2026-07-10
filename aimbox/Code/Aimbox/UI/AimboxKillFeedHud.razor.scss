@@ -1,0 +1,125 @@
+AimboxKillFeedHud, aimboxkillfeedhud, .aimbox-killfeed
+{
+	position: absolute;
+	right: 24px;
+	top: 24px;
+	width: 340px;
+	flex-direction: column;
+	align-items: flex-end;
+	gap: 4px;
+	pointer-events: none;
+	font-family: Poppins;
+	color: #f4f7fb;
+	z-index: 120;
+}
+
+AimboxKillFeedHud.hidden, .aimbox-killfeed.hidden
+{
+	opacity: 0;
+}
+
+AimboxKillFeedHud .killfeed-entry, .aimbox-killfeed .killfeed-entry
+{
+	flex-direction: row;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 8px;
+	padding: 6px 10px;
+	background-color: rgba(8, 8, 12, 0.82);
+	border-right: 3px solid rgba(255, 42, 109, 0.55);
+	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+	font-size: 13px;
+	font-weight: 700;
+	white-space: nowrap;
+}
+
+AimboxKillFeedHud .killer, .aimbox-killfeed .killer,
+AimboxKillFeedHud .victim, .aimbox-killfeed .victim
+{
+	max-width: 120px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+AimboxKillFeedHud .killer.local, .aimbox-killfeed .killer.local,
+AimboxKillFeedHud .victim.local, .aimbox-killfeed .victim.local
+{
+	color: #7dffb2;
+	text-shadow: 0 0 8px rgba(125, 255, 178, 0.35);
+}
+
+AimboxKillFeedHud .killer.friendly, .aimbox-killfeed .killer.friendly,
+AimboxKillFeedHud .victim.friendly, .aimbox-killfeed .victim.friendly
+{
+	color: #6ecbff;
+}
+
+AimboxKillFeedHud .killer.enemy, .aimbox-killfeed .killer.enemy,
+AimboxKillFeedHud .victim.enemy, .aimbox-killfeed .victim.enemy
+{
+	color: #ff8fb0;
+}
+
+AimboxKillFeedHud .killer.neutral, .aimbox-killfeed .killer.neutral,
+AimboxKillFeedHud .victim.neutral, .aimbox-killfeed .victim.neutral
+{
+	color: rgba(255, 255, 255, 0.88);
+}
+
+AimboxKillFeedHud .weapon, .aimbox-killfeed .weapon
+{
+	font-size: 11px;
+	font-weight: 800;
+	letter-spacing: 0.06em;
+	color: rgba(255, 255, 255, 0.55);
+	text-transform: uppercase;
+}
+
+AimboxKillFeedHud .headshot, .aimbox-killfeed .headshot
+{
+	font-size: 10px;
+	font-weight: 900;
+	letter-spacing: 0.08em;
+	color: #ffd166;
+	text-shadow: 0 0 8px rgba(255, 209, 102, 0.45);
+}
+
+.aimbox-killfeed.theme-arcade .killfeed-entry
+{
+	border-right-width: 3px;
+	border-right-color: rgba(255, 42, 109, 0.65);
+	background-color: rgba(8, 8, 12, 0.88);
+	font-size: 13px;
+}
+
+.aimbox-killfeed.theme-spectra .killfeed-entry
+{
+	background-color: rgba(8, 16, 28, 0.78);
+	border-right: 2px solid rgba(120, 210, 255, 0.45);
+	box-shadow: 0 0 12px rgba(120, 210, 255, 0.08);
+	font-size: 12px;
+}
+
+.aimbox-killfeed.theme-spectra .killer.local,
+.aimbox-killfeed.theme-spectra .victim.local
+{
+	color: #fff;
+	text-shadow: 0 0 10px rgba(120, 210, 255, 0.45);
+}
+
+.aimbox-killfeed.theme-spectra .killer.friendly,
+.aimbox-killfeed.theme-spectra .victim.friendly
+{
+	color: #b8d8f8;
+}
+
+.aimbox-killfeed.theme-spectra .killer.enemy,
+.aimbox-killfeed.theme-spectra .victim.enemy
+{
+	color: #ff8fb0;
+}
+
+.aimbox-killfeed.theme-spectra .weapon
+{
+	color: rgba(138, 180, 216, 0.72);
+}

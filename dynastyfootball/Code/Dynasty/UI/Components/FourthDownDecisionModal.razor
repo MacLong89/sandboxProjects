@@ -1,0 +1,27 @@
+@using Sandbox.UI
+@using Dynasty.UI.Management
+@inherits Panel
+@namespace Dynasty.UI.Components
+@attribute [StyleSheet( "/Dynasty/UI/Components/FourthDownDecisionModal.razor.scss" )]
+
+<root class="fourth-down-modal-root">
+	<div class="ui-modal-backdrop ui-anim-fade" style="@UiModalHelpers.ZIndexStyle( UiWindowType.FourthDownDecision )">
+		<div class="ui-modal-card fourth-down-modal" @onmousedown='@UiModalHelpers.StopPropagation'>
+			<Label class="ceremony-kicker">4TH &amp; 1</Label>
+			<Label class="modal-title">Call the play</Label>
+			<Label class="muted">Pick a tactic before the snap — your call gives a small edge in simulation.</Label>
+			<div class="modal-actions spread">
+				<Button class="btn primary" Text="Run Heavy" onclick='@(() => Choose( "runHeavy" ))' />
+				<Button class="btn primary" Text="Pass Heavy" onclick='@(() => Choose( "passHeavy" ))' />
+				<Button class="btn primary" Text="Blitz" onclick='@(() => Choose( "blitz" ))' />
+			</div>
+		</div>
+	</div>
+</root>
+
+@code
+{
+	[Parameter] public Action<string> OnChoose { get; set; }
+
+	void Choose( string choice ) => OnChoose?.Invoke( choice );
+}

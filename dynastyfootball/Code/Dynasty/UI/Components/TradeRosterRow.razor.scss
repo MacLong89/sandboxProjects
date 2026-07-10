@@ -1,0 +1,43 @@
+TradeRosterRow,
+.trade-row
+{
+	flex-direction: row;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	padding: 10px 14px;
+	border-bottom: 1px solid #243044;
+	cursor: pointer;
+	flex-shrink: 0;
+	width: 100%;
+
+	&.selected
+	{
+		background-color: #13233d;
+		border-left: 3px solid #34c759;
+	}
+
+	Label
+	{
+		pointer-events: none;
+	}
+
+	Label:first-child
+	{
+		flex-grow: 1;
+		min-width: 0;
+		font-weight: 600;
+		color: white;
+		white-space: nowrap;
+		overflow: hidden;
+	}
+
+	Label.muted
+	{
+		width: 56px;
+		flex-shrink: 0;
+		text-align: right;
+		font-size: 13px;
+		color: #8b9cb3;
+	}
+}

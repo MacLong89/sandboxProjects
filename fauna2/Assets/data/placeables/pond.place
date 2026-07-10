@@ -1,0 +1,21 @@
+{
+	"DisplayName": "Pond",
+	"Description": "Fresh water for drinking and splashing. Every habitat wants one.",
+	"Category": "Nature",
+	"Cost": 250,
+	"UnlockLevel": 1,
+	"AppealBonus": 1,
+	"EnrichmentValue": 4,
+	"IsWater": true,
+	"Footprint": "160,160",
+	"GridSnap": 64,
+	"RotationStep": 45,
+	"Visuals": [
+		{
+			"Model": "models/dev/sphere.vmdl",
+			"Offset": "0,0,2",
+			"Scale": "3.0,2.4,0.12",
+			"Tint": "0.18,0.62,0.92,1"
+		}
+	]
+}

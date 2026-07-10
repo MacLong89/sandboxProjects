@@ -1,0 +1,520 @@
+@using Sandbox
+@using Sandbox.UI
+@inherits PanelComponent
+@namespace Sandbox
+
+<root class="aimbox-loadouts @(Visible ? "visible" : "hidden") @(InMatchLoadouts ? "with-pause-tabs" : "")">
+	@if ( Visible )
+	{
+	<div class="loadouts-vignette decor"></div>
+
+	@if ( Session.CurrentLoadout is null || PlayerData is null )
+	{
+		<div class="loadouts-empty">Loadout data unavailable.</div>
+	}
+	else
+	{
+		<div class="loadouts-layout">
+			<div class="loadouts-sidebar">
+				<div class="sidebar-title">// LOADOUTS</div>
+
+				<div class="sidebar-profile">
+					<div class="profile-badge"><div class="profile-badge-inner"></div></div>
+					<div class="profile-copy">
+						<div class="profile-name">@DisplayName</div>
+						<div class="profile-level">LEVEL @PlayerData.PlayerLevel</div>
+						<div class="profile-xp-track">
+							<div class="profile-xp-fill" style="width: @XpFillWidth();"></div>
+						</div>
+						<div class="profile-xp-label">@XpLabel</div>
+					</div>
+				</div>
+
+				<div class="slot-tabs">
+					@for ( var i = 0; i < AimboxMw2Catalog.LoadoutCount; i++ )
+					{
+						var index = i;
+						var isActive = Session.EditingIndex == index;
+						var isEquipped = PlayerData.ActiveLoadoutIndex == index;
+						<button class="slot-tab @(isActive ? "active" : "") @(isEquipped ? "equipped" : "")"
+							onclick="@(() => SelectSlot(index))">
+							@SlotTabLabel(index)
+						</button>
+					}
+				</div>
+
+				<div class="loadout-rail">
+				@for ( var i = 0; i < PlayerData.Loadouts.Count; i++ )
+				{
+					var index = i;
+					var loadout = PlayerData.Loadouts[index];
+					<button class="loadout-slot-card @(Session.EditingIndex == index ? "active" : "")" onclick="@(() => SelectSlot(index))">
+						<div class="slot-number">@SlotNumberLabel(index)</div>
+						<div class="slot-name">@AimboxLoadoutUiHelpers.LoadoutSlotLabel(index, loadout)</div>
+						<div class="slot-icons">
+							<div class="slot-icon primary" style="@WeaponAccentStyle(loadout.PrimaryWeapon)">@AimboxClassUiHelpers.WeaponShortCode(loadout.PrimaryWeapon)</div>
+							<div class="slot-icon secondary" style="@WeaponAccentStyle(loadout.SecondaryWeapon)">@AimboxClassUiHelpers.WeaponShortCode(loadout.SecondaryWeapon)</div>
+							@if ( PlayerData.ActiveLoadoutIndex == index )
+							{
+								<div class="slot-equipped-star">★</div>
+							}
+						</div>
+					</button>
+				}
+				</div>
+			</div>
+
+			<div class="loadouts-main">
+				<div class="main-splatter decor"></div>
+
+				<div class="loadouts-content">
+			<div class="loadout-center">
+				<div class="center-title">// LOADOUT @SlotNumberLabel(Session.EditingIndex)</div>
+
+				<button class="primary-panel selectable-slot @(Session.ActiveSlot == AimboxLoadoutSlotKind.Primary ? "slot-active" : "")"
+					onclick="@(() => SelectLoadoutSlot(AimboxLoadoutSlotKind.Primary))">
+					<div class="primary-copy">
+						<div class="panel-kicker">PRIMARY WEAPON</div>
+						<div class="weapon-name">@AimboxLoadoutUiHelpers.DisplayWeaponName(Session.CurrentLoadout.PrimaryWeapon)</div>
+						<div class="weapon-level">LEVEL @WeaponLevel(Session.CurrentLoadout.PrimaryWeapon)</div>
+					</div>
+					<div class="primary-visual weapon-thumb" style="@WeaponThumbStyle(Session.CurrentLoadout.PrimaryWeapon)">
+						@if ( !HasWeaponImage(Session.CurrentLoadout.PrimaryWeapon) )
+						{
+							<div class="weapon-code">@AimboxClassUiHelpers.WeaponShortCode(Session.CurrentLoadout.PrimaryWeapon)</div>
+						}
+					</div>
+					<div class="attachment-list">
+						@foreach ( var attachment in CompatibleAttachments( Session.CurrentLoadout.PrimaryWeapon ) )
+						{
+							var equipped = Session.IsAttachmentEquipped( Session.CurrentLoadout.PrimaryWeapon, attachment );
+							var unlocked = Session.IsAttachmentUnlocked( Session.CurrentLoadout.PrimaryWeapon, attachment );
+							<button class="attachment-chip @(equipped ? "equipped" : "") @(!unlocked ? "locked" : "")"
+								disabled="@(!unlocked)"
+								onclick="@(() => ToggleAttachment(Session.CurrentLoadout.PrimaryWeapon, attachment))">
+								@AimboxAttachmentCatalog.Label(attachment)
+							</button>
+						}
+					</div>
+				</button>
+
+				<div class="support-row">
+					<button class="support-card selectable-slot @(Session.ActiveSlot == AimboxLoadoutSlotKind.Secondary ? "slot-active" : "")"
+						onclick="@(() => SelectLoadoutSlot(AimboxLoadoutSlotKind.Secondary))">
+						<div class="support-card-head">
+							<div class="panel-kicker">SECONDARY WEAPON</div>
+							<div class="support-meta">
+								<div class="weapon-name small">@AimboxLoadoutUiHelpers.DisplayWeaponName(Session.CurrentLoadout.SecondaryWeapon)</div>
+								<div class="weapon-level">LEVEL @WeaponLevel(Session.CurrentLoadout.SecondaryWeapon)</div>
+							</div>
+						</div>
+						<div class="support-visual weapon-thumb" style="@WeaponThumbStyle(Session.CurrentLoadout.SecondaryWeapon)">
+							@if ( !HasWeaponImage(Session.CurrentLoadout.SecondaryWeapon) )
+							{
+								<div class="weapon-code small">@AimboxClassUiHelpers.WeaponShortCode(Session.CurrentLoadout.SecondaryWeapon)</div>
+							}
+						</div>
+					</button>
+					<button class="support-card selectable-slot @(Session.ActiveSlot == AimboxLoadoutSlotKind.Lethal ? "slot-active" : "")"
+						onclick="@(() => SelectLoadoutSlot(AimboxLoadoutSlotKind.Lethal))">
+						<div class="support-card-head">
+							<div class="panel-kicker">LETHAL</div>
+							<div class="weapon-name small">@AimboxLoadoutUiHelpers.GrenadeLabel(Session.CurrentLoadout.LethalGrenade)</div>
+						</div>
+						<div class="support-visual grenade-icon">@GrenadeIconSymbol(Session.CurrentLoadout.LethalGrenade)</div>
+					</button>
+					<button class="support-card selectable-slot @(Session.ActiveSlot == AimboxLoadoutSlotKind.Tactical ? "slot-active" : "")"
+						onclick="@(() => SelectLoadoutSlot(AimboxLoadoutSlotKind.Tactical))">
+						<div class="support-card-head">
+							<div class="panel-kicker">TACTICAL</div>
+							<div class="weapon-name small">@AimboxLoadoutUiHelpers.GrenadeLabel(Session.CurrentLoadout.TacticalGrenade)</div>
+						</div>
+						<div class="support-visual grenade-icon">@GrenadeIconSymbol(Session.CurrentLoadout.TacticalGrenade)</div>
+					</button>
+				</div>
+			</div>
+
+			<div class="loadout-side">
+				<div class="side-section">
+					<div class="side-title">// PERKS</div>
+					<div class="perk-slots">
+						@for ( var slot = 1; slot <= 3; slot++ )
+						{
+							var perkSlot = slot;
+							<button class="perk-slot-btn @(Session.ActivePerkSlot == perkSlot ? "active" : "")" onclick="@(() => SelectPerkSlot(perkSlot))">
+								PERK @perkSlot · @PerkSlotName(perkSlot)
+							</button>
+						}
+					</div>
+					<div class="perk-grid">
+						@foreach ( var perk in AimboxMw2Catalog.Perks )
+						{
+							var unlocked = Session.IsPerkUnlocked( perk.Id );
+							var equipped = Session.IsPerkEquipped( perk.Id );
+							<button class="perk-card @(equipped ? "equipped" : "") @(!unlocked ? "locked" : "")"
+								disabled="@(!unlocked)"
+								onclick="@(() => Session.EquipPerk(perk.Id))">
+								<div class="perk-card-title">@perk.Name.ToUpperInvariant()</div>
+								<div class="perk-card-desc">@perk.Description</div>
+							</button>
+						}
+					</div>
+				</div>
+
+				<div class="side-section">
+					<div class="side-title">// FIELD UPGRADE</div>
+					<div class="killstreak-slots">
+						@for ( var slot = 1; slot <= 3; slot++ )
+						{
+							var streakSlot = slot;
+							<button class="perk-slot-btn @(Session.ActiveKillstreakSlot == streakSlot ? "active" : "")" onclick="@(() => SelectKillstreakSlot(streakSlot))">
+								SLOT @streakSlot · @KillstreakSlotName(streakSlot)
+							</button>
+						}
+					</div>
+					@{
+						var activeKillstreakId = ActiveKillstreakId();
+						var fieldUpgrade = AimboxMw2Catalog.GetKillstreak( activeKillstreakId );
+					}
+					<div class="field-upgrade-card">
+						<div class="field-upgrade-title">@(fieldUpgrade?.Name.ToUpperInvariant() ?? "NONE")</div>
+						<div class="field-upgrade-desc">@(fieldUpgrade?.Description ?? $"Select a killstreak for slot {Session.ActiveKillstreakSlot}.")</div>
+						<div class="killstreak-picker">
+							@foreach ( var streak in AimboxMw2Catalog.ImplementedKillstreaks )
+							{
+								var unlocked = Session.IsKillstreakUnlocked( streak.Id );
+								var equipped = Session.IsKillstreakEquipped( streak.Id );
+								<button class="killstreak-chip @(equipped ? "equipped" : "") @(!unlocked ? "locked" : "")"
+									disabled="@(!unlocked)"
+									onclick="@(() => Session.EquipKillstreak(streak.Id))">
+									@streak.Name
+								</button>
+							}
+						</div>
+					</div>
+				</div>
+
+				<div class="side-section side-stats">
+					<div class="weapon-stats">
+						<div class="stats-title">// WEAPON STATS</div>
+						@foreach ( var stat in WeaponStats )
+						{
+							<div class="stat-row">
+								<div class="stat-label">@stat.Label</div>
+								<div class="stat-track">
+									<div class="stat-fill" style="width: @($"{(int)(stat.Fill * 100f)}%");"></div>
+								</div>
+								<div class="stat-value">@stat.Value</div>
+							</div>
+						}
+						<div class="ammo-row">
+							<div class="ammo-box">
+								<div class="ammo-label">ROUNDS</div>
+								<div class="ammo-value">@SelectedWeaponDef.MagazineSize</div>
+							</div>
+							<div class="ammo-box">
+								<div class="ammo-label">RESERVE</div>
+								<div class="ammo-value">@SelectedWeaponDef.ReserveAmmo</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+				</div>
+
+				<div class="loadouts-footer @(Session.EditMode ? "editing" : "")">
+					<div class="footer-categories">
+						@if ( ShowsWeaponCategories )
+						{
+							@foreach ( var category in FooterCategories )
+							{
+								<button class="category-tab @(Session.ActiveCategory == category ? "active" : "")" onclick="@(() => Session.SelectCategory(category))">
+									@AimboxLoadoutUiHelpers.CategoryLabels[category]
+								</button>
+							}
+						}
+						else
+						{
+							<div class="footer-slot-title">@AimboxLoadoutUiHelpers.SlotPickerTitle(Session.ActiveSlot)</div>
+						}
+					</div>
+
+					<div class="footer-main">
+						<div class="weapon-carousel">
+							@if ( ShowsGrenadePicker )
+							{
+								@foreach ( var grenade in AimboxLoadoutUiHelpers.GrenadesForSlot( Session.ActiveSlot ) )
+								{
+									var unlocked = Session.IsGrenadeUnlocked( grenade.Id );
+									var equipped = Session.IsGrenadeEquipped( grenade.Id );
+									<button class="weapon-card grenade-card @(equipped ? "equipped" : "") @(!unlocked ? "locked" : "")"
+										disabled="@(!unlocked)"
+										onclick="@(() => Session.EquipGrenade(grenade.Id))">
+										<div class="weapon-card-thumb grenade-card-thumb">
+											<div class="grenade-icon large">@GrenadeIconSymbol(grenade.Id)</div>
+										</div>
+										<div class="weapon-card-name">@AimboxLoadoutUiHelpers.GrenadeLabel(grenade.Id)</div>
+										<div class="weapon-card-level">LVL @WeaponLevel(grenade.WeaponId)</div>
+										@if ( equipped )
+										{
+											<div class="weapon-card-equipped">EQUIPPED</div>
+										}
+										else if ( !unlocked )
+										{
+											<div class="weapon-card-lock">LOCKED</div>
+										}
+									</button>
+								}
+							}
+							else
+							{
+								@foreach ( var weaponId in AimboxLoadoutUiHelpers.WeaponsInCategory( Session.ActiveCategory ) )
+								{
+									var unlocked = Session.IsWeaponUnlocked( weaponId );
+									var equipped = IsWeaponEquipped( weaponId );
+									<button class="weapon-card @(equipped ? "equipped" : "") @(!unlocked ? "locked" : "")"
+										disabled="@(!unlocked)"
+										onclick="@(() => Session.EquipWeapon(weaponId))">
+										<div class="weapon-card-thumb weapon-thumb" style="@WeaponThumbStyle(weaponId)">
+											@if ( !HasWeaponImage(weaponId) )
+											{
+												<div class="weapon-code small">@AimboxClassUiHelpers.WeaponShortCode(weaponId)</div>
+											}
+										</div>
+										<div class="weapon-card-name">@AimboxLoadoutUiHelpers.DisplayWeaponName(weaponId)</div>
+										<div class="weapon-card-level">LVL @WeaponLevel(weaponId)</div>
+										@if ( equipped )
+										{
+											<div class="weapon-card-equipped">EQUIPPED</div>
+										}
+										else if ( !unlocked )
+										{
+											<div class="weapon-card-lock">LOCKED</div>
+										}
+									</button>
+								}
+							}
+						</div>
+					</div>
+
+					<div class="footer-actions">
+						<button class="action-btn primary" onclick="@ToggleEditMode">@(Session.EditMode ? "DONE EDITING" : "EDIT LOADOUT")</button>
+						<button class="action-btn" onclick="@SaveLoadout">SAVE LOADOUT</button>
+						@if ( !InMatchLoadouts )
+						{
+							@if ( Session.IsEditingLoadoutEquipped() )
+							{
+								<button class="action-btn equipped" disabled>EQUIPPED</button>
+							}
+							else
+							{
+								<button class="action-btn accent" onclick="@EquipLoadout">EQUIP LOADOUT</button>
+							}
+						}
+					</div>
+				</div>
+			</div>
+		</div>
+	}
+	}
+</root>
+
+@code
+{
+	readonly AimboxLoadoutEditorSession Session = AimboxLoadoutEditorSession.Shared;
+	int _lastScreenKey;
+
+	bool ShowsWeaponCategories =>
+		Session.ActiveSlot == AimboxLoadoutSlotKind.Primary;
+
+	bool ShowsGrenadePicker =>
+		Session.ActiveSlot is AimboxLoadoutSlotKind.Lethal or AimboxLoadoutSlotKind.Tactical;
+
+	IEnumerable<AimboxLoadoutWeaponCategory> FooterCategories =>
+		AimboxLoadoutUiHelpers.PrimaryCategories;
+
+	bool Visible =>
+		AimboxMetaUiFlags.UseRedesignedLoadouts
+		&& AimboxMetaNavigation.CurrentScreen == AimboxMetaScreen.CreateClass;
+
+	bool InMatchLoadouts =>
+		Visible
+		&& !AimboxMetaNavigation.IsInIntermission
+		&& AimboxGame.Instance?.Phase == AimboxSessionPhase.Playing;
+
+	AimboxPlayerController Player => FindPlayer();
+
+	AimboxPlayerData PlayerData => Player?.Data;
+
+	string DisplayName => AimboxLoadoutUiHelpers.PlayerDisplayName( Player );
+	string XpLabel => PlayerData is null ? $"0 / {AimboxXpSystem.XpStepForLevel( 1 ):N0} XP" : AimboxLoadoutUiHelpers.XpLabel( PlayerData );
+	string XpFillWidth() => PlayerData is null ? "0%" : AimboxLoadoutUiHelpers.XpFillWidth( PlayerData );
+
+	AimboxWeaponDefinition SelectedWeaponDef
+	{
+		get
+		{
+			if ( Session.CurrentLoadout is null )
+				return AimboxWeapons.Get( AimboxWeaponId.M4A1 );
+
+			var id = Session.ActiveSlot switch
+			{
+				AimboxLoadoutSlotKind.Secondary => Session.CurrentLoadout.SecondaryWeapon,
+				AimboxLoadoutSlotKind.Lethal => AimboxLoadoutUiHelpers.GrenadeWeaponId( Session.CurrentLoadout.LethalGrenade ),
+				AimboxLoadoutSlotKind.Tactical => AimboxLoadoutUiHelpers.GrenadeWeaponId( Session.CurrentLoadout.TacticalGrenade ),
+				_ => Session.CurrentLoadout.PrimaryWeapon
+			};
+
+			return AimboxWeapons.Get( id );
+		}
+	}
+
+	IReadOnlyList<AimboxLoadoutUiHelpers.WeaponStat> WeaponStats =>
+		AimboxLoadoutUiHelpers.BuildWeaponStats( SelectedWeaponDef );
+
+	protected override void OnStart() => SyncSession();
+
+	protected override void OnUpdate() => SyncSession();
+
+	void SyncSession()
+	{
+		if ( !Visible )
+			return;
+
+		var key = HashCode.Combine( Visible, PlayerData?.TotalXp, PlayerData?.ActiveLoadoutIndex, AimboxMetaNavigation.CurrentScreen );
+		if ( key == _lastScreenKey )
+			return;
+
+		_lastScreenKey = key;
+		Session.ResetFromPlayer();
+	}
+
+	void SelectSlot( int index ) => Session.SelectLoadout( index );
+
+	void SelectLoadoutSlot( AimboxLoadoutSlotKind slot ) => Session.SelectLoadoutSlot( slot );
+
+	void SelectPerkSlot( int slot ) => Session.ActivePerkSlot = Math.Clamp( slot, 1, 3 );
+
+	void SelectKillstreakSlot( int slot ) => Session.ActiveKillstreakSlot = Math.Clamp( slot, 1, 3 );
+
+	void ToggleAttachment( AimboxWeaponId weapon, AimboxAttachmentId attachment ) =>
+		Session.ToggleAttachment( weapon, attachment );
+
+	void ToggleEditMode() => Session.EditMode = !Session.EditMode;
+
+	void SaveLoadout() => Session.SaveLoadout();
+
+	void EquipLoadout() => Session.EquipLoadout();
+
+	static string SlotTabLabel( int index ) => (index + 1).ToString( "00" );
+	static string SlotNumberLabel( int index ) => (index + 1).ToString( "00" );
+
+	string WeaponAccentStyle( AimboxWeaponId id ) =>
+		$"background-color: {AimboxClassUiHelpers.WeaponAccent( id )};";
+
+	string WeaponThumbStyle( AimboxWeaponId id ) => AimboxClassUiHelpers.WeaponThumbStyle( id );
+
+	bool HasWeaponImage( AimboxWeaponId id ) => AimboxClassUiHelpers.HasWeaponUiImage( id );
+
+	AimboxKillstreakId ActiveKillstreakId() => Session.CurrentLoadout switch
+	{
+		null => AimboxKillstreakId.None,
+		_ => Session.ActiveKillstreakSlot switch
+		{
+			1 => Session.CurrentLoadout.Killstreak1,
+			2 => Session.CurrentLoadout.Killstreak2,
+			_ => Session.CurrentLoadout.Killstreak3
+		}
+	};
+
+	static string GrenadeIconSymbol( string grenadeId )
+	{
+		var label = AimboxLoadoutUiHelpers.GrenadeLabel( grenadeId );
+		return label switch
+		{
+			"FRAG" => "+",
+			"FLASH" => "!!",
+			"SEMTEX" => "S",
+			"NONE" => "—",
+			_ => label.Length <= 2 ? label : label[..2]
+		};
+	}
+
+	int WeaponLevel( AimboxWeaponId id ) =>
+		PlayerData is null ? 1 : AimboxLoadoutUiHelpers.WeaponMasteryLevel( PlayerData, id );
+
+	bool IsWeaponEquipped( AimboxWeaponId id )
+	{
+		if ( Session.CurrentLoadout is null )
+			return false;
+
+		return Session.ActiveSlot switch
+		{
+			AimboxLoadoutSlotKind.Secondary => Session.CurrentLoadout.SecondaryWeapon == id,
+			AimboxLoadoutSlotKind.Primary => Session.CurrentLoadout.PrimaryWeapon == id,
+			_ => Session.CurrentLoadout.PrimaryWeapon == id || Session.CurrentLoadout.SecondaryWeapon == id
+		};
+	}
+
+	string PerkSlotName( int slot ) => Session.CurrentLoadout switch
+	{
+		null => "EMPTY",
+		_ => slot switch
+		{
+			1 => PerkName( Session.CurrentLoadout.Perk1 ),
+			2 => PerkName( Session.CurrentLoadout.Perk2 ),
+			_ => PerkName( Session.CurrentLoadout.Perk3 )
+		}
+	};
+
+	string KillstreakSlotName( int slot ) => Session.CurrentLoadout switch
+	{
+		null => "EMPTY",
+		_ => slot switch
+		{
+			1 => KillstreakName( Session.CurrentLoadout.Killstreak1 ),
+			2 => KillstreakName( Session.CurrentLoadout.Killstreak2 ),
+			_ => KillstreakName( Session.CurrentLoadout.Killstreak3 )
+		}
+	};
+
+	static string PerkName( AimboxPerkId id ) =>
+		id == AimboxPerkId.None ? "EMPTY" : AimboxMw2Catalog.GetPerk( id )?.Name ?? "UNKNOWN";
+
+	static string KillstreakName( AimboxKillstreakId id ) =>
+		id == AimboxKillstreakId.None ? "EMPTY" : AimboxMw2Catalog.GetKillstreak( id )?.Name ?? "UNKNOWN";
+
+	static IEnumerable<AimboxAttachmentId> CompatibleAttachments( AimboxWeaponId weapon ) =>
+		AimboxAttachmentCatalog.GetCompatibleAttachments( weapon );
+
+	AimboxPlayerController FindPlayer()
+	{
+		var players = AimboxGame.Instance?.Players;
+		if ( players is null )
+			return null;
+
+		AimboxPlayerController fallback = null;
+		foreach ( var player in players )
+		{
+			fallback ??= player;
+			if ( !player.IsProxy )
+				return player;
+		}
+
+		return fallback;
+	}
+
+	protected override int BuildHash()
+	{
+		if ( !Visible )
+			return 0;
+
+		return HashCode.Combine(
+			Visible,
+			InMatchLoadouts,
+			Session.BuildHash(),
+			PlayerData?.TotalXp,
+			PlayerData?.PlayerLevel,
+			PlayerData?.ActiveLoadoutIndex );
+	}
+}

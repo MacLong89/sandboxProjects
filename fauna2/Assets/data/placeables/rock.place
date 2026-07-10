@@ -1,0 +1,20 @@
+{
+	"DisplayName": "Boulder",
+	"Description": "A sun-warmed perch and natural enrichment.",
+	"Category": "Nature",
+	"Cost": 80,
+	"UnlockLevel": 1,
+	"AppealBonus": 0.5,
+	"EnrichmentValue": 2,
+	"Footprint": "80,80",
+	"GridSnap": 64,
+	"RotationStep": 45,
+	"Visuals": [
+		{
+			"Model": "models/dev/sphere.vmdl",
+			"Offset": "0,0,14",
+			"Scale": "1.2,1.0,0.6",
+			"Tint": "0.58,0.56,0.62,1"
+		}
+	]
+}

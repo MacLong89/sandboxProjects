@@ -1,0 +1,50 @@
+@using Sandbox
+@using Sandbox.UI
+@inherits PanelComponent
+@namespace Sandbox
+
+<root class="aimbox-pause-tabs @(Visible ? "visible" : "hidden")">
+	<div class="pause-tab-row">
+		<button class="pause-tab @(IsActive(AimboxMetaScreen.Scoreboard) ? "active" : "")"
+			onclick="@(() => OpenTab(AimboxMetaScreen.Scoreboard))">
+			SCOREBOARD
+		</button>
+		<button class="pause-tab @(IsActive(AimboxMetaScreen.CreateClass) ? "active" : "")"
+			onclick="@(() => OpenTab(AimboxMetaScreen.CreateClass))">
+			LOADOUTS
+		</button>
+		<button class="pause-tab @(IsActive(AimboxMetaScreen.Barracks) ? "active" : "")"
+			onclick="@(() => OpenTab(AimboxMetaScreen.Barracks))">
+			PROGRESSION
+		</button>
+		<button class="pause-tab leave" onclick="@(() => LeaveMatch())">LEAVE MATCH</button>
+	</div>
+</root>
+
+@code
+{
+	bool Visible =>
+		AimboxPauseMenuTabsUi.Enabled
+		&& AimboxMetaNavigation.IsInGamePauseMenu
+		&& IsPauseTabScreen( AimboxMetaNavigation.CurrentScreen );
+
+	static bool IsPauseTabScreen( AimboxMetaScreen screen ) =>
+		screen is AimboxMetaScreen.Scoreboard
+			or AimboxMetaScreen.CreateClass
+			or AimboxMetaScreen.Barracks;
+
+	bool IsActive( AimboxMetaScreen screen ) =>
+		AimboxMetaNavigation.CurrentScreen == screen;
+
+	void OpenTab( AimboxMetaScreen screen ) => AimboxMetaNavigation.OpenScreen( screen );
+
+	void LeaveMatch()
+	{
+		if ( AimboxGame.Instance?.Phase != AimboxSessionPhase.Playing )
+			return;
+
+		AimboxGame.Instance.EndMatch();
+	}
+
+	protected override int BuildHash() => HashCode.Combine( Visible, AimboxMetaNavigation.CurrentScreen );
+}

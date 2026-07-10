@@ -1,0 +1,149 @@
+{
+  "__guid": "1d77d60c-7d5b-48d5-a7da-1d1fd0f9a001",
+  "GameObjects": [
+    {
+      "__guid": "1d77d60c-7d5b-48d5-a7da-1d1fd0f9a002",
+      "__version": 2,
+      "Flags": 0,
+      "Name": "Scene Information",
+      "Position": "0,0,0",
+      "Rotation": "0,0,0,1",
+      "Scale": "1,1,1",
+      "Tags": "",
+      "Enabled": true,
+      "NetworkMode": 0,
+      "NetworkFlags": 0,
+      "NetworkOrphaned": 0,
+      "NetworkTransmit": false,
+      "OwnerTransfer": 1,
+      "Components": [
+        {
+          "__type": "Sandbox.SceneInformation",
+          "__guid": "1d77d60c-7d5b-48d5-a7da-1d1fd0f9a003",
+          "__enabled": true,
+          "Flags": 0,
+          "Author": null,
+          "Changes": null,
+          "Description": "Thorns main menu — static backdrop image and UI only.",
+          "Group": null,
+          "OnComponentDestroy": null,
+          "OnComponentDisabled": null,
+          "OnComponentEnabled": null,
+          "OnComponentFixedUpdate": null,
+          "OnComponentStart": null,
+          "OnComponentUpdate": null,
+          "SceneTags": "",
+          "Title": "Thorns Main Menu",
+          "Version": null
+        }
+      ],
+      "Children": []
+    },
+    {
+      "__guid": "1d77d60c-7d5b-48d5-a7da-1d1fd0f9a004",
+      "__version": 2,
+      "Flags": 0,
+      "Name": "MainMenuUi",
+      "Position": "0,0,0",
+      "Rotation": "0,0,0,1",
+      "Scale": "1,1,1",
+      "Tags": "",
+      "Enabled": true,
+      "NetworkMode": 0,
+      "NetworkFlags": 0,
+      "NetworkOrphaned": 0,
+      "NetworkTransmit": false,
+      "OwnerTransfer": 1,
+      "Components": [],
+      "Children": []
+    },
+    {
+      "__guid": "1d77d60c-7d5b-48d5-a7da-1d1fd0f9a020",
+      "__version": 2,
+      "Flags": 0,
+      "Name": "MenuCamera",
+      "Position": "0,0,0",
+      "Rotation": "0,0,0,1",
+      "Scale": "1,1,1",
+      "Tags": "",
+      "Enabled": true,
+      "NetworkMode": 0,
+      "NetworkFlags": 0,
+      "NetworkOrphaned": 0,
+      "NetworkTransmit": false,
+      "OwnerTransfer": 1,
+      "Components": [
+        {
+          "__type": "Sandbox.CameraComponent",
+          "__guid": "1d77d60c-7d5b-48d5-a7da-1d1fd0f9a021",
+          "__enabled": true,
+          "Flags": 0,
+          "BackgroundColor": "0.03,0.05,0.09,1",
+          "ClearFlags": "All",
+          "EnablePostProcessing": false,
+          "FieldOfView": 70,
+          "FovAxis": "Horizontal",
+          "IsMainCamera": true,
+          "OnComponentDestroy": null,
+          "OnComponentDisabled": null,
+          "OnComponentEnabled": null,
+          "OnComponentFixedUpdate": null,
+          "OnComponentStart": null,
+          "OnComponentUpdate": null,
+          "Orthographic": false,
+          "OrthographicHeight": 512,
+          "PostProcessAnchor": null,
+          "Priority": 0,
+          "RenderExcludeTags": "",
+          "RenderTags": "",
+          "RenderTexture": null,
+          "TargetEye": "None",
+          "Viewport": "0,0,1,1",
+          "ZFar": 10000,
+          "ZNear": 10
+        }
+      ],
+      "Children": []
+    }
+  ],
+  "SceneProperties": {
+    "NetworkInterpolation": true,
+    "TimeScale": 1,
+    "WantsSystemScene": false,
+    "Metadata": {
+      "Title": "Thorns Main Menu",
+      "Description": "Thorns main menu — static backdrop image and UI only."
+    },
+    "NavMesh": {
+      "Enabled": false,
+      "IncludeStaticBodies": true,
+      "IncludeKeyframedBodies": true,
+      "EditorAutoUpdate": false,
+      "AgentHeight": 64,
+      "AgentRadius": 16,
+      "AgentStepSize": 18,
+      "AgentMaxSlope": 40,
+      "ExcludedBodies": "",
+      "IncludedBodies": "",
+      "DeferGeneration": false,
+      "CustomBounds": false
+    },
+    "GameObjectSystems": {
+      "Sandbox.Clutter.ClutterGridSystem": {
+        "Storage": {
+          "$blob": "bed77fa3-e658-4a3d-b46a-e7035b209ada"
+        }
+      },
+      "Sandbox.SelectionSetsSystem": {
+        "Data": {
+          "SelectionSets": []
+        }
+      }
+    }
+  },
+  "ResourceVersion": 3,
+  "Title": "Thorns Main Menu",
+  "Description": "Thorns main menu — static backdrop image and UI only.",
+  "__references": [],
+  "__version": 3
+}

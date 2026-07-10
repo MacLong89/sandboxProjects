@@ -1,0 +1,24 @@
+@using Sandbox
+@using Sandbox.UI
+@inherits PanelComponent
+@namespace Fauna2.UI
+
+<root>
+	@if ( ShowBackdrop )
+	{
+		<div class="backdrop @(FullDim ? "full" : "inspect")" onclick=@Dismiss></div>
+	}
+</root>
+
+@code
+{
+	private bool GameStarted => UiState.GameplayHudVisible;
+	private bool ShowBackdrop => GameStarted && UiState.ShowModalBackdrop;
+	private bool FullDim => UiState.DebugVisible;
+
+	private void Dismiss() => UiState.DismissFromBackdrop();
+
+	protected override int BuildHash() => System.HashCode.Combine(
+		GameStarted, UiState.ShowModalBackdrop, (int)UiState.ActivePage,
+		UiState.HasInspectOpen, UiState.DebugVisible, UiState.Revision );
+}

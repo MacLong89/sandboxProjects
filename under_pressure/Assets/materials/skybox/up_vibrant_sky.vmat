@@ -1,0 +1,9 @@
+// Vibrant painted-cloud equirect sky for SkyBox2D
+Layer0
+{
+	shader "shaders/sky.shader"
+
+	g_flBrightnessExposureBias "0.350"
+	g_flRenderOnlyExposureBias "0.200"
+	SkyTexture "textures/sky/up_vibrant_sky.png"
+}

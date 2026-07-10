@@ -1,0 +1,171 @@
+// Shared hover, press, and transition patterns for Dynasty UI.
+// Import after DynastyTheme.scss.
+
+$dynasty-transition-fast: 0.12s ease;
+$dynasty-transition-normal: 0.16s ease;
+$dynasty-surface-hover: #1a2d4a;
+$dynasty-surface-active: #0f1f36;
+$dynasty-surface-hover-subtle: #162a45;
+$dynasty-border-hover: rgba( 52, 199, 89, 0.5 );
+$dynasty-border-hover-blue: rgba( 59, 130, 246, 0.55 );
+$dynasty-primary-hover: #3dd968;
+$dynasty-primary-active: #2eb84f;
+$dynasty-danger-hover: #dc2626;
+$dynasty-danger-active: #991b1b;
+
+@mixin dynasty-transition
+{
+	transition: background-color $dynasty-transition-fast,
+		border-color $dynasty-transition-fast,
+		color $dynasty-transition-fast,
+		opacity $dynasty-transition-fast,
+		box-shadow $dynasty-transition-fast,
+		transform $dynasty-transition-fast;
+}
+
+@mixin dynasty-transition-slow
+{
+	transition: background-color $dynasty-transition-normal,
+		border-color $dynasty-transition-normal,
+		color $dynasty-transition-normal,
+		opacity $dynasty-transition-normal,
+		box-shadow $dynasty-transition-normal,
+		transform $dynasty-transition-normal;
+}
+
+@mixin interactive-row
+{
+	@include dynasty-transition;
+	cursor: pointer;
+	pointer-events: all;
+	border-left: 3px solid transparent;
+
+	&:hover
+	{
+		background-color: $dynasty-surface-hover;
+		border-left-color: $dynasty-border-hover;
+	}
+
+	&:active
+	{
+		background-color: $dynasty-surface-active;
+		transform: scale( 0.995 );
+	}
+}
+
+@mixin interactive-card
+{
+	@include dynasty-transition-slow;
+	cursor: pointer;
+	pointer-events: all;
+
+	&:hover
+	{
+		border-color: $dynasty-border-hover;
+		background-color: $dynasty-surface-hover-subtle;
+		transform: translateY( -1px );
+		box-shadow: 0 4px 16px rgba( 0, 0, 0, 0.25 );
+	}
+
+	&:active
+	{
+		transform: translateY( 0 );
+		background-color: $dynasty-surface-active;
+		box-shadow: none;
+	}
+}
+
+@mixin button-interactive-base
+{
+	@include dynasty-transition;
+	cursor: pointer;
+	pointer-events: all;
+
+	&:active:not( :disabled )
+	{
+	}
+
+	&:disabled
+	{
+		opacity: 0.45;
+		cursor: not-allowed;
+	}
+}
+
+@mixin button-primary-states
+{
+	&:hover:not( :disabled )
+	{
+		background-color: $dynasty-primary-hover;
+		border-color: $dynasty-primary-hover;
+		box-shadow: 0 0 12px rgba( 52, 199, 89, 0.35 );
+	}
+
+	&:active:not( :disabled )
+	{
+		background-color: $dynasty-primary-active;
+		border-color: $dynasty-primary-active;
+		transform: scale( 0.97 );
+		box-shadow: none;
+	}
+}
+
+@mixin button-secondary-states
+{
+	&:hover:not( :disabled )
+	{
+		color: white;
+		background-color: $dynasty-surface-hover;
+		border-color: $dynasty-border-hover;
+	}
+
+	&:active:not( :disabled )
+	{
+		background-color: $dynasty-surface-active;
+		transform: scale( 0.97 );
+	}
+}
+
+@mixin button-danger-states
+{
+	&:hover:not( :disabled )
+	{
+		background-color: $dynasty-danger-hover;
+		border-color: $dynasty-danger-hover;
+		color: white;
+	}
+
+	&:active:not( :disabled )
+	{
+		background-color: $dynasty-danger-active;
+		transform: scale( 0.97 );
+	}
+}
+
+@mixin nav-tab-states
+{
+	@include dynasty-transition;
+
+	&:hover:not( .active ):not( :disabled )
+	{
+		color: white;
+		background-color: $dynasty-surface-hover-subtle;
+		border-color: $dynasty-border-hover-blue;
+	}
+
+	&:active:not( :disabled )
+	{
+		transform: scale( 0.98 );
+	}
+}
+
+@mixin text-input-focus
+{
+	@include dynasty-transition;
+
+	&:focus
+	{
+		border-color: $dynasty-accent;
+		box-shadow: 0 0 0 1px rgba( 52, 199, 89, 0.35 );
+	}
+}

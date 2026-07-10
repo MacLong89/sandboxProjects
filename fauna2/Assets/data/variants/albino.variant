@@ -1,0 +1,9 @@
+{
+	"DisplayName": "Albino",
+	"Description": "A snow-white coat and ruby eyes. One of the rarest sights in any zoo.",
+	"RarityWeight": 30,
+	"AppealMultiplier": 2.5,
+	"ValueMultiplier": 3,
+	"Tint": "0.96,0.95,0.92,1",
+	"ApplicableSpecies": []
+}

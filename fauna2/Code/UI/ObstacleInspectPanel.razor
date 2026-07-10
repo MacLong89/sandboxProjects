@@ -1,0 +1,108 @@
+@using Sandbox
+@using Sandbox.UI
+@inherits PanelComponent
+@namespace Fauna2.UI
+
+<root>
+	@if ( ShouldShowPanel && DisplayedObstacle is not null )
+	{
+		var obstacle = DisplayedObstacle;
+		var clearing = UiState.ObstacleClearActive
+			&& UiState.ClearingObstacle?.CellKey == obstacle.CellKey;
+		var pct = (int)(UiState.ObstacleClearPercent * 100f);
+		var pinned = clearing && string.IsNullOrEmpty( UiState.SelectedObstacleCellKey );
+
+		<div class="inspect-window @(pinned ? "pinned" : "")">
+			<div class="inspect-header">
+				<i class="icon type-icon">@TypeIcon( obstacle )</i>
+				<div class="header-text">
+					<div class="name">@TitleFor( obstacle )</div>
+					<div class="sub">Blocks building on this spot</div>
+				</div>
+				<div class="close" onclick=@Close><i class="icon">close</i></div>
+			</div>
+
+			<div class="reward-row">
+				<i class="icon">paid</i>
+				<div class="text">Clear reward: <span class="gold">+$@RewardText</span></div>
+			</div>
+
+			@if ( clearing )
+			{
+				<div class="clear-progress">
+					<div class="progress-head">
+						<div class="label">Clearing...</div>
+						<div class="value">@(pct)%</div>
+					</div>
+					<div class="progress-bar">
+						<div class="fill" style="width: @(pct)%"></div>
+					</div>
+					<div class="progress-hint">@SecondsLeftText</div>
+				</div>
+			}
+			else
+			{
+				<div class="actions">
+					<div class="button primary" onclick=@BeginClear>
+						<i class="icon">forest</i>
+						Clear (+$@RewardText)
+					</div>
+				</div>
+			}
+		</div>
+	}
+</root>
+
+@code
+{
+	private bool GameStarted => UiState.GameplayHudVisible;
+
+	private TerrainObstacleComponent DisplayedObstacle =>
+		UiState.SelectedObstacle ?? (UiState.ObstacleClearActive ? UiState.ClearingObstacle : null );
+
+	private bool ShouldShowPanel =>
+		GameStarted
+		&& !UiState.DebugVisible
+		&& DisplayedObstacle is not null
+		&& (!UiState.IsPageOpen || UiState.ObstacleClearActive);
+
+	private static string RewardText => GameConstants.ObstacleClearReward.ToString( "n0" );
+
+	private string SecondsLeftText
+	{
+		get
+		{
+			var remaining = GameConstants.ObstacleClearSeconds * (1f - UiState.ObstacleClearPercent);
+			return remaining <= 0.1f ? "Almost done" : $"About {MathF.Ceiling( remaining )}s left";
+		}
+	}
+
+	protected override void OnUpdate()
+	{
+		if ( !UiState.ObstacleClearActive && string.IsNullOrEmpty( UiState.SelectedObstacleCellKey ) )
+			return;
+
+		var obstacle = DisplayedObstacle;
+		if ( obstacle is null || !obstacle.IsValid() )
+			UiState.ClearObstacleSelection();
+	}
+
+	private void Close() => UiState.ClearObstacleSelection();
+
+	private void BeginClear() => UiState.BeginObstacleClear();
+
+	private static string TitleFor( TerrainObstacleComponent obstacle ) =>
+		obstacle.ObstacleType == TerrainObstacleType.Tree ? "Tree" : "Rock";
+
+	private static string TypeIcon( TerrainObstacleComponent obstacle ) =>
+		obstacle.ObstacleType == TerrainObstacleType.Tree ? "park" : "landscape";
+
+	protected override int BuildHash() => System.HashCode.Combine(
+		ShouldShowPanel,
+		UiState.Revision,
+		UiState.SelectedObstacleCellKey,
+		UiState.ObstacleClearActive,
+		(int)(UiState.ObstacleClearPercent * 100f),
+		(int)UiState.ActivePage,
+		(int)(UiState.ObstacleClearPercent * 100f) );
+}

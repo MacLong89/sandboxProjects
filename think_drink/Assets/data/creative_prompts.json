@@ -1,0 +1,44 @@
+{
+  "QuipFill": [
+    { "Id": "qf_wedding", "Category": "Awkward", "Prompt": "The worst thing to say at a wedding is ___" },
+    { "Id": "qf_interview", "Category": "Career", "Prompt": "A terrible opening line in a job interview is ___" },
+    { "Id": "qf_funeral", "Category": "Dark Humor", "Prompt": "Something you should never shout at a funeral: ___" },
+    { "Id": "qf_first_date", "Category": "Romance", "Prompt": "The fastest way to ruin a first date is ___" },
+    { "Id": "qf_doctor", "Category": "Medical", "Prompt": "The last thing you want to hear your doctor say is ___" },
+    { "Id": "qf_school", "Category": "School", "Prompt": "The worst excuse for missing homework is ___" },
+    { "Id": "qf_airplane", "Category": "Travel", "Prompt": "Something you should never announce on an airplane: ___" },
+    { "Id": "qf_in_laws", "Category": "Family", "Prompt": "The worst thing to say to your in-laws is ___" },
+    { "Id": "qf_gym", "Category": "Fitness", "Prompt": "An inappropriate thing to yell at the gym is ___" },
+    { "Id": "qf_baby", "Category": "Parenting", "Prompt": "The worst name for a newborn is ___" },
+    { "Id": "qf_court", "Category": "Legal", "Prompt": "Something you should never say to a judge is ___" },
+    { "Id": "qf_space", "Category": "Sci-Fi", "Prompt": "The worst thing to discover on a spaceship is ___" }
+  ],
+  "CaptionThis": [
+    { "Id": "ct_llama", "Category": "Chaos", "Prompt": "A llama stuck in an elevator with a mariachi band" },
+    { "Id": "ct_cat_boss", "Category": "Office", "Prompt": "A cat wearing a tie firing a golden retriever" },
+    { "Id": "ct_grandma", "Category": "Family", "Prompt": "Grandma winning a breakdance battle against teenagers" },
+    { "Id": "ct_pizza", "Category": "Food", "Prompt": "A pizza delivering itself on roller skates" },
+    { "Id": "ct_alien", "Category": "Sci-Fi", "Prompt": "An alien trying to return a blender to Costco" },
+    { "Id": "ct_duck", "Category": "Animals", "Prompt": "A duck in a tuxedo giving a TED talk" },
+    { "Id": "ct_wedding_cake", "Category": "Events", "Prompt": "A wedding cake running away from the reception" },
+    { "Id": "ct_robot", "Category": "Tech", "Prompt": "A robot having an existential crisis at brunch" },
+    { "Id": "ct_pirate", "Category": "Adventure", "Prompt": "A pirate teaching yoga on a cruise ship" },
+    { "Id": "ct_squirrel", "Category": "Nature", "Prompt": "A squirrel negotiating a hostage situation for acorns" },
+    { "Id": "ct_ghost", "Category": "Spooky", "Prompt": "A ghost trying to parallel park a hearse" },
+    { "Id": "ct_knight", "Category": "Fantasy", "Prompt": "A knight in armor stuck in a revolving door" }
+  ],
+  "SketchQuips": [
+    { "Id": "sq_cat_lawyer", "Category": "Doodle", "Prompt": "A cat lawyer defending a dog in court" },
+    { "Id": "sq_toaster", "Category": "Doodle", "Prompt": "A toaster having a midlife crisis on a beach" },
+    { "Id": "sq_penguin", "Category": "Doodle", "Prompt": "A penguin CEO presenting quarterly fish profits" },
+    { "Id": "sq_dragon", "Category": "Doodle", "Prompt": "A dragon afraid of birthday candles" },
+    { "Id": "sq_ufo", "Category": "Doodle", "Prompt": "A UFO stuck in a drive-through line" },
+    { "Id": "sq_cactus", "Category": "Doodle", "Prompt": "A cactus trying to hug people at a support group" },
+    { "Id": "sq_wizard", "Category": "Doodle", "Prompt": "A wizard whose spell only summons ducks" },
+    { "Id": "sq_shark", "Category": "Doodle", "Prompt": "A shark learning to ride a bicycle in a ball pit" },
+    { "Id": "sq_moon", "Category": "Doodle", "Prompt": "The moon complaining about night-shift hours" },
+    { "Id": "sq_sandwich", "Category": "Doodle", "Prompt": "A sandwich running for mayor" },
+    { "Id": "sq_ghost_dog", "Category": "Doodle", "Prompt": "A ghost walking a invisible dog that keeps chasing squirrels" },
+    { "Id": "sq_time", "Category": "Doodle", "Prompt": "A clock trying to break up with its alarm" }
+  ]
+}

@@ -1,0 +1,124 @@
+// Shared utility classes for extracted Panel components (no theme import).
+
+.panel
+{
+	flex-direction: column;
+	gap: 10px;
+	padding: 20px;
+	background-color: #151d2e;
+	border: 1px solid #243044;
+	border-radius: 14px;
+}
+
+.panel-title
+{
+	font-size: 18px;
+	font-weight: 700;
+	color: white;
+}
+
+.panel-subtitle
+{
+	font-size: 14px;
+	font-weight: 600;
+	color: #8b9cb3;
+}
+
+.muted
+{
+	color: #8b9cb3;
+	font-size: 13px;
+}
+
+.tag
+{
+	font-size: 11px;
+	font-weight: 700;
+	padding: 2px 8px;
+	border-radius: 999px;
+	background-color: #1a5c32;
+	color: #34c759;
+}
+
+.clickable
+{
+	cursor: pointer;
+	pointer-events: all;
+}
+
+Button.btn
+{
+	justify-content: center;
+	padding: 10px 16px;
+	font-size: 13px;
+	font-weight: 600;
+	color: #e8eef7;
+	background-color: #111827;
+	border: 1px solid #243044;
+	border-radius: 10px;
+	cursor: pointer;
+
+	&.primary
+	{
+		color: white;
+		background-color: #34c759;
+		border-color: #34c759;
+	}
+
+	&.secondary
+	{
+		color: #e8eef7;
+		background-color: #111827;
+	}
+
+	&.danger
+	{
+		color: white;
+		background-color: #ef4444;
+		border-color: #ef4444;
+	}
+
+	&.small
+	{
+		padding: 6px 10px;
+		font-size: 12px;
+	}
+}
+
+.hero-stat
+{
+	flex-direction: column;
+	align-items: center;
+	gap: 2px;
+	min-width: 72px;
+}
+
+.hero-stat-val
+{
+	font-size: 20px;
+	font-weight: 800;
+	color: white;
+}
+
+.hero-stat-label
+{
+	font-size: 11px;
+	font-weight: 600;
+	color: #8b9cb3;
+	text-transform: uppercase;
+}
+
+.profile-label
+{
+	font-size: 11px;
+	font-weight: 600;
+	color: #8b9cb3;
+	text-transform: uppercase;
+}
+
+.profile-value
+{
+	font-size: 14px;
+	font-weight: 700;
+	color: white;
+}

@@ -1,0 +1,28 @@
+{
+  "Title": "Under Pressure",
+  "Type": "game",
+  "Org": "maclgames",
+  "Ident": "under_pressure",
+  "Schema": 1,
+  "IncludeSourceFiles": false,
+  "Resources": "fonts/*.ttf",
+  "PackageReferences": [
+    "facepunch.van_dev"
+  ],
+  "EditorReferences": null,
+  "Mounts": null,
+  "IsStandaloneOnly": false,
+  "Metadata": {
+    "MaxPlayers": 1,
+    "MinPlayers": 1,
+    "TickRate": 50,
+    "GameNetworkType": "Multiplayer",
+    "MapSelect": "Hidden",
+    "MapList": [],
+    "RankType": "None",
+    "PerMapRanking": false,
+    "LeaderboardType": "None",
+    "CsProjName": "",
+    "StartupScene": "scenes/game.scene"
+  }
+}

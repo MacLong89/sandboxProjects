@@ -1,0 +1,22 @@
+@using Sandbox
+@using Sandbox.UI
+@inherits PanelComponent
+@namespace RunGun.UI
+
+<root class="world-label @(Big ? "big" : "")">
+	<div class="wl-text" style="color: @Accent.Hex;">@Text</div>
+	@if ( !string.IsNullOrEmpty( Sub ) )
+	{
+		<div class="wl-sub" style="color: @Accent.Hex;">@Sub</div>
+	}
+</root>
+
+@code
+{
+	public string Text { get; set; } = "";
+	public string Sub { get; set; } = "";
+	public Color Accent { get; set; } = Color.White;
+	public bool Big { get; set; }
+
+	protected override int BuildHash() => System.HashCode.Combine( Text, Sub, Accent, Big );
+}

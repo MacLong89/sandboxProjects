@@ -1,0 +1,24 @@
+ProposeTradeButton
+{
+	.trade-submit-btn
+	{
+		flex-shrink: 0;
+		min-width: 160px;
+		padding: 10px 16px;
+		font-weight: 600;
+		color: white;
+		background-color: #34c759;
+		border: 1px solid #34c759;
+		border-radius: 10px;
+	}
+
+	.trade-submit-btn.not-ready
+	{
+		opacity: 0.45;
+	}
+}
+
+Button:active
+{
+	sound-in: "sounds/button.sound";
+}

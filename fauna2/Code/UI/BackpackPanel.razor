@@ -1,0 +1,108 @@
+@using Sandbox
+@using Sandbox.UI
+@using Fauna2
+@inherits PanelComponent
+@namespace Fauna2.UI
+
+<root>
+	@if ( GameStarted && UiState.BackpackOpen && IsZooOwner )
+	{
+		<div class="backdrop" onclick=@Close></div>
+		<div class="backpack-window">
+			<div class="window-header">
+				<i class="icon">backpack</i>
+				<div class="window-title">Backpack</div>
+				<div class="key-hint">I</div>
+				<div class="close" onclick=@Close><i class="icon">close</i></div>
+			</div>
+
+			<div class="section-label">Caught animals</div>
+			<div class="carry-slots">
+				@for ( var i = 0; i < PlayerInventory.MaxCarry; i++ )
+				{
+					var slot = i;
+					var speciesId = Inventory?.GetCarriedAt( slot );
+					var hasAnimal = !string.IsNullOrEmpty( speciesId );
+					var def = hasAnimal ? Defs.Animal( speciesId ) : null;
+					<div class="carry-slot @(hasAnimal ? "filled" : "empty")">
+						<i class="icon">@(hasAnimal ? "pets" : "inventory_2")</i>
+						<div class="slot-label">@(def?.DisplayName ?? "Empty")</div>
+						@if ( hasAnimal )
+						{
+							<div class="place-btn" onclick=@( () => PlaceCarried( slot ) )>Place</div>
+						}
+					</div>
+				}
+			</div>
+
+			<div class="section-label">Catch tools</div>
+			<div class="tool-counts">
+				<div class="tool-chip @(HasNet ? "" : "missing")">
+					<i class="icon">cruelty_free</i>
+					<div class="tool-body">
+						<div class="tool-name">Net</div>
+						<div class="tool-meta">@(HasNet ? "Ready" : "Missing")</div>
+					</div>
+				</div>
+				<div class="tool-chip">
+					<i class="icon">restaurant</i>
+					<div class="tool-body">
+						<div class="tool-name">Bait</div>
+						<div class="tool-meta">@BaitCount</div>
+					</div>
+				</div>
+				<div class="tool-chip">
+					<i class="icon">medication</i>
+					<div class="tool-body">
+						<div class="tool-name">Tranq</div>
+						<div class="tool-meta">@TranquilizerCount</div>
+					</div>
+				</div>
+			</div>
+
+			<div class="footer-hint">Press <span class="key">I</span> or <span class="key">Esc</span> to close</div>
+		</div>
+	}
+</root>
+
+@code
+{
+	private bool GameStarted => UiState.GameplayHudVisible;
+	private bool IsZooOwner => PlayerState.Local?.IsZooOwner == true;
+	private PlayerInventory Inventory => PlayerInventory.Local;
+	private bool HasNet => Inventory?.HasNet ?? true;
+	private int BaitCount => Inventory?.BaitCount ?? 0;
+	private int TranquilizerCount => Inventory?.TranquilizerCount ?? 0;
+
+	private void Close()
+	{
+		UiState.PlayClick();
+		UiState.CloseBackpack();
+	}
+
+	private void PlaceCarried( int slot )
+	{
+		UiState.PlayClick();
+		UiState.CloseForPlacement();
+
+		if ( BuildController.Instance?.BeginPlaceCarried( slot ) == true )
+			return;
+
+		UiState.PushToast( "Could not start placement — check your backpack slot.", "block" );
+	}
+
+	protected override int BuildHash()
+	{
+		var hash = new System.HashCode();
+		hash.Add( GameStarted );
+		hash.Add( UiState.BackpackOpen );
+		hash.Add( UiState.Revision );
+		hash.Add( Inventory?.CarriedCount ?? 0 );
+		hash.Add( HasNet );
+		hash.Add( BaitCount );
+		hash.Add( TranquilizerCount );
+		hash.Add( Inventory?.CarriedSpecies0 );
+		hash.Add( Inventory?.CarriedSpecies1 );
+		return hash.ToHashCode();
+	}
+}

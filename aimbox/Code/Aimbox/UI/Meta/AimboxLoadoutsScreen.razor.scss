@@ -1,0 +1,1065 @@
+AimboxLoadoutsScreen, aimboxloadoutsscreen, .aimbox-loadouts
+{
+	position: absolute;
+	left: 0;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	width: 100%;
+	height: 100%;
+	z-index: 315;
+	font-family: Poppins;
+	pointer-events: none;
+	overflow: hidden;
+	color: #f4f4f4;
+}
+
+AimboxLoadoutsScreen.visible, .aimbox-loadouts.visible
+{
+	pointer-events: all;
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+	padding-bottom: 56px;
+}
+
+AimboxLoadoutsScreen.with-pause-tabs.visible, .aimbox-loadouts.with-pause-tabs.visible
+{
+	padding-top: 56px;
+	padding-bottom: 0;
+}
+
+AimboxLoadoutsScreen.with-pause-tabs .loadouts-layout, .aimbox-loadouts.with-pause-tabs .loadouts-layout
+{
+	padding-bottom: 56px;
+}
+
+AimboxLoadoutsScreen.hidden, .aimbox-loadouts.hidden
+{
+	display: none;
+}
+
+AimboxLoadoutsScreen .decor, .aimbox-loadouts .decor
+{
+	pointer-events: none;
+}
+
+AimboxLoadoutsScreen .loadouts-vignette, .aimbox-loadouts .loadouts-vignette
+{
+	position: absolute;
+	left: 0;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	background-color: rgba(6, 6, 8, 0.92);
+	background-image: linear-gradient(90deg, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.55) 28%, rgba(0, 0, 0, 0.35) 100%);
+}
+
+AimboxLoadoutsScreen .loadouts-empty, .aimbox-loadouts .loadouts-empty
+{
+	padding: 48px;
+	font-size: 18px;
+}
+
+AimboxLoadoutsScreen .loadouts-layout, .aimbox-loadouts .loadouts-layout
+{
+	position: relative;
+	z-index: 2;
+	flex-direction: row;
+	width: 100%;
+	height: 100%;
+	min-height: 0;
+}
+
+AimboxLoadoutsScreen .loadouts-sidebar, .aimbox-loadouts .loadouts-sidebar
+{
+	width: 300px;
+	min-width: 300px;
+	flex-direction: column;
+	padding: 28px 20px 20px;
+	background-color: rgba(8, 8, 10, 0.95);
+	border-right: 3px solid rgba(255, 42, 109, 0.35);
+	gap: 16px;
+	flex-shrink: 0;
+	min-height: 0;
+}
+
+AimboxLoadoutsScreen .sidebar-title, .aimbox-loadouts .sidebar-title
+{
+	font-size: 28px;
+	font-weight: 800;
+	letter-spacing: 2px;
+	font-style: italic;
+	flex-shrink: 0;
+}
+
+AimboxLoadoutsScreen .sidebar-profile, .aimbox-loadouts .sidebar-profile
+{
+	flex-direction: row;
+	align-items: center;
+	gap: 14px;
+	padding: 14px;
+	background-color: rgba(255, 255, 255, 0.04);
+	border: 2px solid rgba(255, 255, 255, 0.08);
+	flex-shrink: 0;
+}
+
+AimboxLoadoutsScreen .slot-tabs, .aimbox-loadouts .slot-tabs
+{
+	flex-direction: row;
+	flex-wrap: wrap;
+	gap: 8px;
+	flex-shrink: 0;
+}
+
+AimboxLoadoutsScreen .slot-tab, .aimbox-loadouts .slot-tab
+{
+	min-width: 56px;
+	min-height: 44px;
+	padding: 10px 14px;
+	font-size: 16px;
+	font-weight: 800;
+	color: rgba(255, 255, 255, 0.75);
+	background-color: rgba(255, 255, 255, 0.06);
+	border: 2px solid rgba(255, 255, 255, 0.22);
+	pointer-events: all;
+	cursor: pointer;
+}
+
+AimboxLoadoutsScreen .slot-tab:hover:not(.active), .aimbox-loadouts .slot-tab:hover:not(.active)
+{
+	border-color: rgba(255, 255, 255, 0.45);
+	color: #fff;
+}
+
+AimboxLoadoutsScreen .slot-tab.active, .aimbox-loadouts .slot-tab.active
+{
+	color: #fff;
+	background-color: rgba(255, 42, 109, 0.28);
+	border: 2px solid #ff2a6d;
+	box-shadow: 0 0 14px rgba(255, 42, 109, 0.5);
+}
+
+AimboxLoadoutsScreen .slot-tab.equipped:not(.active), .aimbox-loadouts .slot-tab.equipped:not(.active)
+{
+	border-color: rgba(255, 42, 109, 0.45);
+}
+
+AimboxLoadoutsScreen .profile-badge, .aimbox-loadouts .profile-badge
+{
+	width: 56px;
+	height: 56px;
+	min-width: 56px;
+	background-color: rgba(255, 42, 109, 0.2);
+	border: 2px solid #ff2a6d;
+	transform: rotate(45deg);
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+}
+
+AimboxLoadoutsScreen .profile-badge-inner, .aimbox-loadouts .profile-badge-inner
+{
+	width: 22px;
+	height: 22px;
+	background-color: #f4f4f4;
+	border-radius: 50%;
+	transform: rotate(-45deg);
+}
+
+AimboxLoadoutsScreen .profile-copy, .aimbox-loadouts .profile-copy
+{
+	flex: 1;
+	flex-direction: column;
+	gap: 4px;
+	min-width: 0;
+}
+
+AimboxLoadoutsScreen .profile-name, .aimbox-loadouts .profile-name
+{
+	font-size: 16px;
+	font-weight: 800;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+AimboxLoadoutsScreen .profile-level, .aimbox-loadouts .profile-level
+{
+	font-size: 12px;
+	font-weight: 600;
+	color: rgba(255, 255, 255, 0.65);
+	white-space: nowrap;
+	flex-shrink: 0;
+}
+
+AimboxLoadoutsScreen .profile-xp-track, .aimbox-loadouts .profile-xp-track
+{
+	height: 6px;
+	background-color: rgba(255, 255, 255, 0.12);
+	overflow: hidden;
+}
+
+AimboxLoadoutsScreen .profile-xp-fill, .aimbox-loadouts .profile-xp-fill
+{
+	height: 100%;
+	background-color: #ff2a6d;
+}
+
+AimboxLoadoutsScreen .profile-xp-label, .aimbox-loadouts .profile-xp-label
+{
+	font-size: 11px;
+	color: rgba(255, 255, 255, 0.55);
+	white-space: nowrap;
+}
+
+AimboxLoadoutsScreen .loadout-rail, .aimbox-loadouts .loadout-rail
+{
+	flex: 1;
+	flex-direction: column;
+	gap: 10px;
+	overflow-y: scroll;
+	min-height: 0;
+}
+
+AimboxLoadoutsScreen .loadouts-main, .aimbox-loadouts .loadouts-main
+{
+	flex-grow: 1;
+	flex-direction: column;
+	padding: 28px 32px 24px;
+	background-color: rgba(220, 218, 214, 0.94);
+	color: #141414;
+	overflow-y: scroll;
+	gap: 18px;
+	position: relative;
+	min-width: 0;
+	min-height: 0;
+}
+
+AimboxLoadoutsScreen .loadouts-content, .aimbox-loadouts .loadouts-content
+{
+	flex: 1;
+	flex-direction: row;
+	gap: 16px;
+	min-width: 0;
+	min-height: 0;
+	position: relative;
+	z-index: 1;
+}
+
+AimboxLoadoutsScreen .main-splatter, .aimbox-loadouts .main-splatter
+{
+	position: absolute;
+	right: 24px;
+	top: 8px;
+	width: 180px;
+	height: 180px;
+	border-radius: 50%;
+	background-color: rgba(255, 42, 109, 0.18);
+	z-index: 0;
+	pointer-events: none;
+}
+
+AimboxLoadoutsScreen .loadout-slot-card, .aimbox-loadouts .loadout-slot-card
+{
+	flex-direction: column;
+	gap: 6px;
+	padding: 12px;
+	background-color: rgba(255, 255, 255, 0.04);
+	border: 2px solid rgba(255, 255, 255, 0.08);
+	text-align: left;
+	min-height: 0;
+	align-items: flex-start;
+	justify-content: flex-start;
+}
+
+AimboxLoadoutsScreen .loadout-slot-card.active, .aimbox-loadouts .loadout-slot-card.active
+{
+	border: 2px solid #ff2a6d;
+	background-color: rgba(255, 42, 109, 0.22);
+	box-shadow: 0 0 12px rgba(255, 42, 109, 0.35);
+}
+
+AimboxLoadoutsScreen .slot-number, .aimbox-loadouts .slot-number
+{
+	font-size: 22px;
+	font-weight: 900;
+	color: #ff2a6d;
+}
+
+AimboxLoadoutsScreen .slot-name, .aimbox-loadouts .slot-name
+{
+	font-size: 12px;
+	font-weight: 700;
+	letter-spacing: 1px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+AimboxLoadoutsScreen .slot-icons, .aimbox-loadouts .slot-icons
+{
+	flex-direction: row;
+	align-items: center;
+	gap: 6px;
+}
+
+AimboxLoadoutsScreen .slot-icon, .aimbox-loadouts .slot-icon
+{
+	padding: 4px 6px;
+	font-size: 10px;
+	font-weight: 800;
+	border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+AimboxLoadoutsScreen .slot-equipped-star, .aimbox-loadouts .slot-equipped-star
+{
+	margin-left: auto;
+	color: #ff2a6d;
+	font-size: 14px;
+}
+
+AimboxLoadoutsScreen .loadout-center, .aimbox-loadouts .loadout-center
+{
+	flex: 1;
+	flex-direction: column;
+	gap: 10px;
+	min-width: 0;
+	min-height: 0;
+	position: relative;
+	z-index: 1;
+}
+
+AimboxLoadoutsScreen .center-title, .aimbox-loadouts .center-title
+{
+	font-size: 13px;
+	font-weight: 800;
+	letter-spacing: 2px;
+	color: rgba(0, 0, 0, 0.55);
+	flex-shrink: 0;
+}
+
+AimboxLoadoutsScreen .primary-panel, .aimbox-loadouts .primary-panel
+{
+	flex: 1;
+	flex-direction: row;
+	flex-wrap: nowrap;
+	align-items: stretch;
+	gap: 12px;
+	padding: 14px;
+	background-color: rgba(255, 255, 255, 0.62);
+	border: 3px solid rgba(0, 0, 0, 0.1);
+	min-height: 0;
+	min-width: 0;
+	overflow: hidden;
+	cursor: pointer;
+	transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+AimboxLoadoutsScreen .selectable-slot, .aimbox-loadouts .selectable-slot
+{
+	cursor: pointer;
+	transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+AimboxLoadoutsScreen .selectable-slot.slot-active, .aimbox-loadouts .selectable-slot.slot-active
+{
+	border-color: #ff2a6d;
+	box-shadow: 0 0 0 1px rgba(255, 42, 109, 0.35);
+}
+
+AimboxLoadoutsScreen .primary-panel.selectable-slot, .aimbox-loadouts .primary-panel.selectable-slot,
+AimboxLoadoutsScreen .support-card.selectable-slot, .aimbox-loadouts .support-card.selectable-slot
+{
+	padding: 14px;
+	text-align: left;
+	color: inherit;
+	font-family: Poppins;
+	font-weight: normal;
+}
+
+AimboxLoadoutsScreen .primary-copy, .aimbox-loadouts .primary-copy
+{
+	width: 148px;
+	flex-direction: column;
+	gap: 4px;
+	flex-shrink: 0;
+	min-width: 0;
+}
+
+AimboxLoadoutsScreen .panel-kicker, .aimbox-loadouts .panel-kicker
+{
+	font-size: 10px;
+	font-weight: 800;
+	letter-spacing: 1.5px;
+	color: #ff2a6d;
+	white-space: nowrap;
+	flex-shrink: 0;
+}
+
+AimboxLoadoutsScreen .weapon-name, .aimbox-loadouts .weapon-name
+{
+	font-size: 24px;
+	font-weight: 900;
+	line-height: 1.1;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	min-width: 0;
+	color: #141414;
+}
+
+AimboxLoadoutsScreen .weapon-name.small, .aimbox-loadouts .weapon-name.small
+{
+	font-size: 13px;
+	line-height: 1.2;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+AimboxLoadoutsScreen .weapon-level, .aimbox-loadouts .weapon-level
+{
+	font-size: 11px;
+	font-weight: 700;
+	color: rgba(0, 0, 0, 0.65);
+	white-space: nowrap;
+	flex-shrink: 0;
+}
+
+AimboxLoadoutsScreen .primary-visual, .aimbox-loadouts .primary-visual
+{
+	flex: 1 1 0;
+	min-width: 100px;
+	min-height: 0;
+	align-items: center;
+	justify-content: center;
+	border: 2px solid rgba(0, 0, 0, 0.12);
+	overflow: hidden;
+}
+
+AimboxLoadoutsScreen .weapon-thumb, .aimbox-loadouts .weapon-thumb
+{
+	background-color: rgba(0, 0, 0, 0.35);
+}
+
+AimboxLoadoutsScreen .support-row, .aimbox-loadouts .support-row
+{
+	flex-direction: row;
+	gap: 12px;
+	align-items: stretch;
+	min-width: 0;
+	flex-shrink: 0;
+	height: 118px;
+	min-height: 118px;
+	max-height: 118px;
+}
+
+AimboxLoadoutsScreen .support-card, .aimbox-loadouts .support-card
+{
+	flex: 1 1 0;
+	min-width: 0;
+	padding: 10px;
+	flex-direction: column;
+	gap: 6px;
+	background-color: rgba(255, 255, 255, 0.62);
+	border: 3px solid rgba(0, 0, 0, 0.1);
+	overflow: hidden;
+}
+
+AimboxLoadoutsScreen .support-card.selectable-slot, .aimbox-loadouts .support-card.selectable-slot
+{
+	padding: 10px;
+}
+
+AimboxLoadoutsScreen .support-card-head, .aimbox-loadouts .support-card-head
+{
+	flex-direction: column;
+	gap: 3px;
+	min-width: 0;
+	flex-shrink: 0;
+}
+
+AimboxLoadoutsScreen .support-meta, .aimbox-loadouts .support-meta
+{
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+	align-items: flex-start;
+}
+
+AimboxLoadoutsScreen .support-meta .weapon-level, .aimbox-loadouts .support-meta .weapon-level
+{
+	font-size: 10px;
+	white-space: nowrap;
+	flex-shrink: 0;
+}
+
+AimboxLoadoutsScreen .support-visual, .aimbox-loadouts .support-visual
+{
+	flex: 1;
+	min-height: 0;
+	align-items: center;
+	justify-content: center;
+	border: 2px solid rgba(0, 0, 0, 0.12);
+	overflow: hidden;
+}
+
+AimboxLoadoutsScreen .support-visual.weapon-thumb, .aimbox-loadouts .support-visual.weapon-thumb
+{
+	min-height: 56px;
+}
+
+AimboxLoadoutsScreen .support-visual.grenade-icon, .aimbox-loadouts .support-visual.grenade-icon
+{
+	background-color: rgba(255, 42, 109, 0.1);
+	font-size: 28px;
+	font-weight: 900;
+	line-height: 1;
+	color: #ff2a6d;
+}
+
+AimboxLoadoutsScreen .weapon-code, .aimbox-loadouts .weapon-code
+{
+	font-size: 28px;
+	font-weight: 900;
+	color: #fff;
+}
+
+AimboxLoadoutsScreen .weapon-code.small, .aimbox-loadouts .weapon-code.small
+{
+	font-size: 18px;
+}
+
+AimboxLoadoutsScreen .attachment-list, .aimbox-loadouts .attachment-list
+{
+	width: 156px;
+	flex-direction: column;
+	gap: 5px;
+	flex-shrink: 0;
+	min-height: 0;
+	align-self: stretch;
+	overflow-y: scroll;
+	padding-right: 2px;
+}
+
+AimboxLoadoutsScreen .attachment-chip, .aimbox-loadouts .attachment-chip
+{
+	padding: 7px 8px;
+	font-size: 10px;
+	font-weight: 700;
+	text-align: left;
+	background-color: rgba(255, 255, 255, 0.72);
+	border: 1px solid rgba(0, 0, 0, 0.14);
+	color: rgba(0, 0, 0, 0.78);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	min-width: 0;
+	min-height: 0;
+	flex-shrink: 0;
+}
+
+AimboxLoadoutsScreen .attachment-chip.equipped, .aimbox-loadouts .attachment-chip.equipped
+{
+	background-color: rgba(255, 42, 109, 0.25);
+	border-color: #ff2a6d;
+	color: #fff;
+}
+
+AimboxLoadoutsScreen .attachment-chip.locked, .aimbox-loadouts .attachment-chip.locked
+{
+	opacity: 0.45;
+}
+
+AimboxLoadoutsScreen .loadout-side, .aimbox-loadouts .loadout-side
+{
+	width: 300px;
+	flex-direction: column;
+	gap: 12px;
+	flex-shrink: 0;
+	overflow-y: scroll;
+	min-height: 0;
+	max-height: 100%;
+	min-width: 0;
+	position: relative;
+	z-index: 1;
+}
+
+AimboxLoadoutsScreen .side-section, .aimbox-loadouts .side-section
+{
+	flex-direction: column;
+	gap: 8px;
+	min-width: 0;
+	flex-shrink: 0;
+}
+
+AimboxLoadoutsScreen .side-section.side-stats, .aimbox-loadouts .side-section.side-stats
+{
+	flex-shrink: 0;
+}
+
+AimboxLoadoutsScreen .side-title, .aimbox-loadouts .side-title
+{
+	font-size: 13px;
+	font-weight: 800;
+	letter-spacing: 2px;
+	color: rgba(0, 0, 0, 0.55);
+}
+
+AimboxLoadoutsScreen .perk-slots, .aimbox-loadouts .perk-slots,
+AimboxLoadoutsScreen .killstreak-slots, .aimbox-loadouts .killstreak-slots
+{
+	flex-direction: column;
+	gap: 4px;
+}
+
+AimboxLoadoutsScreen .perk-slot-btn, .aimbox-loadouts .perk-slot-btn
+{
+	padding: 6px 8px;
+	font-size: 11px;
+	font-weight: 700;
+	text-align: left;
+	background-color: rgba(255, 255, 255, 0.62);
+	border: 1px solid rgba(0, 0, 0, 0.14);
+	color: rgba(0, 0, 0, 0.78);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	min-width: 0;
+}
+
+AimboxLoadoutsScreen .perk-slot-btn.active, .aimbox-loadouts .perk-slot-btn.active
+{
+	border-color: #ff2a6d;
+	background-color: rgba(255, 42, 109, 0.18);
+}
+
+AimboxLoadoutsScreen .perk-grid, .aimbox-loadouts .perk-grid
+{
+	flex-direction: column;
+	gap: 6px;
+	max-height: 160px;
+	overflow-y: scroll;
+	min-width: 0;
+}
+
+AimboxLoadoutsScreen .perk-card, .aimbox-loadouts .perk-card
+{
+	width: 100%;
+	min-width: 0;
+	padding: 8px 10px;
+	flex-direction: column;
+	gap: 4px;
+	background-color: rgba(255, 255, 255, 0.62);
+	border: 1px solid rgba(0, 0, 0, 0.14);
+	text-align: left;
+	flex-shrink: 0;
+	color: #141414;
+}
+
+AimboxLoadoutsScreen .perk-card.equipped, .aimbox-loadouts .perk-card.equipped
+{
+	background-color: rgba(255, 42, 109, 0.22);
+	border-color: #ff2a6d;
+}
+
+AimboxLoadoutsScreen .perk-card.locked, .aimbox-loadouts .perk-card.locked
+{
+	opacity: 0.45;
+}
+
+AimboxLoadoutsScreen .perk-card-title, .aimbox-loadouts .perk-card-title
+{
+	font-size: 11px;
+	font-weight: 800;
+	line-height: 1.25;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+AimboxLoadoutsScreen .perk-card-desc, .aimbox-loadouts .perk-card-desc
+{
+	font-size: 10px;
+	line-height: 1.35;
+	color: rgba(0, 0, 0, 0.65);
+	white-space: normal;
+}
+
+AimboxLoadoutsScreen .field-upgrade-card, .aimbox-loadouts .field-upgrade-card
+{
+	padding: 12px;
+	background-color: rgba(255, 255, 255, 0.62);
+	border: 3px solid rgba(0, 0, 0, 0.1);
+	flex-direction: column;
+	color: #141414;
+	gap: 8px;
+	min-width: 0;
+	overflow: hidden;
+}
+
+AimboxLoadoutsScreen .field-upgrade-title, .aimbox-loadouts .field-upgrade-title
+{
+	font-size: 14px;
+	font-weight: 900;
+	line-height: 1.2;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+AimboxLoadoutsScreen .field-upgrade-desc, .aimbox-loadouts .field-upgrade-desc
+{
+	font-size: 11px;
+	line-height: 1.35;
+	color: rgba(0, 0, 0, 0.65);
+	white-space: normal;
+}
+
+AimboxLoadoutsScreen .killstreak-picker, .aimbox-loadouts .killstreak-picker
+{
+	flex-direction: column;
+	gap: 6px;
+	min-width: 0;
+}
+
+AimboxLoadoutsScreen .killstreak-chip, .aimbox-loadouts .killstreak-chip
+{
+	padding: 8px 10px;
+	font-size: 11px;
+	font-weight: 700;
+	color: #141414;
+	background-color: rgba(255, 255, 255, 0.62);
+	border: 2px solid rgba(0, 0, 0, 0.1);
+	text-align: left;
+	white-space: nowrap;
+	overflow: hidden;
+	min-width: 0;
+}
+
+AimboxLoadoutsScreen .killstreak-chip.equipped, .aimbox-loadouts .killstreak-chip.equipped
+{
+	background-color: rgba(255, 42, 109, 0.25);
+	border-color: #ff2a6d;
+}
+
+AimboxLoadoutsScreen .killstreak-chip.locked, .aimbox-loadouts .killstreak-chip.locked
+{
+	opacity: 0.45;
+}
+
+AimboxLoadoutsScreen .loadouts-footer, .aimbox-loadouts .loadouts-footer
+{
+	position: relative;
+	z-index: 2;
+	flex-direction: column;
+	gap: 14px;
+	flex-shrink: 0;
+}
+
+AimboxLoadoutsScreen .footer-categories, .aimbox-loadouts .footer-categories
+{
+	flex-direction: row;
+	flex-wrap: wrap;
+	gap: 8px;
+	align-items: center;
+}
+
+AimboxLoadoutsScreen .footer-slot-title, .aimbox-loadouts .footer-slot-title
+{
+	padding: 8px 12px;
+	font-size: 11px;
+	font-weight: 800;
+	letter-spacing: 1.5px;
+	color: #141414;
+	background-color: rgba(255, 255, 255, 0.62);
+	border: 2px solid rgba(0, 0, 0, 0.1);
+}
+
+AimboxLoadoutsScreen .category-tab, .aimbox-loadouts .category-tab
+{
+	padding: 8px 12px;
+	font-size: 11px;
+	font-weight: 800;
+	letter-spacing: 1px;
+	color: #141414;
+	background-color: rgba(255, 255, 255, 0.62);
+	border: 2px solid rgba(0, 0, 0, 0.1);
+}
+
+AimboxLoadoutsScreen .category-tab.active, .aimbox-loadouts .category-tab.active
+{
+	background-color: #ff2a6d;
+	border-color: #ff2a6d;
+	color: #fff;
+}
+
+AimboxLoadoutsScreen .footer-main, .aimbox-loadouts .footer-main
+{
+	flex-direction: row;
+	gap: 12px;
+	align-items: stretch;
+	min-width: 0;
+}
+
+AimboxLoadoutsScreen .weapon-carousel, .aimbox-loadouts .weapon-carousel
+{
+	flex: 1;
+	flex-direction: row;
+	flex-wrap: wrap;
+	gap: 10px;
+	min-width: 0;
+	min-height: 0;
+}
+
+AimboxLoadoutsScreen .weapon-card, .aimbox-loadouts .weapon-card
+{
+	width: 120px;
+	padding: 8px;
+	flex-direction: column;
+	gap: 4px;
+	color: #141414;
+	background-color: rgba(255, 255, 255, 0.62);
+	border: 2px solid rgba(0, 0, 0, 0.1);
+}
+
+AimboxLoadoutsScreen .weapon-card.equipped, .aimbox-loadouts .weapon-card.equipped
+{
+	border-color: #ff2a6d;
+}
+
+AimboxLoadoutsScreen .weapon-card.locked, .aimbox-loadouts .weapon-card.locked
+{
+	opacity: 0.45;
+}
+
+AimboxLoadoutsScreen .weapon-card-thumb, .aimbox-loadouts .weapon-card-thumb
+{
+	height: 56px;
+	align-items: center;
+	justify-content: center;
+	border: 1px solid rgba(0, 0, 0, 0.12);
+	overflow: hidden;
+}
+
+AimboxLoadoutsScreen .weapon-card-name, .aimbox-loadouts .weapon-card-name
+{
+	font-size: 10px;
+	font-weight: 800;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	min-width: 0;
+}
+
+AimboxLoadoutsScreen .weapon-card-level, .aimbox-loadouts .weapon-card-level
+{
+	font-size: 10px;
+	color: rgba(0, 0, 0, 0.65);
+}
+
+AimboxLoadoutsScreen .weapon-card-equipped, .aimbox-loadouts .weapon-card-equipped
+{
+	font-size: 9px;
+	font-weight: 800;
+	color: #ff2a6d;
+}
+
+AimboxLoadoutsScreen .weapon-card-lock, .aimbox-loadouts .weapon-card-lock
+{
+	font-size: 9px;
+	font-weight: 800;
+	color: rgba(0, 0, 0, 0.45);
+}
+
+AimboxLoadoutsScreen .grenade-card-thumb, .aimbox-loadouts .grenade-card-thumb
+{
+	background-color: rgba(255, 255, 255, 0.35);
+}
+
+AimboxLoadoutsScreen .grenade-icon.large, .aimbox-loadouts .grenade-icon.large
+{
+	font-size: 28px;
+	font-weight: 900;
+	color: #ff2a6d;
+}
+
+AimboxLoadoutsScreen .weapon-stats, .aimbox-loadouts .weapon-stats
+{
+	width: 100%;
+	flex-direction: column;
+	gap: 5px;
+	flex-shrink: 0;
+	min-width: 0;
+	padding: 12px;
+	background-color: rgba(0, 0, 0, 0.55);
+	border: 2px solid rgba(255, 255, 255, 0.18);
+}
+
+AimboxLoadoutsScreen .stats-title, .aimbox-loadouts .stats-title
+{
+	font-size: 12px;
+	font-weight: 800;
+	letter-spacing: 2px;
+	color: rgba(255, 255, 255, 0.75);
+	margin-bottom: 4px;
+}
+
+AimboxLoadoutsScreen .stat-row, .aimbox-loadouts .stat-row
+{
+	flex-direction: row;
+	align-items: center;
+	gap: 8px;
+}
+
+AimboxLoadoutsScreen .stat-label, .aimbox-loadouts .stat-label
+{
+	width: 72px;
+	font-size: 10px;
+	font-weight: 700;
+}
+
+AimboxLoadoutsScreen .stat-track, .aimbox-loadouts .stat-track
+{
+	flex: 1;
+	height: 8px;
+	background-color: rgba(255, 255, 255, 0.1);
+}
+
+AimboxLoadoutsScreen .stat-fill, .aimbox-loadouts .stat-fill
+{
+	height: 100%;
+	background-color: #ff2a6d;
+}
+
+AimboxLoadoutsScreen .stat-value, .aimbox-loadouts .stat-value
+{
+	width: 28px;
+	font-size: 10px;
+	font-weight: 800;
+	text-align: right;
+}
+
+AimboxLoadoutsScreen .ammo-row, .aimbox-loadouts .ammo-row
+{
+	flex-direction: row;
+	gap: 8px;
+	margin-top: 8px;
+}
+
+AimboxLoadoutsScreen .ammo-box, .aimbox-loadouts .ammo-box
+{
+	flex: 1;
+	padding: 8px;
+	background-color: rgba(255, 255, 255, 0.05);
+	border: 1px solid rgba(255, 255, 255, 0.18);
+	flex-direction: column;
+	gap: 2px;
+}
+
+AimboxLoadoutsScreen .ammo-label, .aimbox-loadouts .ammo-label
+{
+	font-size: 10px;
+	font-weight: 700;
+	color: rgba(255, 255, 255, 0.65);
+}
+
+AimboxLoadoutsScreen .ammo-value, .aimbox-loadouts .ammo-value
+{
+	font-size: 18px;
+	font-weight: 900;
+	color: #ff2a6d;
+}
+
+AimboxLoadoutsScreen .footer-actions, .aimbox-loadouts .footer-actions
+{
+	flex-direction: row;
+	justify-content: flex-end;
+	gap: 10px;
+	flex-wrap: wrap;
+}
+
+AimboxLoadoutsScreen .action-btn, .aimbox-loadouts .action-btn
+{
+	padding: 10px 16px;
+	font-size: 12px;
+	font-weight: 800;
+	letter-spacing: 1px;
+	color: #141414;
+	background-color: rgba(255, 255, 255, 0.62);
+	border: 2px solid rgba(0, 0, 0, 0.15);
+}
+
+AimboxLoadoutsScreen .action-btn.primary, .aimbox-loadouts .action-btn.primary
+{
+	background-color: #ff2a6d;
+	border-color: #ff2a6d;
+	color: #fff;
+}
+
+AimboxLoadoutsScreen .action-btn.accent, .aimbox-loadouts .action-btn.accent
+{
+	border-color: #ff2a6d;
+	color: #ff2a6d;
+}
+
+AimboxLoadoutsScreen .action-btn.equipped, .aimbox-loadouts .action-btn.equipped
+{
+	opacity: 0.55;
+}
+
+AimboxLoadoutsScreen .in-game-equip-bar, .aimbox-loadouts .in-game-equip-bar
+{
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	height: 56px;
+	z-index: 340;
+	padding: 0 40px;
+	background-color: rgba(8, 8, 10, 0.94);
+	border-top: 2px solid rgba(255, 255, 255, 0.12);
+	flex-direction: row;
+	align-items: center;
+	gap: 16px;
+	pointer-events: all;
+}
+
+AimboxLoadoutsScreen .in-game-equip-side, .aimbox-loadouts .in-game-equip-side
+{
+	flex: 1 1 180px;
+	min-width: 140px;
+}
+
+AimboxLoadoutsScreen .in-game-equip-center, .aimbox-loadouts .in-game-equip-center
+{
+	flex: 0 1 auto;
+	flex-direction: row;
+	justify-content: center;
+}
+
+AimboxLoadoutsScreen .in-game-equip-btn, .aimbox-loadouts .in-game-equip-btn
+{
+	min-width: 280px;
+	padding: 10px 32px;
+	font-size: 14px;
+	font-weight: 900;
+	letter-spacing: 2px;
+	background-color: #ff2a6d;
+	border: 2px solid #ff2a6d;
+	color: #fff;
+}
+
+AimboxLoadoutsScreen .in-game-equip-btn:hover, .aimbox-loadouts .in-game-equip-btn:hover
+{
+	background-color: #ff4d86;
+	border-color: #ff4d86;
+}
+
+AimboxLoadoutsScreen .loadouts-footer.editing .weapon-card:not(.locked), .aimbox-loadouts .loadouts-footer.editing .weapon-card:not(.locked),
+AimboxLoadoutsScreen .loadouts-footer.editing .attachment-chip:not(.locked), .aimbox-loadouts .loadouts-footer.editing .attachment-chip:not(.locked)
+{
+	border-color: rgba(255, 42, 109, 0.55);
+}

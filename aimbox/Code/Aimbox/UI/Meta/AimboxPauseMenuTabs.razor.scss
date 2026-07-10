@@ -1,0 +1,64 @@
+AimboxPauseMenuTabs, aimboxpausemenutabs, .aimbox-pause-tabs
+{
+	position: absolute;
+	left: 0;
+	top: 0;
+	right: 0;
+	height: 56px;
+	z-index: 330;
+	font-family: Poppins;
+	pointer-events: none;
+}
+
+AimboxPauseMenuTabs.visible, .aimbox-pause-tabs.visible
+{
+	pointer-events: all;
+}
+
+AimboxPauseMenuTabs.hidden, .aimbox-pause-tabs.hidden
+{
+	display: none;
+}
+
+AimboxPauseMenuTabs .pause-tab-row, .aimbox-pause-tabs .pause-tab-row
+{
+	flex-direction: row;
+	align-items: center;
+	gap: 8px;
+	height: 100%;
+	padding: 10px 40px;
+	background-color: rgba(0, 0, 0, 0.88);
+	border-bottom: 2px solid rgba(255, 255, 255, 0.12);
+}
+
+AimboxPauseMenuTabs .pause-tab, .aimbox-pause-tabs .pause-tab
+{
+	padding: 8px 14px;
+	font-size: 11px;
+	font-weight: 800;
+	letter-spacing: 1px;
+	background-color: rgba(255, 255, 255, 0.06);
+	border: 2px solid rgba(255, 255, 255, 0.18);
+	color: rgba(255, 255, 255, 0.88);
+	white-space: nowrap;
+}
+
+AimboxPauseMenuTabs .pause-tab.active, .aimbox-pause-tabs .pause-tab.active
+{
+	background-color: #ff2a6d;
+	border-color: #ff2a6d;
+	color: #fff;
+}
+
+AimboxPauseMenuTabs .pause-tab.leave, .aimbox-pause-tabs .pause-tab.leave
+{
+	margin-left: auto;
+	border-color: rgba(255, 255, 255, 0.25);
+}
+
+AimboxPauseMenuTabs .pause-tab:hover:not(.active), .aimbox-pause-tabs .pause-tab:hover:not(.active)
+{
+	border-color: #ff2a6d;
+	color: #ff2a6d;
+	background-color: rgba(255, 42, 109, 0.15);
+}

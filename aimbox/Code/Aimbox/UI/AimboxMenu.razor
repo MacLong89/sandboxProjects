@@ -1,0 +1,51 @@
+@using Sandbox
+@using Sandbox.UI
+@inherits PanelComponent
+@namespace Sandbox
+
+<root class="aimbox-menu @(IsOpen ? "open" : "closed")">
+	@if ( IsOpen )
+	{
+		<div class="menu">
+			<div class="title">AIMBOX</div>
+			<div class="subtitle">Dev menu — use intermission to change modes</div>
+			<button onclick="@Play">Resume</button>
+		</div>
+	}
+</root>
+
+@code
+{
+	[Property] public bool StartOpen { get; set; } = false;
+	bool IsOpen { get; set; }
+
+	protected override void OnStart()
+	{
+		IsOpen = StartOpen;
+		AimboxMetaNavigation.ApplyPresentationState();
+		ApplyMenuPanelSettings();
+		Log.Info( $"[Aimbox] Menu OnStart: AimboxMenu panel initialized. StartOpen={StartOpen}." );
+	}
+
+	void ApplyMenuPanelSettings()
+	{
+		if ( Panel is null || !Panel.IsValid() )
+			return;
+
+		AimboxMenuPanelSettings.DisableDragScroll( Panel );
+	}
+
+	protected override void OnUpdate()
+	{
+		AimboxMetaNavigation.ApplyPresentationState();
+		ApplyMenuPanelSettings();
+	}
+
+	void Play()
+	{
+		IsOpen = false;
+		AimboxMetaNavigation.ApplyPresentationState();
+	}
+
+	protected override int BuildHash() => HashCode.Combine( IsOpen, AimboxGame.Instance?.Match.Mode, AimboxGame.Instance?.Phase );
+}

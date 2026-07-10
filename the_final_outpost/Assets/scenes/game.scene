@@ -1,0 +1,75 @@
+{
+  "__guid": "c3d4e5f6-0001-4001-8001-000000000001",
+  "GameObjects": [
+    {
+      "__guid": "c3d4e5f6-0001-4001-8001-000000000010",
+      "Flags": 0,
+      "Name": "Sun",
+      "Rotation": "-0.0729315,0.4822396,0.1305433,0.8631827",
+      "Tags": "light_directional,light",
+      "Enabled": true,
+      "Components": [
+        {
+          "__type": "Sandbox.DirectionalLight",
+          "__guid": "c3d4e5f6-0001-4001-8001-000000000011",
+          "FogMode": "Enabled",
+          "FogStrength": 0.4,
+          "LightColor": "1,0.95,0.82,1",
+          "Shadows": true,
+          "SkyColor": "0.55,0.64,0.72,1"
+        }
+      ]
+    },
+    {
+      "__guid": "c3d4e5f6-0001-4001-8001-000000000020",
+      "Flags": 0,
+      "Name": "2D Skybox",
+      "Tags": "skybox",
+      "Enabled": true,
+      "Components": [
+        {
+          "__type": "Sandbox.SkyBox2D",
+          "__guid": "c3d4e5f6-0001-4001-8001-000000000021",
+          "SkyMaterial": "materials/skybox/skybox_day_01.vmat",
+          "Tint": "1,1,1,1"
+        },
+        {
+          "__type": "Sandbox.EnvmapProbe",
+          "__guid": "c3d4e5f6-0001-4001-8001-000000000022",
+          "Texture": "textures/cubemaps/default2.vtex",
+          "Bounds": {
+            "Mins": "-2048,-2048,-512",
+            "Maxs": "2048,2048,1024"
+          },
+          "DelayBetweenUpdates": 0.1,
+          "Feathering": 0.02,
+          "FrameInterval": 5,
+          "MaxDistance": 2048,
+          "Projection": "Sphere",
+          "RenderDynamically": false,
+          "TintColor": "1,1,1,1",
+          "UpdateStrategy": "OnEnabled",
+          "ZFar": 4096,
+          "ZNear": 16
+        }
+      ]
+    }
+  ],
+  "SceneProperties": {
+    "FixedUpdateFrequency": 50,
+    "MaxFixedUpdates": 5,
+    "NetworkFrequency": 60,
+    "NetworkInterpolation": true,
+    "ThreadedAnimation": true,
+    "TimeScale": 1,
+    "UseFixedUpdate": true,
+    "NavMesh": {
+      "Enabled": false
+    }
+  },
+  "Title": "game",
+  "Description": "",
+  "ResourceVersion": 1,
+  "__references": [],
+  "__version": 1
+}

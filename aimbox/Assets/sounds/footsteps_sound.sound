@@ -1,0 +1,22 @@
+{
+  "UI": false,
+  "Volume": "1",
+  "Pitch": "0.92 1.08",
+  "Decibels": 54,
+  "SelectionMode": "Random",
+  "Sounds": [
+    "sounds/footsteps_sound.mp3"
+  ],
+  "Occlusion": true,
+  "AirAbsorption": false,
+  "Transmission": false,
+  "OcclusionRadius": 32,
+  "DistanceAttenuation": true,
+  "Distance": 2800,
+  "Falloff": [
+    { "x": 0, "y": 1, "in": 0, "out": -1.5, "mode": "Mirrored" },
+    { "x": 1, "y": 0, "in": 0, "out": 0, "mode": "Mirrored" }
+  ],
+  "__references": [],
+  "__version": 1
+}

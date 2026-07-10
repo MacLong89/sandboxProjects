@@ -1,0 +1,69 @@
+AimboxMenu, aimboxmenu, .aimbox-menu
+{
+	position: absolute;
+	left: 0;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	width: 100%;
+	height: 100%;
+	z-index: 200;
+	font-family: Poppins;
+	pointer-events: none;
+}
+
+AimboxMenu.open, aimboxmenu.open, .aimbox-menu.open
+{
+	pointer-events: all;
+	background-color: rgba(0, 0, 0, 0.72);
+	align-items: center;
+	justify-content: center;
+}
+
+AimboxMenu .menu, aimboxmenu .menu, .aimbox-menu .menu
+{
+	width: 320px;
+	flex-direction: column;
+	gap: 10px;
+	padding: 20px;
+	background-color: rgba(8, 8, 12, 0.96);
+	border: 2px solid rgba(255, 42, 109, 0.45);
+	border-radius: 6px;
+	box-shadow: 0 16px 48px rgba(0, 0, 0, 0.65);
+}
+
+AimboxMenu .title, aimboxmenu .title, .aimbox-menu .title
+{
+	font-size: 42px;
+	font-weight: 900;
+	color: #fff;
+	letter-spacing: 2px;
+}
+
+AimboxMenu .subtitle, aimboxmenu .subtitle, .aimbox-menu .subtitle
+{
+	font-size: 14px;
+	color: rgba(255, 255, 255, 0.65);
+	margin-bottom: 8px;
+}
+
+AimboxMenu button, aimboxmenu button, .aimbox-menu button
+{
+	height: 42px;
+	border-radius: 4px;
+	background-color: rgba(255, 255, 255, 0.06);
+	border: 2px solid rgba(255, 255, 255, 0.18);
+	color: #f8f8f8;
+	font-size: 16px;
+	font-weight: 700;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+	transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+AimboxMenu button:hover, aimboxmenu button:hover, .aimbox-menu button:hover
+{
+	border-color: #ff2a6d;
+	background-color: rgba(255, 42, 109, 0.2);
+}

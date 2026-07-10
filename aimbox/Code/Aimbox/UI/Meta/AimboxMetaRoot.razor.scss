@@ -1,0 +1,2849 @@
+AimboxMetaRoot, aimboxmetaroot, .aimbox-meta
+{
+	position: absolute;
+	left: 0;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	width: 100%;
+	height: 100%;
+	z-index: 300;
+	font-family: Poppins;
+	pointer-events: none;
+	overflow: hidden;
+}
+
+AimboxMetaRoot.visible, .aimbox-meta.visible
+{
+	pointer-events: all;
+	background-color: rgba(0, 0, 0, 0.72);
+	align-items: center;
+	justify-content: center;
+}
+
+AimboxMetaRoot.main-menu-bg-clear.visible, .aimbox-meta.main-menu-bg-clear.visible
+{
+	background-color: transparent;
+	align-items: stretch;
+	justify-content: stretch;
+	pointer-events: none;
+}
+
+AimboxMetaRoot.main-menu-bg-clear .match-recap-overlay, .aimbox-meta.main-menu-bg-clear .match-recap-overlay
+{
+	pointer-events: all;
+}
+
+AimboxMetaRoot.loadouts-bg-clear.visible, .aimbox-meta.loadouts-bg-clear.visible
+{
+	background-color: transparent;
+	align-items: stretch;
+	justify-content: stretch;
+	pointer-events: none;
+}
+
+AimboxMetaRoot.play-lobby-bg-clear.visible, .aimbox-meta.play-lobby-bg-clear.visible
+{
+	background-color: transparent;
+	align-items: stretch;
+	justify-content: stretch;
+	pointer-events: none;
+}
+
+AimboxMetaRoot.progression-bg-clear.visible, .aimbox-meta.progression-bg-clear.visible
+{
+	background-color: transparent;
+	align-items: stretch;
+	justify-content: stretch;
+	pointer-events: none;
+}
+
+AimboxMetaRoot.scoreboard-bg-clear.visible, .aimbox-meta.scoreboard-bg-clear.visible
+{
+	background-color: transparent;
+	align-items: stretch;
+	justify-content: stretch;
+	pointer-events: none;
+}
+
+AimboxMetaRoot.challenges-bg-clear.visible, .aimbox-meta.challenges-bg-clear.visible
+{
+	background-color: transparent;
+	align-items: stretch;
+	justify-content: stretch;
+	pointer-events: none;
+}
+
+AimboxMetaRoot.hidden, .aimbox-meta.hidden
+{
+	display: none;
+	pointer-events: none;
+}
+
+AimboxMetaRoot .panel, .aimbox-meta .panel
+{
+	width: 840px;
+	max-height: 92%;
+	overflow: hidden;
+	flex-direction: column;
+	gap: 16px;
+	padding: 40px;
+	background-color: rgba(8, 8, 12, 0.96);
+	border: 2px solid rgba(255, 42, 109, 0.45);
+	border-radius: 6px;
+	box-shadow: 0 16px 64px rgba(0, 0, 0, 0.65);
+}
+
+AimboxMetaRoot .panel.wide, .aimbox-meta .panel.wide,
+AimboxMetaRoot .panel.pause-menu, .aimbox-meta .panel.pause-menu
+{
+	width: 1680px;
+	max-width: 96%;
+}
+
+AimboxMetaRoot .scoreboard, .aimbox-meta .scoreboard
+{
+	flex-direction: column;
+	gap: 8px;
+	max-height: 420px;
+	overflow-y: scroll;
+	padding: 12px 0;
+	border-top: 1px solid rgba(255, 42, 109, 0.2);
+	border-bottom: 1px solid rgba(255, 42, 109, 0.2);
+}
+
+AimboxMetaRoot .scoreboard-subtitle, .aimbox-meta .scoreboard-subtitle
+{
+	margin-bottom: 8px;
+}
+
+AimboxMetaRoot .scoreboard-team-grid, .aimbox-meta .scoreboard-team-grid
+{
+	flex-direction: row;
+	gap: 16px;
+}
+
+AimboxMetaRoot .scoreboard-team-column, .aimbox-meta .scoreboard-team-column
+{
+	flex: 1;
+	flex-direction: column;
+	gap: 6px;
+	padding: 12px;
+	border-radius: 8px;
+	background-color: rgba(255, 255, 255, 0.03);
+}
+
+AimboxMetaRoot .scoreboard-team-column.red, .aimbox-meta .scoreboard-team-column.red
+{
+	border: 1px solid rgba(255, 90, 90, 0.35);
+}
+
+AimboxMetaRoot .scoreboard-team-column.blue, .aimbox-meta .scoreboard-team-column.blue
+{
+	border: 1px solid rgba(90, 160, 255, 0.35);
+}
+
+AimboxMetaRoot .scoreboard-team-header, .aimbox-meta .scoreboard-team-header
+{
+	font-size: 18px;
+	font-weight: 800;
+	color: #f4f7fb;
+	margin-bottom: 6px;
+}
+
+AimboxMetaRoot .scoreboard-list, .aimbox-meta .scoreboard-list
+{
+	flex-direction: column;
+	gap: 6px;
+}
+
+AimboxMetaRoot .scoreboard-row, .aimbox-meta .scoreboard-row
+{
+	flex-direction: row;
+	align-items: center;
+	gap: 12px;
+	padding: 8px 12px;
+	border-radius: 6px;
+	background-color: rgba(255, 255, 255, 0.04);
+}
+
+AimboxMetaRoot .scoreboard-row.local, .aimbox-meta .scoreboard-row.local
+{
+	background-color: rgba(255, 42, 109, 0.15);
+	border: 1px solid rgba(255, 42, 109, 0.35);
+}
+
+AimboxMetaRoot .scoreboard-name, .aimbox-meta .scoreboard-name
+{
+	flex: 1;
+	font-size: 18px;
+	font-weight: 700;
+	color: #f4f7fb;
+}
+
+AimboxMetaRoot .scoreboard-meta, .aimbox-meta .scoreboard-meta
+{
+	width: 120px;
+	font-size: 14px;
+	color: rgba(255, 255, 255, 0.65);
+}
+
+AimboxMetaRoot .scoreboard-score, .aimbox-meta .scoreboard-score
+{
+	width: 90px;
+	text-align: right;
+	font-size: 18px;
+	font-weight: 800;
+	color: #ff2a6d;
+}
+
+
+AimboxMetaRoot .scoreboard, .aimbox-meta .scoreboard
+{
+	flex-direction: column;
+	gap: 8px;
+	max-height: 420px;
+	overflow-y: scroll;
+	padding: 12px 0;
+	border-top: 1px solid rgba(255, 42, 109, 0.2);
+	border-bottom: 1px solid rgba(255, 42, 109, 0.2);
+}
+
+AimboxMetaRoot .scoreboard-subtitle, .aimbox-meta .scoreboard-subtitle
+{
+	margin-bottom: 8px;
+}
+
+AimboxMetaRoot .scoreboard-team-grid, .aimbox-meta .scoreboard-team-grid
+{
+	flex-direction: row;
+	gap: 16px;
+}
+
+AimboxMetaRoot .scoreboard-team-column, .aimbox-meta .scoreboard-team-column
+{
+	flex: 1;
+	flex-direction: column;
+	gap: 6px;
+	padding: 12px;
+	border-radius: 8px;
+	background-color: rgba(255, 255, 255, 0.03);
+}
+
+AimboxMetaRoot .scoreboard-team-column.red, .aimbox-meta .scoreboard-team-column.red
+{
+	border: 1px solid rgba(255, 90, 90, 0.35);
+}
+
+AimboxMetaRoot .scoreboard-team-column.blue, .aimbox-meta .scoreboard-team-column.blue
+{
+	border: 1px solid rgba(90, 160, 255, 0.35);
+}
+
+AimboxMetaRoot .scoreboard-team-header, .aimbox-meta .scoreboard-team-header
+{
+	font-size: 18px;
+	font-weight: 800;
+	color: #f4f7fb;
+	margin-bottom: 6px;
+}
+
+AimboxMetaRoot .scoreboard-list, .aimbox-meta .scoreboard-list
+{
+	flex-direction: column;
+	gap: 6px;
+}
+
+AimboxMetaRoot .scoreboard-row, .aimbox-meta .scoreboard-row
+{
+	flex-direction: row;
+	align-items: center;
+	gap: 12px;
+	padding: 8px 12px;
+	border-radius: 6px;
+	background-color: rgba(255, 255, 255, 0.04);
+}
+
+AimboxMetaRoot .scoreboard-row.local, .aimbox-meta .scoreboard-row.local
+{
+	background-color: rgba(255, 42, 109, 0.15);
+	border: 1px solid rgba(255, 42, 109, 0.35);
+}
+
+AimboxMetaRoot .scoreboard-name, .aimbox-meta .scoreboard-name
+{
+	flex: 1;
+	font-size: 18px;
+	font-weight: 700;
+	color: #f4f7fb;
+}
+
+AimboxMetaRoot .scoreboard-meta, .aimbox-meta .scoreboard-meta
+{
+	width: 120px;
+	font-size: 14px;
+	color: rgba(255, 255, 255, 0.65);
+}
+
+AimboxMetaRoot .scoreboard-score, .aimbox-meta .scoreboard-score
+{
+	width: 90px;
+	text-align: right;
+	font-size: 18px;
+	font-weight: 800;
+	color: #ff2a6d;
+}
+
+AimboxMetaRoot .panel.wide, .aimbox-meta .panel.wide
+{
+	width: 1680px;
+	max-width: 96%;
+}
+
+AimboxMetaRoot .title, .aimbox-meta .title
+{
+	font-size: 56px;
+	font-weight: 900;
+	color: #fff;
+	letter-spacing: 2px;
+}
+
+AimboxMetaRoot .subtitle, .aimbox-meta .subtitle
+{
+	font-size: 22px;
+	color: rgba(255, 255, 255, 0.65);
+	margin-bottom: 12px;
+}
+
+AimboxMetaRoot .section, .aimbox-meta .section
+{
+	margin-top: 12px;
+	font-size: 18px;
+	font-weight: 700;
+	color: #ff2a6d;
+	text-transform: uppercase;
+	letter-spacing: 2px;
+}
+
+AimboxMetaRoot button, .aimbox-meta button
+{
+	min-height: 56px;
+	border-radius: 4px;
+	background-color: rgba(255, 255, 255, 0.06);
+	border: 2px solid rgba(255, 255, 255, 0.18);
+	color: #f8f8f8;
+	font-size: 20px;
+	font-weight: 700;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+	padding: 8px 16px;
+	transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+AimboxMetaRoot button:hover, .aimbox-meta button:hover
+{
+	border-color: #ff2a6d;
+	background-color: rgba(255, 42, 109, 0.2);
+}
+
+AimboxMetaRoot button.active, .aimbox-meta button.active,
+AimboxMetaRoot button.tab.active, .aimbox-meta button.tab.active,
+AimboxMetaRoot button.option.active, .aimbox-meta button.option.active,
+AimboxMetaRoot button.mode-option.active, .aimbox-meta button.mode-option.active
+{
+	background-color: #ff2a6d;
+	color: #fff;
+	border: 2px solid #ff2a6d;
+	box-shadow: 0 0 14px rgba(255, 42, 109, 0.45);
+}
+
+AimboxMetaRoot button.locked, .aimbox-meta button.locked
+{
+	opacity: 0.45;
+}
+
+AimboxMetaRoot button.disabled, .aimbox-meta button.disabled
+{
+	pointer-events: none;
+	cursor: default;
+}
+
+AimboxMetaRoot button.tab.limited, .aimbox-meta button.tab.limited
+{
+	opacity: 0.55;
+	border: 2px solid rgba(255, 42, 109, 0.35);
+}
+
+AimboxMetaRoot .tabs, .aimbox-meta .tabs
+{
+	flex-direction: row;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+AimboxMetaRoot .loadout-tabs, .aimbox-meta .loadout-tabs
+{
+	flex-direction: row;
+	flex-wrap: nowrap;
+	gap: 10px;
+	width: 100%;
+	padding: 12px;
+	border-radius: 10px;
+	background-color: rgba(0, 0, 0, 0.24);
+	border: 2px solid rgba(255, 42, 109, 0.12);
+}
+
+AimboxMetaRoot button.loadout-tab, .aimbox-meta button.loadout-tab
+{
+	flex-direction: column;
+	flex-grow: 1;
+	flex-shrink: 1;
+	min-width: 0;
+	min-height: 88px;
+	padding: 10px 12px;
+	border: 3px solid rgba(255, 255, 255, 0.08);
+	background-color: #1b2430;
+}
+
+AimboxMetaRoot button.loadout-tab:hover, .aimbox-meta button.loadout-tab:hover
+{
+	background-color: #314055;
+	border-color: rgba(255, 42, 109, 0.35);
+}
+
+AimboxMetaRoot button.loadout-tab.selected, .aimbox-meta button.loadout-tab.selected
+{
+	background-color: #ff2a6d;
+	color: #fff;
+	border-color: rgba(255, 42, 109, 0.65);
+	box-shadow: 0 0 0 2px #ff2a6d, inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+}
+
+AimboxMetaRoot button.loadout-tab.equipped:not(.selected), .aimbox-meta button.loadout-tab.equipped:not(.selected)
+{
+	border-color: rgba(255, 42, 109, 0.55);
+}
+
+AimboxMetaRoot .loadout-tab-label, .aimbox-meta .loadout-tab-label
+{
+	font-size: 20px;
+	font-weight: 800;
+}
+
+AimboxMetaRoot .loadout-tab-badge, .aimbox-meta .loadout-tab-badge
+{
+	margin-top: 4px;
+	font-size: 12px;
+	font-weight: 800;
+	text-transform: uppercase;
+	color: rgba(255, 255, 255, 0.72);
+}
+
+AimboxMetaRoot button.loadout-tab.selected .loadout-tab-badge, .aimbox-meta button.loadout-tab.selected .loadout-tab-badge
+{
+	color: rgba(255, 255, 255, 0.85);
+}
+
+AimboxMetaRoot .stat-row, .aimbox-meta .stat-row
+{
+	color: #d8e2ec;
+	font-size: 22px;
+}
+
+AimboxMetaRoot .unlock, .aimbox-meta .unlock
+{
+	color: #7dffb2;
+	font-size: 20px;
+	font-weight: 700;
+}
+
+AimboxMetaRoot .armory-item, .aimbox-meta .armory-item
+{
+	color: #d8e2ec;
+	font-size: 20px;
+	padding: 6px 0;
+}
+
+AimboxMetaRoot .armory-item.locked, .aimbox-meta .armory-item.locked
+{
+	color: #6a7580;
+}
+
+AimboxMetaRoot .challenge, .aimbox-meta .challenge
+{
+	color: #c8d4de;
+	font-size: 18px;
+}
+
+AimboxMetaRoot .challenge.done, .aimbox-meta .challenge.done
+{
+	color: #7dffb2;
+}
+
+AimboxMetaRoot .challenges-screen, .aimbox-meta .challenges-screen
+{
+	flex-direction: column;
+	gap: 18px;
+	width: 100%;
+	flex-grow: 1;
+	min-height: 0;
+	overflow-y: auto;
+	overflow-x: hidden;
+	padding-right: 8px;
+}
+
+AimboxMetaRoot .challenges-hero, .aimbox-meta .challenges-hero
+{
+	flex-direction: row;
+	gap: 20px;
+	padding: 24px;
+	border-radius: 12px;
+	background-color: rgba(8, 12, 18, 0.88);
+	border: 2px solid rgba(255, 42, 109, 0.22);
+	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 10px 28px rgba(0, 0, 0, 0.28);
+	flex-shrink: 0;
+}
+
+AimboxMetaRoot .challenges-hero-badge, .aimbox-meta .challenges-hero-badge
+{
+	width: 112px;
+	height: 112px;
+	flex-shrink: 0;
+	border-radius: 12px;
+	align-items: center;
+	justify-content: center;
+	background-color: rgba(0, 0, 0, 0.45);
+	border: 2px solid rgba(255, 42, 109, 0.35);
+}
+
+AimboxMetaRoot .challenges-hero-count, .aimbox-meta .challenges-hero-count
+{
+	font-size: 42px;
+	font-weight: 900;
+	line-height: 1;
+	color: #ff2a6d;
+}
+
+AimboxMetaRoot .challenges-hero-caption, .aimbox-meta .challenges-hero-caption
+{
+	margin-top: 4px;
+	font-size: 11px;
+	font-weight: 800;
+	letter-spacing: 0.08em;
+	color: rgba(255, 255, 255, 0.65);
+}
+
+AimboxMetaRoot .challenges-hero-copy, .aimbox-meta .challenges-hero-copy
+{
+	flex-direction: column;
+	flex-grow: 1;
+	justify-content: center;
+	gap: 8px;
+	min-width: 0;
+}
+
+AimboxMetaRoot .challenges-hero-title, .aimbox-meta .challenges-hero-title
+{
+	font-size: 28px;
+	font-weight: 900;
+	color: #f4f7fb;
+}
+
+AimboxMetaRoot .challenges-hero-subtitle, .aimbox-meta .challenges-hero-subtitle
+{
+	font-size: 16px;
+	color: rgba(255, 255, 255, 0.65);
+}
+
+AimboxMetaRoot .challenges-xp-track, .aimbox-meta .challenges-xp-track
+{
+	height: 10px;
+	border-radius: 999px;
+	background-color: rgba(255, 255, 255, 0.08);
+	overflow: hidden;
+}
+
+AimboxMetaRoot .challenges-xp-fill, .aimbox-meta .challenges-xp-fill
+{
+	height: 100%;
+	border-radius: 999px;
+	background-color: #ff2a6d;
+	box-shadow: 0 0 12px rgba(255, 42, 109, 0.35);
+}
+
+AimboxMetaRoot .challenges-hero-meta, .aimbox-meta .challenges-hero-meta
+{
+	font-size: 14px;
+	font-weight: 700;
+	color: rgba(255, 255, 255, 0.55);
+}
+
+AimboxMetaRoot .challenge-grid, .aimbox-meta .challenge-grid
+{
+	flex-direction: row;
+	flex-wrap: wrap;
+	gap: 12px;
+}
+
+AimboxMetaRoot .challenge-grid.compact .challenge-card, .aimbox-meta .challenge-grid.compact .challenge-card
+{
+	width: calc(50% - 6px);
+	min-width: 280px;
+	flex-grow: 1;
+}
+
+AimboxMetaRoot .challenge-card, .aimbox-meta .challenge-card
+{
+	flex-direction: column;
+	gap: 10px;
+	width: calc(50% - 6px);
+	min-width: 320px;
+	flex-grow: 1;
+	padding: 16px 18px;
+	border-radius: 12px;
+	background-color: rgba(8, 12, 18, 0.72);
+	border: 2px solid rgba(255, 255, 255, 0.06);
+	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+AimboxMetaRoot .attachment-weapon-section, .aimbox-meta .attachment-weapon-section
+{
+	flex-direction: column;
+	flex-shrink: 0;
+	width: 100%;
+	gap: 10px;
+	padding-bottom: 14px;
+	margin-bottom: 14px;
+	border-bottom: 1px solid rgba(255, 42, 109, 0.14);
+}
+
+AimboxMetaRoot .attachment-weapon-section:last-child, .aimbox-meta .attachment-weapon-section:last-child
+{
+	border-bottom: 0;
+	margin-bottom: 0;
+	padding-bottom: 0;
+}
+
+AimboxMetaRoot .attachment-weapon-title, .aimbox-meta .attachment-weapon-title
+{
+	flex-direction: row;
+	align-items: center;
+	flex-wrap: nowrap;
+	gap: 10px;
+	width: 100%;
+	flex-shrink: 0;
+	padding: 10px 14px;
+	border-radius: 8px;
+	background-color: rgba(255, 42, 109, 0.08);
+	border: 1px solid rgba(255, 42, 109, 0.18);
+}
+
+AimboxMetaRoot .attachment-preview-meta, .aimbox-meta .attachment-preview-meta
+{
+	flex-direction: row;
+	align-items: center;
+	flex-wrap: nowrap;
+	gap: 8px;
+	width: 100%;
+	flex-shrink: 0;
+	padding: 8px 12px;
+	border-radius: 8px;
+	background-color: rgba(255, 255, 255, 0.04);
+	border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+AimboxMetaRoot .attachment-slot-label, .aimbox-meta .attachment-slot-label
+{
+	font-size: 12px;
+	font-weight: 800;
+	color: #ff2a6d;
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	flex-shrink: 0;
+	white-space: nowrap;
+}
+
+AimboxMetaRoot .attachment-weapon-name, .aimbox-meta .attachment-weapon-name
+{
+	font-size: 15px;
+	font-weight: 700;
+	color: #f4f7fb;
+	flex-shrink: 0;
+	white-space: nowrap;
+}
+
+AimboxMetaRoot .attachment-option-list, .aimbox-meta .attachment-option-list
+{
+	flex-direction: column;
+	gap: 8px;
+	width: 100%;
+	flex-shrink: 0;
+}
+
+AimboxMetaRoot button.option.attachment-option, .aimbox-meta button.option.attachment-option
+{
+	width: 100%;
+	flex-shrink: 0;
+	min-height: 52px;
+	padding: 10px 14px;
+	font-size: 16px;
+	line-height: 1.25;
+	white-space: normal;
+	align-items: flex-start;
+}
+
+AimboxMetaRoot .option-list.attachments, .aimbox-meta .option-list.attachments
+{
+	max-height: 420px;
+	gap: 0;
+	padding-right: 10px;
+	overflow-y: scroll;
+	overflow-x: hidden;
+}
+
+AimboxMetaRoot .attachment-preview-block, .aimbox-meta .attachment-preview-block
+{
+	flex-direction: column;
+	gap: 8px;
+	margin-bottom: 12px;
+	width: 100%;
+	flex-shrink: 0;
+}
+
+AimboxMetaRoot .challenge-card.done, .aimbox-meta .challenge-card.done
+{
+	border-color: rgba(125, 255, 178, 0.35);
+	background-color: rgba(18, 36, 28, 0.72);
+}
+
+AimboxMetaRoot .challenge-card-head, .aimbox-meta .challenge-card-head
+{
+	flex-direction: row;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 12px;
+}
+
+AimboxMetaRoot .challenge-card-title, .aimbox-meta .challenge-card-title
+{
+	font-size: 18px;
+	font-weight: 800;
+	color: #f4f7fb;
+	flex-grow: 1;
+}
+
+AimboxMetaRoot .challenge-card.done .challenge-card-title, .aimbox-meta .challenge-card.done .challenge-card-title
+{
+	color: #7dffb2;
+}
+
+AimboxMetaRoot .challenge-xp-badge, .aimbox-meta .challenge-xp-badge
+{
+	flex-shrink: 0;
+	padding: 4px 10px;
+	border-radius: 999px;
+	background-color: rgba(255, 42, 109, 0.16);
+	border: 1px solid rgba(255, 42, 109, 0.35);
+	color: #ff2a6d;
+	font-size: 13px;
+	font-weight: 800;
+}
+
+AimboxMetaRoot .loadout-preview .attachment-weapon-name, .aimbox-meta .loadout-preview .attachment-weapon-name
+{
+	font-size: 14px;
+	font-weight: 700;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	max-width: 100%;
+}
+
+AimboxMetaRoot .loadout-preview .attachment-preview-meta, .aimbox-meta .loadout-preview .attachment-preview-meta
+{
+	padding: 6px 10px;
+}
+
+AimboxMetaRoot .loadout-preview .attachment-slot-label, .aimbox-meta .loadout-preview .attachment-slot-label
+{
+	font-size: 11px;
+}
+
+AimboxMetaRoot .challenge-status-badge, .aimbox-meta .challenge-status-badge
+{
+	flex-shrink: 0;
+	padding: 4px 10px;
+	border-radius: 999px;
+	background-color: rgba(255, 255, 255, 0.06);
+	color: rgba(255, 255, 255, 0.65);
+	font-size: 12px;
+	font-weight: 800;
+	text-transform: uppercase;
+}
+
+AimboxMetaRoot .challenge-status-badge.done, .aimbox-meta .challenge-status-badge.done
+{
+	background-color: rgba(125, 255, 178, 0.12);
+	color: #7dffb2;
+	border: 1px solid rgba(125, 255, 178, 0.28);
+}
+
+AimboxMetaRoot .challenge-progress-track, .aimbox-meta .challenge-progress-track
+{
+	height: 8px;
+	border-radius: 999px;
+	background-color: rgba(255, 255, 255, 0.08);
+	overflow: hidden;
+}
+
+AimboxMetaRoot .challenge-progress-fill, .aimbox-meta .challenge-progress-fill
+{
+	height: 100%;
+	border-radius: 999px;
+	background-color: #ff2a6d;
+}
+
+AimboxMetaRoot .challenge-card.done .challenge-progress-fill, .aimbox-meta .challenge-card.done .challenge-progress-fill
+{
+	background-color: #7dffb2;
+}
+
+AimboxMetaRoot .challenge-progress-meta, .aimbox-meta .challenge-progress-meta
+{
+	font-size: 14px;
+	font-weight: 700;
+	color: rgba(255, 255, 255, 0.55);
+}
+
+AimboxMetaRoot .challenge-status.done, .aimbox-meta .challenge-status.done
+{
+	color: #7dffb2;
+	text-transform: uppercase;
+}
+
+AimboxMetaRoot .attachment-challenge-groups, .aimbox-meta .attachment-challenge-groups
+{
+	flex-direction: column;
+	gap: 16px;
+}
+
+AimboxMetaRoot .attachment-weapon-group, .aimbox-meta .attachment-weapon-group
+{
+	flex-direction: column;
+	gap: 12px;
+	padding: 18px;
+	border-radius: 12px;
+	background-color: rgba(8, 12, 18, 0.55);
+	border: 2px solid rgba(255, 255, 255, 0.05);
+}
+
+AimboxMetaRoot .attachment-weapon-head, .aimbox-meta .attachment-weapon-head
+{
+	flex-direction: row;
+	align-items: center;
+	gap: 16px;
+}
+
+AimboxMetaRoot .attachment-weapon-thumb, .aimbox-meta .attachment-weapon-thumb
+{
+	width: 72px;
+	height: 72px;
+	flex-shrink: 0;
+	border-radius: 10px;
+	align-items: center;
+	justify-content: center;
+	box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.18);
+}
+
+AimboxMetaRoot .attachment-weapon-thumb .preview-code, .aimbox-meta .attachment-weapon-thumb .preview-code
+{
+	font-size: 22px;
+}
+
+AimboxMetaRoot .attachment-weapon-copy, .aimbox-meta .attachment-weapon-copy
+{
+	flex-direction: column;
+	gap: 4px;
+	min-width: 0;
+}
+
+AimboxMetaRoot .attachment-challenge-groups .attachment-weapon-name, .aimbox-meta .attachment-challenge-groups .attachment-weapon-name
+{
+	font-size: 22px;
+	font-weight: 900;
+	color: #f4f7fb;
+}
+
+AimboxMetaRoot .attachment-weapon-meta, .aimbox-meta .attachment-weapon-meta
+{
+	font-size: 14px;
+	font-weight: 700;
+	color: rgba(255, 255, 255, 0.65);
+}
+
+AimboxMetaRoot .intermission, .aimbox-meta .intermission
+{
+	width: 960px;
+	position: relative;
+}
+
+AimboxMetaRoot .match-recap-overlay, .aimbox-meta .match-recap-overlay
+{
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	z-index: 400;
+	background-color: rgba(0, 0, 0, 0.72);
+	align-items: center;
+	justify-content: center;
+	padding: 24px;
+	pointer-events: all;
+}
+
+AimboxMetaRoot .match-recap-card, .aimbox-meta .match-recap-card
+{
+	width: 100%;
+	max-width: 760px;
+	max-height: 92%;
+	flex-direction: column;
+	gap: 0;
+	padding: 0;
+	border-radius: 6px;
+	background-color: rgba(12, 12, 16, 0.96);
+	border: 2px solid rgba(255, 42, 109, 0.55);
+	box-shadow: 0 24px 80px rgba(0, 0, 0, 0.55);
+	overflow: hidden;
+}
+
+AimboxMetaRoot .match-recap-header, .aimbox-meta .match-recap-header
+{
+	flex-direction: column;
+	gap: 8px;
+	padding: 24px 28px 18px;
+	border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+	flex-shrink: 0;
+}
+
+AimboxMetaRoot .match-recap-scroll, .aimbox-meta .match-recap-scroll
+{
+	flex-direction: column;
+	gap: 16px;
+	padding: 18px 28px;
+	overflow-y: scroll;
+	flex-grow: 1;
+	min-height: 0;
+}
+
+AimboxMetaRoot .match-recap-actions, .aimbox-meta .match-recap-actions
+{
+	flex-direction: column;
+	gap: 10px;
+	padding: 16px 28px 24px;
+	border-top: 1px solid rgba(255, 42, 109, 0.25);
+	background-color: rgba(0, 0, 0, 0.35);
+	flex-shrink: 0;
+}
+
+AimboxMetaRoot .match-recap-hint, .aimbox-meta .match-recap-hint
+{
+	font-size: 13px;
+	font-weight: 600;
+	color: rgba(255, 255, 255, 0.55);
+	text-align: center;
+}
+
+AimboxMetaRoot .panel.intermission.recap-blocked, .aimbox-meta .panel.intermission.recap-blocked
+{
+	opacity: 0.35;
+	pointer-events: none;
+}
+
+AimboxMetaRoot .match-summary-line, .aimbox-meta .match-summary-line
+{
+	font-size: 20px;
+	font-weight: 800;
+	color: #dce6ef;
+	margin-bottom: 4px;
+}
+
+AimboxMetaRoot .match-summary-line.victory, .aimbox-meta .match-summary-line.victory
+{
+	color: #7dffb2;
+}
+
+AimboxMetaRoot .match-summary-line.defeat, .aimbox-meta .match-summary-line.defeat
+{
+	color: #ff8a7a;
+}
+
+AimboxMetaRoot .intermission-hint, .aimbox-meta .intermission-hint
+{
+	color: rgba(255, 255, 255, 0.65);
+	margin-bottom: 8px;
+}
+
+AimboxMetaRoot .match-recap-title, .aimbox-meta .match-recap-title
+{
+	font-size: 42px;
+	font-weight: 900;
+	color: #fff;
+	letter-spacing: 3px;
+}
+
+AimboxMetaRoot .match-recap-result, .aimbox-meta .match-recap-result
+{
+	font-size: 24px;
+	font-weight: 800;
+	color: #dce6ef;
+}
+
+AimboxMetaRoot .match-recap-result.victory, .aimbox-meta .match-recap-result.victory
+{
+	color: #7dffb2;
+}
+
+AimboxMetaRoot .match-recap-result.defeat, .aimbox-meta .match-recap-result.defeat
+{
+	color: #ff8a7a;
+}
+
+AimboxMetaRoot .match-recap-stats, .aimbox-meta .match-recap-stats
+{
+	font-size: 18px;
+	font-weight: 600;
+	color: rgba(255, 255, 255, 0.65);
+}
+
+AimboxMetaRoot .match-recap-section, .aimbox-meta .match-recap-section
+{
+	flex-direction: column;
+	gap: 10px;
+	padding: 16px 18px;
+	border-radius: 10px;
+	background-color: rgba(0, 0, 0, 0.22);
+	border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+AimboxMetaRoot .match-recap-section.player, .aimbox-meta .match-recap-section.player
+{
+	border-color: rgba(255, 42, 109, 0.24);
+}
+
+AimboxMetaRoot .match-recap-section.mastery, .aimbox-meta .match-recap-section.mastery
+{
+	border-color: rgba(94, 196, 255, 0.24);
+}
+
+AimboxMetaRoot .match-recap-section-head, .aimbox-meta .match-recap-section-head
+{
+	flex-direction: row;
+	justify-content: space-between;
+	align-items: center;
+	width: 100%;
+}
+
+AimboxMetaRoot .match-recap-section-label, .aimbox-meta .match-recap-section-label
+{
+	font-size: 14px;
+	font-weight: 900;
+	letter-spacing: 0.1em;
+	color: #ff2a6d;
+}
+
+AimboxMetaRoot .match-recap-section.mastery .match-recap-section-label, .aimbox-meta .match-recap-section.mastery .match-recap-section-label
+{
+	color: rgba(255, 255, 255, 0.85);
+}
+
+AimboxMetaRoot .match-recap-xp, .aimbox-meta .match-recap-xp
+{
+	font-size: 22px;
+	font-weight: 900;
+	color: #ff2a6d;
+}
+
+AimboxMetaRoot .match-recap-xp.mastery, .aimbox-meta .match-recap-xp.mastery
+{
+	color: rgba(255, 255, 255, 0.85);
+}
+
+AimboxMetaRoot .match-recap-rank-line, .aimbox-meta .match-recap-rank-line
+{
+	font-size: 18px;
+	font-weight: 700;
+	color: #dce6ef;
+}
+
+AimboxMetaRoot .match-recap-rank-hero, .aimbox-meta .match-recap-rank-hero
+{
+	flex-direction: row;
+	align-items: center;
+	gap: 14px;
+	padding: 12px 0 4px;
+}
+
+AimboxMetaRoot .match-recap-rank-badge, .aimbox-meta .match-recap-rank-badge
+{
+	width: 72px;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding: 10px 8px;
+	border-radius: 10px;
+	background-color: rgba(255, 255, 255, 0.04);
+	border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+AimboxMetaRoot .match-recap-rank-badge.to, .aimbox-meta .match-recap-rank-badge.to
+{
+	border-color: rgba(125, 255, 178, 0.35);
+	background-color: rgba(125, 255, 178, 0.08);
+}
+
+AimboxMetaRoot .match-recap-rank-value, .aimbox-meta .match-recap-rank-value
+{
+	font-size: 28px;
+	font-weight: 900;
+	color: #ffffff;
+	line-height: 1;
+}
+
+AimboxMetaRoot .match-recap-rank-badge.to .match-recap-rank-value, .aimbox-meta .match-recap-rank-badge.to .match-recap-rank-value
+{
+	color: #7dffb2;
+}
+
+AimboxMetaRoot .match-recap-rank-caption, .aimbox-meta .match-recap-rank-caption
+{
+	margin-top: 4px;
+	font-size: 11px;
+	font-weight: 800;
+	letter-spacing: 0.08em;
+	color: rgba(255, 255, 255, 0.65);
+}
+
+AimboxMetaRoot .match-recap-rank-arrow, .aimbox-meta .match-recap-rank-arrow
+{
+	font-size: 28px;
+	font-weight: 900;
+	color: #ff2a6d;
+}
+
+AimboxMetaRoot .match-recap-unlock-heading, .aimbox-meta .match-recap-unlock-heading
+{
+	font-size: 13px;
+	font-weight: 800;
+	letter-spacing: 0.08em;
+	color: rgba(255, 255, 255, 0.65);
+	text-transform: uppercase;
+}
+
+AimboxMetaRoot .match-recap-level-up, .aimbox-meta .match-recap-level-up
+{
+	margin-left: auto;
+	font-size: 13px;
+	font-weight: 900;
+	color: #fff;
+	background-color: #7dffb2;
+	padding: 6px 10px;
+	border-radius: 4px;
+}
+
+AimboxMetaRoot .match-recap-mastery-list, .aimbox-meta .match-recap-mastery-list
+{
+	flex-direction: column;
+	gap: 8px;
+}
+
+AimboxMetaRoot .match-recap-mastery-row, .aimbox-meta .match-recap-mastery-row
+{
+	flex-direction: row;
+	align-items: center;
+	gap: 12px;
+	padding: 8px 10px;
+	border-radius: 8px;
+	background-color: rgba(255, 255, 255, 0.03);
+}
+
+AimboxMetaRoot .match-recap-mastery-weapon, .aimbox-meta .match-recap-mastery-weapon
+{
+	flex-grow: 1;
+	font-size: 16px;
+	font-weight: 700;
+	color: #dce6ef;
+}
+
+AimboxMetaRoot .match-recap-mastery-xp, .aimbox-meta .match-recap-mastery-xp
+{
+	font-size: 16px;
+	font-weight: 800;
+	color: rgba(255, 255, 255, 0.85);
+}
+
+AimboxMetaRoot .match-recap-mastery-level, .aimbox-meta .match-recap-mastery-level
+{
+	font-size: 14px;
+	font-weight: 700;
+	color: #7eb8d8;
+}
+
+AimboxMetaRoot .match-recap-unlock-list, .aimbox-meta .match-recap-unlock-list
+{
+	flex-direction: column;
+	gap: 6px;
+}
+
+AimboxMetaRoot .match-recap-unlock-list.compact, .aimbox-meta .match-recap-unlock-list.compact
+{
+	flex-direction: row;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+AimboxMetaRoot .match-recap-unlock-list.compact .match-recap-unlock, .aimbox-meta .match-recap-unlock-list.compact .match-recap-unlock
+{
+	padding: 6px 10px;
+	border-radius: 6px;
+	background-color: rgba(255, 255, 255, 0.04);
+	border: 1px solid rgba(255, 255, 255, 0.06);
+	font-size: 14px;
+}
+
+AimboxMetaRoot .match-recap-unlock, .aimbox-meta .match-recap-unlock
+{
+	font-size: 16px;
+	font-weight: 700;
+	color: #7dffb2;
+}
+
+AimboxMetaRoot .match-recap-unlock.mastery, .aimbox-meta .match-recap-unlock.mastery
+{
+	color: rgba(255, 255, 255, 0.85);
+}
+
+AimboxMetaRoot .match-recap-unlock.challenge, .aimbox-meta .match-recap-unlock.challenge
+{
+	color: #ff2a6d;
+}
+
+AimboxMetaRoot .match-recap-empty, .aimbox-meta .match-recap-empty
+{
+	font-size: 15px;
+	font-weight: 600;
+	color: rgba(255, 255, 255, 0.55);
+}
+
+AimboxMetaRoot button.match-recap-continue, .aimbox-meta button.match-recap-continue
+{
+	width: 100%;
+	min-height: 58px;
+	background-color: #ff2a6d;
+	border: 2px solid #ff2a6d;
+	color: #fff;
+	font-size: 22px;
+	font-weight: 800;
+	letter-spacing: 2px;
+}
+
+AimboxMetaRoot button.match-recap-continue:hover, .aimbox-meta button.match-recap-continue:hover
+{
+	background-color: #ff4d86;
+	border-color: #ff4d86;
+	color: #fff;
+}
+
+AimboxMetaRoot .intermission.wide, .aimbox-meta .intermission.wide
+{
+	width: 1680px;
+	max-width: 96%;
+}
+
+AimboxMetaRoot .intermission-footer, .aimbox-meta .intermission-footer
+{
+	margin-top: 20px;
+	padding-top: 20px;
+	border-top: 2px solid rgba(255, 42, 109, 0.25);
+	flex-direction: column;
+	gap: 12px;
+}
+
+AimboxMetaRoot .intermission-footer.compact, .aimbox-meta .intermission-footer.compact
+{
+	margin-top: 12px;
+}
+
+AimboxMetaRoot .countdown, .aimbox-meta .countdown
+{
+	color: #ff2a6d;
+	font-size: 28px;
+	font-weight: 800;
+}
+
+AimboxMetaRoot .mode-chip, .aimbox-meta .mode-chip
+{
+	align-self: flex-start;
+	padding: 10px 18px;
+	border-radius: 999px;
+	background-color: rgba(0, 0, 0, 0.45);
+	color: #f4f7fb;
+	font-size: 18px;
+	font-weight: 700;
+}
+
+AimboxMetaRoot .mode-chip.active, .aimbox-meta .mode-chip.active
+{
+	background-color: #ff2a6d;
+	color: #fff;
+}
+
+AimboxMetaRoot .split-layout, .aimbox-meta .split-layout
+{
+	flex-direction: row;
+	gap: 32px;
+	width: 100%;
+}
+
+AimboxMetaRoot .split-layout.loadout-split, .aimbox-meta .split-layout.loadout-split
+{
+	gap: 24px;
+	flex-shrink: 1;
+	min-height: 0;
+	align-items: flex-start;
+}
+
+AimboxMetaRoot .split-right.loadout-preview, .aimbox-meta .split-right.loadout-preview
+{
+	width: 380px;
+	min-width: 380px;
+	overflow-y: auto;
+	overflow-x: hidden;
+	padding-right: 8px;
+	flex-shrink: 0;
+}
+
+AimboxMetaRoot .split-left, .aimbox-meta .split-left
+{
+	flex-direction: column;
+	flex-grow: 1;
+	flex-shrink: 1;
+	min-width: 0;
+	gap: 16px;
+}
+
+AimboxMetaRoot .split-right, .aimbox-meta .split-right
+{
+	flex-direction: column;
+	width: 480px;
+	flex-shrink: 0;
+	gap: 16px;
+}
+
+AimboxMetaRoot .option-list, .aimbox-meta .option-list
+{
+	flex-direction: column;
+	gap: 8px;
+	max-height: 300px;
+	overflow-y: scroll;
+	overflow-x: hidden;
+	padding-right: 8px;
+	flex-shrink: 1;
+	min-height: 0;
+}
+
+AimboxMetaRoot .panel.loadouts-screen .option-list, .aimbox-meta .panel.loadouts-screen .option-list
+{
+	max-height: 360px;
+}
+
+AimboxMetaRoot .panel.loadouts-screen .loadout-preview, .aimbox-meta .panel.loadouts-screen .loadout-preview
+{
+	flex-shrink: 0;
+}
+
+AimboxMetaRoot .loadout-slot-picker, .aimbox-meta .loadout-slot-picker
+{
+	flex-direction: column;
+	gap: 8px;
+	width: 100%;
+	flex-shrink: 0;
+}
+
+AimboxMetaRoot .loadout-slot-picker-label, .aimbox-meta .loadout-slot-picker-label
+{
+	font-size: 13px;
+	font-weight: 800;
+	color: #ff2a6d;
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+}
+
+AimboxMetaRoot .loadout-slot-picker-row, .aimbox-meta .loadout-slot-picker-row
+{
+	flex-direction: row;
+	gap: 8px;
+	width: 100%;
+}
+
+AimboxMetaRoot .loadout-slot-btn, .aimbox-meta .loadout-slot-btn
+{
+	flex-grow: 1;
+	flex-shrink: 1;
+	flex-basis: 0;
+	flex-direction: column;
+	align-items: flex-start;
+	justify-content: center;
+	gap: 4px;
+	min-height: 58px;
+	padding: 10px 12px;
+	border-radius: 10px;
+	background-color: rgba(8, 12, 18, 0.72);
+	border: 2px solid rgba(255, 42, 109, 0.18);
+	text-align: left;
+}
+
+AimboxMetaRoot .loadout-slot-btn.active, .aimbox-meta .loadout-slot-btn.active
+{
+	border-color: rgba(255, 42, 109, 0.72);
+	background-color: rgba(255, 42, 109, 0.12);
+	box-shadow: inset 0 0 0 1px rgba(255, 42, 109, 0.18);
+}
+
+AimboxMetaRoot .loadout-slot-btn-title, .aimbox-meta .loadout-slot-btn-title
+{
+	font-size: 11px;
+	font-weight: 800;
+	color: rgba(255, 255, 255, 0.55);
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+}
+
+AimboxMetaRoot .loadout-slot-btn-value, .aimbox-meta .loadout-slot-btn-value
+{
+	font-size: 14px;
+	font-weight: 700;
+	color: #f4f7fb;
+	line-height: 1.2;
+}
+
+AimboxMetaRoot .category-hint, .aimbox-meta .category-hint
+{
+	font-size: 14px;
+	font-weight: 600;
+	color: rgba(255, 255, 255, 0.65);
+	line-height: 1.45;
+	padding: 10px 14px;
+	flex-shrink: 0;
+	border-radius: 8px;
+	background-color: rgba(255, 255, 255, 0.04);
+	border: 1px solid rgba(255, 255, 255, 0.06);
+	margin-bottom: 4px;
+}
+
+AimboxMetaRoot .preview-row.weapons-row, .aimbox-meta .preview-row.weapons-row
+{
+	gap: 8px;
+}
+
+AimboxMetaRoot .preview-card.weapon-compact, .aimbox-meta .preview-card.weapon-compact
+{
+	flex-grow: 1;
+	flex-shrink: 1;
+	flex-basis: 0;
+	min-width: 0;
+	padding: 8px 10px;
+	gap: 4px;
+}
+
+AimboxMetaRoot .preview-thumb.loadout.compact, .aimbox-meta .preview-thumb.loadout.compact
+{
+	height: 72px;
+}
+
+AimboxMetaRoot .weapon-compact .preview-label, .aimbox-meta .weapon-compact .preview-label
+{
+	font-size: 13px;
+}
+
+AimboxMetaRoot .weapon-compact .preview-code, .aimbox-meta .weapon-compact .preview-code
+{
+	font-size: 22px;
+}
+
+AimboxMetaRoot .preview-slot.slot-active, .aimbox-meta .preview-slot.slot-active
+{
+	border-radius: 8px;
+	box-shadow: inset 0 0 0 2px rgba(255, 42, 109, 0.72);
+}
+
+AimboxMetaRoot .loadout-preview .preview-slot, .aimbox-meta .loadout-preview .preview-slot
+{
+	cursor: pointer;
+	padding: 4px;
+	border-radius: 8px;
+}
+
+AimboxMetaRoot .loadout-preview .attachment-preview, .aimbox-meta .loadout-preview .attachment-preview
+{
+	padding: 10px 12px;
+	border-radius: 10px;
+	background-color: rgba(8, 12, 18, 0.72);
+	border: 2px solid rgba(255, 42, 109, 0.18);
+}
+
+AimboxMetaRoot button.option, .aimbox-meta button.option,
+AimboxMetaRoot button.mode-option, .aimbox-meta button.mode-option
+{
+	justify-content: flex-start;
+	text-align: left;
+}
+
+AimboxMetaRoot button.tab, .aimbox-meta button.tab
+{
+	min-height: 48px;
+	font-size: 16px;
+	padding: 8px 16px;
+}
+
+AimboxMetaRoot .preview-stack, .aimbox-meta .preview-stack
+{
+	flex-direction: column;
+	gap: 12px;
+}
+
+AimboxMetaRoot .loadout-preview .preview-stack, .aimbox-meta .loadout-preview .preview-stack
+{
+	gap: 14px;
+}
+
+AimboxMetaRoot .preview-section, .aimbox-meta .preview-section
+{
+	flex-direction: column;
+	gap: 8px;
+	width: 100%;
+	flex-shrink: 0;
+}
+
+AimboxMetaRoot .loadout-preview .preview-section, .aimbox-meta .loadout-preview .preview-section
+{
+	gap: 6px;
+	margin-top: 2px;
+}
+
+AimboxMetaRoot .preview-section-title, .aimbox-meta .preview-section-title
+{
+	font-size: 12px;
+	font-weight: 800;
+	color: #ff2a6d;
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	line-height: 1.2;
+	flex-shrink: 0;
+}
+
+AimboxMetaRoot .preview-row, .aimbox-meta .preview-row
+{
+	flex-direction: row;
+	gap: 8px;
+	width: 100%;
+	flex-shrink: 0;
+}
+
+AimboxMetaRoot .preview-slot, .aimbox-meta .preview-slot
+{
+	flex-direction: column;
+	flex-grow: 1;
+	flex-shrink: 1;
+	flex-basis: 0;
+	gap: 4px;
+	min-width: 0;
+}
+
+AimboxMetaRoot .loadout-preview .preview-slot, .aimbox-meta .loadout-preview .preview-slot
+{
+	gap: 3px;
+}
+
+AimboxMetaRoot .preview-slot .preview-meta, .aimbox-meta .preview-slot .preview-meta
+{
+	font-size: 10px;
+	margin-bottom: 0;
+	text-align: center;
+}
+
+AimboxMetaRoot .preview-card, .aimbox-meta .preview-card
+{
+	flex-direction: column;
+	gap: 8px;
+	padding: 12px 14px;
+	border-radius: 10px;
+	background-color: rgba(8, 12, 18, 0.72);
+	border: 2px solid rgba(255, 42, 109, 0.18);
+	flex-shrink: 0;
+}
+
+AimboxMetaRoot .loadout-preview .preview-card, .aimbox-meta .loadout-preview .preview-card
+{
+	padding: 10px 12px;
+	gap: 6px;
+}
+
+AimboxMetaRoot .preview-card.small, .aimbox-meta .preview-card.small
+{
+	flex-grow: 1;
+	padding: 12px;
+}
+
+AimboxMetaRoot .loadout-preview .preview-card.small, .aimbox-meta .loadout-preview .preview-card.small
+{
+	padding: 8px 10px;
+	gap: 4px;
+}
+
+AimboxMetaRoot .loadout-preview .preview-thumb.perk, .aimbox-meta .loadout-preview .preview-thumb.perk,
+AimboxMetaRoot .loadout-preview .preview-thumb.streak, .aimbox-meta .loadout-preview .preview-thumb.streak
+{
+	height: 52px;
+}
+
+AimboxMetaRoot .preview-slot .preview-code, .aimbox-meta .preview-slot .preview-code
+{
+	font-size: 16px;
+}
+
+AimboxMetaRoot .preview-card.large, .aimbox-meta .preview-card.large
+{
+	padding: 20px;
+}
+
+AimboxMetaRoot .preview-thumb, .aimbox-meta .preview-thumb
+{
+	width: 100%;
+	height: 144px;
+	border-radius: 8px;
+	align-items: center;
+	justify-content: center;
+	border: 2px solid rgba(255, 255, 255, 0.08);
+	flex-shrink: 0;
+}
+
+AimboxMetaRoot .preview-thumb.loadout, .aimbox-meta .preview-thumb.loadout
+{
+	height: 96px;
+}
+
+AimboxMetaRoot .preview-thumb.mode, .aimbox-meta .preview-thumb.mode
+{
+	height: 220px;
+}
+
+AimboxMetaRoot .preview-thumb.perk, .aimbox-meta .preview-thumb.perk,
+AimboxMetaRoot .preview-thumb.streak, .aimbox-meta .preview-thumb.streak
+{
+	height: 88px;
+}
+
+AimboxMetaRoot .preview-code, .aimbox-meta .preview-code
+{
+	font-size: 36px;
+	font-weight: 900;
+	color: rgba(255, 255, 255, 0.92);
+	text-shadow: 0 2px 8px #000a;
+	line-height: 1;
+}
+
+AimboxMetaRoot .loadout-preview .preview-code, .aimbox-meta .loadout-preview .preview-code
+{
+	font-size: 28px;
+}
+
+AimboxMetaRoot .preview-card.small .preview-code, .aimbox-meta .preview-card.small .preview-code
+{
+	font-size: 22px;
+}
+
+AimboxMetaRoot .preview-label, .aimbox-meta .preview-label
+{
+	color: #f4f7fb;
+	font-size: 20px;
+	font-weight: 700;
+	line-height: 1.2;
+	flex-shrink: 0;
+}
+
+AimboxMetaRoot .loadout-preview .preview-label, .aimbox-meta .loadout-preview .preview-label
+{
+	font-size: 16px;
+}
+
+AimboxMetaRoot .preview-meta, .aimbox-meta .preview-meta
+{
+	color: rgba(255, 255, 255, 0.55);
+	font-size: 14px;
+	font-weight: 700;
+	text-transform: uppercase;
+	line-height: 1.2;
+	flex-shrink: 0;
+	letter-spacing: 0.06em;
+}
+
+AimboxMetaRoot .loadout-preview .preview-meta, .aimbox-meta .loadout-preview .preview-meta
+{
+	font-size: 12px;
+	margin-bottom: 2px;
+}
+
+AimboxMetaRoot .attachment-preview, .aimbox-meta .attachment-preview
+{
+	flex-direction: column;
+	gap: 8px;
+	width: 100%;
+	flex-shrink: 0;
+	padding-top: 2px;
+}
+
+AimboxMetaRoot .loadout-preview .attachment-preview, .aimbox-meta .loadout-preview .attachment-preview
+{
+	gap: 6px;
+	margin-top: 0;
+}
+
+AimboxMetaRoot .attachment-tags, .aimbox-meta .attachment-tags
+{
+	flex-direction: row;
+	flex-wrap: wrap;
+	gap: 6px;
+	width: 100%;
+}
+
+AimboxMetaRoot .loadout-preview .attachment-tags, .aimbox-meta .loadout-preview .attachment-tags
+{
+	padding-left: 2px;
+}
+
+AimboxMetaRoot .attachment-tag, .aimbox-meta .attachment-tag
+{
+	padding: 6px 12px;
+	border-radius: 999px;
+	background-color: rgba(0, 0, 0, 0.45);
+	color: #d8e2ec;
+	font-size: 13px;
+	font-weight: 700;
+	white-space: nowrap;
+	max-width: 100%;
+	flex-shrink: 0;
+}
+
+AimboxMetaRoot .loadout-preview .attachment-tag, .aimbox-meta .loadout-preview .attachment-tag
+{
+	font-size: 12px;
+	padding: 5px 10px;
+}
+
+AimboxMetaRoot .loadout-actions, .aimbox-meta .loadout-actions,
+AimboxMetaRoot .class-actions, .aimbox-meta .class-actions
+{
+	flex-direction: row;
+	gap: 16px;
+	margin-top: 16px;
+}
+
+AimboxMetaRoot .loadout-actions button, .aimbox-meta .loadout-actions button,
+AimboxMetaRoot .class-actions button, .aimbox-meta .class-actions button
+{
+	flex-grow: 1;
+}
+
+AimboxMetaRoot button.equip-loadout, .aimbox-meta button.equip-loadout
+{
+	background-color: #ff4d86;
+}
+
+AimboxMetaRoot button.equip-loadout:hover, .aimbox-meta button.equip-loadout:hover
+{
+	background-color: #ff2a6d;
+	color: #fff;
+}
+
+AimboxMetaRoot button.equipped-state, .aimbox-meta button.equipped-state
+{
+	background-color: #ff2a6d;
+	color: #fff;
+	border: 2px solid rgba(255, 42, 109, 0.65);
+	cursor: default;
+}
+
+AimboxMetaRoot button.equipped-state:hover, .aimbox-meta button.equipped-state:hover
+{
+	background-color: #ff2a6d;
+	color: #fff;
+}
+
+AimboxMetaRoot .loadout-tab-hint, .aimbox-meta .loadout-tab-hint
+{
+	font-size: 15px;
+	color: rgba(255, 255, 255, 0.55);
+	font-weight: 600;
+}
+
+AimboxMetaRoot .panel.loadouts-screen, .aimbox-meta .panel.loadouts-screen
+{
+	gap: 12px;
+	max-height: 92%;
+	overflow: hidden;
+}
+
+AimboxMetaRoot .panel.loadouts-screen .section, .aimbox-meta .panel.loadouts-screen .section
+{
+	margin-top: 0;
+}
+
+AimboxMetaRoot .loadout-header-row, .aimbox-meta .loadout-header-row
+{
+	flex-direction: row;
+	align-items: flex-start;
+	justify-content: flex-start;
+	gap: 20px;
+	width: 100%;
+	flex-shrink: 0;
+	flex-wrap: wrap;
+}
+
+AimboxMetaRoot .loadout-header-text, .aimbox-meta .loadout-header-text
+{
+	flex-direction: column;
+	flex-shrink: 0;
+	min-width: 0;
+}
+
+AimboxMetaRoot .loadout-header-text .subtitle, .aimbox-meta .loadout-header-text .subtitle
+{
+	margin-bottom: 0;
+}
+
+AimboxMetaRoot .loadout-editor, .aimbox-meta .loadout-editor
+{
+	flex-direction: column;
+	gap: 12px;
+	width: 100%;
+	flex-grow: 1;
+	flex-shrink: 1;
+	min-height: 0;
+	overflow-y: auto;
+	overflow-x: hidden;
+	padding-right: 8px;
+}
+
+AimboxMetaRoot .loadout-unlock-banner, .aimbox-meta .loadout-unlock-banner
+{
+	flex-direction: column;
+	gap: 16px;
+	padding: 22px 24px;
+	border-radius: 12px;
+	background-color: rgba(8, 12, 18, 0.88);
+	border: 2px solid rgba(255, 42, 109, 0.28);
+	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 10px 28px rgba(0, 0, 0, 0.28);
+	flex-shrink: 0;
+}
+
+AimboxMetaRoot .loadout-unlock-banner.compact, .aimbox-meta .loadout-unlock-banner.compact
+{
+	width: auto;
+	max-width: 520px;
+	flex-grow: 1;
+	flex-shrink: 1;
+	padding: 14px 16px;
+	gap: 0;
+	align-self: flex-start;
+}
+
+AimboxMetaRoot .loadout-unlock-head, .aimbox-meta .loadout-unlock-head
+{
+	flex-direction: row;
+	align-items: center;
+	gap: 20px;
+	width: 100%;
+}
+
+AimboxMetaRoot .loadout-unlock-banner.compact .loadout-unlock-head, .aimbox-meta .loadout-unlock-banner.compact .loadout-unlock-head
+{
+	gap: 12px;
+	align-items: flex-start;
+}
+
+AimboxMetaRoot .loadout-unlock-rank-badge, .aimbox-meta .loadout-unlock-rank-badge
+{
+	width: 92px;
+	height: 92px;
+	flex-shrink: 0;
+	border-radius: 12px;
+	align-items: center;
+	justify-content: center;
+	background-color: #ff2a6d;
+	color: #fff;
+	box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.12);
+	padding-top: 4px;
+	padding-bottom: 6px;
+}
+
+AimboxMetaRoot .loadout-unlock-banner.compact .loadout-unlock-rank-badge, .aimbox-meta .loadout-unlock-banner.compact .loadout-unlock-rank-badge
+{
+	width: 68px;
+	height: 68px;
+	border-radius: 10px;
+	padding-top: 2px;
+	padding-bottom: 4px;
+}
+
+AimboxMetaRoot .loadout-unlock-rank-value, .aimbox-meta .loadout-unlock-rank-value
+{
+	font-size: 30px;
+	font-weight: 900;
+	line-height: 1;
+}
+
+AimboxMetaRoot .loadout-unlock-banner.compact .loadout-unlock-rank-value, .aimbox-meta .loadout-unlock-banner.compact .loadout-unlock-rank-value
+{
+	font-size: 24px;
+}
+
+AimboxMetaRoot .loadout-unlock-rank-caption, .aimbox-meta .loadout-unlock-rank-caption
+{
+	margin-top: 8px;
+	font-size: 11px;
+	font-weight: 800;
+	letter-spacing: 0.1em;
+	line-height: 1;
+}
+
+AimboxMetaRoot .loadout-unlock-banner.compact .loadout-unlock-rank-caption, .aimbox-meta .loadout-unlock-banner.compact .loadout-unlock-rank-caption
+{
+	margin-top: 4px;
+	font-size: 9px;
+}
+
+AimboxMetaRoot .loadout-unlock-copy, .aimbox-meta .loadout-unlock-copy
+{
+	flex-direction: column;
+	flex-grow: 1;
+	flex-shrink: 1;
+	justify-content: center;
+	gap: 12px;
+	min-width: 0;
+}
+
+AimboxMetaRoot .loadout-unlock-banner.compact .loadout-unlock-copy, .aimbox-meta .loadout-unlock-banner.compact .loadout-unlock-copy
+{
+	gap: 8px;
+}
+
+AimboxMetaRoot .loadout-unlock-title, .aimbox-meta .loadout-unlock-title
+{
+	font-size: 22px;
+	font-weight: 900;
+	color: #f4f7fb;
+	line-height: 1.2;
+}
+
+AimboxMetaRoot .loadout-unlock-banner.compact .loadout-unlock-title, .aimbox-meta .loadout-unlock-banner.compact .loadout-unlock-title
+{
+	font-size: 16px;
+}
+
+AimboxMetaRoot .loadout-unlock-tags, .aimbox-meta .loadout-unlock-tags
+{
+	flex-direction: row;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+AimboxMetaRoot .loadout-unlock-banner.compact .loadout-unlock-tags, .aimbox-meta .loadout-unlock-banner.compact .loadout-unlock-tags
+{
+	gap: 6px;
+}
+
+AimboxMetaRoot .loadout-unlock-tag, .aimbox-meta .loadout-unlock-tag
+{
+	padding: 8px 12px;
+	border-radius: 999px;
+	background-color: rgba(255, 42, 109, 0.14);
+	border: 1px solid rgba(255, 42, 109, 0.28);
+	font-size: 14px;
+	font-weight: 700;
+	color: #ff2a6d;
+}
+
+AimboxMetaRoot .loadout-unlock-banner.compact .loadout-unlock-tag, .aimbox-meta .loadout-unlock-banner.compact .loadout-unlock-tag
+{
+	padding: 5px 8px;
+	font-size: 11px;
+}
+
+AimboxMetaRoot .loadout-unlock-tag.muted, .aimbox-meta .loadout-unlock-tag.muted
+{
+	background-color: rgba(255, 255, 255, 0.04);
+	border-color: rgba(255, 255, 255, 0.08);
+	color: rgba(255, 255, 255, 0.55);
+}
+
+AimboxMetaRoot .loadout-unlock-body, .aimbox-meta .loadout-unlock-body
+{
+	padding-top: 16px;
+	border-top: 1px solid rgba(255, 255, 255, 0.08);
+	font-size: 15px;
+	font-weight: 600;
+	color: rgba(255, 255, 255, 0.65);
+	line-height: 1.5;
+}
+
+AimboxMetaRoot .category-empty, .aimbox-meta .category-empty
+{
+	flex-direction: column;
+	gap: 8px;
+	padding: 16px;
+	margin-bottom: 8px;
+	border-radius: 10px;
+	background-color: rgba(0, 0, 0, 0.28);
+	border: 2px solid rgba(255, 42, 109, 0.22);
+}
+
+AimboxMetaRoot .category-empty-title, .aimbox-meta .category-empty-title
+{
+	font-size: 18px;
+	font-weight: 800;
+	color: #dce6ef;
+}
+
+AimboxMetaRoot .category-empty-body, .aimbox-meta .category-empty-body
+{
+	font-size: 14px;
+	font-weight: 600;
+	color: rgba(255, 255, 255, 0.55);
+	line-height: 1.45;
+}
+
+AimboxMetaRoot .preview-card.locked-slot, .aimbox-meta .preview-card.locked-slot,
+AimboxMetaRoot .preview-card.empty-slot, .aimbox-meta .preview-card.empty-slot
+{
+	opacity: 0.72;
+	border-color: rgba(255, 255, 255, 0.06);
+}
+
+AimboxMetaRoot .preview-slot.empty-slot, .aimbox-meta .preview-slot.empty-slot
+{
+	opacity: 0.72;
+}
+
+AimboxMetaRoot .preview-thumb.empty, .aimbox-meta .preview-thumb.empty
+{
+	background-color: #1a2430 !important;
+	border: 2px solid rgba(255, 255, 255, 0.12);
+}
+
+AimboxMetaRoot .attachment-empty, .aimbox-meta .attachment-empty
+{
+	font-size: 13px;
+	font-weight: 600;
+	color: rgba(255, 255, 255, 0.55);
+	padding: 6px 2px 2px;
+	line-height: 1.35;
+}
+
+AimboxMetaRoot .mode-select-actions, .aimbox-meta .mode-select-actions
+{
+	flex-direction: row;
+	gap: 16px;
+	margin-top: 16px;
+	padding-top: 20px;
+	border-top: 2px solid rgba(255, 42, 109, 0.25);
+}
+
+AimboxMetaRoot .mode-select-actions button.start-match, .aimbox-meta .mode-select-actions button.start-match
+{
+	flex-grow: 1;
+	background-color: #ff4d86;
+}
+
+AimboxMetaRoot .mode-select-actions button.start-match:hover, .aimbox-meta .mode-select-actions button.start-match:hover
+{
+	background-color: #ff2a6d;
+	color: #fff;
+}
+
+AimboxMetaRoot .mode-select-actions .countdown, .aimbox-meta .mode-select-actions .countdown
+{
+	flex-grow: 1;
+	align-items: center;
+	justify-content: center;
+}
+
+AimboxMetaRoot .submenu-actions, .aimbox-meta .submenu-actions
+{
+	margin-top: 16px;
+	padding-top: 20px;
+	border-top: 2px solid rgba(255, 42, 109, 0.25);
+}
+
+AimboxMetaRoot button.reset-progress, .aimbox-meta button.reset-progress
+{
+	margin-top: 8px;
+	background-color: #4a2530;
+}
+
+AimboxMetaRoot button.reset-progress:hover, .aimbox-meta button.reset-progress:hover
+{
+	background-color: #6a3540;
+}
+
+AimboxMetaRoot .barracks-screen, .aimbox-meta .barracks-screen
+{
+	flex-direction: column;
+	gap: 18px;
+	width: 100%;
+	flex-grow: 1;
+	min-height: 0;
+	overflow-y: auto;
+	overflow-x: hidden;
+	padding-right: 8px;
+}
+
+AimboxMetaRoot .barracks-hero, .aimbox-meta .barracks-hero
+{
+	flex-direction: row;
+	gap: 20px;
+	width: 100%;
+	padding: 24px;
+	border-radius: 12px;
+	background-color: rgba(8, 12, 18, 0.88);
+	border: 2px solid rgba(255, 42, 109, 0.22);
+	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 10px 28px rgba(0, 0, 0, 0.28);
+	flex-shrink: 0;
+	overflow: hidden;
+}
+
+AimboxMetaRoot .barracks-rank-badge, .aimbox-meta .barracks-rank-badge
+{
+	width: 112px;
+	height: 112px;
+	flex-shrink: 0;
+	border-radius: 12px;
+	align-items: center;
+	justify-content: center;
+	background-color: #ff2a6d;
+	color: #fff;
+	box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.12);
+}
+
+AimboxMetaRoot .barracks-rank-level, .aimbox-meta .barracks-rank-level
+{
+	font-size: 42px;
+	font-weight: 900;
+	line-height: 1;
+}
+
+AimboxMetaRoot .barracks-rank-caption, .aimbox-meta .barracks-rank-caption
+{
+	margin-top: 4px;
+	font-size: 12px;
+	font-weight: 800;
+	letter-spacing: 0.08em;
+}
+
+AimboxMetaRoot .barracks-hero-copy, .aimbox-meta .barracks-hero-copy
+{
+	flex-direction: column;
+	flex-grow: 1;
+	flex-shrink: 1;
+	justify-content: center;
+	gap: 8px;
+	min-width: 0;
+	width: 0;
+}
+
+AimboxMetaRoot .barracks-hero-title, .aimbox-meta .barracks-hero-title
+{
+	font-size: 28px;
+	font-weight: 900;
+	color: #f4f7fb;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+AimboxMetaRoot .barracks-hero-subtitle, .aimbox-meta .barracks-hero-subtitle
+{
+	font-size: 18px;
+	color: rgba(255, 255, 255, 0.65);
+}
+
+AimboxMetaRoot .barracks-xp-track, .aimbox-meta .barracks-xp-track
+{
+	width: 100%;
+	max-width: 100%;
+	height: 12px;
+	border-radius: 999px;
+	background-color: rgba(255, 255, 255, 0.08);
+	overflow: hidden;
+	flex-shrink: 0;
+}
+
+AimboxMetaRoot .barracks-xp-fill, .aimbox-meta .barracks-xp-fill
+{
+	height: 100%;
+	max-width: 100%;
+	border-radius: 999px;
+	background-color: #ff2a6d;
+	box-shadow: 0 0 12px rgba(255, 42, 109, 0.45);
+}
+
+AimboxMetaRoot .barracks-hero-meta, .aimbox-meta .barracks-hero-meta
+{
+	font-size: 14px;
+	font-weight: 700;
+	color: rgba(255, 255, 255, 0.55);
+}
+
+AimboxMetaRoot .barracks-stat-grid, .aimbox-meta .barracks-stat-grid
+{
+	flex-direction: row;
+	flex-wrap: nowrap;
+	gap: 12px;
+	width: 100%;
+	flex-shrink: 0;
+}
+
+AimboxMetaRoot .barracks-stat-grid .barracks-stat-card, .aimbox-meta .barracks-stat-grid .barracks-stat-card
+{
+	width: calc(25% - 9px);
+	flex-grow: 0;
+	flex-shrink: 0;
+	min-width: 0;
+}
+
+AimboxMetaRoot .barracks-stat-grid.cols-3 .barracks-stat-card, .aimbox-meta .barracks-stat-grid.cols-3 .barracks-stat-card
+{
+	width: calc(33.333% - 8px);
+}
+
+AimboxMetaRoot .barracks-career-block, .aimbox-meta .barracks-career-block
+{
+	flex-direction: column;
+	gap: 12px;
+	width: 100%;
+	flex-shrink: 0;
+}
+
+AimboxMetaRoot .barracks-stat-card, .aimbox-meta .barracks-stat-card
+{
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	min-height: 108px;
+	padding: 18px 12px;
+	border-radius: 10px;
+	background-color: rgba(8, 12, 18, 0.72);
+	border: 2px solid rgba(255, 255, 255, 0.06);
+	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+AimboxMetaRoot .barracks-stat-card.accent-kills, .aimbox-meta .barracks-stat-card.accent-kills
+{
+	border-color: rgba(255, 107, 107, 0.35);
+}
+
+AimboxMetaRoot .barracks-stat-card.accent-deaths, .aimbox-meta .barracks-stat-card.accent-deaths
+{
+	border-color: rgba(143, 160, 175, 0.35);
+}
+
+AimboxMetaRoot .barracks-stat-card.accent-kd, .aimbox-meta .barracks-stat-card.accent-kd
+{
+	border-color: rgba(255, 42, 109, 0.35);
+}
+
+AimboxMetaRoot .barracks-stat-card.accent-headshots, .aimbox-meta .barracks-stat-card.accent-headshots
+{
+	border-color: rgba(125, 255, 178, 0.28);
+}
+
+AimboxMetaRoot .barracks-stat-card.accent-matches, .aimbox-meta .barracks-stat-card.accent-matches
+{
+	border-color: rgba(100, 149, 237, 0.32);
+}
+
+AimboxMetaRoot .barracks-stat-card.accent-wins, .aimbox-meta .barracks-stat-card.accent-wins
+{
+	border-color: rgba(125, 255, 178, 0.32);
+}
+
+AimboxMetaRoot .barracks-stat-card.accent-winrate, .aimbox-meta .barracks-stat-card.accent-winrate
+{
+	border-color: rgba(255, 42, 109, 0.32);
+}
+
+AimboxMetaRoot .barracks-stat-value, .aimbox-meta .barracks-stat-value
+{
+	font-size: 34px;
+	font-weight: 900;
+	color: #f4f7fb;
+	line-height: 1;
+	text-align: center;
+}
+
+AimboxMetaRoot .barracks-stat-label, .aimbox-meta .barracks-stat-label
+{
+	margin-top: 8px;
+	font-size: 13px;
+	font-weight: 800;
+	color: rgba(255, 255, 255, 0.55);
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	text-align: center;
+}
+
+AimboxMetaRoot .barracks-detail-panel, .aimbox-meta .barracks-detail-panel
+{
+	flex-direction: column;
+	gap: 0;
+	width: 100%;
+	flex-shrink: 0;
+	border-radius: 10px;
+	overflow: hidden;
+	background-color: rgba(8, 12, 18, 0.72);
+	border: 2px solid rgba(255, 255, 255, 0.06);
+}
+
+AimboxMetaRoot .barracks-detail-row, .aimbox-meta .barracks-detail-row
+{
+	flex-direction: row;
+	align-items: center;
+	justify-content: space-between;
+	padding: 16px 18px;
+	border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+AimboxMetaRoot .barracks-detail-row:last-child, .aimbox-meta .barracks-detail-row:last-child
+{
+	border-bottom-width: 0;
+}
+
+AimboxMetaRoot .barracks-detail-label, .aimbox-meta .barracks-detail-label
+{
+	font-size: 16px;
+	font-weight: 700;
+	color: rgba(255, 255, 255, 0.65);
+}
+
+AimboxMetaRoot .barracks-detail-value, .aimbox-meta .barracks-detail-value
+{
+	font-size: 20px;
+	font-weight: 900;
+	color: #f4f7fb;
+}
+
+/* Hub layout — shared between lobby themes */
+AimboxMetaRoot .hub-shell, .aimbox-meta .hub-shell
+{
+	flex-direction: row;
+	gap: 28px;
+	width: 100%;
+	flex-grow: 1;
+	min-height: 0;
+}
+
+AimboxMetaRoot .hub-rail, .aimbox-meta .hub-rail
+{
+	width: 280px;
+	flex-shrink: 0;
+	flex-direction: column;
+	gap: 8px;
+}
+
+AimboxMetaRoot .hub-nav, .aimbox-meta .hub-nav
+{
+	flex-direction: column;
+	gap: 8px;
+	width: 100%;
+}
+
+AimboxMetaRoot .hub-content, .aimbox-meta .hub-content
+{
+	flex-grow: 1;
+	flex-direction: column;
+	gap: 12px;
+	min-width: 0;
+}
+
+AimboxMetaRoot .ui-theme-row, .aimbox-meta .ui-theme-row
+{
+	flex-direction: row;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 12px;
+	margin-top: 8px;
+	padding-top: 14px;
+	border-top: 1px solid rgba( 255, 255, 255, 0.08 );
+}
+
+AimboxMetaRoot .ui-theme-label, .aimbox-meta .ui-theme-label
+{
+	font-size: 12px;
+	font-weight: 800;
+	color: rgba(255, 255, 255, 0.65);
+	white-space: nowrap;
+}
+
+AimboxMetaRoot button.ui-theme-toggle, .aimbox-meta button.ui-theme-toggle
+{
+	min-height: 40px;
+	font-size: 13px;
+	padding: 8px 14px;
+	flex-shrink: 0;
+}
+
+AimboxMetaRoot .intermission-footer, .aimbox-meta .intermission-footer
+{
+	margin-top: 8px;
+	padding-top: 12px;
+	border-top: 1px solid rgba(255, 42, 109, 0.15);
+	flex-direction: row;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px;
+}
+
+
+.aimbox-meta.theme-arcade.visible {
+	background-color: rgba( 4, 5, 8, 0.94 );
+	align-items: center;
+	justify-content: center;
+}
+
+.aimbox-meta.theme-arcade .panel {
+	width: min( 1320px, 94% );
+	max-height: 90%;
+	padding: 28px 36px;
+	background-color: rgba( 8, 8, 12, 0.96 );
+	border: 2px solid rgba( 255, 42, 109, 0.45 );
+	border-radius: 6px;
+	box-shadow: 0 16px 64px rgba( 0, 0, 0, 0.65 );
+	gap: 14px;
+}
+
+.aimbox-meta.theme-arcade .panel.wide,
+.aimbox-meta.theme-arcade .panel.pause-menu {
+	width: min( 1560px, 96% );
+}
+
+.aimbox-meta.theme-arcade .panel.loadouts-screen {
+	width: min( 1680px, 98% );
+}
+
+.aimbox-meta.theme-arcade .title {
+	font-size: 48px;
+	font-weight: 900;
+	color: #fff;
+	letter-spacing: 0.08em;
+	text-shadow: 0 4px 24px rgba( 0, 0, 0, 0.65 );
+}
+
+.aimbox-meta.theme-arcade .subtitle {
+	font-size: 15px;
+	font-weight: 700;
+	letter-spacing: 0.1em;
+	color: rgba( 255, 255, 255, 0.65 );
+	text-transform: uppercase;
+	margin-bottom: 4px;
+}
+
+.aimbox-meta.theme-arcade .section {
+	font-size: 12px;
+	font-weight: 800;
+	letter-spacing: 0.12em;
+	color: #ff2a6d;
+	margin-top: 4px;
+}
+
+.aimbox-meta.theme-arcade .stat-row,
+.aimbox-meta.theme-arcade .hub-intro {
+	font-size: 17px;
+	line-height: 1.45;
+	color: rgba( 255, 255, 255, 0.82 );
+}
+
+.aimbox-meta.theme-arcade button {
+	min-height: 48px;
+	border-radius: 4px;
+	background-color: rgba( 255, 255, 255, 0.06 );
+	border: 2px solid rgba( 255, 255, 255, 0.18 );
+	font-size: 15px;
+	font-weight: 800;
+	letter-spacing: 0.06em;
+}
+
+.aimbox-meta.theme-arcade .hub-nav button {
+	width: 100%;
+}
+
+.aimbox-meta.theme-arcade button:hover {
+	background-color: rgba( 255, 42, 109, 0.2 );
+	border-color: #ff2a6d;
+}
+
+.aimbox-meta.theme-arcade button.active,
+.aimbox-meta.theme-arcade button.tab.active,
+.aimbox-meta.theme-arcade button.option.active,
+.aimbox-meta.theme-arcade button.mode-option.active {
+	background-color: #ff2a6d;
+	color: #fff;
+	border: 2px solid #ff2a6d;
+	box-shadow: 0 0 14px rgba( 255, 42, 109, 0.45 );
+}
+
+.aimbox-meta.theme-arcade button.start-match {
+	background-color: rgba( 255, 42, 109, 0.25 );
+	border-color: rgba( 255, 42, 109, 0.55 );
+	color: #fff;
+}
+
+.aimbox-meta.theme-arcade button.start-match:hover {
+	background-color: #ff2a6d;
+	color: #fff;
+}
+
+.aimbox-meta.theme-arcade button.leave-match {
+	border-color: rgba( 255, 74, 61, 0.45 );
+	color: #ff8a7a;
+}
+
+.aimbox-meta.theme-arcade button.ui-theme-toggle {
+	background-color: rgba( 255, 42, 109, 0.12 );
+	border-color: rgba( 255, 42, 109, 0.45 );
+	color: #ff2a6d;
+}
+
+.aimbox-meta.theme-arcade .match-summary-line.victory {
+	color: #7dffb2;
+	font-weight: 900;
+}
+
+.aimbox-meta.theme-arcade .match-summary-line.defeat {
+	color: #ff8a7a;
+}
+
+.aimbox-meta.theme-arcade .loadout-tabs {
+	background-color: rgba( 0, 0, 0, 0.35 );
+	border: 2px solid rgba( 255, 42, 109, 0.2 );
+	border-radius: 4px;
+}
+
+.aimbox-meta.theme-arcade button.loadout-tab {
+	min-height: 72px;
+	border-radius: 4px;
+}
+
+.aimbox-meta.theme-arcade button.loadout-tab.selected {
+	background-color: #ff2a6d;
+	border-color: #ff2a6d;
+	color: #fff;
+}
+
+.aimbox-meta.theme-arcade .preview-card {
+	border: 2px solid rgba( 255, 42, 109, 0.35 );
+	border-radius: 4px;
+	background-color: rgba( 0, 0, 0, 0.35 );
+}
+
+.aimbox-meta.theme-arcade .preview-meta {
+	color: #ff2a6d;
+}
+
+.aimbox-meta.theme-arcade .scoreboard-row.local {
+	background-color: rgba( 255, 42, 109, 0.15 );
+	border: 1px solid rgba( 255, 42, 109, 0.45 );
+}
+
+.aimbox-meta.theme-arcade .scoreboard-score {
+	color: #ff2a6d;
+}
+
+.aimbox-meta.theme-arcade .challenges-hero,
+.aimbox-meta.theme-arcade .barracks-hero {
+	border: 2px solid rgba( 255, 42, 109, 0.35 );
+	border-radius: 4px;
+}
+
+.aimbox-meta.theme-arcade .challenges-hero-count {
+	color: #ff2a6d;
+}
+
+.aimbox-meta.theme-arcade .barracks-rank-badge {
+	border: 2px solid rgba( 255, 42, 109, 0.55 );
+	background-color: rgba( 255, 42, 109, 0.15 );
+}
+
+.aimbox-meta.theme-arcade .match-recap-card {
+	border: 2px solid rgba( 255, 42, 109, 0.55 );
+}
+
+.aimbox-meta.theme-arcade .match-recap-result.victory {
+	color: #7dffb2;
+}
+
+.aimbox-meta.theme-arcade .unlock,
+.aimbox-meta.theme-arcade .challenge.done {
+	color: #7dffb2;
+}
+
+.aimbox-meta.theme-arcade .countdown {
+	color: #ff2a6d;
+	font-weight: 900;
+}
+
+.aimbox-meta.theme-arcade .intermission-footer {
+	border-top-color: rgba( 255, 42, 109, 0.25 );
+}
+
+.aimbox-meta.theme-arcade .ui-theme-row {
+	border-top-color: rgba( 255, 42, 109, 0.15 );
+}
+
+.aimbox-meta.theme-classic button.ui-theme-toggle {
+	background-color: rgba( 255, 42, 109, 0.12 );
+	border-color: rgba( 255, 42, 109, 0.45 );
+	color: #ff2a6d;
+}
+
+/* Spectra — holographic sci-fi, column layout with hub rail */
+.aimbox-meta.theme-spectra.visible {
+	background-color: rgba( 3, 8, 14, 0.94 );
+	align-items: center;
+	justify-content: center;
+}
+
+.aimbox-meta.theme-spectra .panel {
+	width: min( 1280px, 94% );
+	max-height: 88%;
+	height: auto;
+	padding: 28px 36px;
+	flex-direction: column;
+	gap: 16px;
+	background-color: rgba( 4, 10, 18, 0.96 );
+	border: 1px solid rgba( 120, 210, 255, 0.28 );
+	border-radius: 4px;
+	box-shadow: 0 0 48px rgba( 120, 210, 255, 0.08 );
+	overflow: hidden;
+}
+
+.aimbox-meta.theme-spectra .panel.wide,
+.aimbox-meta.theme-spectra .panel.pause-menu,
+.aimbox-meta.theme-spectra .panel.loadouts-screen {
+	width: min( 1560px, 96% );
+}
+
+.aimbox-meta.theme-spectra .title {
+	font-size: 34px;
+	font-weight: 900;
+	letter-spacing: 0.12em;
+	color: #d8ecff;
+	text-shadow: 0 0 20px rgba( 120, 210, 255, 0.25 );
+}
+
+.aimbox-meta.theme-spectra .subtitle {
+	font-size: 12px;
+	font-weight: 700;
+	letter-spacing: 0.1em;
+	color: rgba( 120, 210, 255, 0.7 );
+	text-transform: uppercase;
+	margin-bottom: 0;
+}
+
+.aimbox-meta.theme-spectra .section {
+	font-size: 11px;
+	font-weight: 800;
+	letter-spacing: 0.12em;
+	color: rgba( 120, 210, 255, 0.55 );
+	margin-top: 4px;
+}
+
+.aimbox-meta.theme-spectra .stat-row,
+.aimbox-meta.theme-spectra .hub-intro {
+	font-size: 16px;
+	line-height: 1.5;
+	color: #c8dce8;
+}
+
+.aimbox-meta.theme-spectra .hub-rail {
+	border-right: 1px solid rgba( 120, 210, 255, 0.18 );
+	padding-right: 8px;
+}
+
+.aimbox-meta.theme-spectra .hub-nav button {
+	width: 100%;
+	min-height: 44px;
+	border-radius: 2px;
+	background-color: rgba( 120, 210, 255, 0.05 );
+	border: 1px solid rgba( 120, 210, 255, 0.18 );
+	font-size: 13px;
+	font-weight: 800;
+	letter-spacing: 0.08em;
+	color: #b8d8f8;
+}
+
+.aimbox-meta.theme-spectra .hub-nav button:hover {
+	background-color: rgba( 120, 210, 255, 0.14 );
+	border-color: rgba( 120, 210, 255, 0.45 );
+	color: #fff;
+}
+
+.aimbox-meta.theme-spectra button {
+	min-height: 44px;
+	border-radius: 2px;
+	background-color: rgba( 120, 210, 255, 0.05 );
+	border: 1px solid rgba( 120, 210, 255, 0.18 );
+	font-size: 14px;
+	font-weight: 800;
+	letter-spacing: 0.06em;
+	color: #b8d8f8;
+}
+
+.aimbox-meta.theme-spectra button:hover {
+	background-color: rgba( 120, 210, 255, 0.14 );
+	border-color: rgba( 120, 210, 255, 0.45 );
+	color: #fff;
+}
+
+.aimbox-meta.theme-spectra button.active,
+.aimbox-meta.theme-spectra button.tab.active,
+.aimbox-meta.theme-spectra button.option.active,
+.aimbox-meta.theme-spectra button.mode-option.active {
+	background-color: rgba( 120, 210, 255, 0.22 );
+	color: #fff;
+	border-color: rgba( 160, 220, 255, 0.65 );
+	box-shadow: inset 0 0 16px rgba( 120, 210, 255, 0.1 );
+}
+
+.aimbox-meta.theme-spectra button.start-match {
+	border-color: rgba( 160, 220, 255, 0.55 );
+	color: #fff;
+}
+
+.aimbox-meta.theme-spectra button.leave-match {
+	border-color: rgba( 255, 120, 100, 0.45 );
+	color: #ff9a90;
+}
+
+.aimbox-meta.theme-spectra button.ui-theme-toggle {
+	background-color: rgba( 120, 210, 255, 0.08 );
+	border-color: rgba( 120, 210, 255, 0.35 );
+	color: #78c8ff;
+}
+
+.aimbox-meta.theme-spectra .match-summary-line.victory {
+	color: #d8ecff;
+	font-weight: 900;
+}
+
+.aimbox-meta.theme-spectra .match-summary-line.defeat {
+	color: #ff9a90;
+}
+
+.aimbox-meta.theme-spectra .loadout-tabs {
+	background-color: rgba( 120, 210, 255, 0.04 );
+	border: 1px solid rgba( 120, 210, 255, 0.15 );
+	border-radius: 2px;
+}
+
+.aimbox-meta.theme-spectra button.loadout-tab.selected {
+	background-color: rgba( 120, 210, 255, 0.22 );
+	border-color: rgba( 160, 220, 255, 0.65 );
+	color: #fff;
+}
+
+.aimbox-meta.theme-spectra .preview-card {
+	border: 1px solid rgba( 120, 210, 255, 0.22 );
+	background-color: rgba( 8, 16, 28, 0.45 );
+}
+
+.aimbox-meta.theme-spectra .preview-label {
+	color: #d8ecff;
+}
+
+.aimbox-meta.theme-spectra .preview-meta {
+	color: rgba( 120, 210, 255, 0.7 );
+}
+
+.aimbox-meta.theme-spectra .scoreboard {
+	border-color: rgba( 120, 210, 255, 0.15 );
+}
+
+.aimbox-meta.theme-spectra .scoreboard-row.local {
+	background-color: rgba( 120, 210, 255, 0.1 );
+	border: 1px solid rgba( 120, 210, 255, 0.35 );
+}
+
+.aimbox-meta.theme-spectra .scoreboard-score {
+	color: #d8ecff;
+}
+
+.aimbox-meta.theme-spectra .challenges-hero,
+.aimbox-meta.theme-spectra .barracks-hero {
+	border: 1px solid rgba( 120, 210, 255, 0.22 );
+	background-color: rgba( 8, 16, 28, 0.45 );
+}
+
+.aimbox-meta.theme-spectra .challenges-hero-count,
+.aimbox-meta.theme-spectra .barracks-rank-level {
+	color: #d8ecff;
+}
+
+.aimbox-meta.theme-spectra .barracks-rank-badge {
+	border: 1px solid rgba( 120, 210, 255, 0.35 );
+	background-color: rgba( 120, 210, 255, 0.08 );
+}
+
+.aimbox-meta.theme-spectra .barracks-stat-card {
+	border: 1px solid rgba( 120, 210, 255, 0.15 );
+	background-color: rgba( 120, 210, 255, 0.04 );
+}
+
+.aimbox-meta.theme-spectra .match-recap-overlay {
+	background-color: rgba( 3, 8, 14, 0.92 );
+}
+
+.aimbox-meta.theme-spectra .match-recap-card {
+	border: 1px solid rgba( 120, 210, 255, 0.35 );
+	box-shadow: 0 0 48px rgba( 120, 210, 255, 0.1 );
+}
+
+.aimbox-meta.theme-spectra .match-recap-result.victory {
+	color: #d8ecff;
+}
+
+.aimbox-meta.theme-spectra .match-recap-result.defeat {
+	color: #ff9a90;
+}
+
+.aimbox-meta.theme-spectra .unlock,
+.aimbox-meta.theme-spectra .challenge.done {
+	color: #78c8ff;
+}
+
+.aimbox-meta.theme-spectra .countdown {
+	color: #d8ecff;
+	font-weight: 900;
+}
+
+.aimbox-meta.theme-spectra .intermission-footer {
+	border-top-color: rgba( 120, 210, 255, 0.18 );
+}
+
+.aimbox-meta.theme-spectra .ui-theme-row {
+	border-top-color: rgba( 120, 210, 255, 0.15 );
+}
+
+.aimbox-meta.theme-spectra .ui-theme-label {
+	color: rgba( 120, 210, 255, 0.6 );
+}

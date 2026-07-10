@@ -1,0 +1,161 @@
+@using Sandbox
+@using Sandbox.UI
+@inherits PanelComponent
+@namespace Fauna2.UI
+
+<root>
+	@if ( GameStarted )
+	{
+		@foreach ( var tip in _tips )
+		{
+			<div class="tip-badge @(tip.NearFull ? "full" : "") @(tip.IsShop ? "shop" : "")"
+				 style="left: @(tip.X * 100f)%; top: @(tip.Y * 100f)%;"
+				 onclick=@( () => CollectTip( tip.Key ) )>
+				<i class="icon">@(tip.IsShop ? "storefront" : "paid")</i>
+				<span class="amount">$@tip.AmountText</span>
+			</div>
+		}
+	}
+</root>
+
+@code
+{
+	private sealed class TipMarker
+	{
+		public string Key;
+		public float X;
+		public float Y;
+		public string AmountText;
+		public bool NearFull;
+		public bool IsShop;
+	}
+
+	private readonly List<TipMarker> _tips = new();
+	private TimeUntil _nextRefresh;
+	private TimeUntil _debugSample;
+	private int _refreshRevision = -1;
+	private Vector3 _lastFocus;
+	private float _lastOrtho;
+
+	private bool GameStarted => UiState.GameplayHudVisible;
+
+	protected override void OnUpdate()
+	{
+		if ( !GameStarted )
+		{
+			_tips.Clear();
+			return;
+		}
+
+		var focus = ZooCameraController.Instance?.FocusPoint ?? Vector3.Zero;
+		var ortho = ZooCameraController.Instance?.GetOrthoHeight() ?? 0f;
+		var cameraMoved = (focus - _lastFocus).LengthSquared > 64f
+		                  || MathF.Abs( ortho - _lastOrtho ) > 8f;
+
+		if ( _nextRefresh > 0f && !cameraMoved && _refreshRevision == UiState.Revision )
+			return;
+
+		_nextRefresh = 0.08f;
+		_lastFocus = focus;
+		_lastOrtho = ortho;
+		_refreshRevision = UiState.Revision;
+		RefreshTips();
+	}
+
+	private void RefreshTips()
+	{
+		_tips.Clear();
+
+		if ( Panel is null || !Panel.IsValid )
+			return;
+
+		var skippedProjection = 0;
+		var skippedOffScreen = 0;
+		TipMarker debugSample = null;
+
+		foreach ( var placeable in PlaceableRegistry.All )
+		{
+			if ( !placeable.IsValid() || placeable.Definition?.ProvidesCollectibleRevenue != true )
+				continue;
+
+			var restaurant = placeable.Components.Get<RestaurantComponent>();
+			if ( !restaurant.IsValid() )
+				continue;
+
+			var amount = (int)restaurant.Uncollected;
+			if ( amount < 1 )
+				continue;
+
+			var anchor = CollectibleBuildingHelper.TipAnchorWorld( placeable );
+			if ( !UiWorldProjection.TryWorldToOverlay( Scene, Panel, anchor, out var panelPos ) )
+			{
+				skippedProjection++;
+				continue;
+			}
+
+			if ( panelPos.x < -0.15f || panelPos.x > 1.15f || panelPos.y < -0.15f || panelPos.y > 1.15f )
+			{
+				skippedOffScreen++;
+				continue;
+			}
+
+			var marker = new TipMarker
+			{
+				Key = CollectibleBuildingHelper.TipKey( placeable ),
+				X = panelPos.x,
+				Y = panelPos.y,
+				AmountText = amount.ToString( "n0" ),
+				NearFull = restaurant.Uncollected >= RestaurantRevenue.MaxStored( placeable.Definition ) * 0.85f,
+				IsShop = placeable.Definition.ProvidesShop,
+			};
+			_tips.Add( marker );
+			debugSample ??= marker;
+		}
+
+		if ( Fauna2Debug.Enabled && _debugSample )
+		{
+			_debugSample = 4f;
+			var samplePlaceable = debugSample is not null
+				? CollectibleBuildingHelper.FindByTipKey( debugSample.Key )
+				: null;
+			var anchor = samplePlaceable is not null
+				? CollectibleBuildingHelper.TipAnchorWorld( samplePlaceable )
+				: Vector3.Zero;
+			var camera = UiWorldProjection.GetUiCamera( Scene );
+			var focus = ZooCameraController.Instance?.FocusPoint ?? Vector3.Zero;
+			UiWorldProjection.TryWorldToViewport( camera, anchor, out var viewport );
+			Log.Info(
+				$"[Fauna2 Tips] visible={_tips.Count} skipProj={skippedProjection} skipOff={skippedOffScreen} " +
+				$"sample={samplePlaceable?.DefinitionId ?? "none"} placeable={samplePlaceable?.GameObject.WorldPosition} anchor={anchor} " +
+				$"viewport=({viewport.x:0.###},{viewport.y:0.###}) panel=({debugSample?.X:0.###},{debugSample?.Y:0.###}) " +
+				$"focus={focus} ortho={camera?.OrthographicHeight:0.#}" );
+		}
+	}
+
+	private void CollectTip( string key )
+	{
+		UiState.PlayClick();
+		var placeable = CollectibleBuildingHelper.FindByTipKey( key );
+		CollectibleBuildingHelper.TryCollect( placeable );
+		_nextRefresh = 0f;
+	}
+
+	protected override int BuildHash()
+	{
+		var focus = _lastFocus;
+		var hash = HashCode.Combine(
+			GameStarted,
+			_tips.Count,
+			(int)(focus.x * 0.25f),
+			(int)(focus.y * 0.25f),
+			(int)_lastOrtho );
+
+		for ( var i = 0; i < _tips.Count; i++ )
+		{
+			var tip = _tips[i];
+			hash = HashCode.Combine( hash, tip.AmountText, (int)(tip.X * 1000f), (int)(tip.Y * 1000f), tip.NearFull );
+		}
+
+		return hash;
+	}
+}

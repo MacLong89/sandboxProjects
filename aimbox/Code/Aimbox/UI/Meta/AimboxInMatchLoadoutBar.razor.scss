@@ -1,0 +1,58 @@
+AimboxInMatchLoadoutBar, aimboxinmatchloadoutbar, .aimbox-in-match-loadout-bar
+{
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	height: 56px;
+	z-index: 350;
+	flex-direction: row;
+	align-items: center;
+	gap: 16px;
+	padding: 0 40px;
+	pointer-events: none;
+	font-family: Poppins;
+	background-color: rgba(8, 8, 10, 0.96);
+	border-top: 2px solid rgba(255, 255, 255, 0.12);
+}
+
+AimboxInMatchLoadoutBar.visible, .aimbox-in-match-loadout-bar.visible
+{
+	pointer-events: all;
+}
+
+AimboxInMatchLoadoutBar.hidden, .aimbox-in-match-loadout-bar.hidden
+{
+	display: none;
+}
+
+AimboxInMatchLoadoutBar .loadout-bar-side, .aimbox-in-match-loadout-bar .loadout-bar-side
+{
+	flex: 1 1 180px;
+	min-width: 140px;
+}
+
+AimboxInMatchLoadoutBar .loadout-bar-center, .aimbox-in-match-loadout-bar .loadout-bar-center
+{
+	flex: 0 1 auto;
+	flex-direction: row;
+	justify-content: center;
+}
+
+AimboxInMatchLoadoutBar .loadout-bar-equip-btn, .aimbox-in-match-loadout-bar .loadout-bar-equip-btn
+{
+	min-width: 300px;
+	padding: 10px 32px;
+	font-size: 14px;
+	font-weight: 900;
+	letter-spacing: 2px;
+	background-color: #ff2a6d;
+	border: 2px solid #ff2a6d;
+	color: #fff;
+}
+
+AimboxInMatchLoadoutBar .loadout-bar-equip-btn:hover, .aimbox-in-match-loadout-bar .loadout-bar-equip-btn:hover
+{
+	background-color: #ff4d86;
+	border-color: #ff4d86;
+}

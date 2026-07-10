@@ -1,0 +1,9 @@
+{
+	"DisplayName": "Sapphire",
+	"Description": "An impossibly vivid blue sheen. Extremely rare in the wild.",
+	"RarityWeight": 8,
+	"AppealMultiplier": 2.8,
+	"ValueMultiplier": 3.2,
+	"Tint": "0.22,0.58,0.95,1",
+	"ApplicableSpecies": []
+}

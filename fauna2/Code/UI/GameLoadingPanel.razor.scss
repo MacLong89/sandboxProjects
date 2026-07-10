@@ -1,0 +1,95 @@
+GameLoadingPanel {
+	position: absolute;
+	width: 100%;
+	height: 100%;
+	pointer-events: none;
+	z-index: 500;
+	opacity: 0;
+	font-family: Poppins;
+	color: #eef3ec;
+
+	&.visible {
+		opacity: 1;
+		pointer-events: all;
+	}
+
+	.loading-backdrop {
+		position: absolute;
+		width: 100%;
+		height: 100%;
+		background-color: rgba(8, 12, 10, 0.96);
+	}
+
+	.loading-card {
+		position: absolute;
+		left: 50%;
+		top: 50%;
+		transform: translate(-50%, -50%);
+		width: 420px;
+		max-width: calc(100% - 64px);
+		flex-direction: column;
+		align-items: center;
+		gap: 18px;
+		padding: 36px 32px 32px 32px;
+		border-radius: 20px;
+		background: linear-gradient(
+			160deg,
+			rgba(14, 20, 16, 0.98) 0%,
+			rgba(8, 12, 10, 0.94) 100%
+		);
+		border: 1px solid rgba(123, 201, 111, 0.28);
+	}
+
+	.brand-row {
+		flex-direction: row;
+		align-items: center;
+		gap: 0;
+	}
+
+	.brand-title {
+		font-size: 42px;
+		font-weight: 800;
+		letter-spacing: 2px;
+		color: #fff;
+		line-height: 0.95;
+	}
+
+	.brand-accent {
+		font-size: 48px;
+		font-weight: 900;
+		color: #7bc96f;
+		margin-left: -2px;
+		line-height: 0.9;
+	}
+
+	.loading-status {
+		font-size: 16px;
+		font-weight: 700;
+		letter-spacing: 0.5px;
+		color: rgba(238, 243, 236, 0.88);
+		text-align: center;
+	}
+
+	.loading-bar {
+		width: 100%;
+		height: 8px;
+		border-radius: 999px;
+		background-color: rgba(255, 255, 255, 0.08);
+		overflow: hidden;
+	}
+
+	.loading-bar-fill {
+		height: 100%;
+		border-radius: 999px;
+		background-color: #7bc96f;
+		transition: width 0.18s ease-out;
+	}
+
+	.loading-hint {
+		font-size: 12px;
+		font-weight: 600;
+		letter-spacing: 1px;
+		text-transform: uppercase;
+		color: rgba(159, 176, 154, 0.82);
+	}
+}

@@ -1,0 +1,330 @@
+StudioQuestionBillboard {
+	width: 100%;
+	height: 100%;
+	font-family: Poppins;
+	color: #f7f2ff;
+	background-color: #08070f;
+	pointer-events: none;
+
+	.show-board {
+		width: 100%;
+		height: 100%;
+		flex-direction: column;
+		padding: 72px;
+		background-color: #100c1c;
+		border: 18px solid #f1bd2d;
+		border-radius: 24px;
+		transform-origin: center center;
+	}
+
+	.top-bar {
+		height: 600px;
+		flex-shrink: 0;
+		align-items: center;
+		justify-content: space-between;
+		padding: 0 96px;
+		background-color: #19142a;
+		border-radius: 24px;
+		border: 8px solid rgba(255, 255, 255, 0.1);
+	}
+
+	.show-title {
+		width: 3000px;
+		font-size: 250px;
+		font-weight: 900;
+		color: #f1bd2d;
+		text-align: left;
+	}
+
+	.round-pill {
+		width: 1120px;
+		height: 340px;
+		align-items: center;
+		justify-content: center;
+		font-size: 160px;
+		font-weight: 900;
+		color: #071113;
+		background-color: #5de8d5;
+		border-radius: 24px;
+	}
+
+	.timer {
+		width: 640px;
+		height: 360px;
+		align-items: center;
+		justify-content: center;
+		font-size: 240px;
+		font-weight: 900;
+		color: #ffffff;
+		background-color: #24304a;
+		border-radius: 24px;
+		border: 8px solid rgba(255, 255, 255, 0.16);
+	}
+
+	.timer-hot {
+		color: #fff2f5;
+		background-color: #b71f47;
+	}
+
+	.category-strip {
+		height: 780px;
+		flex-shrink: 0;
+		flex-direction: column;
+		justify-content: center;
+		margin-top: 72px;
+		padding: 36px 112px;
+		background-color: #241834;
+		border-left: 48px solid #ff4d8d;
+		border-radius: 24px;
+	}
+
+	.category-label {
+		font-size: 130px;
+		font-weight: 900;
+		color: #ff8fb8;
+	}
+
+	.category-text {
+		width: 20500px;
+		margin-top: 48px;
+		font-size: 260px;
+		font-weight: 900;
+		color: #ffffff;
+		white-space: nowrap;
+		text-overflow: ellipsis;
+		overflow: hidden;
+	}
+
+	.content-stage {
+		flex: 1;
+		min-height: 0;
+		margin-top: 48px;
+		background-color: #070b18;
+		border-radius: 24px;
+		border: 8px solid rgba(93, 232, 213, 0.26);
+	}
+
+	.question-card,
+	.answer-card {
+		width: 100%;
+		height: 100%;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		padding: 64px 240px;
+		text-align: center;
+	}
+
+	.question-label,
+	.answer-label {
+		flex-shrink: 0;
+		width: 100%;
+		font-size: 86px;
+		font-weight: 900;
+		color: #5de8d5;
+		text-align: center;
+	}
+
+	.question-text,
+	.answer-text {
+		width: 18500px;
+		flex-shrink: 0;
+		flex-direction: row;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: center;
+		gap: 0 92px;
+		margin-top: 64px;
+		font-weight: 900;
+		line-height: 1.18;
+		color: #ffffff;
+		text-align: center;
+		overflow: visible;
+	}
+
+	.text-word {
+		flex-shrink: 0;
+		flex-grow: 0;
+		text-align: center;
+		white-space: nowrap;
+		overflow: visible;
+	}
+
+	.question-lg { font-size: 260px; }
+	.question-md { font-size: 230px; }
+	.question-sm { font-size: 195px; }
+	.question-xs { font-size: 165px; }
+
+	.answer-label {
+		color: #82ff9f;
+	}
+
+	.answer-text {
+		color: #82ff9f;
+	}
+
+	.answer-lg { font-size: 280px; }
+	.answer-md { font-size: 240px; }
+	.answer-sm { font-size: 200px; }
+	.answer-xs { font-size: 170px; }
+
+	.explanation {
+		width: 20500px;
+		max-height: 720px;
+		margin-top: 80px;
+		padding-top: 0;
+		font-size: 86px;
+		font-weight: 700;
+		line-height: 1.22;
+		color: #cfc6e8;
+		white-space: normal;
+		word-break: break-word;
+		overflow: hidden;
+	}
+
+	.explanation-long {
+		font-size: 72px;
+	}
+
+	.cue-bar {
+		height: 250px;
+		flex-shrink: 0;
+		align-items: center;
+		justify-content: space-between;
+		margin-top: 48px;
+		padding: 0 112px;
+		background-color: #1b202f;
+		border-radius: 24px;
+		border: 8px solid rgba(255, 255, 255, 0.08);
+	}
+
+	.cue-main {
+		width: 12000px;
+		font-size: 118px;
+		font-weight: 900;
+		color: #f1bd2d;
+		white-space: nowrap;
+		text-overflow: ellipsis;
+		overflow: hidden;
+	}
+
+	.cue-side {
+		width: 7000px;
+		font-size: 82px;
+		font-weight: 800;
+		color: #cfc6e8;
+		text-align: right;
+		white-space: nowrap;
+		text-overflow: ellipsis;
+		overflow: hidden;
+	}
+
+	.buzzin .cue-bar {
+		background-color: #3a1230;
+		border-color: rgba(255, 77, 141, 0.45);
+	}
+
+	.buzzin .cue-main {
+		color: #ff8fb8;
+	}
+
+	.answering .cue-bar,
+	.answerreveal .cue-bar {
+		background-color: #103126;
+		border-color: rgba(130, 255, 159, 0.45);
+	}
+
+	.answering .cue-main,
+	.answerreveal .cue-main {
+		color: #82ff9f;
+	}
+
+	.stealattempt .cue-bar {
+		background-color: #3a2112;
+		border-color: rgba(255, 140, 66, 0.45);
+	}
+
+	.stealattempt .cue-main {
+		color: #ffb067;
+	}
+
+	.standings-card {
+		width: 100%;
+		height: 100%;
+		flex-direction: column;
+		align-items: stretch;
+		justify-content: center;
+		padding: 64px 240px;
+	}
+
+	.standings-row {
+		flex-direction: row;
+		align-items: center;
+		justify-content: space-between;
+		margin-top: 32px;
+		padding: 24px 48px;
+		background-color: rgba(255, 255, 255, 0.04);
+		border-radius: 16px;
+		border: 4px solid rgba(255, 255, 255, 0.08);
+		font-weight: 800;
+
+		&.leader {
+			border-color: rgba(241, 189, 45, 0.55);
+			background-color: rgba(241, 189, 45, 0.08);
+		}
+
+		&.hot {
+			border-color: rgba(255, 77, 141, 0.45);
+			background-color: rgba(255, 77, 141, 0.08);
+		}
+	}
+
+	.standings-rank {
+		width: 240px;
+		font-size: 86px;
+		color: #5de8d5;
+		text-align: left;
+	}
+
+	.standings-name {
+		flex: 1;
+		font-size: 96px;
+		color: #ffffff;
+		text-align: left;
+	}
+
+	.standings-score {
+		width: 320px;
+		font-size: 110px;
+		color: #f1bd2d;
+		text-align: right;
+	}
+
+	.scoreboardreveal .cue-bar {
+		background-color: #1f2438;
+		border-color: rgba(241, 189, 45, 0.35);
+	}
+
+	.scoreboardreveal .cue-main {
+		color: #f1bd2d;
+	}
+
+	.scorer-callout {
+		width: 100%;
+		margin-bottom: 32px;
+		font-size: 86px;
+		font-weight: 900;
+		color: #f1bd2d;
+		text-align: center;
+
+		.streak-tag {
+			margin-left: 48px;
+			padding: 8px 32px;
+			font-size: 64px;
+			color: #ff8fb8;
+			background-color: rgba(255, 77, 141, 0.15);
+			border-radius: 16px;
+			border: 4px solid rgba(255, 77, 141, 0.45);
+		}
+	}
+}

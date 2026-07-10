@@ -1,0 +1,13 @@
+{
+	"DisplayName": "Sanctuary Shop",
+	"Description": "Buy animals, bait, nets and tranquilizers.",
+	"Category": "Utility",
+	"Cost": 1200,
+	"UnlockLevel": 1,
+	"IsShop": true,
+	"GuestsServed": 140,
+	"CollectIncomePerMinute": 48,
+	"Footprint": "256,384",
+	"GridSnap": 64,
+	"Visuals": [{ "Model": "models/dev/box.vmdl", "Scale": "1,1,1" }]
+}

@@ -1,0 +1,28 @@
+{
+  "Title": "The Final Outpost",
+  "Type": "game",
+  "Org": "maclgames",
+  "Ident": "the_final_outpost",
+  "Schema": 1,
+  "IncludeSourceFiles": false,
+  "Resources": null,
+  "PackageReferences": [
+    "facepunch.sboxweapons"
+  ],
+  "EditorReferences": null,
+  "Mounts": null,
+  "IsStandaloneOnly": false,
+  "Metadata": {
+    "MaxPlayers": 1,
+    "MinPlayers": 1,
+    "TickRate": 50,
+    "GameNetworkType": "Multiplayer",
+    "MapSelect": "Hidden",
+    "MapList": [],
+    "RankType": "Score",
+    "PerMapRanking": false,
+    "LeaderboardType": "Global",
+    "CsProjName": "",
+    "StartupScene": "scenes/game.scene"
+  }
+}

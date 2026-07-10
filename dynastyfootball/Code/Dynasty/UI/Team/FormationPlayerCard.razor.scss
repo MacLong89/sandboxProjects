@@ -1,0 +1,103 @@
+FormationPlayerCard,
+.formation-player-card
+{
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 1px;
+	width: 68px;
+	min-width: 68px;
+	max-width: 68px;
+	padding: 4px 5px;
+	background-color: #151d2e;
+	border: 1px solid #243044;
+	border-radius: 8px;
+	cursor: pointer;
+	flex-shrink: 0;
+
+	&.selected
+	{
+		border-color: #34c759;
+		background-color: #1a3d2a;
+	}
+
+	&.empty
+	{
+		opacity: 0.55;
+	}
+
+	.slot-pos
+	{
+		font-size: 9px;
+		font-weight: 700;
+		color: #34c759;
+		text-transform: uppercase;
+	}
+
+	.slot-name
+	{
+		font-size: 10px;
+		font-weight: 600;
+		color: #e8eef7;
+		text-align: center;
+		width: 100%;
+		overflow: hidden;
+	}
+
+	.slot-empty
+	{
+		font-size: 10px;
+		font-weight: 600;
+		color: #8b9cb3;
+	}
+
+	.slot-assign
+	{
+		font-size: 8px;
+		color: #8b9cb3;
+	}
+
+	.slot-meta
+	{
+		flex-direction: row;
+		align-items: center;
+		justify-content: center;
+		gap: 6px;
+		width: 100%;
+	}
+
+	.slot-ovr
+	{
+		font-size: 9px;
+		font-weight: 700;
+		color: #e8eef7;
+	}
+
+	.slot-age
+	{
+		font-size: 9px;
+		color: #8b9cb3;
+	}
+
+	.slot-trait,
+	.slot-status
+	{
+		font-size: 9px;
+		line-height: 10px;
+	}
+
+	.slot-status.injured
+	{
+		color: #ff6b6b;
+	}
+
+	.slot-status.morale-low
+	{
+		color: #ffb347;
+	}
+}
+
+Button:active
+{
+	sound-in: "sounds/button.sound";
+}

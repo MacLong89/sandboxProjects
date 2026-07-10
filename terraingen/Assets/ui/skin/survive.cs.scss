@@ -1,0 +1,448 @@
+/* Survive UI skin — modern atmospheric survival overlay.
+   Loaded in addition to base styles when ui-skin-survive is active on root. */
+
+$sv-bg-deep: #0a0c0e;
+$sv-bg-panel: rgba(14, 16, 18, 0.94);
+$sv-bg-glass: rgba(10, 12, 14, 0.72);
+$sv-border: rgba(255, 255, 255, 0.06);
+$sv-border-strong: rgba(255, 255, 255, 0.1);
+$sv-text: #e8e6e1;
+$sv-text-muted: #8a9098;
+$sv-accent: #9eb856;
+$sv-accent-dim: rgba(158, 184, 86, 0.28);
+$sv-health: #c44343;
+$sv-thirst: #4a9fd4;
+$sv-hunger: #d4874a;
+$sv-xp: #9eb856;
+$sv-danger: #e05555;
+$sv-font: Inter, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+.ui-skin-survive
+{
+	&.ThornsGameplayUi,
+	&.ThornsMenuHost,
+	&.mainmenu-root,
+	ThornsHudRoot,
+	ThornsHudRoot.hud-pass-through
+	{
+		font-family: $sv-font;
+		font-size: 14px;
+		color: $sv-text;
+		letter-spacing: 0.03em;
+	}
+
+	.thorns-header
+	{
+		font-family: $sv-font;
+		font-size: 11px;
+		font-weight: 700;
+		letter-spacing: 0.16em;
+		text-transform: uppercase;
+		color: $sv-text;
+	}
+
+	.thorns-muted
+	{
+		font-size: 12px;
+		color: $sv-text-muted;
+		line-height: 1.45;
+	}
+
+	.thorns-accent
+	{
+		color: $sv-accent;
+	}
+
+	.thorns-glass,
+	.thorns-menu-opaque,
+	.thorns-hud-glass
+	{
+		background-color: $sv-bg-glass;
+		border: 1px solid $sv-border;
+		backdrop-filter: none;
+		box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+	}
+
+	.thorns-survive-panel,
+	.thorns-survive-frame,
+	.thorns-survive-section,
+	.thorns-survive-card,
+	.thorns-survive-slot,
+	.thorns-survive-compact
+	{
+		background-color: $sv-bg-panel;
+		border: 1px solid $sv-border;
+		box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+	}
+
+	.thorns-menu-overlay,
+	.thorns-menu-overlay-survive
+	{
+		background: linear-gradient(
+			180deg,
+			rgba(6, 8, 10, 0.92) 0%,
+			rgba(4, 5, 6, 0.96) 100%
+		);
+	}
+
+	.thorns-menu-overlay-fantasy,
+	.thorns-menu-overlay-fantasy-textured
+	{
+		background-image: none;
+		background: linear-gradient(
+			180deg,
+			rgba(6, 8, 10, 0.92) 0%,
+			rgba(4, 5, 6, 0.96) 100%
+		);
+	}
+
+	.thorns-menu-framed
+	{
+		background-image: none;
+		border-image: none;
+		background-color: $sv-bg-panel;
+		border: 1px solid $sv-border;
+	}
+
+	.thorns-menu-topbar,
+	.thorns-menu-topbar-fantasy
+	{
+		height: 64px;
+		min-height: 64px;
+		border-bottom: 1px solid $sv-border;
+		background-color: rgba(8, 10, 12, 0.85);
+	}
+
+	.thorns-menu-brand
+	{
+		font-family: $sv-font;
+		font-size: 15px;
+		font-weight: 800;
+		letter-spacing: 0.2em;
+		color: $sv-text;
+	}
+
+	.thorns-tab
+	{
+		font-family: $sv-font;
+		font-size: 11px;
+		font-weight: 700;
+		letter-spacing: 0.14em;
+		color: $sv-text-muted;
+		border: 1px solid transparent;
+		border-bottom: 2px solid transparent;
+		background-color: transparent;
+		transition: color 120ms ease, border-color 120ms ease;
+
+		&:hover
+		{
+			color: $sv-text;
+			border-bottom-color: rgba(255, 255, 255, 0.15);
+		}
+
+		&.active
+		{
+			color: $sv-accent;
+			border-bottom-color: $sv-accent;
+			background-color: rgba(158, 184, 86, 0.06);
+		}
+	}
+
+	.thorns-btn-primary
+	{
+		font-family: $sv-font;
+		font-size: 11px;
+		font-weight: 700;
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: $sv-text;
+		background-color: rgba(255, 255, 255, 0.04);
+		border: 1px solid $sv-border-strong;
+		padding: 8px 14px;
+		cursor: pointer;
+
+		&:hover
+		{
+			background-color: rgba(158, 184, 86, 0.12);
+			border-color: $sv-accent-dim;
+			color: $sv-accent;
+		}
+	}
+
+	.section-btn,
+	.journal-goal-card,
+	.journal-discovery-card,
+	.journal-simple-card,
+	.skill-node,
+	.guild-row,
+	.tame-row
+	{
+		background-color: rgba(12, 14, 16, 0.85);
+		border: 1px solid $sv-border;
+	}
+
+	.section-btn:hover,
+	.journal-goal-card:hover,
+	.journal-discovery-card:hover,
+	.journal-simple-card:hover
+	{
+		border-color: $sv-border-strong;
+		background-color: rgba(16, 18, 20, 0.92);
+	}
+
+	.section-btn.active,
+	.journal-goal-card.selected,
+	.journal-discovery-card.selected
+	{
+		border-color: $sv-accent-dim;
+		background-color: rgba(158, 184, 86, 0.08);
+	}
+
+	.objectives-hud,
+	.hud-prompt-card,
+	.level-up-toast,
+	.first-session-tutorial
+	{
+		background-color: rgba(8, 10, 12, 0.94);
+		border: 1px solid $sv-border;
+		box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+	}
+
+	.objectives-accent
+	{
+		color: $sv-accent;
+	}
+
+	.objectives-title
+	{
+		font-weight: 700;
+		color: $sv-text;
+	}
+
+	.hud-bar-fill-health,
+	.hud-bar-fill.hud-bar-fill-health
+	{
+		background-color: $sv-health;
+	}
+
+	.hud-bar-fill-thirst
+	{
+		background-color: $sv-thirst;
+	}
+
+	.hud-bar-fill-hunger
+	{
+		background-color: $sv-hunger;
+	}
+
+	.hud-bar-track
+	{
+		background-color: rgba(0, 0, 0, 0.55);
+		border-color: $sv-border;
+		border-radius: 2px;
+	}
+
+	.hud-bar-value,
+	.hud-stat-value
+	{
+		color: $sv-text;
+		font-weight: 600;
+	}
+
+	.hud-level-diamond
+	{
+		background-color: rgba(8, 10, 12, 0.9);
+		border: 1px solid $sv-border-strong;
+	}
+
+	.hud-level-number
+	{
+		color: $sv-accent;
+		font-weight: 800;
+	}
+
+	.hotbar-slots-frame
+	{
+		background-color: rgba(6, 8, 10, 0.88);
+		border: 1px solid $sv-border;
+	}
+
+	.hotbar-slot
+	{
+		background-color: rgba(10, 12, 14, 0.82);
+		border: 1px solid $sv-border;
+
+		&.selected
+		{
+			border-color: $sv-accent;
+			box-shadow: 0 0 12px rgba(158, 184, 86, 0.2);
+		}
+	}
+
+	.hotbar-slot-key
+	{
+		color: $sv-text-muted;
+		font-weight: 700;
+	}
+
+	.hotbar-xp-fill
+	{
+		background-color: $sv-xp;
+	}
+
+	.hotbar-xp-value
+	{
+		color: $sv-text-muted;
+	}
+
+	.minimap-frame,
+	.minimap-ring
+	{
+		border: 1px solid $sv-border;
+		background-color: rgba(6, 8, 10, 0.85);
+	}
+
+	.hud-time-label
+	{
+		color: $sv-text-muted;
+		font-weight: 600;
+		letter-spacing: 0.08em;
+	}
+
+	.world-event-card
+	{
+		background-color: rgba(8, 12, 10, 0.94);
+		border: 1px solid rgba(158, 184, 86, 0.35);
+	}
+
+	.world-event-card.world-event-kind-milestone
+	{
+		background-color: rgba(12, 10, 8, 0.94);
+		border-color: rgba(212, 135, 74, 0.4);
+	}
+
+	.notification-hud .notification-card
+	{
+		background-color: rgba(8, 10, 12, 0.92);
+		border: 1px solid $sv-border;
+	}
+
+	.mainmenu-root
+	{
+		background-color: $sv-bg-deep;
+	}
+
+	.mainmenu-left-rail
+	{
+		background: linear-gradient(
+			90deg,
+			rgba(8, 10, 12, 0.95) 0%,
+			rgba(8, 10, 12, 0.55) 85%,
+			rgba(8, 10, 12, 0) 100%
+		);
+	}
+
+	.mainmenu-brand
+	{
+		font-family: $sv-font;
+		font-size: 28px;
+		font-weight: 800;
+		letter-spacing: 0.24em;
+		color: $sv-text;
+	}
+
+	.mainmenu-tagline
+	{
+		color: $sv-text-muted;
+		letter-spacing: 0.22em;
+	}
+
+	.mainmenu-nav-btn
+	{
+		font-family: $sv-font;
+		font-size: 12px;
+		font-weight: 700;
+		letter-spacing: 0.16em;
+		color: $sv-text-muted;
+		border-left: 2px solid transparent;
+
+		&:hover
+		{
+			color: $sv-text;
+			border-left-color: rgba(158, 184, 86, 0.45);
+			text-shadow: none;
+		}
+
+		&.primary
+		{
+			color: $sv-accent;
+			border-left-color: $sv-accent;
+		}
+	}
+
+	.mainmenu-overlay-title
+	{
+		font-family: $sv-font;
+		font-weight: 800;
+		letter-spacing: 0.18em;
+		color: $sv-text;
+	}
+
+	.mainmenu-back
+	{
+		font-family: $sv-font;
+		font-size: 12px;
+		font-weight: 700;
+		padding: 10px 16px;
+		border: 1px solid $sv-border;
+		color: $sv-text-muted;
+
+		&:hover
+		{
+			color: $sv-accent;
+			border-color: $sv-accent-dim;
+		}
+	}
+
+	.mainmenu-overlay-screen
+	{
+		background-color: rgba(6, 8, 10, 0.94);
+		border: 1px solid $sv-border;
+	}
+
+	.tutorial-title
+	{
+		color: $sv-accent;
+		letter-spacing: 0.14em;
+	}
+
+	.tutorial-body
+	{
+		color: $sv-text;
+		line-height: 1.5;
+	}
+
+	.tutorial-dismiss
+	{
+		border: 1px solid $sv-border-strong;
+		background-color: rgba(255, 255, 255, 0.03);
+
+		&:hover
+		{
+			border-color: $sv-accent-dim;
+			color: $sv-accent;
+		}
+	}
+
+	.ui-skin-row
+	{
+		gap: 12px;
+	}
+
+	.ui-skin-value
+	{
+		min-width: 72px;
+		color: $sv-accent;
+		font-weight: 700;
+	}
+}

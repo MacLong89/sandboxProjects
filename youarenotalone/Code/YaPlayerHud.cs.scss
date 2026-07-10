@@ -1,0 +1,513 @@
+// YouAreNotAlone player HUD — role themes via .ya-player-hud--alone / --hunter (see YaHudRoleTheme.cs).
+
+$ya-teal: #48cbcc;
+$ya-teal-dim: rgba(72, 203, 204, 0.45);
+$ya-teal-strong: rgba(72, 203, 204, 0.85);
+$ya-teal-muted: rgba(72, 203, 204, 0.22);
+$ya-red: #eb3838;
+$ya-red-dim: rgba(235, 56, 56, 0.5);
+$ya-red-strong: rgba(235, 56, 56, 0.9);
+$ya-red-muted: rgba(235, 56, 56, 0.22);
+$ya-panel: rgba(14, 17, 20, 0.96);
+$ya-panel-deep: rgba(6, 10, 12, 0.98);
+$ya-text: rgba(245, 248, 250, 0.98);
+$ya-text-secondary: rgba(180, 190, 198, 0.88);
+$ya-text-muted: rgba(120, 130, 138, 0.92);
+
+.ya-hud-damage-vignette {
+	pointer-events: none;
+	background-color: transparent;
+	background-image:
+		linear-gradient(to bottom, rgba(210, 35, 28, 0.72), transparent 36%),
+		linear-gradient(to top, rgba(210, 35, 28, 0.72), transparent 36%),
+		linear-gradient(to right, rgba(210, 35, 28, 0.72), transparent 36%),
+		linear-gradient(to left, rgba(210, 35, 28, 0.72), transparent 36%);
+}
+
+.ya-player-hud {
+	font-family: Poppins;
+}
+
+.ya-hud-hp-readout,
+.ya-hud-weapon-name,
+.ya-hud-ammo,
+.ya-hud-slot-name {
+	text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
+}
+
+.ya-hud-hint {
+	letter-spacing: 0.02em;
+	color: $ya-text-muted;
+}
+
+.ya-hud-alone-abilities {
+	flex-direction: row;
+	justify-content: center;
+}
+
+.ya-hud-alone-ability {
+	position: relative;
+	overflow: hidden;
+	flex-shrink: 0;
+}
+
+.ya-hud-alone-ability__fill {
+	position: absolute;
+	left: 0;
+	bottom: 0;
+	width: 100%;
+	background-color: $ya-teal;
+	pointer-events: none;
+}
+
+.ya-hud-alone-ability-name {
+	position: relative;
+	z-index: 2;
+	text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+}
+
+.ya-hud-mimic-progress {
+	flex-direction: column;
+	align-items: center;
+}
+
+.ya-hud-mimic-progress__label {
+	text-shadow: 0 0 12px rgba(72, 203, 204, 0.55), 0 2px 4px rgba(0, 0, 0, 0.9);
+}
+
+.ya-hud-mimic-progress__track {
+	position: relative;
+	overflow: hidden;
+}
+
+.ya-hud-mimic-progress__fill {
+	position: absolute;
+	left: 0;
+	top: 0;
+	bottom: 0;
+	background-color: $ya-teal;
+	opacity: 0.92;
+}
+
+.ya-hud-top-stack {
+	position: absolute;
+	left: 0;
+	width: 100%;
+	pointer-events: none;
+	padding: 2px 0 8px;
+	flex-direction: column;
+	align-items: center;
+	justify-content: flex-start;
+}
+
+.ya-hud-hitmarker {
+	pointer-events: none;
+	justify-content: center;
+	align-items: center;
+}
+
+.ya-hud-hitmarker-x-leg {
+	position: absolute;
+	width: 4px;
+	height: 44px;
+	left: 50%;
+	top: 50%;
+	margin-left: -2px;
+	margin-top: -22px;
+	transform-origin: 50% 50%;
+}
+
+.ya-hud-hitmarker-x-leg--a {
+	transform: rotate( 45deg );
+}
+
+.ya-hud-hitmarker-x-leg--b {
+	transform: rotate( -45deg );
+}
+
+.ya-hud-top-left-stack {
+	pointer-events: none;
+	flex-direction: column;
+	align-items: stretch;
+}
+
+.ya-hud-input-hints-panel {
+	width: 100%;
+	flex-direction: column;
+	align-items: stretch;
+}
+
+.ya-hud-input-hints-panel__title {
+	text-shadow: 0 1px 2px rgba(0, 0, 0, 0.78);
+	color: $ya-teal;
+}
+
+.ya-hud-input-hints-panel__row {
+	flex-direction: row;
+	align-items: center;
+}
+
+.ya-hud-input-hints-panel__key {
+	flex-shrink: 0;
+}
+
+.ya-hud-input-hints-panel__key-text,
+.ya-hud-input-hints-panel__action {
+	text-shadow: 0 1px 2px rgba(0, 0, 0, 0.78);
+}
+
+.ya-scoreboard {
+	background-color: rgba(8, 10, 12, 0.55);
+}
+
+.ya-scoreboard__card {
+	min-width: 1160px;
+	max-width: 1320px;
+	background-color: $ya-panel;
+	border: 1px solid $ya-teal-strong;
+	padding: 10px 12px;
+	flex-direction: column;
+}
+
+.ya-scoreboard__header,
+.ya-scoreboard__row {
+	flex-direction: row;
+	align-items: center;
+}
+
+.ya-scoreboard__header {
+	border-bottom: 1px solid $ya-teal-muted;
+	padding-bottom: 8px;
+	margin-bottom: 6px;
+}
+
+.ya-scoreboard__rows {
+	flex-direction: column;
+}
+
+.ya-scoreboard__row {
+	padding: 4px 0;
+	border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.ya-scoreboard__headcell,
+.ya-scoreboard__cell {
+	flex-grow: 1;
+	flex-basis: 0;
+	font-size: 14px;
+	color: $ya-text-secondary;
+}
+
+.ya-scoreboard__headcell {
+	font-weight: 700;
+	color: $ya-teal;
+}
+
+.ya-scoreboard__headcell--name,
+.ya-scoreboard__cell--name {
+	flex-grow: 1.35;
+	color: $ya-text;
+}
+
+.ya-practice-choice {
+	background-color: rgba(8, 10, 12, 0.55);
+}
+
+.ya-practice-choice__card {
+	min-width: 640px;
+	background-color: $ya-panel;
+	border: 1px solid $ya-teal-strong;
+	padding: 18px 20px;
+	flex-direction: column;
+	align-items: center;
+}
+
+.ya-practice-choice__title {
+	font-size: 32px;
+	font-weight: 800;
+	color: $ya-text;
+	margin-bottom: 6px;
+}
+
+.ya-practice-choice__sub {
+	font-size: 18px;
+	font-weight: 600;
+	color: $ya-text-secondary;
+	margin-bottom: 14px;
+}
+
+.ya-practice-choice__row {
+	flex-direction: row;
+	margin-bottom: 10px;
+}
+
+.ya-practice-choice__button {
+	min-width: 210px;
+	margin: 0 6px;
+	padding: 10px 12px;
+	background-color: $ya-panel-deep;
+	border: 1px solid $ya-teal-strong;
+	align-items: center;
+	justify-content: center;
+}
+
+.ya-practice-choice__button-label {
+	font-size: 15px;
+	font-weight: 700;
+	color: $ya-text;
+}
+
+.ya-practice-choice__button:hover {
+	background-color: rgba(18, 26, 28, 0.98);
+	border: 1px solid $ya-teal;
+}
+
+.ya-practice-choice__blurb {
+	width: 100%;
+	max-width: 560px;
+	margin-top: 2px;
+	font-size: 13px;
+	font-weight: 600;
+	text-align: center;
+	color: $ya-text-secondary;
+}
+
+.ya-hud-timer-panel,
+.ya-hud-role-panel,
+.ya-hud-objective-panel,
+.ya-hud-alive-panel,
+.ya-hud-alone-status {
+	width: 100%;
+	align-items: center;
+}
+
+.ya-hud-timer-panel__line {
+	font-size: 24px;
+	width: 100%;
+	max-width: 920px;
+	text-align: center;
+	text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+	color: $ya-text;
+}
+
+.ya-hud-role-panel__text {
+	font-size: 34px;
+	width: 100%;
+	max-width: 920px;
+	text-align: center;
+	text-shadow: 0 2px 6px rgba(0, 0, 0, 0.75);
+	transition: color 0.15s ease;
+}
+
+.ya-hud-objective-panel__text {
+	font-size: 19px;
+	width: 100%;
+	max-width: 920px;
+	text-align: center;
+	color: $ya-text-secondary;
+}
+
+.ya-hud-alive-panel__text {
+	font-size: 20px;
+	width: 100%;
+	max-width: 920px;
+	text-align: center;
+	color: $ya-teal;
+}
+
+.ya-hud-alone-status__text {
+	font-size: 19px;
+	width: 100%;
+	max-width: 920px;
+	text-align: center;
+}
+
+.ya-hud-mutator-label {
+	font-size: 17px;
+	width: 100%;
+	max-width: 920px;
+	text-align: center;
+	color: $ya-text-muted;
+}
+
+.ya-hud-intermission-ready {
+	font-size: 18px;
+	width: 100%;
+	max-width: 920px;
+	text-align: center;
+	color: $ya-teal;
+}
+
+.ya-hud-kill-feed__name,
+.ya-hud-kill-feed__sep,
+.ya-hud-kill-feed__info {
+	text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.65);
+	transition: opacity 0.1s linear;
+}
+
+.ya-hud-kill-feed__info {
+	color: $ya-teal;
+}
+
+.ya-hud-death-overlay__title {
+	color: $ya-text;
+}
+
+.ya-hud-death-overlay__sub {
+	color: $ya-text-secondary;
+}
+
+.ya-hud-round-victory__title {
+	text-shadow: 0 2px 14px rgba(0, 0, 0, 0.85);
+	color: $ya-teal;
+}
+
+.ya-hud-round-victory__timer {
+	text-shadow: 0 1px 6px rgba(0, 0, 0, 0.75);
+	color: $ya-text-secondary;
+}
+
+.ya-hud-timer-panel__line--urgent {
+	color: #ff6b5a;
+	font-weight: 900;
+	text-shadow: 0 0 10px rgba(255, 80, 60, 0.55), 0 1px 3px rgba(0, 0, 0, 0.85);
+}
+
+.ya-hud-round-start {
+	position: absolute;
+	left: 0;
+	top: 148px;
+	width: 100%;
+	justify-content: center;
+	align-items: center;
+	pointer-events: none;
+	z-index: 85;
+}
+
+.ya-hud-round-start__card {
+	padding: 22px 36px;
+	background-color: rgba(14, 17, 20, 0.92);
+	border: 2px solid rgba(72, 203, 204, 0.85);
+	flex-direction: column;
+	align-items: center;
+}
+
+.ya-hud-round-start__title {
+	font-size: 38px;
+	font-weight: 900;
+	color: $ya-teal;
+	text-align: center;
+}
+
+.ya-hud-floating-message {
+	font-weight: 900;
+	color: $ya-teal;
+	text-shadow: 0 0 14px rgba(72, 203, 204, 0.65), 0 2px 6px rgba(0, 0, 0, 0.9);
+	pointer-events: none;
+	flex-shrink: 0;
+	white-space: nowrap;
+}
+
+.ya-hud-floating-message--personal {
+	font-size: 18px;
+	text-align: left;
+}
+
+.ya-hud-floating-message--combat {
+	font-size: 20px;
+	text-align: right;
+}
+
+.ya-hud-round-victory__summary {
+	font-size: 16px;
+	font-weight: 600;
+	color: $ya-text-secondary;
+	text-align: center;
+	margin-bottom: 8px;
+}
+
+.ya-hud-death-overlay__hint {
+	color: $ya-teal;
+}
+
+.ya-hud-death-overlay__next {
+	color: $ya-text-muted;
+}
+
+// Alone role — red / black / white chrome (overrides hardcoded teal above).
+.ya-player-hud--alone {
+	.ya-hud-rail {
+		border-top-color: $ya-red-strong;
+		border-bottom-color: $ya-red-muted;
+	}
+
+	.ya-hud-alone-ability {
+		border-color: $ya-red-muted;
+	}
+
+	.ya-hud-alone-ability__fill {
+		background-color: $ya-red;
+	}
+
+	.ya-hud-input-hints-panel {
+		border-top-color: $ya-red-strong;
+		border-color: $ya-red-muted;
+	}
+
+	.ya-hud-input-hints-panel__title,
+	.ya-hud-input-hints-panel__key-text {
+		color: $ya-red;
+	}
+
+	.ya-hud-input-hints-panel__key {
+		border-color: $ya-red-strong;
+	}
+
+	.ya-hud-input-hints-panel__arrow {
+		color: $ya-red-dim;
+	}
+
+	.ya-hud-mimic-progress__fill {
+		background-color: $ya-red;
+	}
+
+	.ya-hud-mimic-progress__label {
+		text-shadow: 0 0 12px rgba(235, 56, 56, 0.55), 0 2px 4px rgba(0, 0, 0, 0.9);
+	}
+
+	.ya-hud-alive-panel__text,
+	.ya-hud-intermission-ready {
+		color: $ya-red;
+	}
+
+	.ya-hud-kill-feed__info {
+		color: $ya-red;
+	}
+
+	.ya-hud-round-start__card {
+		border-color: $ya-red-strong;
+	}
+
+	.ya-hud-round-start__title {
+		color: $ya-red;
+	}
+
+	.ya-hud-floating-message {
+		color: $ya-red;
+		text-shadow: 0 0 14px rgba(235, 56, 56, 0.65), 0 2px 6px rgba(0, 0, 0, 0.9);
+	}
+
+	.ya-hud-hint,
+	.ya-hud-hint--alone {
+		color: $ya-text-secondary;
+	}
+
+	.ya-hud-health-card {
+		border-color: $ya-red-muted;
+		border-top-color: $ya-red-strong;
+	}
+
+	.ya-hud-health-fill {
+		background-color: $ya-red;
+	}
+}

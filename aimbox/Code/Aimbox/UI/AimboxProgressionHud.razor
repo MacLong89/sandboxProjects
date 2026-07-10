@@ -1,0 +1,275 @@
+@using Sandbox
+@using Sandbox.UI
+@inherits PanelComponent
+@namespace Sandbox
+
+<root class="aimbox-progression-hud @(Hidden ? "hidden" : "") @(ThemeClass)">
+	@if ( Player?.Data is not null )
+	{
+		<div class="xp-dock">
+			<div class="xp-track player">
+				<div class="xp-track-label">PLAYER</div>
+				<div class="xp-track-main">
+					<div class="xp-bar">
+						<div class="fill" style="width: @((int)(PlayerRankProgress * 100f))%;"></div>
+					</div>
+					<div class="xp-track-meta">@PlayerRankMeta</div>
+				</div>
+			</div>
+
+			<div class="xp-track mastery">
+				<div class="xp-track-label mastery">MASTERY</div>
+				<div class="xp-track-main">
+					<div class="xp-bar mastery">
+						<div class="fill mastery" style="width: @((int)(MasteryProgress * 100f))%;"></div>
+					</div>
+					<div class="xp-track-meta mastery">@MasteryMeta</div>
+				</div>
+			</div>
+		</div>
+
+		@if ( ShowProgressionFeed && !ShowUnlockCelebration )
+		{
+			<div class="progression-toast @(ProgressionFeedLevelUp ? "level-up" : "")">
+				<div class="progression-feed">@ProgressionFeed</div>
+				<div class="progression-feed-detail">@ProgressionFeedDetail</div>
+			</div>
+		}
+
+		@if ( ShowUnlockCelebration )
+		{
+			<div class="unlock-celebration @UnlockCelebrationClass">
+				<div class="unlock-celebration-backdrop"></div>
+				<div class="unlock-celebration-card">
+					<div class="unlock-celebration-kicker">@UnlockCelebrationKicker</div>
+					<div class="unlock-celebration-title">@UnlockCelebrationTitle</div>
+					<div class="unlock-celebration-detail">@UnlockCelebrationDetail</div>
+					@if ( !string.IsNullOrEmpty( UnlockCelebrationExtrasText ) )
+					{
+						<div class="unlock-celebration-extras">@UnlockCelebrationExtrasText</div>
+					}
+				</div>
+			</div>
+		}
+
+		@if ( ShowMedalFeed )
+		{
+			<div class="medal-feed">@MedalText</div>
+		}
+
+		@if ( !string.IsNullOrEmpty( KillstreakText ) )
+		{
+			<div class="killstreak-hud">@KillstreakText</div>
+		}
+	}
+</root>
+
+@code
+{
+	AimboxPlayerController Player => FindPlayer();
+
+	bool Hidden => AimboxMetaNavigation.BlocksGameplay || Player?.ShowClassicSniperScope == true;
+
+	string ThemeClass => AimboxUiTheme.CssClass;
+
+	protected override void OnUpdate()
+	{
+		AimboxUiTheme.SyncPanel( Panel );
+	}
+
+	float PlayerRankProgress
+	{
+		get
+		{
+			if ( Player?.Data is null || Player.Data.PlayerLevel >= AimboxMw2Catalog.MaxRank )
+				return Player?.Data?.PlayerLevel >= AimboxMw2Catalog.MaxRank ? 1f : 0f;
+
+			return AimboxXpSystem.LevelProgress( Player.Data );
+		}
+	}
+
+	string PlayerRankMeta
+	{
+		get
+		{
+			if ( Player?.Data is null )
+				return $"Rank 0 · {AimboxXpSystem.XpStepForLevel( 1 ):N0} XP to Rank 1";
+
+			if ( Player.Data.PlayerLevel >= AimboxMw2Catalog.MaxRank )
+				return $"Rank {Player.Data.PlayerLevel} · Max rank";
+
+			return $"Rank {Player.Data.PlayerLevel} · {AimboxXpSystem.XpToNextLevel( Player.Data ):N0} XP to Rank {Player.Data.PlayerLevel + 1}";
+		}
+	}
+
+	string MasteryMeta
+	{
+		get
+		{
+			if ( Player?.Data is null )
+				return "Equip a gun to track mastery";
+
+			var weaponId = ActiveWeaponId;
+			if ( weaponId is AimboxWeaponId.M9Bayonet or AimboxWeaponId.HeGrenade or AimboxWeaponId.FlashGrenade )
+				return "Equip a gun to track mastery";
+
+			var mastery = Player.Data.GetWeapon( weaponId );
+			var weaponName = AimboxWeapons.Get( weaponId ).Name;
+			if ( mastery.Level >= AimboxWeaponProgressionSystem.MaxMasteryLevel )
+				return $"{weaponName} Lvl {mastery.Level} · Max mastery";
+
+			return $"{weaponName} Lvl {mastery.Level} · {AimboxWeaponProgressionSystem.XpToNextLevel( mastery ):N0} XP to Lvl {mastery.Level + 1}";
+		}
+	}
+
+	float MasteryProgress
+	{
+		get
+		{
+			if ( Player?.Data is null )
+				return 0f;
+
+			var weaponId = ActiveWeaponId;
+			if ( weaponId is AimboxWeaponId.M9Bayonet or AimboxWeaponId.HeGrenade or AimboxWeaponId.FlashGrenade )
+				return 0f;
+
+			var mastery = Player.Data.GetWeapon( weaponId );
+			return mastery.Level >= AimboxWeaponProgressionSystem.MaxMasteryLevel
+				? 1f
+				: AimboxWeaponProgressionSystem.LevelProgress( mastery );
+		}
+	}
+
+	AimboxWeaponId ActiveWeaponId =>
+		Player?.CurrentWeapon?.Definition.Id ?? Player?.ActiveWeapon ?? AimboxWeaponId.Usp;
+
+	bool ShowProgressionFeed => Player?.ProgressionFeedVisibleUntil > 0f;
+
+	bool ShowUnlockCelebration => Player?.UnlockCelebrationVisibleUntil > 0f;
+
+	string UnlockCelebrationKicker => Player?.UnlockCelebrationKicker ?? "";
+
+	string UnlockCelebrationTitle => Player?.UnlockCelebrationTitle ?? "";
+
+	string UnlockCelebrationDetail => Player?.UnlockCelebrationDetail ?? "";
+
+	string UnlockCelebrationExtrasText => BuildUnlockCelebrationExtrasText();
+
+	string UnlockCelebrationClass => Player?.UnlockCelebrationKind switch
+	{
+		AimboxUnlockCelebrationKind.RankUp => "kind-rank",
+		AimboxUnlockCelebrationKind.WeaponUnlock => "kind-weapon",
+		AimboxUnlockCelebrationKind.AttachmentUnlock => "kind-attachment",
+		AimboxUnlockCelebrationKind.MasteryUp => "kind-mastery",
+		AimboxUnlockCelebrationKind.PerkUnlock => "kind-perk",
+		AimboxUnlockCelebrationKind.KillstreakUnlock => "kind-killstreak",
+		_ => ""
+	};
+
+	string ProgressionFeed => Player?.ProgressionFeed ?? "";
+
+	string ProgressionFeedDetail => Player?.ProgressionFeedDetail ?? "";
+
+	bool ProgressionFeedLevelUp => Player?.ProgressionFeedIsLevelUp == true;
+
+	bool ShowMedalFeed => Player?.MedalFeedVisibleUntil > 0f && !string.IsNullOrEmpty( Player?.MedalFeed );
+
+	string MedalText => Player?.MedalFeed ?? "";
+
+	string KillstreakText
+	{
+		get
+		{
+			if ( Player is null )
+				return "";
+
+			if ( Player.KillstreakNotificationVisibleUntil > 0f )
+				return Player.KillstreakNotification;
+
+			var game = AimboxGame.Instance;
+			if ( game?.Killstreaks.IsUavActive( Player.AccountId ) == true )
+			{
+				var hostiles = 0;
+				foreach ( var actor in game.Killstreaks.GetUavRevealedActors( Player.AccountId ) )
+				{
+					if ( actor != Player && !Player.IsTeammate( actor ) )
+						hostiles++;
+				}
+				return $"UAV Active — {hostiles} hostile{(hostiles == 1 ? "" : "s")}";
+			}
+
+			return Player.EarnedKillstreakCount > 0 ? $"{Player.EarnedKillstreakCount} Killstreak(s) — Press USE" : "";
+		}
+	}
+
+	protected override int BuildHash()
+	{
+		var player = Player;
+		var hash = new HashCode();
+		hash.Add( Hidden );
+		hash.Add( AimboxUiTheme.Version );
+
+		if ( player?.Data is null )
+			return hash.ToHashCode();
+
+		var weapon = player.CurrentWeapon;
+		hash.Add( player.Data.PlayerLevel );
+		hash.Add( player.Data.TotalXp );
+		hash.Add( weapon?.Definition.Id ?? AimboxWeaponId.Usp );
+		hash.Add( ActiveWeaponId );
+		hash.Add( PlayerRankProgress );
+		hash.Add( MasteryProgress );
+		hash.Add( PlayerRankMeta );
+		hash.Add( MasteryMeta );
+		hash.Add( ShowProgressionFeed );
+		hash.Add( ShowUnlockCelebration );
+		hash.Add( UnlockCelebrationKicker );
+		hash.Add( UnlockCelebrationTitle );
+		hash.Add( UnlockCelebrationDetail );
+		hash.Add( UnlockCelebrationExtrasText );
+		hash.Add( UnlockCelebrationClass );
+		hash.Add( ProgressionFeed );
+		hash.Add( ProgressionFeedDetail );
+		hash.Add( ProgressionFeedLevelUp );
+		hash.Add( ShowMedalFeed );
+		hash.Add( MedalText );
+		hash.Add( Player?.MedalFeedVisibleUntil ?? 0f );
+		hash.Add( KillstreakText );
+		hash.Add( AimboxGame.Instance?.Killstreaks.IsUavActive( player.AccountId ) == true );
+		return hash.ToHashCode();
+	}
+
+	AimboxPlayerController FindPlayer()
+	{
+		var players = AimboxGame.Instance?.Players;
+		if ( players is null )
+			return null;
+
+		AimboxPlayerController fallback = null;
+		foreach ( var player in players )
+		{
+			fallback ??= player;
+			if ( !player.IsProxy )
+				return player;
+		}
+
+		return fallback;
+	}
+
+	string BuildUnlockCelebrationExtrasText()
+	{
+		if ( Player?.UnlockCelebrationExtras is not { } extras || extras.Count == 0 )
+			return "";
+
+		var text = "";
+		for ( var i = 0; i < extras.Count; i++ )
+		{
+			if ( i > 0 )
+				text += " · ";
+
+			text += extras[i];
+		}
+
+		return text;
+	}
+}

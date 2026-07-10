@@ -1,0 +1,24 @@
+// Procedural day/night sky - uniforms pushed by ThornsSkyController.
+Layer0
+{
+	shader "shaders/thorns_celestial_sky.shader"
+	SkyZenith "0.345 0.698 0.961"
+	SkyMid "0.541 0.824 0.988"
+	SkyHorizon "0.675 0.882 1.0"
+	HorizonGlowColor "1.0 0.58 0.35"
+	HorizonGlowStrength "0.0"
+	StarBrightness "0.0"
+	CloudOpacity "0.35"
+	CloudTint "1.0 1.0 1.0"
+	CloudDrift "0.0"
+	SunDiscColor "1.0 0.83 0.62"
+	SunDiscIntensity "5.5"
+	SunDiscGlow "0.055"
+	SunDiscAngularDiameter "72.0"
+	ThornsSunDirection "0.0 0.0 0.0"
+	FogColor "0.46 0.70 0.89"
+	FogBlend "0.035"
+	SkyExposure "1.0"
+	TimeOfDay01 "0.5"
+	NightDepth "0.0"
+}

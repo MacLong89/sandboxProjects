@@ -1,0 +1,508 @@
+@using Sandbox
+@using Sandbox.UI
+@inherits PanelComponent
+@namespace Sandbox
+
+<root class="aimbox-main-menu @(Visible ? "visible" : "hidden")">
+	@if ( Visible )
+	{
+	<div class="menu-backdrop decor"></div>
+	<div class="menu-vignette decor"></div>
+
+	<div class="menu-left">
+		<div class="menu-brand">
+			<div class="brand-row">
+				<div class="brand-title">AIMBO</div>
+				<div class="brand-x">X</div>
+			</div>
+			<div class="brand-subtitle">ARCADE SHOOTER</div>
+		</div>
+
+		<div class="menu-nav" onmouseleave="@(() => ResetNavHover())">
+			<div class="nav-indicator" style="@NavIndicatorStyle()">
+				<div class="nav-chevron">&gt;</div>
+				<div class="nav-highlight"></div>
+			</div>
+			@foreach ( var navItem in NavItems )
+			{
+				var item = navItem;
+				<button class="nav-item @(ActiveNav == item.Id ? "active" : "") @(HighlightedNav == item.Id ? "highlighted" : "") @(NavItemClass(item))"
+					disabled="@(!CanActivateNav(item))"
+					onmouseover="@(() => SetNavHover(item.Id))"
+					onclick="@(() => ActivateNav(item))">
+					<div class="nav-label">@NavLabel(item)</div>
+				</button>
+			}
+		</div>
+
+		@if ( IsLobbyJoiner )
+		{
+			<div class="joiner-status-banner">Waiting for the host to start the match.</div>
+		}
+
+		<div class="profile-card">
+			<div class="profile-frame">
+				<div class="profile-badge">
+					<div class="profile-badge-inner"></div>
+				</div>
+				<div class="profile-copy">
+					<div class="profile-header-row">
+						<div class="profile-name">@DisplayName</div>
+						<div class="profile-level">LEVEL @PlayerLevel</div>
+					</div>
+					<div class="profile-xp-track">
+						<div class="profile-xp-fill" style="width: @XpFillWidth();"></div>
+					</div>
+					<div class="profile-xp-label">@XpLabel</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div class="menu-util">
+		<button class="util-btn" title="Messages" onclick="@(() => ToggleOverlay(OverlayKind.Messages))">
+			<div class="util-icon mail"></div>
+		</button>
+		<button class="util-btn" title="Friends" onclick="@(() => ToggleOverlay(OverlayKind.Friends))">
+			<div class="util-icon friends"></div>
+		</button>
+		<button class="util-btn" title="Settings" onclick="@(() => ToggleOverlay(OverlayKind.Settings))">
+			<div class="util-icon settings"></div>
+		</button>
+		<button class="util-btn danger" title="Quit" onclick="@QuitGame">
+			<div class="util-icon close"></div>
+		</button>
+	</div>
+
+	<div class="menu-right">
+		<div class="news-widget">
+			<div class="widget-header">// NEWS</div>
+			<div class="news-card">
+				<div class="news-thumb" style="@NewsPreviewStyle()">
+					<div class="news-thumb-code">@AimboxClassUiHelpers.WeaponShortCode(CurrentNews.Weapon)</div>
+				</div>
+				<div class="news-copy">
+					<div class="news-title">@CurrentNews.Title</div>
+					<div class="news-subtitle">@CurrentNews.Subtitle</div>
+				</div>
+			</div>
+			<div class="news-dots">
+				@for ( var i = 0; i < NewsItems.Count; i++ )
+				{
+					var index = i;
+					<button class="news-dot @(NewsIndex == index ? "active" : "")" onclick="@(() => SelectNews(index))"></button>
+				}
+			</div>
+		</div>
+
+		<div class="daily-widget">
+			<div class="widget-header">// DAILY CHALLENGE</div>
+			<div class="daily-body">
+				<div class="daily-copy">
+					<div class="daily-title">@FeaturedChallengeTitle</div>
+					<div class="daily-task">@FeaturedChallengeLabel</div>
+					<div class="daily-progress-row">
+						<div class="daily-progress-track">
+							<div class="daily-progress-fill" style="width: @FeaturedChallengeFill();"></div>
+						</div>
+						<div class="daily-progress-label">@FeaturedChallengeProgressLabel</div>
+					</div>
+				</div>
+				<div class="daily-reward">
+					<div class="daily-reward-label">XP</div>
+					<div class="daily-reward-value">@FormatScore(FeaturedChallengeReward)</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div class="menu-footer">
+		<div class="footer-social">
+			<div class="footer-follow">FOLLOW US</div>
+			<div class="social-links">
+				<div class="social-link">Discord</div>
+				<div class="social-link">Twitter</div>
+				<div class="social-link">YouTube</div>
+				<div class="social-link">Instagram</div>
+			</div>
+		</div>
+		<div class="footer-meta">
+			<div class="footer-version">@AimboxMainMenuUi.VersionLabel</div>
+			<div class="footer-mark">X</div>
+		</div>
+	</div>
+
+	@if ( ActiveOverlay != OverlayKind.None )
+	{
+		<div class="menu-overlay-backdrop" onclick="@CloseOverlay"></div>
+		<div class="menu-overlay @(OverlayClass)">
+			<div class="overlay-header">
+				<div class="overlay-title">@OverlayTitle</div>
+				<button class="overlay-close" onclick="@CloseOverlay">X</button>
+			</div>
+			<div class="overlay-body">
+				@OverlayBody()
+			</div>
+		</div>
+	}
+	}
+</root>
+
+@code
+{
+	enum OverlayKind
+	{
+		None,
+		Messages,
+		Friends,
+		Settings,
+		Leaderboards
+	}
+
+	sealed record NavItem( string Id, string Label, AimboxMetaScreen? Screen, OverlayKind Overlay = OverlayKind.None );
+
+	sealed record NewsItem( string Title, string Subtitle, AimboxWeaponId Weapon );
+
+	static readonly List<NavItem> NavItems = [
+		new( "play", "PLAY", AimboxMetaScreen.ModeSelect ),
+		new( "loadouts", "LOADOUTS", AimboxMetaScreen.CreateClass ),
+		new( "progression", "PROGRESSION", AimboxMetaScreen.Barracks ),
+		new( "challenges", "CHALLENGES", AimboxMetaScreen.Challenges ),
+		new( "leaderboards", "LEADERBOARDS", null, OverlayKind.Leaderboards ),
+		new( "settings", "SETTINGS", null, OverlayKind.Settings ),
+		new( "quit", "QUIT", null )
+	];
+
+	static readonly List<NewsItem> NewsItems = [
+		new( "NEW WEAPON: M700", "Dominate the arena.", AimboxWeaponId.M700 ),
+		new( "NEW WEAPON: M4A1", "Precision meets power.", AimboxWeaponId.M4A1 ),
+		new( "NEW WEAPON: MP5", "Run the room.", AimboxWeaponId.Mp5 ),
+		new( "NEW SHOTGUN: SPAGHELLI M4", "Pump-action chaos served hot.", AimboxWeaponId.SpaghelliM4 )
+	];
+
+	bool Visible =>
+		AimboxMetaUiFlags.UseRedesignedMainMenu
+		&& AimboxMetaNavigation.IsInIntermission
+		&& AimboxMetaNavigation.CurrentScreen == AimboxMetaScreen.PostMatch
+		&& !AimboxMetaNavigation.ShouldShowMatchRecap;
+
+	bool IsLobbyJoiner => AimboxLobbyAuthority.IsJoiner;
+	bool CanOpenPlayLobby => AimboxLobbyAuthority.CanControlLobbyFlow;
+
+	AimboxPlayerController Player => FindPlayer();
+
+	AimboxPlayerData PlayerData => Player?.Data;
+
+	string ActiveNav { get; set; } = "play";
+	string HoveredNav { get; set; } = "play";
+	string HighlightedNav => HoveredNav;
+	OverlayKind ActiveOverlay { get; set; } = OverlayKind.None;
+	int NewsIndex { get; set; }
+	TimeSince _newsTimer;
+
+	NewsItem CurrentNews => NewsItems[Math.Clamp( NewsIndex, 0, NewsItems.Count - 1 )];
+
+	string DisplayName
+	{
+		get
+		{
+			var account = Player?.AccountId ?? "offline";
+			if ( !account.Equals( "offline", StringComparison.OrdinalIgnoreCase ) )
+				return account.Length > 16 ? account[..16].ToUpperInvariant() : account.ToUpperInvariant();
+
+			return "NOVA_07";
+		}
+	}
+
+	int PlayerLevel => PlayerData?.PlayerLevel ?? 0;
+
+	string XpLabel
+	{
+		get
+		{
+			if ( PlayerData is null )
+				return $"0 / {AimboxXpSystem.XpStepForLevel( 1 ):N0} XP";
+
+			if ( PlayerData.PlayerLevel >= AimboxMw2Catalog.MaxRank )
+				return $"{FormatScore( PlayerData.TotalXp )} XP · MAX";
+
+			var floor = AimboxXpSystem.XpForLevel( PlayerData.PlayerLevel );
+			var next = AimboxXpSystem.XpForLevel( PlayerData.PlayerLevel + 1 );
+			return $"{FormatScore( PlayerData.TotalXp - floor )} / {FormatScore( next - floor )} XP";
+		}
+	}
+
+	AimboxChallenge FeaturedChallenge => ResolveFeaturedChallenge();
+
+	string FeaturedChallengeTitle => FeaturedChallenge.Stat switch
+	{
+		"headshots" => "HEADSHOT KILLS",
+		"kills" => "ELIMINATIONS",
+		"wins" => "MATCH WINS",
+		"smg_kills" => "SMG KILLS",
+		_ => "DAILY OBJECTIVE"
+	};
+
+	string FeaturedChallengeLabel => FeaturedChallenge.Label;
+
+	int FeaturedChallengeReward => FeaturedChallenge.RewardXp;
+
+	string FeaturedChallengeProgressLabel
+	{
+		get
+		{
+			var progress = FeaturedChallengeProgress;
+			if ( PlayerData?.CompletedChallenges.Contains( FeaturedChallenge.Id ) == true )
+				return "COMPLETE";
+
+			return $"{progress} / {FeaturedChallenge.Target}";
+		}
+	}
+
+	int FeaturedChallengeProgress
+	{
+		get
+		{
+			if ( PlayerData is null )
+				return 0;
+
+			if ( PlayerData.CompletedChallenges.Contains( FeaturedChallenge.Id ) )
+				return FeaturedChallenge.Target;
+
+			var progress = 0;
+			if ( PlayerData.ChallengeProgress.TryGetValue( FeaturedChallenge.Id, out var value ) )
+				progress = value;
+
+			return Math.Min( progress, FeaturedChallenge.Target );
+		}
+	}
+
+	float FeaturedChallengePercent
+	{
+		get
+		{
+			if ( FeaturedChallenge.Target <= 0 )
+				return 0f;
+
+			return Math.Clamp( FeaturedChallengeProgress / (float)FeaturedChallenge.Target, 0f, 1f );
+		}
+	}
+
+	string OverlayClass => ActiveOverlay switch
+	{
+		OverlayKind.Settings => "settings",
+		OverlayKind.Leaderboards => "leaderboards",
+		OverlayKind.Messages => "messages",
+		OverlayKind.Friends => "friends",
+		_ => ""
+	};
+
+	string OverlayTitle => ActiveOverlay switch
+	{
+		OverlayKind.Settings => "// SETTINGS",
+		OverlayKind.Leaderboards => "// LEADERBOARDS",
+		OverlayKind.Messages => "// MESSAGES",
+		OverlayKind.Friends => "// FRIENDS",
+		_ => ""
+	};
+
+	protected override void OnUpdate()
+	{
+		if ( !Visible )
+			return;
+
+		if ( _newsTimer >= 6f )
+		{
+			_newsTimer = 0f;
+			NewsIndex = (NewsIndex + 1) % NewsItems.Count;
+		}
+	}
+
+	void ActivateNav( NavItem item )
+	{
+		if ( !CanActivateNav( item ) )
+			return;
+
+		ActiveNav = item.Id;
+		HoveredNav = item.Id;
+
+		if ( item.Id == "quit" )
+		{
+			QuitGame();
+			return;
+		}
+
+		if ( item.Overlay != OverlayKind.None )
+		{
+			ToggleOverlay( item.Overlay );
+			return;
+		}
+
+		if ( item.Screen is AimboxMetaScreen screen )
+			AimboxMetaNavigation.OpenScreen( screen );
+	}
+
+	void ToggleOverlay( OverlayKind overlay )
+	{
+		ActiveOverlay = ActiveOverlay == overlay ? OverlayKind.None : overlay;
+	}
+
+	void CloseOverlay() => ActiveOverlay = OverlayKind.None;
+
+	bool CanActivateNav( NavItem item ) =>
+		item.Id != "play" || CanOpenPlayLobby;
+
+	string NavLabel( NavItem item ) =>
+		item.Id == "play" && IsLobbyJoiner ? "PLAY · HOST ONLY" : item.Label;
+
+	string NavItemClass( NavItem item ) =>
+		item.Id == "play" && IsLobbyJoiner ? "disabled" : "";
+
+	void SetNavHover( string id ) => HoveredNav = id;
+
+	void ResetNavHover() => HoveredNav = ActiveNav;
+
+	const float NavRowHeight = 52f;
+	const float NavRowGap = 4f;
+	const float NavItemStride = NavRowHeight + NavRowGap;
+
+	string NavIndicatorStyle()
+	{
+		var index = NavItems.FindIndex( item => item.Id == HighlightedNav );
+		if ( index < 0 )
+			index = 0;
+
+		var offset = index * NavItemStride;
+		return $"transform: translateY({offset}px);";
+	}
+
+	void SelectNews( int index )
+	{
+		NewsIndex = index;
+		_newsTimer = 0f;
+	}
+
+	void QuitGame() => Game.Close();
+
+	string XpFillWidth()
+	{
+		if ( PlayerData is null || PlayerData.PlayerLevel >= AimboxMw2Catalog.MaxRank )
+			return "100%";
+
+		return $"{(int)(AimboxXpSystem.LevelProgress( PlayerData ) * 100f)}%";
+	}
+
+	string FeaturedChallengeFill() => $"{(int)(FeaturedChallengePercent * 100f)}%";
+
+	string NewsPreviewStyle() =>
+		$"background-color: {AimboxClassUiHelpers.WeaponAccent( CurrentNews.Weapon )};";
+
+	AimboxChallenge ResolveFeaturedChallenge()
+	{
+		var challenges = AimboxGame.Instance?.Challenges.DailyChallenges;
+		if ( challenges is null || challenges.Count == 0 )
+			return new AimboxChallenge
+			{
+				Id = "fallback",
+				Label = "Get 10 headshots",
+				Stat = "headshots",
+				Target = 10,
+				RewardXp = 2500
+			};
+
+		foreach ( var challenge in challenges )
+		{
+			if ( challenge.Stat == "headshots" )
+				return challenge;
+		}
+
+		if ( PlayerData is not null )
+		{
+			foreach ( var challenge in challenges )
+			{
+				if ( !PlayerData.CompletedChallenges.Contains( challenge.Id ) )
+					return challenge;
+			}
+		}
+
+		return challenges[0];
+	}
+
+	AimboxPlayerController FindPlayer()
+	{
+		var players = AimboxGame.Instance?.Players;
+		if ( players is null )
+			return null;
+
+		AimboxPlayerController fallback = null;
+		foreach ( var player in players )
+		{
+			fallback ??= player;
+			if ( !player.IsProxy )
+				return player;
+		}
+
+		return fallback;
+	}
+
+	RenderFragment OverlayBody() => ActiveOverlay switch
+	{
+		OverlayKind.Settings => @<div class="settings-panel">
+			<div class="settings-row">
+				<div class="settings-label">INTERFACE</div>
+				<div class="settings-value">@AimboxUiTheme.CurrentLabel</div>
+				<button class="settings-btn" onclick="@ToggleUiTheme">@UiThemeToggleLabel()</button>
+			</div>
+			<div class="settings-hint">More audio and gameplay settings are coming soon.</div>
+		</div>,
+		OverlayKind.Leaderboards => @<div class="leaderboard-panel">
+			@if ( PlayerData is null )
+			{
+				<div class="overlay-empty">No player data available.</div>
+			}
+			else
+			{
+				<div class="leaderboard-hero">
+					<div class="leaderboard-stat">
+						<div class="leaderboard-stat-label">KILLS</div>
+						<div class="leaderboard-stat-value">@FormatScore( PlayerData.Kills )</div>
+					</div>
+					<div class="leaderboard-stat">
+						<div class="leaderboard-stat-label">K/D</div>
+						<div class="leaderboard-stat-value">@FormatKd( PlayerData.KdRatio )</div>
+					</div>
+					<div class="leaderboard-stat">
+						<div class="leaderboard-stat-label">HEADSHOTS</div>
+						<div class="leaderboard-stat-value">@FormatScore( PlayerData.Headshots )</div>
+					</div>
+					<div class="leaderboard-stat">
+						<div class="leaderboard-stat-label">DUEL MMR</div>
+						<div class="leaderboard-stat-value">@FormatScore( PlayerData.Ranked.DuelMmr )</div>
+					</div>
+				</div>
+				<div class="overlay-hint">Global leaderboards sync in a future update. Showing your local stats.</div>
+			}
+		</div>,
+		OverlayKind.Messages => @<div class="overlay-empty">No new messages.</div>,
+		OverlayKind.Friends => @<div class="overlay-empty">Friends list coming soon.</div>,
+		_ => @<text></text>
+	};
+
+	void ToggleUiTheme() => AimboxUiTheme.Cycle();
+
+	string UiThemeToggleLabel() => $"SWITCH TO {AimboxUiTheme.NextLabel}";
+
+	string FormatScore( int score ) => AimboxUiFormat.Score( score );
+
+	string FormatKd( float kd ) => kd.ToString( "0.00" );
+
+	protected override int BuildHash()
+	{
+		if ( !Visible )
+			return 0;
+
+		return HashCode.Combine(
+			HashCode.Combine( Visible, IsLobbyJoiner, ActiveNav, HoveredNav, ActiveOverlay, NewsIndex, PlayerData?.TotalXp, PlayerData?.PlayerLevel ),
+			HashCode.Combine( PlayerData?.Kills, PlayerData?.Headshots, FeaturedChallengeProgress, AimboxUiTheme.Version ) );
+	}
+}

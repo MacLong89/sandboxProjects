@@ -1,0 +1,33 @@
+@using Sandbox.UI
+@using Dynasty.UI.ViewModels
+@using Dynasty.UI.Management
+@inherits Panel
+@namespace Dynasty.UI.Components
+@attribute [StyleSheet( "/Dynasty/UI/Components/SessionSummaryModal.razor.scss" )]
+
+<root class="session-summary-modal-root">
+@if ( Model != null )
+{
+	<div class="ui-modal-backdrop ui-anim-fade" style="@UiModalHelpers.ZIndexStyle( UiWindowType.SessionSummary )">
+		<div class="ui-modal-card session-summary-modal" @onmousedown='@UiModalHelpers.StopPropagation'>
+			<Label class="modal-title">Session Summary</Label>
+			<Label class="summary-headline">@Model.Headline</Label>
+			<Label class="muted">@Model.RecordLine</Label>
+			<Label class="muted">@Model.DynastyLine · @Model.JobSecurityLine</Label>
+			<Label class="summary-cliffhanger">@Model.CliffhangerLine</Label>
+			<Label class="muted">When you return: @Model.NextStepLine</Label>
+			<div class="modal-actions">
+				<Button class="btn primary" Text="Continue to Menu" onclick=@HandleConfirm />
+			</div>
+		</div>
+	</div>
+}
+</root>
+
+@code
+{
+	[Parameter] public SessionSummaryViewModel Model { get; set; }
+	[Parameter] public Action OnConfirm { get; set; }
+
+	void HandleConfirm() => OnConfirm?.Invoke();
+}

@@ -1,0 +1,248 @@
+TradeCenterPanel,
+.trade-center-panel
+{
+	width: 100%;
+	flex-direction: column;
+	gap: 14px;
+	flex-shrink: 0;
+
+	.trade-header
+	{
+		flex-direction: column;
+		gap: 4px;
+		width: 100%;
+		flex-shrink: 0;
+	}
+
+	.panel-title
+	{
+		font-size: 18px;
+		font-weight: 700;
+		color: white;
+		width: 100%;
+	}
+
+	.trade-steps,
+	.muted
+	{
+		color: #8b9cb3;
+		font-size: 13px;
+		width: 100%;
+	}
+
+	.trade-body
+	{
+		flex-direction: row;
+		align-items: stretch;
+		gap: 16px;
+		width: 100%;
+		min-height: 360px;
+		flex-shrink: 0;
+	}
+
+	.trade-column
+	{
+		flex-direction: column;
+		gap: 8px;
+		flex: 1 1 0;
+		min-width: 280px;
+	}
+
+	.column-title
+	{
+		font-size: 12px;
+		font-weight: 700;
+		color: #34c759;
+		text-transform: uppercase;
+		width: 100%;
+		flex-shrink: 0;
+	}
+
+	.partner-header
+	{
+		flex-direction: row;
+		align-items: center;
+		gap: 12px;
+		width: 100%;
+		flex-shrink: 0;
+		flex-wrap: nowrap;
+	}
+
+	.partner-name
+	{
+		flex-grow: 1;
+		min-width: 0;
+		white-space: nowrap;
+		overflow: hidden;
+	}
+
+	.partner-change-btn
+	{
+		flex-shrink: 0;
+		white-space: nowrap;
+	}
+
+	.trade-table
+	{
+		flex-direction: column;
+		width: 100%;
+		flex-grow: 1;
+		min-height: 0;
+		max-height: 380px;
+		overflow: scroll;
+		padding: 0;
+		gap: 0;
+		background-color: #151d2e;
+		border: 1px solid #243044;
+		border-radius: 14px;
+	}
+
+	.trade-table-header
+	{
+		flex-direction: row;
+		align-items: center;
+		justify-content: space-between;
+		gap: 12px;
+		padding: 10px 14px;
+		background-color: #13233d;
+		border-bottom: 1px solid #243044;
+		flex-shrink: 0;
+		width: 100%;
+		font-size: 11px;
+		font-weight: 700;
+		color: #8b9cb3;
+		text-transform: uppercase;
+	}
+
+	.col-player
+	{
+		flex-grow: 1;
+		min-width: 0;
+	}
+
+	.col-ovr
+	{
+		width: 56px;
+		flex-shrink: 0;
+		text-align: right;
+	}
+
+	.empty-hint
+	{
+		padding: 16px 14px;
+		width: 100%;
+	}
+
+	.trade-footer
+	{
+		flex-direction: column;
+		gap: 12px;
+		padding: 16px 18px;
+		width: 100%;
+		flex-shrink: 0;
+		background-color: #111827;
+		border: 1px solid #243044;
+		border-radius: 14px;
+	}
+
+	.trade-summary
+	{
+		flex-direction: row;
+		align-items: stretch;
+		gap: 12px;
+		width: 100%;
+		flex-wrap: wrap;
+	}
+
+	.trade-summary-item
+	{
+		flex-direction: column;
+		gap: 4px;
+		flex: 1 1 160px;
+		min-width: 140px;
+		padding: 10px 12px;
+		background-color: #0a0f18;
+		border: 1px solid #243044;
+		border-radius: 10px;
+	}
+
+	.trade-summary-key
+	{
+		font-size: 10px;
+		font-weight: 700;
+		color: #8b9cb3;
+		text-transform: uppercase;
+		width: 100%;
+	}
+
+	.trade-summary-val
+	{
+		font-size: 15px;
+		font-weight: 600;
+		color: white;
+		width: 100%;
+		white-space: nowrap;
+		overflow: hidden;
+	}
+
+	.trade-footer-actions
+	{
+		flex-direction: row;
+		align-items: center;
+		justify-content: space-between;
+		gap: 16px;
+		width: 100%;
+		flex-wrap: wrap;
+	}
+
+	.trade-hint
+	{
+		flex-grow: 1;
+		min-width: 200px;
+		width: 100%;
+		font-size: 13px;
+	}
+
+	.trade-submit-btn
+	{
+		flex-shrink: 0;
+		min-width: 180px;
+		white-space: nowrap;
+		margin-left: auto;
+	}
+
+	.trade-submit-btn.not-ready
+	{
+		opacity: 0.45;
+	}
+
+	Button.btn
+	{
+		padding: 10px 18px;
+		font-weight: 600;
+		color: white;
+		background-color: #34c759;
+		border: 1px solid #34c759;
+		border-radius: 10px;
+		flex-shrink: 0;
+		white-space: nowrap;
+	}
+
+	Button.btn.secondary
+	{
+		background-color: #111827;
+		border-color: #243044;
+		color: #e8eef7;
+	}
+
+	Button.btn.small
+	{
+		padding: 8px 12px;
+		font-size: 12px;
+	}
+}
+
+Button:active
+{
+	sound-in: "sounds/button.sound";
+}

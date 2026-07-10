@@ -1,0 +1,211 @@
+@using Sandbox
+@using Sandbox.UI
+@inherits PanelComponent
+@namespace Fauna2.UI
+
+<root class="@( GameStarted && UiState.ActivePage == UiPage.None && !UiState.DebugVisible && SelectedHabitat is not null ? "open" : "" )">
+	@if ( GameStarted && UiState.ActivePage == UiPage.None && !UiState.DebugVisible && SelectedHabitat is not null )
+	{
+		var habitat = SelectedHabitat;
+		var breakdown = HabitatScoring.Score( habitat );
+		var animals = AnimalsInHabitat.ToList();
+
+		<div class="inspect-window">
+			<div class="inspect-header">
+				<div class="swatch biome-@habitat.Biome.ToString().ToLower()"></div>
+				<div class="header-text">
+					<div class="name">@(habitat.Definition?.DisplayName ?? "Habitat")</div>
+					<div class="tags">
+						<span class="tag biome">@habitat.Biome</span>
+						<span class="tag count">@animals.Count animal@(animals.Count == 1 ? "" : "s")</span>
+					</div>
+				</div>
+				<div class="close" onclick=@Close><i class="icon">close</i></div>
+			</div>
+
+			<div class="inspect-body">
+			<div class="score-hero @(ScoreClass( habitat.Score ))">
+				<div class="score-value">@habitat.Score.ToString( "0" )</div>
+				<div class="score-label">Habitat score</div>
+				<div class="score-hint">@ScoreHint( habitat.Score )</div>
+			</div>
+
+			<div class="section-title">Score breakdown</div>
+			<div class="breakdown">
+				<div class="breakdown-row">
+					<div class="breakdown-head">
+						<div class="k">Space <span class="weight">30%</span></div>
+						<div class="v">@breakdown.Space.ToString( "0" )</div>
+					</div>
+					<div class="breakdown-bar"><div class="fill @ScoreClass( breakdown.Space )" style="width: @(UiFormat.PercentWidth( breakdown.Space ))%"></div></div>
+				</div>
+				<div class="breakdown-row">
+					<div class="breakdown-head">
+						<div class="k">Biome match <span class="weight">25%</span></div>
+						<div class="v">@breakdown.BiomeMatch.ToString( "0" )</div>
+					</div>
+					<div class="breakdown-bar"><div class="fill @ScoreClass( breakdown.BiomeMatch )" style="width: @(UiFormat.PercentWidth( breakdown.BiomeMatch ))%"></div></div>
+				</div>
+				<div class="breakdown-row">
+					<div class="breakdown-head">
+						<div class="k">Shelter <span class="weight">15%</span></div>
+						<div class="v">@breakdown.Shelter.ToString( "0" )</div>
+					</div>
+					<div class="breakdown-bar"><div class="fill @ScoreClass( breakdown.Shelter )" style="width: @(UiFormat.PercentWidth( breakdown.Shelter ))%"></div></div>
+				</div>
+				<div class="breakdown-row">
+					<div class="breakdown-head">
+						<div class="k">Water <span class="weight">10%</span></div>
+						<div class="v">@breakdown.Water.ToString( "0" )</div>
+					</div>
+					<div class="breakdown-bar"><div class="fill @ScoreClass( breakdown.Water )" style="width: @(UiFormat.PercentWidth( breakdown.Water ))%"></div></div>
+				</div>
+				<div class="breakdown-row">
+					<div class="breakdown-head">
+						<div class="k">Enrichment <span class="weight">12%</span></div>
+						<div class="v">@breakdown.Enrichment.ToString( "0" )</div>
+					</div>
+					<div class="breakdown-bar"><div class="fill @ScoreClass( breakdown.Enrichment )" style="width: @(UiFormat.PercentWidth( breakdown.Enrichment ))%"></div></div>
+				</div>
+				<div class="breakdown-row">
+					<div class="breakdown-head">
+						<div class="k">Decoration <span class="weight">8%</span></div>
+						<div class="v">@breakdown.Decoration.ToString( "0" )</div>
+					</div>
+					<div class="breakdown-bar"><div class="fill @ScoreClass( breakdown.Decoration )" style="width: @(UiFormat.PercentWidth( breakdown.Decoration ))%"></div></div>
+				</div>
+			</div>
+
+			<div class="section-title">Residents</div>
+			@if ( animals.Count == 0 )
+			{
+				<div class="empty">No animals here yet — adopt from the market and place them inside.</div>
+			}
+			else
+			{
+				<div class="residents">
+					@foreach ( var animal in animals )
+					{
+						<div class="resident">
+							<div class="resident-main clickable" onclick=@( () => SelectAnimal( animal ) )>
+								<div class="resident-swatch" style="background-color: @AnimalColor( animal );"></div>
+								<div class="resident-info">
+									<div class="resident-name">@animal.AnimalName</div>
+									<div class="resident-meta">@UiFormat.AnimalSpeciesLine( animal )</div>
+									<div class="resident-wellbeing">@UiFormat.AnimalWellbeing( animal )</div>
+									<div class="resident-bar">
+										<div class="fill" style="width: @(UiFormat.PercentWidth( animal.Happiness ))%"></div>
+									</div>
+								</div>
+								<div class="resident-stat">@UiFormat.Percent( animal.Happiness )</div>
+							</div>
+							<div class="resident-move" onclick=@( () => MoveAnimal( animal ) )>
+								<i class="icon">swap_horiz</i>
+							</div>
+						</div>
+					}
+				</div>
+			}
+
+			</div>
+
+			<div class="actions">
+				<div class="button primary" onclick=@AddAnimal>
+					<i class="icon">pets</i>
+					Add animal
+				</div>
+				<div class="button" onclick=@EnrichHabitat>
+					<i class="icon">grass</i>
+					Add enrichment
+				</div>
+			</div>
+		</div>
+	}
+</root>
+
+@code
+{
+	private bool GameStarted => UiState.GameplayHudVisible;
+	private HabitatComponent SelectedHabitat => UiState.SelectedHabitat;
+
+	private IEnumerable<AnimalComponent> AnimalsInHabitat =>
+		SelectedHabitat is null
+			? Enumerable.Empty<AnimalComponent>()
+			: AnimalRegistry.InHabitat( SelectedHabitat.HabitatId ).OrderBy( a => a.AnimalName );
+
+	protected override void OnUpdate()
+	{
+		if ( string.IsNullOrEmpty( UiState.SelectedHabitatId ) ) return;
+
+		var habitat = SelectedHabitat;
+		if ( habitat is null || !habitat.IsValid() )
+			UiState.ClearHabitatSelection();
+	}
+
+	private void Close() => UiState.ClearHabitatSelection();
+
+	private void SelectAnimal( AnimalComponent animal ) =>
+		UiState.SelectAnimal( animal.AnimalId );
+
+	private void MoveAnimal( AnimalComponent animal )
+	{
+		UiState.BeginMoveAnimal( animal.AnimalId );
+		UiState.ClearHabitatSelection();
+	}
+
+	private void AddAnimal()
+	{
+		var habitat = SelectedHabitat;
+		if ( habitat is null ) return;
+
+		UiState.PlayClick();
+		UiState.ClearHabitatSelection();
+
+		var carried = PlayerInventory.Local?.CarriedCount ?? 0;
+		if ( carried > 0 )
+			UiState.OpenMarketTab( 1 );
+		else
+			UiState.OpenMarketForHabitat( habitat.Biome );
+	}
+
+	private void EnrichHabitat()
+	{
+		UiState.PlayClick();
+		UiState.ClearHabitatSelection();
+		UiState.OpenBuild( BuildCategory.Nature );
+	}
+
+	private static string AnimalColor( AnimalComponent animal ) =>
+		(animal.Variant?.Tint ?? animal.Definition?.BodyTint ?? Color.Gray).Hex;
+
+	private static string ScoreClass( float score ) => score switch
+	{
+		>= 70f => "great",
+		>= 55f => "good",
+		>= 40f => "fair",
+		_ => "poor",
+	};
+
+	private static string ScoreHint( float score ) => score switch
+	{
+		>= 70f => "Excellent — guests love this exhibit",
+		>= 55f => "Good — breeding threshold met",
+		>= 40f => "Fair — add enrichment and shelter",
+		_ => "Poor — animals need water, space, or enrichment",
+	};
+
+	protected override int BuildHash()
+	{
+		var habitat = SelectedHabitat;
+		if ( habitat is null )
+			return System.HashCode.Combine( GameStarted, (int)UiState.ActivePage, UiState.DebugVisible, UiState.Revision, UiState.SelectedHabitatId );
+
+		return System.HashCode.Combine(
+			GameStarted,
+			(int)UiState.ActivePage,
+			UiState.DebugVisible,
+			UiState.SelectedHabitatId,
+			(int)habitat.Score,
+			AnimalRegistry.CountInHabitat( habitat.HabitatId ) );
+	}
+}

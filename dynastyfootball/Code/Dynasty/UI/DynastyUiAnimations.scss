@@ -1,0 +1,70 @@
+$ui-anim-fade-ms: 200ms;
+$ui-anim-scale-ms: 150ms;
+$ui-anim-slide-ms: 250ms;
+$ui-anim-ease: ease-out;
+
+@mixin ui-anim-fade( $duration: $ui-anim-fade-ms )
+{
+	animation: ui-fade-in $duration $ui-anim-ease;
+}
+
+@mixin ui-anim-scale( $duration: $ui-anim-scale-ms )
+{
+	animation: ui-scale-in $duration $ui-anim-ease;
+}
+
+@mixin ui-anim-slide( $duration: $ui-anim-slide-ms )
+{
+	animation: ui-slide-in $duration $ui-anim-ease;
+}
+
+.ui-anim-fade
+{
+	@include ui-anim-fade;
+}
+
+.ui-anim-scale
+{
+	@include ui-anim-scale;
+}
+
+.ui-anim-slide
+{
+	@include ui-anim-slide;
+}
+
+@keyframes ui-fade-in
+{
+	from { opacity: 0; }
+	to { opacity: 1; }
+}
+
+@keyframes ui-scale-in
+{
+	from
+	{
+		opacity: 0;
+		transform: scale( 0.98 );
+	}
+
+	to
+	{
+		opacity: 1;
+		transform: scale( 1 );
+	}
+}
+
+@keyframes ui-slide-in
+{
+	from
+	{
+		opacity: 0;
+		transform: translateY( 8px );
+	}
+
+	to
+	{
+		opacity: 1;
+		transform: translateY( 0 );
+	}
+}

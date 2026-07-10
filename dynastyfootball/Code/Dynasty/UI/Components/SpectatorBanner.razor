@@ -1,0 +1,17 @@
+@using Sandbox.UI
+@using GameNetworking = Sandbox.Networking
+@inherits Panel
+@namespace Dynasty.UI.Components
+@attribute [StyleSheet( "/Dynasty/UI/Components/SpectatorBanner.razor.scss" )]
+
+<root class="spectator-banner-root">
+	@if ( GameNetworking.IsActive && !GameNetworking.IsHost && DynastyApp.League.State?.Settings.EnableMultiGm != true )
+	{
+		<div class="spectator-banner">
+			<Label class="spectator-title">Spectator Mode</Label>
+			<Label class="spectator-text">You're connected as a client. Only the host can manage the franchise — watch standings, news, and game replays.</Label>
+		</div>
+	}
+</root>
+
+@code { }

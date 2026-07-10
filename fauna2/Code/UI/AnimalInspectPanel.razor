@@ -1,0 +1,304 @@
+@using Sandbox
+@using Sandbox.UI
+@inherits PanelComponent
+@namespace Fauna2.UI
+
+<root>
+	@if ( GameStarted && UiState.ActivePage == UiPage.None && !UiState.DebugVisible && SelectedAnimal is not null )
+	{
+		var animal = SelectedAnimal;
+		var def = animal.Definition;
+		var habitat = animal.Habitat;
+		var breedReady = BreedingIssues.Count == 0;
+
+		<div class="inspect-window">
+			<div class="inspect-header">
+				<div class="swatch" style="background-color: @AnimalColor( animal );"></div>
+				<div class="header-text">
+					<div class="name">@animal.AnimalName</div>
+					<div class="tags">
+						<span class="tag species">@(def?.DisplayName ?? "Animal")</span>
+						@if ( def is not null )
+						{
+							<span class="tag rarity r-@def.Rarity.ToString().ToLower()">@def.Rarity</span>
+						}
+						@if ( animal.Variant is not null )
+						{
+							<span class="tag variant">@animal.Variant.DisplayName</span>
+						}
+					</div>
+				</div>
+				<div class="close" onclick=@Close><i class="icon">close</i></div>
+			</div>
+
+			@if ( def is not null )
+			{
+				<div class="desc">@def.Description</div>
+			}
+
+			<div class="stat-grid">
+				<div class="stat-card">
+					<div class="k">Age</div>
+					<div class="v">@UiFormat.AnimalAge( animal )</div>
+				</div>
+				<div class="stat-card">
+					<div class="k">Activity</div>
+					<div class="v">@ActivityText( animal )</div>
+				</div>
+				<div class="stat-card">
+					<div class="k">Appeal</div>
+					<div class="v appeal">@animal.EffectiveAppeal.ToString( "0.0" )</div>
+				</div>
+				<div class="stat-card">
+					<div class="k">Value</div>
+					<div class="v money">$@animal.SellValue.ToString( "n0" )</div>
+				</div>
+			</div>
+
+			<div class="section-title">Wellbeing</div>
+			<div class="needs">
+				<div class="need">
+					<div class="need-head">
+						<div class="need-label">Happiness</div>
+						<div class="need-value">@UiFormat.Percent( animal.Happiness )</div>
+					</div>
+					<div class="need-bar"><div class="fill happy" style="width: @(UiFormat.PercentWidth( animal.Happiness ))%"></div></div>
+				</div>
+				<div class="need">
+					<div class="need-head">
+						<div class="need-label">Fed</div>
+						<div class="need-value">@UiFormat.Percent( animal.Hunger )</div>
+					</div>
+					<div class="need-bar"><div class="fill hunger" style="width: @(UiFormat.PercentWidth( animal.Hunger ))%"></div></div>
+				</div>
+				<div class="need">
+					<div class="need-head">
+						<div class="need-label">Health</div>
+						<div class="need-value">@UiFormat.Percent( animal.Health )</div>
+					</div>
+					<div class="need-bar"><div class="fill health" style="width: @(UiFormat.PercentWidth( animal.Health ))%"></div></div>
+				</div>
+			</div>
+
+			<div class="section-title">Details</div>
+			<div class="rows">
+				@if ( habitat is not null )
+				{
+					<div class="row">
+						<div class="k">Habitat</div>
+						<div class="v">@habitat.Definition?.DisplayName</div>
+					</div>
+					<div class="row">
+						<div class="k">Habitat score</div>
+						<div class="v @(habitat.Score >= 55 ? "positive" : "negative")">@habitat.Score.ToString( "0" ) / 100</div>
+					</div>
+				}
+				@if ( def is not null )
+				{
+					<div class="row">
+						<div class="k">Habitat</div>
+						<div class="v">@AnimalHabitatRules.RequirementText( def )</div>
+					</div>
+					<div class="row">
+						<div class="k">Base appeal</div>
+						<div class="v">@def.GuestAppeal.ToString( "0" )</div>
+					</div>
+				}
+			</div>
+
+			<div class="section-title">Breeding</div>
+			<div class="breed-panel @(breedReady ? "ready" : "blocked")">
+				<div class="breed-head">
+					<i class="icon">@(breedReady ? "favorite" : "block")</i>
+					<div class="breed-title">@(breedReady ? "Ready to breed" : "Not ready to breed")</div>
+					<div class="breed-cooldown">@BreedingReadiness.CooldownText( animal )</div>
+				</div>
+				@if ( !breedReady )
+				{
+					@foreach ( var issue in BreedingIssues )
+					{
+						<div class="breed-issue">@issue</div>
+					}
+				}
+				else
+				{
+					<div class="breed-issue good">Needs a compatible adult partner in the same habitat.</div>
+				}
+			</div>
+
+			@if ( GeneticsLine != "" )
+			{
+				<div class="section-title">Genetics</div>
+				<div class="genetics">@GeneticsLine</div>
+				@if ( LineageLine != "" )
+				{
+					<div class="genetics">@LineageLine</div>
+				}
+				@if ( RecessiveLine != "" )
+				{
+					<div class="genetics">@RecessiveLine</div>
+				}
+			}
+
+			@if ( FamilyLines.Count > 0 )
+			{
+				<div class="section-title">Family Tree</div>
+				<div class="rows">
+					@foreach ( var line in FamilyLines )
+					{
+						<div class="row">
+							<div class="k">@line.Label</div>
+							<div class="v">@line.Value</div>
+						</div>
+					}
+				</div>
+			}
+
+			<div class="actions">
+				<div class="button primary" onclick=@( () => Move( animal ) )>
+					<i class="icon">swap_horiz</i>
+					Move
+				</div>
+				<div class="button danger" onclick=@( () => Sell( animal ) )>
+					<i class="icon">sell</i>
+					Sell $@animal.SellValue.ToString( "n0" )
+				</div>
+			</div>
+		</div>
+	}
+</root>
+
+@code
+{
+	private bool GameStarted => UiState.GameplayHudVisible;
+	private AnimalComponent SelectedAnimal => UiState.SelectedAnimal;
+
+	private IReadOnlyList<string> BreedingIssues =>
+		SelectedAnimal is null ? Array.Empty<string>() : BreedingReadiness.GetIssues( SelectedAnimal );
+
+	private string GeneticsLine
+	{
+		get
+		{
+			var g = SelectedAnimal?.Genome;
+			if ( g is null ) return "";
+
+			var stats = string.Join( " · ", g.StatModifiers.Select( kv => $"{FormatStat( kv.Key )} {FormatGeneModifier( kv.Value )}" ) );
+			var traits = g.Traits.Count > 0 ? $" · {string.Join( ", ", g.Traits )}" : "";
+			var personality = string.IsNullOrEmpty( g.Personality ) ? "" : $" · {g.Personality}";
+			return $"Gen {g.Generation}{personality} · {stats}{traits}";
+		}
+	}
+
+	private string LineageLine
+	{
+		get
+		{
+			var g = SelectedAnimal?.Genome;
+			if ( g is null || string.IsNullOrEmpty( g.ParentAName ) ) return "";
+			var line = string.IsNullOrEmpty( g.BloodlineName ) ? "Bloodline" : g.BloodlineName;
+			return $"{line}: {g.ParentAName} x {g.ParentBName}";
+		}
+	}
+
+	private string RecessiveLine
+	{
+		get
+		{
+			var genes = SelectedAnimal?.Genome?.Recessives;
+			if ( genes is null || genes.Count == 0 ) return "";
+			return $"Recessive carriers: {string.Join( ", ", genes.Distinct() )}";
+		}
+	}
+
+	private IReadOnlyList<(string Label, string Value)> FamilyLines
+	{
+		get
+		{
+			var animal = SelectedAnimal;
+			if ( animal is null ) return Array.Empty<(string, string)>();
+			var lineage = AnimalLineage.For( animal );
+			var lines = new List<(string, string)>();
+			AddFamilyLine( lines, "Parents", lineage.Parents );
+			AddFamilyLine( lines, "Siblings", lineage.Siblings );
+			AddFamilyLine( lines, "Offspring", lineage.Offspring );
+			AddFamilyLine( lines, "Grandkids", lineage.GrandOffspring );
+			return lines;
+		}
+	}
+
+	private static void AddFamilyLine( List<(string Label, string Value)> lines, string label, IReadOnlyList<AnimalComponent> animals )
+	{
+		if ( animals is null || animals.Count == 0 ) return;
+		lines.Add( (label, string.Join( ", ", animals.Take( 5 ).Select( a => a.AnimalName ) ) + (animals.Count > 5 ? $" +{animals.Count - 5}" : "")) );
+	}
+
+	private static string FormatGeneModifier( float value )
+	{
+		var pct = (value - 1f) * 100f;
+		return pct >= 0f ? $"+{pct:0}%" : $"{pct:0}%";
+	}
+
+	protected override void OnUpdate()
+	{
+		if ( string.IsNullOrEmpty( UiState.SelectedAnimalId ) ) return;
+
+		var animal = SelectedAnimal;
+		if ( animal is null || !animal.IsValid() )
+			UiState.ClearAnimalSelection();
+	}
+
+	private void Close() => UiState.ClearAnimalSelection();
+
+	private void Move( AnimalComponent animal )
+	{
+		UiState.BeginMoveAnimal( animal.AnimalId );
+		UiState.ClearAnimalSelection();
+	}
+
+	private void Sell( AnimalComponent animal )
+	{
+		AnimalSystem.Instance?.RequestSellAnimal( animal.AnimalId );
+		UiState.ClearAnimalSelection();
+	}
+
+	private static string FormatStat( string key ) => key switch
+	{
+		"appeal" => "Appeal",
+		"fertility" => "Fertility",
+		"resilience" => "Resilience",
+		_ => char.ToUpper( key[0] ) + key[1..],
+	};
+
+	private static string AnimalColor( AnimalComponent animal ) =>
+		(animal.Variant?.Tint ?? animal.Definition?.BodyTint ?? Color.Gray).Hex;
+
+	private static string ActivityText( AnimalComponent animal ) => animal.Activity switch
+	{
+		AnimalActivity.Roam => "Roaming",
+		AnimalActivity.Eat => "Eating",
+		AnimalActivity.Sleep => "Sleeping",
+		AnimalActivity.Socialize => "Socializing",
+		_ => "Idle",
+	};
+
+	protected override int BuildHash()
+	{
+		var animal = SelectedAnimal;
+		if ( animal is null )
+			return System.HashCode.Combine( GameStarted, (int)UiState.ActivePage, UiState.DebugVisible, UiState.Revision, UiState.SelectedAnimalId );
+
+		return System.HashCode.Combine(
+			GameStarted,
+			(int)UiState.ActivePage,
+			UiState.DebugVisible,
+			UiState.Revision,
+			UiState.SelectedAnimalId,
+			(int)animal.Activity,
+			System.HashCode.Combine(
+				(int)animal.Happiness,
+				(int)animal.Hunger,
+				(int)animal.Health,
+				FamilyLines.Count ) );
+	}
+}

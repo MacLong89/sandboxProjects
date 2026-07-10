@@ -1,0 +1,34 @@
+{
+  "UI": true,
+  "Volume": "1",
+  "Pitch": "1",
+  "Decibels": 55,
+  "SelectionMode": "Random",
+  "Sounds": [
+    "sounds/ThornsMusic_BloodCompass.mp3"
+  ],
+  "Occlusion": false,
+  "AirAbsorption": false,
+  "Transmission": false,
+  "OcclusionRadius": 64,
+  "DistanceAttenuation": false,
+  "Distance": 100000,
+  "Falloff": [
+    {
+      "x": 0,
+      "y": 1,
+      "in": 0,
+      "out": 0,
+      "mode": "Mirrored"
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "in": 0,
+      "out": 0,
+      "mode": "Mirrored"
+    }
+  ],
+  "__references": [],
+  "__version": 1
+}

@@ -1,0 +1,75 @@
+@using Sandbox
+@using Sandbox.UI
+@inherits PanelComponent
+@namespace Fauna2.UI
+
+<root>
+	@if ( UiState.DebugVisible && UiState.GameplayHudVisible )
+	{
+		<div class="debug">
+			<div class="debug-title">FAUNA DEBUG <span class="hint">(F3)</span></div>
+
+			<div class="section">Entities</div>
+			<div class="row"><div class="k">Animals</div><div class="v">@AnimalRegistry.Count / @(PlotSystem.Instance?.AnimalCap ?? 0)</div></div>
+			<div class="row"><div class="k">Species defs</div><div class="v">@Defs.Animals.Count()</div></div>
+			<div class="row"><div class="k">Placeables</div><div class="v">@PlaceableRegistry.Count / @Defs.Placeables.Count() defs</div></div>
+			<div class="row"><div class="k">Plots</div><div class="v">@(PlotSystem.Instance?.PlotCount ?? 0)</div></div>
+
+			<div class="section">Guests</div>
+			<div class="row"><div class="k">Count</div><div class="v">@(GuestSystem.Instance?.GuestCount ?? 0) / @(PlotSystem.Instance?.GuestCap ?? 0)</div></div>
+			<div class="row"><div class="k">Appeal</div><div class="v">@((GuestSystem.Instance?.Appeal ?? 0f).ToString( "0.0" ))</div></div>
+			<div class="row"><div class="k">Satisfaction</div><div class="v">@UiFormat.Percent( GuestSystem.Instance?.Satisfaction ?? 0f, 1 )</div></div>
+			<div class="row"><div class="k">Cleanliness</div><div class="v">@UiFormat.Percent( GuestSystem.Instance?.Cleanliness ?? 0f, 1 )</div></div>
+			<div class="row"><div class="k">Restrooms</div><div class="v">@PlaceableRegistry.RestroomCount (@UiFormat.Percent( GuestSystem.Instance?.RestroomCoverage ?? 0f ) coverage)</div></div>
+			<div class="row"><div class="k">Restaurants</div><div class="v">@PlaceableRegistry.RestaurantCount (@UiFormat.Percent( GuestSystem.Instance?.RestaurantCoverage ?? 0f ) coverage)</div></div>
+			<div class="row"><div class="k">Shops</div><div class="v">@PlaceableRegistry.ShopCount (@UiFormat.Percent( GuestSystem.Instance?.ShopCoverage ?? 0f ) coverage)</div></div>
+			<div class="row"><div class="k">Path tiles</div><div class="v">@AmbientGuests.DebugConnectedPaths connected</div></div>
+			<div class="row"><div class="k">Walkers</div><div class="v">@AmbientGuests.DebugPoolCount visual (@AmbientGuests.DebugMovingCount moving)</div></div>
+
+			<div class="section">Economy</div>
+			<div class="row"><div class="k">Net flow</div><div class="v">$@((EconomySystem.Instance?.IncomePerMinute ?? 0f).ToString( "0.0" ))/min</div></div>
+			<div class="row"><div class="k">Revenue</div><div class="v">+$@((EconomySystem.Instance?.RevenuePerMinute ?? 0f).ToString( "0.0" ))/min</div></div>
+			<div class="row"><div class="k">Operating</div><div class="v">−$@((EconomySystem.Instance?.ExpensePerMinute ?? 0f).ToString( "0.0" ))/min</div></div>
+			<div class="row"><div class="k">Total earned</div><div class="v">$@((ZooState.Instance?.TotalEarned ?? 0).ToString( "n0" ))</div></div>
+			<div class="row"><div class="k">Total spent</div><div class="v">$@((ZooState.Instance?.TotalSpent ?? 0).ToString( "n0" ))</div></div>
+			<div class="row"><div class="k">Net profit</div><div class="v">$@((ZooStatsReport.LifetimeProfit).ToString( "n0" ))</div></div>
+
+			<div class="section">Tick Cost (avg ms)</div>
+			@foreach ( var kv in DebugStats.TickMs.OrderByDescending( k => k.Value ) )
+			{
+				<div class="row"><div class="k">@kv.Key</div><div class="v">@kv.Value.ToString( "0.000" )</div></div>
+			}
+			<div class="row total"><div class="k">Total</div><div class="v">@DebugStats.TotalTickMs().ToString( "0.000" )</div></div>
+
+			<div class="section">Persistence &amp; Net</div>
+			<div class="row"><div class="k">Save size</div><div class="v">@SaveSizeText</div></div>
+			<div class="row"><div class="k">Save slot</div><div class="v">@(SaveSystem.Instance?.ActiveSlotId ?? GameManager.Instance?.ActiveSaveSlot ?? 0)</div></div>
+			<div class="row"><div class="k">Last save</div><div class="v">@(SaveSystem.Instance?.LastSaveTime ?? "—")</div></div>
+			<div class="row"><div class="k">Net objects</div><div class="v">@DebugStats.NetworkedObjectCount()</div></div>
+			<div class="row"><div class="k">Replication</div><div class="v">@DebugStats.ReplicationEstimate()</div></div>
+			<div class="row"><div class="k">Role</div><div class="v">@(Networking.IsHost ? "HOST" : "CLIENT") (@Connection.All.Count players)</div></div>
+		</div>
+	}
+</root>
+
+@code
+{
+	private string SaveSizeText
+	{
+		get
+		{
+			var bytes = SaveSystem.Instance?.LastSaveSizeBytes ?? 0;
+			return bytes > 1024 ? $"{bytes / 1024f:0.0} KB" : $"{bytes} B";
+		}
+	}
+
+	protected override int BuildHash() =>
+		UiState.DebugVisible
+			? System.HashCode.Combine(
+				(int)UiState.ActivePage,
+				UiState.Revision,
+				AnimalRegistry.Count,
+				PlaceableRegistry.Count,
+				(int)(DebugStats.TotalTickMs() * 1000f) )
+			: 0;
+}

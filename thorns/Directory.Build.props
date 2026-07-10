@@ -1,0 +1,18 @@
+<Project>
+	<!--
+	  s&box install for MSBuild. Override: -p:SboxRoot=... or env SBOX_ROOT (set before build).
+	  Tries repo-relative Steam path (two parents above thorns.sbproj), then standard Steam folders.
+	-->
+	<PropertyGroup>
+		<_SboxFromRepo>$(MSBuildThisFileDirectory)..\..\Program Files (x86)\Steam\steamapps\common\sbox</_SboxFromRepo>
+		<_SboxFromPf32>$(MSBuildProgramFiles32)\Steam\steamapps\common\sbox</_SboxFromPf32>
+		<_SboxFromPf64>$(ProgramW6432)\Steam\steamapps\common\sbox</_SboxFromPf64>
+	</PropertyGroup>
+	<PropertyGroup>
+		<SboxRoot Condition="'$(SboxRoot)' == '' AND '$(SBOX_ROOT)' != ''">$(SBOX_ROOT)</SboxRoot>
+		<SboxRoot Condition="'$(SboxRoot)' == '' AND Exists('$(_SboxFromRepo)\bin\managed\Sandbox.Engine.dll')">$(_SboxFromRepo)</SboxRoot>
+		<SboxRoot Condition="'$(SboxRoot)' == '' AND Exists('$(_SboxFromPf32)\bin\managed\Sandbox.Engine.dll')">$(_SboxFromPf32)</SboxRoot>
+		<SboxRoot Condition="'$(SboxRoot)' == '' AND Exists('$(_SboxFromPf64)\bin\managed\Sandbox.Engine.dll')">$(_SboxFromPf64)</SboxRoot>
+		<SboxRoot Condition="'$(SboxRoot)' == ''">$(_SboxFromPf32)</SboxRoot>
+	</PropertyGroup>
+</Project>

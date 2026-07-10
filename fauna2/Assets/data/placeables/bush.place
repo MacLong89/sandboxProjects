@@ -1,0 +1,20 @@
+{
+	"DisplayName": "Bush",
+	"Description": "Simple greenery. Animals love hiding in it.",
+	"Category": "Nature",
+	"Cost": 50,
+	"UnlockLevel": 1,
+	"AppealBonus": 0.5,
+	"EnrichmentValue": 2,
+	"Footprint": "64,64",
+	"GridSnap": 64,
+	"RotationStep": 45,
+	"Visuals": [
+		{
+			"Model": "models/dev/sphere.vmdl",
+			"Offset": "0,0,18",
+			"Scale": "0.8,0.8,0.55",
+			"Tint": "0.28,0.62,0.26,1"
+		}
+	]
+}

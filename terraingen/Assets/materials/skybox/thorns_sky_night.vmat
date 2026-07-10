@@ -1,0 +1,24 @@
+// Static midnight fallback for SkyBox2D. Used when runtime sky attributes are ignored.
+Layer0
+{
+	shader "shaders/thorns_celestial_sky.shader"
+	SkyZenith "0.002 0.010 0.090"
+	SkyMid "0.010 0.030 0.170"
+	SkyHorizon "0.025 0.055 0.255"
+	HorizonGlowColor "0.025 0.055 0.255"
+	HorizonGlowStrength "0.0"
+	StarBrightness "0.62"
+	CloudOpacity "0.0"
+	CloudTint "0.08 0.12 0.28"
+	CloudDrift "0.0"
+	SunDiscColor "0.0 0.0 0.0"
+	SunDiscIntensity "0.0"
+	SunDiscGlow "0.0"
+	SunDiscAngularDiameter "72.0"
+	ThornsSunDirection "0.0 0.0 -1.0"
+	FogColor "0.04 0.08 0.24"
+	FogBlend "0.02"
+	SkyExposure "0.75"
+	TimeOfDay01 "0.0"
+	NightDepth "1.0"
+}

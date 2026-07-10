@@ -1,0 +1,403 @@
+PlayerProfilePanel,
+.player-profile-panel
+{
+	flex-direction: column;
+	align-items: stretch;
+	width: 100%;
+	height: 100%;
+	gap: 0;
+
+	.detail-header
+	{
+		flex-direction: row;
+		align-items: center;
+		justify-content: space-between;
+		flex-wrap: wrap;
+		gap: 10px;
+		padding-bottom: 10px;
+		border-bottom: 1px solid #243044;
+		margin-bottom: 8px;
+		width: 100%;
+		flex-shrink: 0;
+	}
+
+	.detail-name
+	{
+		flex-grow: 1;
+		flex-shrink: 1;
+		min-width: 0;
+		font-size: 20px;
+		font-weight: 700;
+		color: white;
+		line-height: 1.18;
+		white-space: normal;
+		word-break: break-word;
+	}
+
+	.profile-rank-row
+	{
+		flex-direction: row;
+		align-items: center;
+		justify-content: space-between;
+		width: 100%;
+		padding-bottom: 10px;
+		margin-bottom: 8px;
+		border-bottom: 1px solid #243044;
+		flex-shrink: 0;
+	}
+
+	.profile-tabs
+	{
+		flex-direction: row;
+		flex-wrap: wrap;
+		gap: 8px;
+		width: 100%;
+		margin-bottom: 12px;
+		flex-shrink: 0;
+	}
+
+	.profile-tab-body
+	{
+		flex-direction: column;
+		flex-grow: 1;
+		min-height: 0;
+		overflow: scroll;
+		width: 100%;
+		gap: 0;
+	}
+
+	.profile-summary
+	{
+		flex-direction: column;
+		gap: 12px;
+		width: 100%;
+		margin-bottom: 8px;
+		flex-shrink: 0;
+	}
+
+	.profile-stat-grid
+	{
+		flex-direction: row;
+		flex-wrap: wrap;
+		gap: 12px 16px;
+		width: 100%;
+	}
+
+	.profile-stat-cell
+	{
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 2px;
+		min-width: 72px;
+		flex-grow: 1;
+		flex-shrink: 1;
+	}
+
+	.profile-info-rows
+	{
+		flex-direction: column;
+		gap: 8px;
+		width: 100%;
+	}
+
+	.profile-info-row
+	{
+		flex-direction: column;
+		align-items: flex-start;
+		justify-content: flex-start;
+		gap: 3px;
+		width: 100%;
+	}
+
+	.profile-label
+	{
+		width: 100%;
+		min-width: 0;
+		font-size: 11px;
+		font-weight: 600;
+		color: #8b9cb3;
+		text-transform: uppercase;
+		line-height: 1.25;
+		white-space: normal;
+		word-break: break-word;
+	}
+
+	.profile-value
+	{
+		width: 100%;
+		min-width: 0;
+		font-size: 14px;
+		font-weight: 600;
+		color: white;
+		line-height: 1.25;
+		text-align: left;
+		white-space: normal;
+		word-break: break-word;
+	}
+
+	.profile-value.accent
+	{
+		color: #34c759;
+	}
+
+	.profile-value.pot
+	{
+		color: #5ac8fa;
+	}
+
+	.profile-value.rank
+	{
+		color: #ffd60a;
+		font-size: 18px;
+	}
+
+	.profile-value.healthy
+	{
+		color: #34c759;
+	}
+
+	.profile-value.injured
+	{
+		color: #ff453a;
+	}
+
+	.profile-value.muted-value
+	{
+		color: #8b9cb3;
+	}
+
+	.profile-section
+	{
+		flex-direction: column;
+		gap: 8px;
+		width: 100%;
+		padding: 12px 0;
+		border-top: 1px solid #243044;
+		margin-top: 4px;
+	}
+
+	.panel-subtitle
+	{
+		font-size: 12px;
+		font-weight: 700;
+		color: #34c759;
+		text-transform: uppercase;
+		width: 100%;
+	}
+
+	.detail-warning
+	{
+		color: #ff9f0a;
+		font-size: 13px;
+		width: 100%;
+		margin: 8px 0;
+	}
+
+	.detail-actions
+	{
+		flex-direction: row;
+		flex-wrap: wrap;
+		gap: 8px;
+		margin-top: 8px;
+	}
+
+	.attr-row
+	{
+		flex-direction: row;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: 10px;
+		width: 100%;
+		padding: 6px 0;
+	}
+
+	.attr-name
+	{
+		flex-grow: 1;
+		flex-shrink: 1;
+		min-width: 120px;
+		font-size: 13px;
+		color: #c8d4e6;
+		line-height: 1.25;
+		white-space: normal;
+		word-break: break-word;
+	}
+
+	.attr-val
+	{
+		flex-shrink: 0;
+		font-size: 14px;
+		font-weight: 700;
+		color: white;
+		min-width: 28px;
+		text-align: right;
+	}
+
+	.attr-val.muted
+	{
+		color: #8b9cb3;
+	}
+
+	.trait-chip
+	{
+		flex-shrink: 1;
+		max-width: 100%;
+		padding: 4px 10px;
+		margin: 2px 4px 2px 0;
+		background-color: #1a2538;
+		border: 1px solid #243044;
+		border-radius: 8px;
+		font-size: 12px;
+		color: #e8eef7;
+		white-space: normal;
+		word-break: break-word;
+	}
+
+	.profile-body
+	{
+		font-size: 13px;
+		line-height: 1.45;
+		color: #c8d4e6;
+		width: 100%;
+		white-space: normal;
+	}
+
+	.profile-body.muted,
+	.muted
+	{
+		color: #8b9cb3;
+		font-size: 13px;
+		width: 100%;
+	}
+
+	.award-line
+	{
+		padding: 2px 0;
+	}
+
+	.stat-table
+	{
+		flex-direction: column;
+		width: 100%;
+		gap: 0;
+	}
+
+	.stat-row
+	{
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: flex-start;
+		gap: 12px;
+		padding: 6px 0;
+		border-bottom: 1px solid #1e2a3d;
+	}
+
+	.stat-label
+	{
+		flex-grow: 1;
+		flex-shrink: 1;
+		min-width: 0;
+		color: #8b9cb3;
+		font-size: 13px;
+		line-height: 1.25;
+		white-space: normal;
+		word-break: break-word;
+	}
+
+	.stat-value
+	{
+		flex-shrink: 0;
+		max-width: 48%;
+		color: white;
+		font-weight: 600;
+		line-height: 1.25;
+		text-align: right;
+		white-space: normal;
+		word-break: break-word;
+	}
+
+	.season-history-block
+	{
+		flex-direction: column;
+		gap: 6px;
+		margin-bottom: 12px;
+		width: 100%;
+	}
+
+	.game-log-row
+	{
+		flex-direction: column;
+		gap: 2px;
+		padding: 8px 0;
+		border-bottom: 1px solid #1e2a3d;
+		width: 100%;
+	}
+
+	.game-log-meta
+	{
+		font-size: 13px;
+		font-weight: 600;
+		color: white;
+		line-height: 1.25;
+		white-space: normal;
+		word-break: break-word;
+	}
+
+	.game-log-stats
+	{
+		font-size: 12px;
+		line-height: 1.25;
+		white-space: normal;
+		word-break: break-word;
+	}
+
+	.profile-footer
+	{
+		padding-top: 12px;
+		width: 100%;
+	}
+
+	Button.btn
+	{
+		padding: 10px 16px;
+		font-weight: 600;
+		color: white;
+		background-color: #34c759;
+		border: 1px solid #34c759;
+		border-radius: 10px;
+		flex-shrink: 0;
+	}
+
+	Button.btn.secondary
+	{
+		background-color: #111827;
+		border-color: #243044;
+		color: #e8eef7;
+	}
+
+	Button.btn.danger
+	{
+		background-color: #3a1515;
+		border-color: #ff453a;
+		color: #ff6961;
+	}
+
+	Button.btn.small
+	{
+		padding: 8px 12px;
+		font-size: 12px;
+	}
+
+	Button.profile-tab
+	{
+		flex-grow: 1;
+		flex-shrink: 1;
+		min-width: 86px;
+	}
+
+	Button.btn.tiny
+	{
+		padding: 4px 8px;
+		font-size: 11px;
+	}
+}

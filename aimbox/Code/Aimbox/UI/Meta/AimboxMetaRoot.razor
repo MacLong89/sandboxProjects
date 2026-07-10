@@ -1,0 +1,184 @@
+@using Sandbox
+@using Sandbox.UI
+@inherits PanelComponent
+@namespace Sandbox
+
+<root class="aimbox-meta @(UiOpen ? "visible" : "hidden") @(ThemeClass) @(MainMenuBackgroundClear ? "main-menu-bg-clear" : "") @(PlayLobbyBackgroundClear ? "play-lobby-bg-clear" : "") @(LoadoutsScreenBackgroundClear ? "loadouts-bg-clear" : "") @(ProgressionScreenBackgroundClear ? "progression-bg-clear" : "") @(ScoreboardScreenBackgroundClear ? "scoreboard-bg-clear" : "") @(ChallengesScreenBackgroundClear ? "challenges-bg-clear" : "")">
+	@if ( ShowPausePanel )
+	{
+		<div class="panel pause-menu wide">
+			<div class="title">AIMBOX</div>
+			<div class="subtitle">@ScreenLabel</div>
+
+			@if ( Screen == AimboxMetaScreen.MainMenu )
+			{
+				<button onclick="@Resume">RESUME</button>
+				<button onclick="@(() => Go(AimboxMetaScreen.CreateClass))">MANAGE LOADOUTS</button>
+				<button onclick="@(() => Go(AimboxMetaScreen.Barracks))">BARRACKS</button>
+				<button onclick="@(() => Go(AimboxMetaScreen.Armory))">ARMORY</button>
+				<button onclick="@(() => Go(AimboxMetaScreen.Challenges))">CHALLENGES</button>
+				<button class="leave-match" onclick="@LeaveMatch">LEAVE MATCH</button>
+				@UiThemeToggleRow()
+			}
+			else if ( Screen == AimboxMetaScreen.Armory )
+			{
+				@ArmoryBody()
+				<div class="submenu-actions">
+					<button onclick="@Back">BACK</button>
+				</div>
+			}
+		</div>
+	}
+</root>
+
+@code
+{
+	AimboxMetaScreen Screen => AimboxMetaNavigation.CurrentScreen;
+	bool Visible => Screen != AimboxMetaScreen.None;
+	bool UiOpen => AimboxMetaNavigation.RequiresMetaUiHost;
+	string ThemeClass => AimboxUiTheme.CssClass;
+	bool IsIntermission => AimboxMetaNavigation.IsInIntermission;
+	bool IsInitialLobby => Game?.AwaitingFirstMatch == true;
+
+	bool MainMenuBackgroundClear =>
+		AimboxMetaUiFlags.UseRedesignedMainMenu
+		&& IsIntermission
+		&& Screen == AimboxMetaScreen.PostMatch;
+
+	bool PlayLobbyBackgroundClear =>
+		AimboxMetaUiFlags.UseRedesignedPlayLobby
+		&& IsIntermission
+		&& Screen == AimboxMetaScreen.ModeSelect;
+
+	bool LoadoutsScreenBackgroundClear =>
+		AimboxMetaUiFlags.UseRedesignedLoadouts
+		&& Screen == AimboxMetaScreen.CreateClass;
+
+	bool ProgressionScreenBackgroundClear =>
+		AimboxMetaUiFlags.UseRedesignedProgression
+		&& Screen == AimboxMetaScreen.Barracks;
+
+	bool ScoreboardScreenBackgroundClear =>
+		AimboxMetaUiFlags.UseRedesignedScoreboard
+		&& Screen == AimboxMetaScreen.Scoreboard;
+
+	bool ChallengesScreenBackgroundClear =>
+		AimboxMetaUiFlags.UseRedesignedChallenges
+		&& Screen == AimboxMetaScreen.Challenges;
+
+	bool ShowPausePanel =>
+		Visible
+		&& !IsIntermission
+		&& Screen is AimboxMetaScreen.MainMenu or AimboxMetaScreen.Armory;
+
+	AimboxGame Game => AimboxGame.Instance;
+	AimboxPlayerController Player => FindPlayer();
+	AimboxPlayerData PlayerData => Player?.Data;
+
+	protected override void OnStart() => ApplyMenuPanelSettings();
+
+	protected override void OnUpdate()
+	{
+		AimboxUiTheme.SyncPanel( Panel );
+
+		if ( Input.Pressed( "Menu" ) && IsIntermission && Screen != AimboxMetaScreen.PostMatch )
+			BackToIntermission();
+
+		AimboxMetaNavigation.ApplyPresentationState();
+	}
+
+	string ScreenLabel => Screen switch
+	{
+		AimboxMetaScreen.MainMenu => "Pause Menu",
+		AimboxMetaScreen.Armory => "Armory",
+		_ => ""
+	};
+
+	RenderFragment UiThemeToggleRow() => @<div class="ui-theme-row">
+			<div class="ui-theme-label">INTERFACE · @AimboxUiTheme.CurrentLabel</div>
+			<button class="ui-theme-toggle" onclick="@ToggleUiTheme">@UiThemeToggleLabel()</button>
+		</div>;
+
+	RenderFragment ArmoryBody() => @<text>
+		@foreach ( var weapon in ArmoryWeapons() )
+		{
+			<div class="armory-item @ArmoryItemClass( weapon.Id )">
+				@ArmoryWeaponLine( weapon )
+			</div>
+		}
+	</text>;
+
+	void ApplyMenuPanelSettings()
+	{
+		if ( Panel is null || !Panel.IsValid() )
+			return;
+
+		AimboxMenuPanelSettings.DisableDragScroll( Panel );
+	}
+
+	void Go( AimboxMetaScreen screen ) => AimboxMetaNavigation.OpenScreen( screen );
+
+	void Back() => Go( AimboxMetaScreen.MainMenu );
+
+	void BackToIntermission() => Go( AimboxMetaScreen.PostMatch );
+
+	void Resume() => AimboxMetaNavigation.Close();
+
+	void LeaveMatch()
+	{
+		if ( Game?.Phase != AimboxSessionPhase.Playing )
+			return;
+
+		Game.EndMatch();
+	}
+
+	void ToggleUiTheme() => AimboxUiTheme.Cycle();
+
+	string UiThemeToggleLabel() => $"SWITCH TO {AimboxUiTheme.NextLabel} UI";
+
+	string ArmoryItemClass( AimboxWeaponId weaponId ) => IsWeaponUnlocked( weaponId ) ? "unlocked" : "locked";
+
+	string ArmoryWeaponLine( AimboxWeaponDefinition weapon ) =>
+		PlayerData is null ? weapon.Name : AimboxUnlockUiHelpers.ArmoryWeaponLine( PlayerData, weapon.Id );
+
+	bool IsWeaponUnlocked( AimboxWeaponId id ) =>
+		PlayerData is not null && AimboxUnlockService.IsWeaponUnlocked( PlayerData, id );
+
+	AimboxPlayerController FindPlayer()
+	{
+		if ( Game?.Players is null )
+			return null;
+
+		AimboxPlayerController fallback = null;
+		foreach ( var player in Game.Players )
+		{
+			fallback ??= player;
+			if ( !player.IsProxy )
+				return player;
+		}
+
+		return fallback;
+	}
+
+	List<AimboxWeaponDefinition> ArmoryWeapons()
+	{
+		var weapons = new List<AimboxWeaponDefinition>();
+		foreach ( var weapon in AimboxWeapons.All.Values )
+		{
+			if ( weapon.IsMelee || weapon.Id == AimboxWeaponId.HeGrenade || weapon.Id == AimboxWeaponId.FlashGrenade )
+				continue;
+
+			weapons.Add( weapon );
+		}
+
+		return weapons;
+	}
+
+	protected override int BuildHash() => HashCode.Combine(
+		Screen,
+		IsIntermission,
+		IsInitialLobby,
+		AimboxUiTheme.Version,
+		PlayerData?.TotalXp,
+		PlayerData?.PlayerLevel );
+}

@@ -1,0 +1,2 @@
+﻿{"DisplayName":"Reed Bed","Description":"Swamp habitat decor with education and enrichment value.","Category":"Nature","Cost":210,"UnlockLevel":2,"AppealBonus":1.5,"EnrichmentValue":5,"EducationValue":2,"ComfortValue":1,"DecorSet":"swamp","Footprint":"128,128","GridSnap":64,"RotationStep":45,"Visuals":[{"Model":"models/dev/box.vmdl","Offset":"0,0,34","Scale":"0.18,1.4,1.0","Tint":"0.30,0.58,0.24,1"}]}
+

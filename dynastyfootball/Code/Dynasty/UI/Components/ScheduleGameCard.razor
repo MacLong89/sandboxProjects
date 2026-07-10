@@ -1,0 +1,53 @@
+@using Sandbox.UI
+@using Dynasty.Core.Identifiers
+@using Dynasty.UI.ViewModels
+@inherits Panel
+@namespace Dynasty.UI.Components
+@attribute [StyleSheet( "/Dynasty/UI/Components/ScheduleGameCard.razor.scss" )]
+
+<root class="schedule-game-row clickable @(Model.IsComplete ? "complete" : "") @(Model.IsUserTeam ? "user-game" : "")" @onclick=@HandleClick>
+	<div class="schedule-game-main">
+		<div class="schedule-matchup-line">
+			<div class="schedule-team-side away">
+				<Label class="schedule-team-abbr">@Model.AwayAbbreviation</Label>
+				@if ( Model.IsComplete )
+				{
+					<Label class="schedule-team-score">@Model.AwayScore</Label>
+				}
+			</div>
+			<Label class="schedule-matchup-dash">-</Label>
+			<div class="schedule-team-side home">
+				@if ( Model.IsComplete )
+				{
+					<Label class="schedule-team-score">@Model.HomeScore</Label>
+				}
+				<Label class="schedule-team-abbr">@Model.HomeAbbreviation</Label>
+			</div>
+		</div>
+		<div class="schedule-record-line">
+			<Label class="schedule-team-record away">@Model.AwayRecord</Label>
+			<Label class="schedule-team-record home">@Model.HomeRecord</Label>
+		</div>
+	</div>
+	<div class="schedule-game-meta">
+		@if ( !string.IsNullOrEmpty( Model.PlayoffLabel ) )
+		{
+			<Label class="tag playoff-tag">@Model.PlayoffLabel</Label>
+		}
+		<Label class="game-action">@Model.ActionLabel</Label>
+	</div>
+</root>
+
+@code
+{
+	[Parameter] public ScheduleGameRow Model { get; set; }
+	[Parameter] public Action<GameId> OnOpen { get; set; }
+
+	void HandleClick()
+	{
+		if ( OnOpen == null || Model == null )
+			return;
+
+		OnOpen.Invoke( Model.GameId );
+	}
+}

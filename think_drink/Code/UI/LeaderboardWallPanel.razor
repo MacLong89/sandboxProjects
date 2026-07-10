@@ -1,0 +1,46 @@
+@using Sandbox
+@using Sandbox.UI
+@using ThinkDrink.UI
+@inherits PanelComponent
+@namespace ThinkDrink.UI
+
+<root>
+	<div class="wall">
+		<div class="title">ALL TIME TOP 10</div>
+		@foreach ( var entry in TopEntries )
+		{
+			<div class="row">
+				<span class="rank">#@entry.Rank</span>
+				<span class="name">@entry.DisplayName</span>
+				<span class="val">@entry.Value</span>
+			</div>
+		}
+	</div>
+</root>
+
+@code
+{
+	private sealed record LeaderEntry( int Rank, string DisplayName, int Value );
+
+	private List<LeaderEntry> TopEntries
+	{
+		get
+		{
+			var snap = LeaderboardManager.Instance?.GetSnapshot();
+			if ( snap is null ) return new List<LeaderEntry>();
+
+			return snap.Wins
+				.Take( 10 )
+				.Select( ( e, i ) => new LeaderEntry( i + 1, e.DisplayName, e.Value ) )
+				.ToList();
+		}
+	}
+
+	private int _revision;
+
+	protected override void OnStart() => GameEvents.PlayerListChanged += Bump;
+	protected override void OnDestroy() => GameEvents.PlayerListChanged -= Bump;
+	private void Bump() => _revision++;
+
+	protected override int BuildHash() => HashCode.Combine( _revision, TopEntries.Count );
+}

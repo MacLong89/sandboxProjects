@@ -1,0 +1,196 @@
+FormationRosterView,
+.formation-roster-view
+{
+	width: 100%;
+	flex-direction: column;
+	gap: 14px;
+
+	.formation-toolbar
+	{
+		flex-direction: row;
+		align-items: center;
+		justify-content: space-between;
+		gap: 16px;
+		padding: 14px 16px;
+		background-color: #151d2e;
+		border: 1px solid #243044;
+		border-radius: 10px;
+	}
+
+	.formation-header-block
+	{
+		flex-direction: column;
+		gap: 4px;
+	}
+
+	.formation-team
+	{
+		font-size: 18px;
+		font-weight: 700;
+		color: #e8eef7;
+	}
+
+	.formation-controls,
+	.formation-select-wrap
+	{
+		flex-direction: row;
+		align-items: center;
+		gap: 8px;
+		flex-wrap: wrap;
+	}
+
+	.formation-pill.active
+	{
+		border-color: #34c759;
+	}
+
+	.formation-body
+	{
+		flex-direction: row;
+		gap: 16px;
+		width: 100%;
+		min-height: 480px;
+	}
+
+	.formation-field-panel
+	{
+		position: relative;
+		flex-grow: 1;
+		min-width: 0;
+		min-height: 520px;
+		background-color: #1a3d2a;
+		border: 1px solid #2d5a40;
+		border-radius: 10px;
+		overflow: hidden;
+	}
+
+	.formation-field-panel.offense-field
+	{
+		min-height: 560px;
+	}
+
+	.field-lines
+	{
+		position: absolute;
+		left: 5%;
+		right: 5%;
+		top: 14%;
+		bottom: 8%;
+		border: 1px solid rgba( 255, 255, 255, 0.08 );
+		border-radius: 4px;
+		pointer-events: none;
+	}
+
+	.field-los
+	{
+		position: absolute;
+		left: 4%;
+		right: 4%;
+		top: 50%;
+		height: 2px;
+		background-color: rgba( 255, 255, 255, 0.28 );
+		pointer-events: none;
+	}
+
+	.offense-field .field-los
+	{
+		top: 50%;
+	}
+
+	.defense-field .field-los
+	{
+		top: 48%;
+	}
+
+	.field-slot-anchor
+	{
+		position: absolute;
+		margin-left: -34px;
+		margin-top: -28px;
+		pointer-events: all;
+	}
+
+	.offense-field .field-slot-anchor.slot-wr1,
+	.offense-field .field-slot-anchor.slot-wr2,
+	.offense-field .field-slot-anchor.slot-wr3,
+	.offense-field .field-slot-anchor.slot-wr
+	{
+		z-index: 2;
+	}
+
+	.offense-field .field-slot-anchor.slot-lt,
+	.offense-field .field-slot-anchor.slot-lg,
+	.offense-field .field-slot-anchor.slot-c,
+	.offense-field .field-slot-anchor.slot-rg,
+	.offense-field .field-slot-anchor.slot-rt,
+	.offense-field .field-slot-anchor.slot-te
+	{
+		z-index: 3;
+	}
+
+	.offense-field .field-slot-anchor.slot-qb,
+	.offense-field .field-slot-anchor.slot-rb,
+	.offense-field .field-slot-anchor.slot-fb
+	{
+		z-index: 4;
+	}
+
+	.formation-detail-panel
+	{
+		width: 320px;
+		flex-shrink: 0;
+		flex-direction: column;
+		gap: 10px;
+		padding: 16px;
+		background-color: #151d2e;
+		border: 1px solid #243044;
+		border-radius: 14px;
+		max-height: 520px;
+		overflow: scroll;
+	}
+
+	.formation-detail-panel Label
+	{
+		width: 100%;
+		white-space: normal;
+		word-break: break-word;
+	}
+
+	.formation-quick-actions
+	{
+		flex-direction: row;
+		flex-wrap: wrap;
+		gap: 8px;
+	}
+
+	.trait-chip
+	{
+		font-size: 11px;
+		padding: 4px 8px;
+		background-color: #13233d;
+		border: 1px solid #243044;
+		border-radius: 4px;
+	}
+
+	.muted
+	{
+		color: #8b9cb3;
+		font-size: 12px;
+	}
+
+	Button.btn
+	{
+		padding: 8px 12px;
+		font-size: 12px;
+		font-weight: 600;
+		color: #e8eef7;
+		background-color: #111827;
+		border: 1px solid #243044;
+		border-radius: 10px;
+	}
+}
+
+Button:active
+{
+	sound-in: "sounds/button.sound";
+}

@@ -1,0 +1,26 @@
+// Bright sun billboard — complex.shader is reliable; thorns_sun_disc.shader is optional overlay.
+
+Layer0
+{
+	shader "shaders/complex.shader"
+
+	g_flAmbientOcclusionDirectDiffuse "0.000"
+	TextureAmbientOcclusion "materials/default/default_ao.tga"
+
+	g_flModelTintAmount "1.000"
+	g_vColorTint "[1.000000 0.550000 0.100000 1.000000]"
+	TextureColor "materials/skybox/thorns_sun_disc.png"
+
+	g_flFadeExponent "1.000"
+	g_bFogEnabled "0"
+
+	g_flMetalness "0.000"
+	TextureNormal "materials/default/default_normal.tga"
+
+	g_flRoughnessScaleFactor "1.000"
+	TextureRoughness "materials/default/default_rough.tga"
+
+	g_vTexCoordOffset "[0.000 0.000]"
+	g_vTexCoordScale "[1.000 1.000]"
+	g_vTexCoordScrollSpeed "[0.000 0.000]"
+}

@@ -1,0 +1,379 @@
+@using Sandbox
+@using Sandbox.UI
+@inherits PanelComponent
+@namespace Fauna2.UI
+
+<root class="@( UiState.ActivePage == UiPage.Market && UiState.GameplayHudVisible ? "open" : "" )">
+	@if ( UiState.ActivePage == UiPage.Market && UiState.GameplayHudVisible )
+	{
+		<div class="window">
+			<div class="window-header">
+				<i class="icon">pets</i>
+				<div class="window-title">Animal Market</div>
+				<div class="close" onclick=@( () => UiState.Close() )><i class="icon">close</i></div>
+			</div>
+
+			<div class="tabs">
+				<div class="tab @(_tab == 0 ? "active" : "")" onclick=@( () => SelectTab( 0 ) )>Adopt</div>
+				<div class="tab @(_tab == 1 ? "active" : "")" onclick=@( () => SelectTab( 1 ) )>Backpack (@CarriedCount/@PlayerInventory.MaxCarry)</div>
+				<div class="tab @(_tab == 2 ? "active" : "")" onclick=@( () => SelectTab( 2 ) )>My Animals (@AnimalRegistry.Count/@AnimalCap)</div>
+				<div class="tab @(_tab == 3 ? "active" : "")" onclick=@( () => SelectTab( 3 ) )>Catch Tools</div>
+			</div>
+
+			@if ( _tab == 0 )
+			{
+				<div class="filters">
+					<div class="filter-row">
+						<div class="filter-label">Habitat</div>
+						<div class="filter-chips">
+							<div class="chip @(_biomeFilter is null ? "active" : "")" onclick=@( () => SelectBiomeFilter( null ) )>All</div>
+							@foreach ( var biome in Biomes )
+							{
+								<div class="chip biome-@biome.ToString().ToLower() @(_biomeFilter == biome ? "active" : "")" onclick=@( () => SelectBiomeFilter( biome ) )>
+									<div class="biome-dot"></div>
+									@UiFormat.BiomeLabel( biome )
+								</div>
+							}
+						</div>
+					</div>
+					<div class="filter-row">
+						<div class="filter-label">Size</div>
+						<div class="filter-chips">
+							<div class="chip @(_sizeFilter is null ? "active" : "")" onclick=@( () => SelectSizeFilter( null ) )>All</div>
+							@foreach ( var tier in SizeTiers )
+							{
+								<div class="chip @(_sizeFilter == tier ? "active" : "")" onclick=@( () => SelectSizeFilter( tier ) )>
+									@AnimalHabitatRules.TierLabelTitle( tier )+
+								</div>
+							}
+						</div>
+					</div>
+				</div>
+
+				<div class="items">
+					@{
+						var adoptables = AdoptableAnimals().ToList();
+					}
+					@if ( adoptables.Count == 0 )
+					{
+						<div class="empty">No animals match these filters.</div>
+					}
+					@foreach ( var def in adoptables )
+					{
+						var unlocked = BuildValidation.IsUnlocked( def );
+						var cost = AnimalSystem.Instance?.GetPurchaseCost( def ) ?? def.Cost;
+						var economics = AnimalEconomics.ProjectAdoption( def );
+						<div class="item @(unlocked ? "" : "locked")" onclick=@( () => Adopt( def ) )>
+							<div class="swatch" style="background-color: @def.BodyTint.Hex;"></div>
+							<div class="info">
+								<div class="name">@def.DisplayName <span class="rarity r-@def.Rarity.ToString().ToLower()">@def.Rarity.ToString()</span></div>
+								<div class="desc">@def.Description</div>
+								<div class="desc meta">@AnimalHabitatRules.RequirementText( def ) · Appeal @def.GuestAppeal.ToString( "0" ) · Space @FormatSpace( def )</div>
+								@if ( unlocked )
+								{
+									<div class="price">@(cost == 0 ? "FREE — welcome gift!" : $"${cost:n0}")</div>
+									<div class="cashflow @(economics.NetPerMinute >= 0f ? "positive" : "negative")">
+										<i class="icon">@(economics.NetPerMinute >= 0f ? "trending_up" : "trending_down")</i>
+										<span class="net">@economics.NetLabel net</span>
+										<span class="detail">@economics.DetailLabel</span>
+									</div>
+								}
+								else
+								{
+									<div class="price locked-text">@LockText( def )</div>
+								}
+							</div>
+						</div>
+					}
+				</div>
+			}
+			else if ( _tab == 1 )
+			{
+				<div class="items backpack">
+					@if ( CarriedCount == 0 )
+					{
+						<div class="empty">No caught animals yet — explore the wilderness and press E on a wild animal.</div>
+					}
+					@for ( var slot = 0; slot < PlayerInventory.MaxCarry; slot++ )
+					{
+						var carrySlot = slot;
+						var speciesId = CarrySpeciesAt( carrySlot );
+						if ( string.IsNullOrEmpty( speciesId ) )
+						{
+							<div class="item empty-slot">
+								<div class="tool-icon muted"><i class="icon">inventory_2</i></div>
+								<div class="info">
+									<div class="name">Empty slot @(carrySlot + 1)</div>
+									<div class="desc">Catch a wild animal to fill this backpack slot.</div>
+								</div>
+							</div>
+							continue;
+						}
+
+						var def = Defs.Animal( speciesId );
+						if ( def is null ) continue;
+
+						<div class="item" onclick=@( () => PlaceCarried( carrySlot ) )>
+							<div class="swatch" style="background-color: @def.BodyTint.Hex;"></div>
+							<div class="info">
+								<div class="name">
+									@def.DisplayName
+									<span class="rarity r-@def.Rarity.ToString().ToLower()">Caught</span>
+								</div>
+								<div class="desc">@def.Description</div>
+								<div class="desc meta">@AnimalHabitatRules.RequirementText( def ) · Slot @(carrySlot + 1)</div>
+							</div>
+							<div class="actions">
+								<div class="button" onclick=@( () => PlaceCarried( carrySlot ) )>Place in habitat</div>
+							</div>
+						</div>
+					}
+				</div>
+			}
+			else if ( _tab == 2 )
+			{
+				<div class="items">
+					@if ( AnimalRegistry.Count == 0 )
+					{
+						<div class="empty">No animals yet — adopt your first one!</div>
+					}
+					@foreach ( var animal in AnimalRegistry.All.OrderBy( a => a.AnimalName ) )
+					{
+						<div class="item">
+							<div class="swatch" style="background-color: @AnimalColor( animal );"></div>
+							<div class="info">
+								<div class="name">
+									@animal.AnimalName
+									@if ( animal.Variant is not null )
+									{
+										<span class="rarity r-exotic">@animal.Variant.DisplayName</span>
+									}
+								</div>
+								<div class="desc">@UiFormat.AnimalSpeciesLine( animal )</div>
+								<div class="desc meta">@UiFormat.AnimalWellbeing( animal )</div>
+							</div>
+							<div class="actions">
+								<div class="button danger" onclick=@( () => Sell( animal ) )>Sell $@animal.SellValue.ToString( "n0" )</div>
+							</div>
+						</div>
+					}
+				</div>
+			}
+			else
+			{
+				<div class="items tools">
+					<div class="item">
+						<div class="tool-icon"><i class="icon">cruelty_free</i></div>
+						<div class="info">
+							<div class="name">Catch Net</div>
+							<div class="desc">Required to start a wilderness catch.</div>
+							<div class="desc meta">@(HasNet ? "Equipped" : "Not owned")</div>
+							<div class="price">$@GameConstants.NetCost.ToString( "n0" )</div>
+						</div>
+						<div class="actions">
+							<div class="button @(HasNet ? "disabled" : "")" onclick=@BuyNet>@(HasNet ? "Owned" : "Buy")</div>
+						</div>
+					</div>
+
+					<div class="item">
+						<div class="tool-icon"><i class="icon">restaurant</i></div>
+						<div class="info">
+							<div class="name">Bait Pack (@GameConstants.BaitPackSize)</div>
+							<div class="desc">Widens the green zone on your next catch attempt.</div>
+							<div class="desc meta">In stock: @BaitCount</div>
+							<div class="price">$@((GameConstants.BaitCost * GameConstants.BaitPackSize).ToString( "n0" ))</div>
+						</div>
+						<div class="actions">
+							<div class="button" onclick=@BuyBait>Buy</div>
+						</div>
+					</div>
+
+					<div class="item">
+						<div class="tool-icon"><i class="icon">medication</i></div>
+						<div class="info">
+							<div class="name">Tranquilizer</div>
+							<div class="desc">Needed for bears, moose, and alligators.</div>
+							<div class="desc meta">In stock: @TranquilizerCount</div>
+							<div class="price">$@GameConstants.TranquilizerCost.ToString( "n0" )</div>
+						</div>
+						<div class="actions">
+							<div class="button" onclick=@BuyTranquilizer>Buy</div>
+						</div>
+					</div>
+				</div>
+			}
+		</div>
+	}
+</root>
+
+@code
+{
+	private int _tab;
+	private Biome? _biomeFilter;
+	private HabitatSizeTier? _sizeFilter;
+
+	private PlayerInventory Inventory => PlayerInventory.Local;
+
+	private bool HasNet => Inventory?.HasNet ?? true;
+	private int BaitCount => Inventory?.BaitCount ?? 0;
+	private int TranquilizerCount => Inventory?.TranquilizerCount ?? 0;
+
+	protected override void OnUpdate()
+	{
+		if ( UiState.ActivePage != UiPage.Market )
+			return;
+
+		var changed = false;
+		var biomeFilter = UiState.ConsumeMarketBiomeFilter();
+		if ( biomeFilter.HasValue )
+		{
+			_biomeFilter = biomeFilter;
+			_sizeFilter = null;
+			changed = true;
+		}
+
+		var sizeFilter = UiState.ConsumeMarketSizeFilter();
+		if ( sizeFilter.HasValue )
+		{
+			_sizeFilter = sizeFilter;
+			changed = true;
+		}
+
+		if ( _tab != UiState.MarketTab )
+		{
+			_tab = UiState.MarketTab;
+			changed = true;
+		}
+
+		if ( changed )
+			StateHasChanged();
+	}
+
+	private static readonly Biome[] Biomes =
+	{
+		Biome.Forest, Biome.Rainforest, Biome.Grassland, Biome.Desert,
+		Biome.Arctic, Biome.Swamp, Biome.Alpine, Biome.Coastal,
+	};
+
+	private static readonly HabitatSizeTier[] SizeTiers =
+	{
+		HabitatSizeTier.Small, HabitatSizeTier.Large,
+	};
+
+	private int AnimalCap => PlotSystem.Instance?.AnimalCap ?? 0;
+
+	private IEnumerable<AnimalDefinition> AdoptableAnimals()
+	{
+		IEnumerable<AnimalDefinition> query = Defs.Animals;
+
+		if ( _biomeFilter.HasValue )
+			query = query.Where( a => a.Biome == _biomeFilter.Value );
+
+		if ( _sizeFilter.HasValue )
+			query = query.Where( a => a.MinHabitatSize == _sizeFilter.Value );
+
+		if ( _biomeFilter.HasValue && !_sizeFilter.HasValue )
+			return query.OrderBy( a => a.MinHabitatSize ).ThenBy( a => a.UnlockLevel ).ThenBy( a => a.Cost );
+
+		if ( _sizeFilter.HasValue && !_biomeFilter.HasValue )
+			return query.OrderBy( a => a.Biome ).ThenBy( a => a.UnlockLevel ).ThenBy( a => a.Cost );
+
+		return query
+			.OrderBy( a => a.Biome )
+			.ThenBy( a => a.MinHabitatSize )
+			.ThenBy( a => a.UnlockLevel )
+			.ThenBy( a => a.Cost );
+	}
+
+	private void SelectBiomeFilter( Biome? biome )
+	{
+		_biomeFilter = biome;
+		StateHasChanged();
+	}
+
+	private void SelectSizeFilter( HabitatSizeTier? tier )
+	{
+		_sizeFilter = tier;
+		StateHasChanged();
+	}
+
+	private void SelectTab( int tab )
+	{
+		_tab = tab;
+		UiState.SetMarketTab( tab );
+		StateHasChanged();
+	}
+
+	private void BuyNet()
+	{
+		UiState.PlayClick();
+		Inventory?.TryBuyNet();
+	}
+
+	private void BuyBait()
+	{
+		UiState.PlayClick();
+		Inventory?.TryBuyBaitPack();
+	}
+
+	private void BuyTranquilizer()
+	{
+		UiState.PlayClick();
+		Inventory?.TryBuyTranquilizer();
+	}
+
+	private int CarriedCount => Inventory?.CarriedCount ?? 0;
+
+	private string CarrySpeciesAt( int slot ) => Inventory?.GetCarriedAt( slot );
+
+	private void PlaceCarried( int slot )
+	{
+		UiState.PlayClick();
+		UiState.CloseForPlacement();
+
+		if ( BuildController.Instance?.BeginPlaceCarried( slot ) == true )
+			return;
+
+		UiState.PushToast( "Could not start placement — check your backpack slot.", "block" );
+	}
+
+	private void Adopt( AnimalDefinition def )
+	{
+		if ( !BuildValidation.IsUnlocked( def ) ) return;
+
+		UiState.CloseForPlacement();
+		BuildController.Instance?.BeginPlaceAnimal( def );
+	}
+
+	private void Sell( AnimalComponent animal )
+	{
+		AnimalSystem.Instance?.RequestSellAnimal( animal.AnimalId );
+	}
+
+	private string LockText( AnimalDefinition def )
+	{
+		var needsPrestige = (ZooState.Instance?.Prestige ?? 0) < def.RequiredPrestige;
+		var text = $"Unlocks at level {def.UnlockLevel}";
+		if ( def.RequiredPrestige > 0 && needsPrestige )
+			text += $" + {def.RequiredPrestige} prestige";
+		return text;
+	}
+
+	private static string FormatSpace( AnimalDefinition def ) =>
+		def.SpaceNeed >= 1000f ? $"{def.SpaceNeed / 1000f:0}k" : $"{def.SpaceNeed:0}";
+
+	private string AnimalColor( AnimalComponent animal ) =>
+		(animal.Variant?.Tint ?? animal.Definition?.BodyTint ?? Color.Gray).Hex;
+
+	protected override int BuildHash()
+	{
+		var a = System.HashCode.Combine(
+			(int)UiState.ActivePage, UiState.Revision, _tab, AnimalRegistry.Count,
+			HasNet, BaitCount, TranquilizerCount, CarriedCount );
+		var b = System.HashCode.Combine(
+			(int?)_biomeFilter, (int?)_sizeFilter, ZooState.Instance?.Level,
+			GuestSystem.Instance?.GuestCount, PathNetwork.HasGuestAccess,
+			Inventory?.CarriedSpecies0, Inventory?.CarriedSpecies1 );
+		return System.HashCode.Combine( a, b );
+	}
+}

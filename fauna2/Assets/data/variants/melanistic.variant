@@ -1,0 +1,9 @@
+{
+	"DisplayName": "Melanistic",
+	"Description": "A shadow-dark coat caused by excess pigment. Mysterious and beautiful.",
+	"RarityWeight": 30,
+	"AppealMultiplier": 2.5,
+	"ValueMultiplier": 3,
+	"Tint": "0.08,0.08,0.10,1",
+	"ApplicableSpecies": []
+}

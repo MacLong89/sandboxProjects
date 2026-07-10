@@ -1,0 +1,869 @@
+AimboxMainMenu, aimboxmainmenu, .aimbox-main-menu
+{
+	position: absolute;
+	left: 0;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	width: 100%;
+	height: 100%;
+	z-index: 310;
+	font-family: Poppins;
+	pointer-events: none;
+	overflow: hidden;
+	color: #f8f8f8;
+}
+
+AimboxMainMenu.visible, .aimbox-main-menu.visible
+{
+	pointer-events: all;
+	flex-direction: column;
+}
+
+AimboxMainMenu.hidden, .aimbox-main-menu.hidden
+{
+	display: none;
+	pointer-events: none;
+}
+
+AimboxMainMenu .decor, .aimbox-main-menu .decor
+{
+	pointer-events: none;
+}
+
+AimboxMainMenu .menu-left, .aimbox-main-menu .menu-left
+{
+	position: absolute;
+	left: 48px;
+	top: 42px;
+	bottom: 140px;
+	width: 400px;
+	flex-direction: column;
+	gap: 24px;
+	pointer-events: all;
+	z-index: 2;
+}
+
+AimboxMainMenu .menu-backdrop, .aimbox-main-menu .menu-backdrop
+{
+	position: absolute;
+	left: 0;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	background-color: #5a9fd4;
+	background-image: url( ui/main_menu_bg.png );
+	background-size: cover;
+	background-position: 85% 100%;
+	background-repeat: no-repeat;
+	z-index: 0;
+	overflow: hidden;
+}
+
+AimboxMainMenu .menu-vignette, .aimbox-main-menu .menu-vignette
+{
+	position: absolute;
+	left: 0;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	background-image: linear-gradient(90deg, rgba(0, 0, 0, 0.72) 0%, rgba(0, 0, 0, 0.28) 36%, rgba(0, 0, 0, 0.04) 62%, rgba(0, 0, 0, 0.18) 100%);
+	z-index: 1;
+}
+
+AimboxMainMenu .splatter, .aimbox-main-menu .splatter
+{
+	position: absolute;
+	border-radius: 50%;
+	opacity: 0.35;
+}
+
+AimboxMainMenu .splatter-left, .aimbox-main-menu .splatter-left
+{
+	left: -80px;
+	bottom: 120px;
+	width: 280px;
+	height: 280px;
+	background-color: rgba(255, 42, 109, 0.35);
+}
+
+AimboxMainMenu .splatter-right, .aimbox-main-menu .splatter-right
+{
+	right: 80px;
+	top: 180px;
+	width: 220px;
+	height: 220px;
+	background-color: rgba(255, 42, 109, 0.22);
+}
+
+AimboxMainMenu .splatter-skull, .aimbox-main-menu .splatter-skull
+{
+	display: none;
+}
+
+AimboxMainMenu .menu-brand, .aimbox-main-menu .menu-brand
+{
+	flex-direction: column;
+	gap: 4px;
+	flex-shrink: 0;
+}
+
+AimboxMainMenu .brand-row, .aimbox-main-menu .brand-row
+{
+	flex-direction: row;
+	align-items: center;
+	gap: 0;
+}
+
+AimboxMainMenu .brand-title, .aimbox-main-menu .brand-title
+{
+	font-size: 64px;
+	font-weight: 800;
+	letter-spacing: 2px;
+	color: #fff;
+	text-shadow: 0 4px 24px rgba(0, 0, 0, 0.65);
+	line-height: 0.95;
+}
+
+AimboxMainMenu .brand-x, .aimbox-main-menu .brand-x
+{
+	font-size: 72px;
+	font-weight: 900;
+	color: #ff2a6d;
+	margin-left: -4px;
+	text-shadow: 0 0 24px rgba(255, 42, 109, 0.65);
+	line-height: 0.9;
+}
+
+AimboxMainMenu .brand-subtitle, .aimbox-main-menu .brand-subtitle
+{
+	font-size: 18px;
+	font-weight: 600;
+	letter-spacing: 8px;
+	color: rgba(255, 255, 255, 0.92);
+}
+
+AimboxMainMenu .menu-util, .aimbox-main-menu .menu-util
+{
+	position: absolute;
+	right: 48px;
+	top: 48px;
+	flex-direction: row;
+	gap: 10px;
+	z-index: 3;
+	pointer-events: all;
+}
+
+AimboxMainMenu .util-btn, .aimbox-main-menu .util-btn
+{
+	width: 42px;
+	height: 42px;
+	border: 2px solid rgba(255, 255, 255, 0.35);
+	background-color: rgba(0, 0, 0, 0.45);
+	border-radius: 6px;
+	align-items: center;
+	justify-content: center;
+	transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+AimboxMainMenu .util-btn:hover, .aimbox-main-menu .util-btn:hover
+{
+	border-color: #ff2a6d;
+	background-color: rgba(255, 42, 109, 0.2);
+}
+
+AimboxMainMenu .util-btn.danger:hover, .aimbox-main-menu .util-btn.danger:hover
+{
+	border-color: #ff2a6d;
+	background-color: rgba(255, 42, 109, 0.35);
+}
+
+AimboxMainMenu .util-icon, .aimbox-main-menu .util-icon
+{
+	width: 18px;
+	height: 18px;
+	background-color: #fff;
+	opacity: 0.9;
+}
+
+AimboxMainMenu .util-icon.mail, .aimbox-main-menu .util-icon.mail
+{
+	border-radius: 2px;
+}
+
+AimboxMainMenu .util-icon.friends, .aimbox-main-menu .util-icon.friends
+{
+	border-radius: 50%;
+}
+
+AimboxMainMenu .util-icon.settings, .aimbox-main-menu .util-icon.settings
+{
+	border-radius: 50%;
+	border: 2px solid #fff;
+	background-color: transparent;
+}
+
+AimboxMainMenu .util-icon.close, .aimbox-main-menu .util-icon.close
+{
+	background-color: #ff2a6d;
+	transform: rotate(45deg);
+}
+
+AimboxMainMenu .menu-nav, .aimbox-main-menu .menu-nav
+{
+	flex-direction: column;
+	gap: 4px;
+	flex-shrink: 0;
+	position: relative;
+}
+
+AimboxMainMenu .nav-indicator, .aimbox-main-menu .nav-indicator
+{
+	position: absolute;
+	left: 0;
+	top: 0;
+	width: 100%;
+	height: 52px;
+	flex-direction: row;
+	align-items: center;
+	gap: 12px;
+	pointer-events: none;
+	transition: transform 0.12s ease-out;
+	z-index: 0;
+}
+
+AimboxMainMenu .nav-item, .aimbox-main-menu .nav-item
+{
+	position: relative;
+	height: 52px;
+	min-height: 52px;
+	padding: 0;
+	flex-direction: row;
+	align-items: center;
+	gap: 12px;
+	background-color: transparent;
+	border: none;
+	cursor: pointer;
+	pointer-events: all;
+	z-index: 1;
+	transition: transform 0.12s ease-out;
+}
+
+AimboxMainMenu .nav-item:hover, .aimbox-main-menu .nav-item:hover,
+AimboxMainMenu .nav-item.highlighted, .aimbox-main-menu .nav-item.highlighted
+{
+	transform: translateX(8px);
+}
+
+AimboxMainMenu .nav-label, .aimbox-main-menu .nav-label
+{
+	font-size: 26px;
+	font-weight: 700;
+	letter-spacing: 3px;
+	line-height: 1;
+	color: rgba(255, 255, 255, 0.88);
+	white-space: nowrap;
+	margin-left: 44px;
+}
+
+AimboxMainMenu .nav-item.highlighted .nav-label, .aimbox-main-menu .nav-item.highlighted .nav-label,
+AimboxMainMenu .nav-item.active .nav-label, .aimbox-main-menu .nav-item.active .nav-label
+{
+	color: #fff;
+}
+
+AimboxMainMenu .nav-item.disabled, .aimbox-main-menu .nav-item.disabled
+{
+	opacity: 0.45;
+}
+
+AimboxMainMenu .joiner-status-banner, .aimbox-main-menu .joiner-status-banner
+{
+	margin-top: 12px;
+	padding: 10px 14px;
+	font-size: 12px;
+	font-weight: 700;
+	color: rgba(255, 255, 255, 0.72);
+	background-color: rgba(255, 255, 255, 0.06);
+	border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+AimboxMainMenu .nav-highlight, .aimbox-main-menu .nav-highlight
+{
+	flex: 1;
+	height: 40px;
+	background-color: #ff2a6d;
+	border-radius: 2px;
+}
+
+AimboxMainMenu .nav-chevron, .aimbox-main-menu .nav-chevron
+{
+	font-size: 28px;
+	font-weight: 900;
+	color: #fff;
+	min-width: 24px;
+	margin-left: 8px;
+	flex-shrink: 0;
+}
+
+AimboxMainMenu .profile-card, .aimbox-main-menu .profile-card
+{
+	width: 100%;
+	flex-shrink: 0;
+	margin-top: auto;
+	pointer-events: none;
+	flex-direction: column;
+}
+
+AimboxMainMenu .profile-frame, .aimbox-main-menu .profile-frame
+{
+	flex-direction: row;
+	align-items: center;
+	gap: 14px;
+	width: 100%;
+	padding: 12px 14px;
+	background-color: rgba(0, 0, 0, 0.72);
+	border: 2px solid rgba(255, 255, 255, 0.35);
+	border-radius: 4px;
+	box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+}
+
+AimboxMainMenu .profile-badge, .aimbox-main-menu .profile-badge
+{
+	width: 52px;
+	height: 52px;
+	flex-shrink: 0;
+	align-items: center;
+	justify-content: center;
+	background-color: rgba(255, 42, 109, 0.15);
+	border: 2px solid rgba(255, 42, 109, 0.65);
+	border-radius: 8px;
+}
+
+AimboxMainMenu .profile-badge-inner, .aimbox-main-menu .profile-badge-inner
+{
+	width: 20px;
+	height: 20px;
+	background-color: #fff;
+	border-radius: 50%;
+}
+
+AimboxMainMenu .profile-copy, .aimbox-main-menu .profile-copy
+{
+	flex: 1 1 auto;
+	flex-direction: column;
+	gap: 6px;
+	min-width: 0;
+	width: 100%;
+}
+
+AimboxMainMenu .profile-header-row, .aimbox-main-menu .profile-header-row
+{
+	flex-direction: row;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	width: 100%;
+}
+
+AimboxMainMenu .profile-name, .aimbox-main-menu .profile-name
+{
+	flex: 1 1 auto;
+	font-size: 18px;
+	font-weight: 800;
+	letter-spacing: 1px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	min-width: 0;
+}
+
+AimboxMainMenu .profile-level, .aimbox-main-menu .profile-level
+{
+	font-size: 13px;
+	font-weight: 700;
+	letter-spacing: 1px;
+	color: rgba(255, 255, 255, 0.82);
+	white-space: nowrap;
+	flex-shrink: 0;
+	line-height: 1.2;
+}
+
+AimboxMainMenu .profile-xp-track, .aimbox-main-menu .profile-xp-track
+{
+	height: 8px;
+	background-color: rgba(255, 255, 255, 0.12);
+	border-radius: 2px;
+	overflow: hidden;
+}
+
+AimboxMainMenu .profile-xp-fill, .aimbox-main-menu .profile-xp-fill
+{
+	height: 100%;
+	background-color: #ff2a6d;
+	border-radius: 2px;
+	transition: width 0.35s ease;
+}
+
+AimboxMainMenu .profile-xp-label, .aimbox-main-menu .profile-xp-label
+{
+	font-size: 12px;
+	font-weight: 600;
+	color: rgba(255, 255, 255, 0.75);
+	white-space: nowrap;
+}
+
+AimboxMainMenu .menu-right, .aimbox-main-menu .menu-right
+{
+	position: absolute;
+	right: 48px;
+	top: 112px;
+	width: 380px;
+	flex-direction: column;
+	gap: 18px;
+	z-index: 3;
+	pointer-events: all;
+}
+
+AimboxMainMenu .news-widget, .aimbox-main-menu .news-widget
+{
+	width: 100%;
+	flex-direction: column;
+	gap: 12px;
+	flex-shrink: 0;
+}
+
+AimboxMainMenu .widget-header, .aimbox-main-menu .widget-header
+{
+	font-size: 14px;
+	font-weight: 700;
+	letter-spacing: 3px;
+	color: rgba(255, 255, 255, 0.75);
+	white-space: nowrap;
+	flex-shrink: 0;
+}
+
+AimboxMainMenu .news-card, .aimbox-main-menu .news-card
+{
+	position: relative;
+	flex-direction: row;
+	align-items: center;
+	gap: 14px;
+	padding: 16px;
+	min-height: 120px;
+	background-color: rgba(0, 0, 0, 0.72);
+	border: 2px solid rgba(255, 255, 255, 0.28);
+	border-radius: 4px;
+	overflow: hidden;
+}
+
+AimboxMainMenu .news-splatter, .aimbox-main-menu .news-splatter
+{
+	position: absolute;
+	right: -40px;
+	top: -20px;
+	width: 160px;
+	height: 160px;
+	background-color: rgba(255, 42, 109, 0.35);
+	border-radius: 50%;
+}
+
+AimboxMainMenu .news-thumb, .aimbox-main-menu .news-thumb
+{
+	width: 72px;
+	height: 72px;
+	align-items: center;
+	justify-content: center;
+	border: 2px solid rgba(255, 255, 255, 0.35);
+	border-radius: 4px;
+}
+
+AimboxMainMenu .news-thumb-code, .aimbox-main-menu .news-thumb-code
+{
+	font-size: 18px;
+	font-weight: 800;
+	color: #fff;
+}
+
+AimboxMainMenu .news-copy, .aimbox-main-menu .news-copy
+{
+	flex: 1;
+	flex-direction: column;
+	gap: 6px;
+	min-width: 0;
+}
+
+AimboxMainMenu .news-title, .aimbox-main-menu .news-title
+{
+	font-size: 15px;
+	font-weight: 800;
+	letter-spacing: 1px;
+	line-height: 1.25;
+}
+
+AimboxMainMenu .news-subtitle, .aimbox-main-menu .news-subtitle
+{
+	font-size: 13px;
+	font-weight: 500;
+	color: rgba(255, 255, 255, 0.72);
+}
+
+AimboxMainMenu .news-dots, .aimbox-main-menu .news-dots
+{
+	flex-direction: row;
+	gap: 8px;
+	justify-content: center;
+}
+
+AimboxMainMenu .news-dot, .aimbox-main-menu .news-dot
+{
+	width: 10px;
+	height: 10px;
+	border-radius: 50%;
+	background-color: rgba(255, 255, 255, 0.25);
+	border: none;
+}
+
+AimboxMainMenu .news-dot.active, .aimbox-main-menu .news-dot.active
+{
+	background-color: #ff2a6d;
+}
+
+AimboxMainMenu .daily-widget, .aimbox-main-menu .daily-widget
+{
+	width: 100%;
+	flex-direction: column;
+	gap: 10px;
+	flex-shrink: 0;
+	pointer-events: none;
+}
+
+AimboxMainMenu .daily-body, .aimbox-main-menu .daily-body
+{
+	flex-direction: row;
+	flex-wrap: nowrap;
+	align-items: center;
+	gap: 14px;
+	padding: 14px 16px;
+	background-color: rgba(0, 0, 0, 0.72);
+	border: 2px solid rgba(255, 255, 255, 0.28);
+	border-radius: 4px;
+	width: 100%;
+	min-width: 0;
+}
+
+AimboxMainMenu .daily-copy, .aimbox-main-menu .daily-copy
+{
+	flex: 1 1 0;
+	flex-direction: column;
+	gap: 5px;
+	min-width: 0;
+}
+
+AimboxMainMenu .daily-title, .aimbox-main-menu .daily-title
+{
+	font-size: 12px;
+	font-weight: 800;
+	letter-spacing: 1.5px;
+	color: #ff2a6d;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+AimboxMainMenu .daily-task, .aimbox-main-menu .daily-task
+{
+	font-size: 14px;
+	font-weight: 600;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+AimboxMainMenu .daily-progress-row, .aimbox-main-menu .daily-progress-row
+{
+	flex-direction: row;
+	flex-wrap: nowrap;
+	align-items: center;
+	gap: 12px;
+	min-width: 0;
+	width: 100%;
+}
+
+AimboxMainMenu .daily-progress-track, .aimbox-main-menu .daily-progress-track
+{
+	flex: 1 1 0;
+	min-width: 80px;
+	height: 10px;
+	background-color: rgba(255, 255, 255, 0.12);
+	border-radius: 2px;
+	overflow: hidden;
+}
+
+AimboxMainMenu .daily-progress-fill, .aimbox-main-menu .daily-progress-fill
+{
+	height: 100%;
+	background-color: #ff2a6d;
+	border-radius: 2px;
+	transition: width 0.35s ease;
+}
+
+AimboxMainMenu .daily-progress-label, .aimbox-main-menu .daily-progress-label
+{
+	font-size: 14px;
+	font-weight: 700;
+	min-width: 72px;
+}
+
+AimboxMainMenu .daily-reward, .aimbox-main-menu .daily-reward
+{
+	flex-shrink: 0;
+	min-width: 72px;
+	padding: 8px 10px;
+	flex-direction: column;
+	align-items: center;
+	gap: 2px;
+	background-color: rgba(255, 42, 109, 0.15);
+	border: 2px solid rgba(255, 42, 109, 0.55);
+	border-radius: 4px;
+}
+
+AimboxMainMenu .daily-reward-label, .aimbox-main-menu .daily-reward-label
+{
+	font-size: 10px;
+	font-weight: 700;
+	letter-spacing: 2px;
+	color: rgba(255, 255, 255, 0.72);
+}
+
+AimboxMainMenu .daily-reward-value, .aimbox-main-menu .daily-reward-value
+{
+	font-size: 18px;
+	font-weight: 800;
+	color: #ff2a6d;
+}
+
+AimboxMainMenu .menu-footer, .aimbox-main-menu .menu-footer
+{
+	position: absolute;
+	left: 48px;
+	right: 48px;
+	bottom: 24px;
+	flex-direction: row;
+	align-items: center;
+	justify-content: space-between;
+	z-index: 1;
+	pointer-events: none;
+}
+
+AimboxMainMenu .footer-social, .aimbox-main-menu .footer-social
+{
+	flex-direction: row;
+	align-items: center;
+	gap: 16px;
+}
+
+AimboxMainMenu .footer-follow, .aimbox-main-menu .footer-follow
+{
+	font-size: 12px;
+	font-weight: 700;
+	letter-spacing: 2px;
+	color: rgba(255, 255, 255, 0.65);
+}
+
+AimboxMainMenu .social-links, .aimbox-main-menu .social-links
+{
+	flex-direction: row;
+	gap: 14px;
+}
+
+AimboxMainMenu .social-link, .aimbox-main-menu .social-link
+{
+	font-size: 12px;
+	font-weight: 600;
+	color: rgba(255, 255, 255, 0.55);
+}
+
+AimboxMainMenu .footer-meta, .aimbox-main-menu .footer-meta
+{
+	flex-direction: row;
+	align-items: center;
+	gap: 10px;
+}
+
+AimboxMainMenu .footer-version, .aimbox-main-menu .footer-version
+{
+	font-size: 12px;
+	font-weight: 600;
+	color: rgba(255, 255, 255, 0.55);
+}
+
+AimboxMainMenu .footer-mark, .aimbox-main-menu .footer-mark
+{
+	font-size: 16px;
+	font-weight: 900;
+	color: #ff2a6d;
+}
+
+AimboxMainMenu .menu-overlay-backdrop, .aimbox-main-menu .menu-overlay-backdrop
+{
+	position: absolute;
+	left: 0;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	background-color: rgba(0, 0, 0, 0.55);
+	z-index: 10;
+	pointer-events: all;
+}
+
+AimboxMainMenu .menu-overlay, .aimbox-main-menu .menu-overlay
+{
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	width: 520px;
+	margin-left: -260px;
+	margin-top: -180px;
+	flex-direction: column;
+	gap: 12px;
+	padding: 20px;
+	background-color: rgba(8, 8, 12, 0.96);
+	border: 2px solid rgba(255, 42, 109, 0.45);
+	border-radius: 6px;
+	box-shadow: 0 16px 48px rgba(0, 0, 0, 0.65);
+	z-index: 11;
+	pointer-events: all;
+}
+
+AimboxMainMenu .overlay-header, .aimbox-main-menu .overlay-header
+{
+	flex-direction: row;
+	align-items: center;
+	justify-content: space-between;
+}
+
+AimboxMainMenu .overlay-title, .aimbox-main-menu .overlay-title
+{
+	font-size: 18px;
+	font-weight: 800;
+	letter-spacing: 2px;
+}
+
+AimboxMainMenu .overlay-close, .aimbox-main-menu .overlay-close
+{
+	width: 32px;
+	height: 32px;
+	font-size: 16px;
+	font-weight: 800;
+	color: #ff2a6d;
+	background-color: transparent;
+	border: 2px solid rgba(255, 42, 109, 0.55);
+	border-radius: 4px;
+}
+
+AimboxMainMenu .overlay-body, .aimbox-main-menu .overlay-body
+{
+	flex-direction: column;
+	gap: 12px;
+}
+
+AimboxMainMenu .overlay-empty, .aimbox-main-menu .overlay-empty
+{
+	font-size: 14px;
+	color: rgba(255, 255, 255, 0.7);
+	padding: 12px 0;
+}
+
+AimboxMainMenu .overlay-hint, .aimbox-main-menu .overlay-hint
+{
+	font-size: 12px;
+	color: rgba(255, 255, 255, 0.55);
+}
+
+AimboxMainMenu .settings-panel, .aimbox-main-menu .settings-panel
+{
+	flex-direction: column;
+	gap: 12px;
+}
+
+AimboxMainMenu .settings-row, .aimbox-main-menu .settings-row
+{
+	flex-direction: row;
+	align-items: center;
+	gap: 12px;
+}
+
+AimboxMainMenu .settings-label, .aimbox-main-menu .settings-label
+{
+	font-size: 13px;
+	font-weight: 700;
+	letter-spacing: 2px;
+	color: rgba(255, 255, 255, 0.65);
+	min-width: 100px;
+}
+
+AimboxMainMenu .settings-value, .aimbox-main-menu .settings-value
+{
+	flex: 1;
+	font-size: 14px;
+	font-weight: 600;
+}
+
+AimboxMainMenu .settings-btn, .aimbox-main-menu .settings-btn
+{
+	padding: 8px 14px;
+	font-size: 12px;
+	font-weight: 700;
+	letter-spacing: 1px;
+	color: #fff;
+	background-color: rgba(255, 42, 109, 0.25);
+	border: 2px solid rgba(255, 42, 109, 0.55);
+	border-radius: 4px;
+}
+
+AimboxMainMenu .settings-hint, .aimbox-main-menu .settings-hint
+{
+	font-size: 12px;
+	color: rgba(255, 255, 255, 0.55);
+}
+
+AimboxMainMenu .leaderboard-panel, .aimbox-main-menu .leaderboard-panel
+{
+	flex-direction: column;
+	gap: 12px;
+}
+
+AimboxMainMenu .leaderboard-hero, .aimbox-main-menu .leaderboard-hero
+{
+	flex-direction: row;
+	flex-wrap: wrap;
+	gap: 12px;
+}
+
+AimboxMainMenu .leaderboard-stat, .aimbox-main-menu .leaderboard-stat
+{
+	flex: 1;
+	min-width: 100px;
+	padding: 12px;
+	flex-direction: column;
+	gap: 4px;
+	background-color: rgba(255, 255, 255, 0.04);
+	border: 1px solid rgba(255, 255, 255, 0.12);
+	border-radius: 4px;
+}
+
+AimboxMainMenu .leaderboard-stat-label, .aimbox-main-menu .leaderboard-stat-label
+{
+	font-size: 11px;
+	font-weight: 700;
+	letter-spacing: 2px;
+	color: rgba(255, 255, 255, 0.55);
+}
+
+AimboxMainMenu .leaderboard-stat-value, .aimbox-main-menu .leaderboard-stat-value
+{
+	font-size: 22px;
+	font-weight: 800;
+	color: #ff2a6d;
+}

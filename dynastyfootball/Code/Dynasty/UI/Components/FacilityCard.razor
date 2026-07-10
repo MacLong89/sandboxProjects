@@ -1,0 +1,37 @@
+@using Sandbox.UI
+@using Dynasty.Core.Enums
+@using Dynasty.UI.ViewModels
+@inherits Panel
+@namespace Dynasty.UI.Components
+@attribute [StyleSheet( "/Dynasty/UI/Components/FacilityCard.razor.scss" )]
+
+<root class="facility-card panel">
+	<Label class="facility-name">@Row.Label</Label>
+	<Label class="muted">@Row.Benefit</Label>
+	<Label class="facility-level">Level @Row.Level / @Row.MaxLevel</Label>
+	@if ( Row.IsMaxed )
+	{
+		<Label class="tag">MAX</Label>
+	}
+	else if ( CanManage )
+	{
+		<Button class="btn primary small" Text="@UpgradeLabel" Disabled="@(!Row.CanAfford)" onclick=@HandleUpgrade />
+	}
+</root>
+
+@code
+{
+	[Parameter] public FacilityRowViewModel Row { get; set; }
+	[Parameter] public bool CanManage { get; set; }
+	[Parameter] public Action<FacilityType> OnUpgrade { get; set; }
+
+	string UpgradeLabel => $"Upgrade ${Row.UpgradeCost / 1_000_000}M";
+
+	void HandleUpgrade()
+	{
+		if ( OnUpgrade == null )
+			return;
+
+		OnUpgrade.Invoke( Row.Type );
+	}
+}

@@ -1,0 +1,141 @@
+@using Sandbox
+@using Sandbox.UI
+@inherits PanelComponent
+@namespace Fauna2.UI
+
+<root class="@( UiState.ActivePage == UiPage.Build && UiState.GameplayHudVisible ? "open" : "" )">
+	@if ( UiState.ActivePage == UiPage.Build && UiState.GameplayHudVisible )
+	{
+		<div class="window">
+			<div class="window-header">
+				<i class="icon">construction</i>
+				<div class="window-title">Build</div>
+				<div class="close" onclick=@( () => UiState.Close() )><i class="icon">close</i></div>
+			</div>
+
+			<div class="tabs">
+				@foreach ( var category in Categories )
+				{
+					<div class="tab @(category == _category ? "active" : "")" onclick=@( () => SelectCategory( category ) )>
+						@CategoryLabel( category )
+					</div>
+				}
+			</div>
+
+			<div class="items">
+				@{
+					var items = ItemsInCategory().ToList();
+				}
+				@if ( items.Count == 0 )
+				{
+					<div class="empty">No @CategoryLabel( _category ) buildables loaded yet.</div>
+				}
+				@foreach ( var def in items )
+				{
+					var unlocked = BuildValidation.IsUnlocked( def );
+					<div class="item @(unlocked ? "" : "locked")" onclick=@( () => Select( def ) )>
+						<div class="swatch" style="background-color: @SwatchColor( def );"></div>
+						<div class="info">
+							<div class="name">@def.DisplayName</div>
+							<div class="desc">@def.Description</div>
+							@if ( unlocked )
+							{
+								<div class="price">$@BuildSystem.EffectiveCost( def ).ToString( "n0" )@(BuildSystem.EffectiveCost( def ) < def.Cost ? $" sale (was ${def.Cost:n0})" : "")</div>
+								@if ( def.ProvidesCollectibleRevenue )
+								{
+									<div class="income">~$@def.EffectiveCollectIncomePerMinute.ToString( "0" )/min · serves @def.EffectiveGuestsServed guests</div>
+								}
+							}
+							else
+							{
+								<div class="price locked-text">@LockText( def )</div>
+							}
+						</div>
+					</div>
+				}
+			</div>
+		</div>
+	}
+</root>
+
+@code
+{
+	protected override void OnUpdate()
+	{
+		DefinitionCatalog.EnsureInitialized();
+
+		var overrideCategory = UiState.ConsumeBuildCategoryOverride();
+		if ( overrideCategory.HasValue )
+		{
+			_category = overrideCategory.Value;
+			StateHasChanged();
+		}
+	}
+
+	private BuildCategory _category = BuildCategory.Paths;
+
+	private static readonly BuildCategory[] Categories =
+	{
+		BuildCategory.Paths, BuildCategory.Habitats,
+		BuildCategory.Decorations, BuildCategory.Nature, BuildCategory.Utility,
+	};
+
+	private static string CategoryLabel( BuildCategory category ) => category switch
+	{
+		BuildCategory.Paths => "Paths & Entrance",
+		BuildCategory.Nature => "Enrichment",
+		_ => category.ToString(),
+	};
+
+	private IEnumerable<PlaceableDefinition> ItemsInCategory() => _category switch
+	{
+		BuildCategory.Paths => DefinitionCatalog.PathBuildables()
+			.OrderBy( p => DefinitionCatalog.PlaceableId( p ) == "entrance" ? 0 : 1 )
+			.ThenBy( p => p.UnlockLevel )
+			.ThenBy( p => p.Cost ),
+		BuildCategory.Habitats => Defs.Placeables
+			.Where( p => p.IsHabitat )
+			.OrderBy( p => p.UnlockLevel )
+			.ThenBy( p => p.Cost ),
+		_ => Defs.Placeables
+			.Where( p => p.Category == _category )
+			.OrderBy( p => p.UnlockLevel )
+			.ThenBy( p => p.Cost ),
+	};
+
+	private void SelectCategory( BuildCategory category )
+	{
+		_category = category;
+		StateHasChanged();
+	}
+
+	private void Select( PlaceableDefinition def )
+	{
+		if ( !BuildValidation.IsUnlocked( def ) ) return;
+
+		UiState.CloseModals();
+		UiState.Close();
+		BuildController.Instance?.BeginPlace( def );
+	}
+
+	private static string LockText( PlaceableDefinition def )
+	{
+		if ( def.RequiredPrestige > 0 )
+			return $"Unlocks at level {def.UnlockLevel} · {def.RequiredPrestige} prestige";
+
+		return $"Unlocks at level {def.UnlockLevel}";
+	}
+
+	private string SwatchColor( PlaceableDefinition def )
+	{
+		if ( def.IsHabitat )
+			return HabitatComponent.BiomeColor( def.HabitatBiome ).Hex;
+
+		var part = def.Visuals?.FirstOrDefault();
+		return part?.Tint.Hex ?? "#888888";
+	}
+
+	protected override int BuildHash() => System.HashCode.Combine(
+		(int)UiState.ActivePage, UiState.Revision, _category, ZooState.Instance?.Level, ZooState.Instance?.Prestige, ZooState.Instance?.Money,
+		DefinitionCatalog.Revision );
+}

@@ -1,0 +1,19 @@
+$dynasty-bg: #0a0f18;
+$dynasty-bg-elevated: #111827;
+$dynasty-card: #151d2e;
+$dynasty-card-border: #243044;
+$dynasty-text: #e8eef7;
+$dynasty-muted: #8b9cb3;
+$dynasty-accent: #34c759;
+$dynasty-accent-dim: #1a5c32;
+$dynasty-blue: #3b82f6;
+$dynasty-danger: #ef4444;
+$dynasty-gold: #fbbf24;
+$dynasty-field: #1a3d2e;
+$dynasty-field-line: #2d6b4f;
+$dynasty-radius: 10px;
+$dynasty-radius-lg: 14px;
+
+@import "/Dynasty/UI/DynastyUiLayers.scss";
+@import "/Dynasty/UI/DynastyUiAnimations.scss";
+@import "/Dynasty/UI/DynastyInteractions.scss";

@@ -1,0 +1,92 @@
+@using Sandbox
+@using Sandbox.UI
+@inherits PanelComponent
+@namespace Sandbox
+
+<root class="aimbox-killfeed @(Hidden ? "hidden" : "") @(ThemeClass)">
+	@if ( VisibleEntries.Count > 0 )
+	{
+		@foreach ( var entry in VisibleEntries )
+		{
+			<div class="killfeed-entry">
+				<span class="killer @entry.AttackerRelationClass">@entry.AttackerName</span>
+				@if ( entry.Headshot )
+				{
+					<span class="headshot">HS</span>
+				}
+				<span class="weapon">@entry.WeaponLabel</span>
+				<span class="victim @entry.VictimRelationClass">@entry.VictimName</span>
+			</div>
+		}
+	}
+</root>
+
+@code
+{
+	bool Hidden => AimboxMetaNavigation.BlocksGameplay || Player?.ShowClassicSniperScope == true;
+
+	string ThemeClass => AimboxUiTheme.CssClass;
+
+	AimboxPlayerController Player => FindPlayer();
+
+	IReadOnlyList<AimboxKillFeedEntry> VisibleEntries => BuildVisibleEntries();
+
+	protected override void OnUpdate()
+	{
+		AimboxUiTheme.SyncPanel( Panel );
+	}
+
+	protected override int BuildHash()
+	{
+		var hash = new HashCode();
+		hash.Add( Hidden );
+		hash.Add( AimboxUiTheme.Version );
+
+		foreach ( var entry in VisibleEntries )
+		{
+			hash.Add( entry.Id );
+			hash.Add( entry.AttackerName );
+			hash.Add( entry.VictimName );
+			hash.Add( entry.Weapon );
+			hash.Add( entry.Headshot );
+			hash.Add( entry.AttackerRelation );
+			hash.Add( entry.VictimRelation );
+			hash.Add( entry.ExpiresIn );
+		}
+
+		return hash.ToHashCode();
+	}
+
+	AimboxPlayerController FindPlayer()
+	{
+		var players = AimboxGame.Instance?.Players;
+		if ( players is null )
+			return null;
+
+		AimboxPlayerController fallback = null;
+		foreach ( var player in players )
+		{
+			fallback ??= player;
+			if ( !player.IsProxy )
+				return player;
+		}
+
+		return fallback;
+	}
+
+	List<AimboxKillFeedEntry> BuildVisibleEntries()
+	{
+		var entries = new List<AimboxKillFeedEntry>();
+		var killFeed = AimboxGame.Instance?.KillFeed;
+		if ( killFeed is null )
+			return entries;
+
+		foreach ( var entry in killFeed.Entries )
+		{
+			if ( entry.ExpiresIn > 0f )
+				entries.Add( entry );
+		}
+
+		return entries;
+	}
+}

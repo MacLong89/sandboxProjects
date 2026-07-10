@@ -1,0 +1,318 @@
+/* Universal hover / pressed / selected states for classic parchment UI.
+   Two surfaces:
+   - Parchment: list rows, cards, tabs, filters (warm tan fill)
+   - Dark slot: inventory / hotbar / armor cells (gold border ring)
+   Exceptions (own styling): .thorns-btn-primary, .thorns-btn-secondary, .thorns-tab-rail-item,
+   .mainmenu-*, wood-plank action buttons, skill tree nodes. */
+
+@mixin thorns-interact-parchment-base
+{
+	cursor: pointer;
+	background-color: transparent;
+	background-image: none;
+	border-top-width: 1px;
+	border-left-width: 1px;
+	border-right-width: 1px;
+	border-bottom-width: 1px;
+	border-color: rgba(40, 28, 16, 0.22);
+	box-shadow: none;
+	opacity: 1;
+}
+
+@mixin thorns-interact-parchment-hover
+{
+	background-color: rgba(212, 180, 131, 0.72);
+	background-image: none;
+	border-color: rgba(128, 96, 56, 0.42);
+	box-shadow: inset 0 1px 2px rgba(112, 80, 40, 0.1);
+}
+
+@mixin thorns-interact-parchment-active
+{
+	background-color: rgba(196, 158, 98, 0.65);
+	background-image: none;
+	border-color: rgba(112, 84, 48, 0.48);
+	box-shadow: inset 0 2px 4px rgba(96, 68, 32, 0.16);
+}
+
+@mixin thorns-interact-parchment-selected
+{
+	background-color: rgba(196, 158, 98, 0.82);
+	background-image: none;
+	border-top-width: 1px;
+	border-left-width: 1px;
+	border-right-width: 1px;
+	border-bottom-width: 1px;
+	border-color: rgba(112, 84, 48, 0.52);
+	box-shadow: inset 0 1px 3px rgba(96, 68, 32, 0.14);
+}
+
+@mixin thorns-interact-slot-base
+{
+	background-image: none;
+	background-color: rgba(43, 38, 34, 1);
+	border-top-width: 1px;
+	border-left-width: 1px;
+	border-right-width: 1px;
+	border-bottom-width: 1px;
+	border-color: rgba(58, 50, 44, 1);
+	box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.35);
+	padding: 2px;
+}
+
+@mixin thorns-interact-slot-hover
+{
+	border-color: rgba(212, 175, 90, 0.55);
+	background-color: rgba(52, 46, 40, 1);
+}
+
+@mixin thorns-interact-slot-active
+{
+	border-color: rgba(212, 175, 90, 0.75);
+	background-color: rgba(45, 40, 34, 1);
+	box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+@mixin thorns-interact-slot-selected
+{
+	background-color: rgba(50, 44, 36, 1);
+	border-color: #d4af5a;
+	box-shadow: inset 0 0 0 1px rgba(212, 175, 90, 0.55), 0 0 6px rgba(212, 175, 90, 0.25);
+}
+
+@mixin thorns-hud-wood-surface
+{
+	background-color: #2b2622;
+	background-image: none;
+}
+
+@mixin thorns-hud-wood-panel
+{
+	@include thorns-hud-wood-surface;
+	border-top-width: 1px;
+	border-left-width: 1px;
+	border-right-width: 1px;
+	border-bottom-width: 1px;
+	border-color: rgba(72, 66, 58, 1);
+	box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.35), 0 2px 10px rgba(0, 0, 0, 0.4);
+}
+
+@mixin thorns-hud-wood-slot
+{
+	@include thorns-hud-wood-surface;
+	border-top-width: 1px;
+	border-left-width: 1px;
+	border-right-width: 1px;
+	border-bottom-width: 1px;
+	border-color: rgba(58, 50, 44, 1);
+	box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+@mixin thorns-hud-wood-slot-hover
+{
+	border-color: rgba(212, 175, 90, 0.85);
+}
+
+@mixin thorns-hud-wood-slot-selected
+{
+	border-color: #d4af5a;
+	box-shadow: inset 0 0 0 1px rgba(212, 175, 90, 0.55), 0 0 6px rgba(212, 175, 90, 0.25);
+}
+
+@mixin thorns-wood-plank-btn-base
+{
+	cursor: pointer;
+	background-color: transparent;
+	background-image: url( ui/menu/chrome/tab_plank_normal.png );
+	background-size: 100% 100%;
+	background-repeat: no-repeat;
+	border-top-width: 0;
+	border-left-width: 0;
+	border-right-width: 0;
+	border-bottom-width: 0;
+	box-shadow: none;
+	color: #ebe4d6;
+	font-weight: 700;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+	padding: 8px 14px;
+	text-align: center;
+	justify-content: center;
+	align-items: center;
+
+	Label
+	{
+		color: #ebe4d6;
+		font-weight: 700;
+		text-shadow: 0 1px 2px rgba(0, 0, 0, 0.75);
+	}
+}
+
+@mixin thorns-wood-plank-btn-hover
+{
+	background-color: transparent;
+	background-image: url( ui/menu/chrome/tab_plank_hover.png );
+}
+
+@mixin thorns-wood-plank-btn-secondary
+{
+	@include thorns-wood-plank-btn-base;
+	opacity: 0.92;
+
+	Label
+	{
+		color: #f5e9d2;
+	}
+}
+
+@mixin thorns-universal-interaction
+{
+	.thorns-menu-overlay,
+	.thorns-overlay-backdrop,
+	.thorns-station-overlay
+	{
+		.thorns-interact,
+		.recipe-row,
+		.radio-shop-offer-row,
+		.radio-shop-sell-row,
+		.research-level-row,
+		.inventory-screen-concept .recipe-card,
+		.section-btn,
+		.journal-goal-card,
+		.journal-discovery-card,
+		.journal-simple-card,
+		.journal-quest-card,
+		.journal-nav-filter,
+		.journal-category-btn,
+		.skills-category-btn,
+		.skill-cat-btn,
+		.craft-categories .craft-cat-btn,
+		.inventory-filter-btn,
+		.tame-slot-card,
+		.tame-cmd-btn,
+		.tame-order-chip,
+		.tame-order-row,
+		.guild-member-card,
+		.guild-notice-box,
+		.guild-leaderboard-tab,
+		.guild-victory-path-row,
+		.guild-victory-card.concept-section,
+		.guild-invite-card,
+		.map-marker-hit,
+		.tames-attribute-plus:not(.disabled)
+		{
+			@include thorns-interact-parchment-base;
+
+			&:hover
+			{
+				@include thorns-interact-parchment-hover;
+			}
+
+			&:active
+			{
+				@include thorns-interact-parchment-active;
+			}
+
+			&.selected,
+			&.active
+			{
+				@include thorns-interact-parchment-selected;
+				color: #1c130a;
+				text-shadow: none;
+			}
+		}
+
+		.recipe-row.selected Label,
+		.section-btn.active Label,
+		.journal-goal-card.selected Label,
+		.journal-discovery-card.selected Label,
+		.journal-simple-card.selected Label,
+		.journal-quest-card.selected Label,
+		.journal-nav-filter.active Label,
+		.journal-category-btn.active Label,
+		.skills-category-btn.active Label,
+		.skill-cat-btn.active Label,
+		.craft-categories .craft-cat-btn.active Label,
+		.inventory-filter-btn.active Label,
+		.tame-slot-card.selected Label,
+		.tame-cmd-btn.selected Label,
+		.guild-member-card.selected Label,
+		.guild-leaderboard-tab.active Label,
+		.guild-victory-path-row.selected Label,
+		.guild-victory-card.concept-section.selected Label,
+		.inventory-screen-concept .recipe-card.selected Label
+		{
+			color: #1c130a;
+			text-shadow: none;
+		}
+
+		.thorns-btn-primary,
+		.thorns-btn-secondary,
+		.campfire-smelt-btn,
+		.workbench-repair-btn,
+		.workbench-upgrade-btn,
+		.radio-shop-btn,
+		.research-level-btn,
+		.inventory-craft-footer-btn,
+		.journal-pin-btn,
+		.inspect-use-btn,
+		.inspect-drop-btn,
+		.inspect-upgrade-btn,
+		.skill-upgrade-btn,
+		.tame-add-slot-btn,
+		.victory-intro-okay
+		{
+			@include thorns-wood-plank-btn-base;
+
+			&:hover
+			{
+				@include thorns-wood-plank-btn-hover;
+			}
+
+			&.disabled
+			{
+				opacity: 0.42;
+				pointer-events: none;
+			}
+		}
+
+		.thorns-btn-secondary,
+		.workbench-upgrade-btn
+		{
+			@include thorns-wood-plank-btn-secondary;
+		}
+
+		.inventory-craft-footer-btn.ready
+		{
+			@include thorns-wood-plank-btn-hover;
+		}
+
+		.journal-pin-btn.pinned
+		{
+			@include thorns-wood-plank-btn-hover;
+			opacity: 1;
+		}
+	}
+
+	.concept-slot:not(.thorns-menu-framed-textured),
+	.thorns-menu-overlay .concept-slot:not(.thorns-menu-framed-textured),
+	.thorns-station-overlay .concept-slot:not(.thorns-menu-framed-textured)
+	{
+		@include thorns-interact-slot-base;
+
+		&:hover
+		{
+			@include thorns-interact-slot-hover;
+		}
+
+		&:active
+		{
+			@include thorns-interact-slot-active;
+		}
+
+		&.selected
+		{
+			@include thorns-interact-slot-selected;
+		}
+	}
+}

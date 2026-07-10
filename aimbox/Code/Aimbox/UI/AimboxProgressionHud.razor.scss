@@ -1,0 +1,571 @@
+AimboxProgressionHud, aimboxprogressionhud, .aimbox-progression-hud
+{
+	position: absolute;
+	left: 0;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	width: 100%;
+	height: 100%;
+	pointer-events: none;
+	font-family: Poppins;
+	color: #f4f7fb;
+}
+
+AimboxProgressionHud.hidden, .aimbox-progression-hud.hidden
+{
+	opacity: 0;
+}
+
+AimboxProgressionHud .xp-dock, .aimbox-progression-hud .xp-dock
+{
+	position: absolute;
+	left: 50%;
+	bottom: 18px;
+	margin-left: -260px;
+	width: 520px;
+	flex-direction: column;
+	gap: 4px;
+	padding: 0;
+	background-color: rgba(0, 0, 0, 0);
+	border: none;
+	border-radius: 0;
+	box-shadow: none;
+}
+
+AimboxProgressionHud .xp-track, .aimbox-progression-hud .xp-track
+{
+	flex-direction: row;
+	align-items: center;
+	gap: 10px;
+	width: 100%;
+}
+
+AimboxProgressionHud .xp-track-label, .aimbox-progression-hud .xp-track-label
+{
+	width: 64px;
+	flex-shrink: 0;
+	font-size: 9px;
+	font-weight: 800;
+	letter-spacing: 0.12em;
+	color: rgba(255, 42, 109, 0.72);
+	text-shadow: 0 1px 6px rgba(0, 0, 0, 0.85);
+}
+
+AimboxProgressionHud .xp-track-label.mastery, .aimbox-progression-hud .xp-track-label.mastery
+{
+	color: rgba(255, 255, 255, 0.55);
+}
+
+AimboxProgressionHud .xp-track-main, .aimbox-progression-hud .xp-track-main
+{
+	flex-direction: column;
+	flex-grow: 1;
+	gap: 2px;
+	min-width: 0;
+}
+
+AimboxProgressionHud .xp-bar, .aimbox-progression-hud .xp-bar
+{
+	width: 100%;
+	height: 3px;
+	background-color: rgba(255, 255, 255, 0.1);
+	border-radius: 2px;
+	overflow: hidden;
+	border: none;
+}
+
+AimboxProgressionHud .xp-bar .fill, .aimbox-progression-hud .xp-bar .fill
+{
+	height: 100%;
+	background-color: rgba(255, 42, 109, 0.78);
+	border-radius: 2px;
+}
+
+AimboxProgressionHud .xp-bar .fill.mastery, .aimbox-progression-hud .xp-bar .fill.mastery
+{
+	background-color: rgba(255, 255, 255, 0.62);
+}
+
+AimboxProgressionHud .xp-track-meta, .aimbox-progression-hud .xp-track-meta
+{
+	font-size: 9px;
+	font-weight: 600;
+	color: rgba(185, 197, 209, 0.55);
+	text-shadow: 0 1px 6px rgba(0, 0, 0, 0.85);
+}
+
+AimboxProgressionHud .xp-track-meta.mastery, .aimbox-progression-hud .xp-track-meta.mastery
+{
+	color: rgba(255, 255, 255, 0.45);
+}
+
+AimboxProgressionHud .progression-toast, .aimbox-progression-hud .progression-toast
+{
+	position: absolute;
+	left: 32px;
+	top: 50%;
+	margin-top: -72px;
+	width: 360px;
+	flex-direction: column;
+	gap: 4px;
+	padding: 14px 16px;
+	background-color: rgba(8, 8, 12, 0.92);
+	border: 2px solid rgba(255, 42, 109, 0.45);
+	border-radius: 4px;
+	box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+}
+
+AimboxProgressionHud .progression-toast.level-up, .aimbox-progression-hud .progression-toast.level-up
+{
+	border-color: rgba(125, 255, 178, 0.55);
+	box-shadow: 0 0 24px rgba(125, 255, 178, 0.15), 0 8px 28px rgba(0, 0, 0, 0.45);
+}
+
+AimboxProgressionHud .progression-feed, .aimbox-progression-hud .progression-feed
+{
+	position: relative;
+	left: auto;
+	top: auto;
+	margin-top: 0;
+	width: 100%;
+	justify-content: flex-start;
+	font-size: 20px;
+	font-weight: 900;
+	color: #ff2a6d;
+	text-shadow: 0 2px 10px #000;
+	text-align: left;
+	padding: 0;
+	background-color: rgba(0, 0, 0, 0);
+	border: none;
+	border-radius: 0;
+	box-shadow: none;
+}
+
+AimboxProgressionHud .progression-feed.level-up, .aimbox-progression-hud .progression-feed.level-up
+{
+	color: #7dffb2;
+	font-size: 26px;
+}
+
+AimboxProgressionHud .progression-feed-detail, .aimbox-progression-hud .progression-feed-detail
+{
+	position: relative;
+	left: auto;
+	top: auto;
+	margin-top: 0;
+	width: 100%;
+	justify-content: flex-start;
+	font-size: 13px;
+	font-weight: 700;
+	color: #c8d4de;
+	text-align: left;
+	padding: 0;
+	background-color: rgba(0, 0, 0, 0);
+	border: none;
+	border-radius: 0;
+	box-shadow: none;
+}
+
+AimboxProgressionHud .progression-feed-detail.level-up, .aimbox-progression-hud .progression-feed-detail.level-up
+{
+	color: #dce6ef;
+}
+
+AimboxProgressionHud .medal-feed, .aimbox-progression-hud .medal-feed
+{
+	position: absolute;
+	left: 50%;
+	bottom: 168px;
+	margin-left: -160px;
+	width: 320px;
+	justify-content: center;
+	font-size: 18px;
+	font-weight: 800;
+	color: #ff2a6d;
+	text-shadow: 0 2px 8px #000;
+	text-align: center;
+}
+
+AimboxProgressionHud .killstreak-hud, .aimbox-progression-hud .killstreak-hud
+{
+	position: absolute;
+	left: 24px;
+	bottom: 132px;
+	font-size: 14px;
+	font-weight: 700;
+	color: #fff;
+	text-shadow: 0 2px 8px #000;
+	padding: 8px 12px;
+	background-color: rgba(8, 8, 12, 0.88);
+	border-radius: 4px;
+	border: 2px solid rgba(255, 42, 109, 0.45);
+	box-shadow: 0 0 16px rgba(255, 42, 109, 0.15);
+}
+
+AimboxProgressionHud .unlock-celebration, .aimbox-progression-hud .unlock-celebration
+{
+	position: absolute;
+	left: 32px;
+	top: 50%;
+	margin-top: -132px;
+	width: 380px;
+	flex-direction: column;
+	align-items: stretch;
+	justify-content: center;
+	z-index: 300;
+	pointer-events: none;
+}
+
+AimboxProgressionHud .unlock-celebration-backdrop, .aimbox-progression-hud .unlock-celebration-backdrop
+{
+	display: none;
+}
+
+AimboxProgressionHud .unlock-celebration-card, .aimbox-progression-hud .unlock-celebration-card
+{
+	position: relative;
+	z-index: 2;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 6px;
+	padding: 18px 22px;
+	min-width: 0;
+	width: 100%;
+	background-color: rgba(10, 10, 14, 0.96);
+	border: 2px solid rgba(255, 42, 109, 0.65);
+	box-shadow: 0 0 32px rgba(255, 42, 109, 0.22), 0 16px 48px rgba(0, 0, 0, 0.5);
+}
+
+AimboxProgressionHud .unlock-celebration-kicker, .aimbox-progression-hud .unlock-celebration-kicker
+{
+	font-size: 13px;
+	font-weight: 900;
+	letter-spacing: 0.22em;
+	color: #ff2a6d;
+	text-shadow: 0 0 16px rgba(255, 42, 109, 0.45);
+}
+
+AimboxProgressionHud .unlock-celebration-title, .aimbox-progression-hud .unlock-celebration-title
+{
+	font-size: 28px;
+	font-weight: 900;
+	line-height: 1.05;
+	color: #fff;
+	text-align: left;
+	text-shadow: 0 0 24px rgba(255, 42, 109, 0.35);
+}
+
+AimboxProgressionHud .unlock-celebration-detail, .aimbox-progression-hud .unlock-celebration-detail
+{
+	font-size: 13px;
+	font-weight: 700;
+	color: rgba(255, 255, 255, 0.78);
+	text-align: left;
+}
+
+AimboxProgressionHud .unlock-celebration-extras, .aimbox-progression-hud .unlock-celebration-extras
+{
+	margin-top: 4px;
+	padding-top: 8px;
+	border-top: 1px solid rgba(255, 255, 255, 0.12);
+	font-size: 12px;
+	font-weight: 800;
+	color: #7dffb2;
+	text-align: left;
+	letter-spacing: 0.04em;
+}
+
+AimboxProgressionHud .unlock-celebration.kind-rank .unlock-celebration-card, .aimbox-progression-hud .unlock-celebration.kind-rank .unlock-celebration-card
+{
+	border-color: rgba(125, 255, 178, 0.72);
+	box-shadow: 0 0 56px rgba(125, 255, 178, 0.22), 0 24px 80px rgba(0, 0, 0, 0.55);
+}
+
+AimboxProgressionHud .unlock-celebration.kind-rank .unlock-celebration-kicker, .aimbox-progression-hud .unlock-celebration.kind-rank .unlock-celebration-kicker
+{
+	color: #7dffb2;
+	text-shadow: 0 0 16px rgba(125, 255, 178, 0.45);
+}
+
+AimboxProgressionHud .unlock-celebration.kind-weapon .unlock-celebration-title, .aimbox-progression-hud .unlock-celebration.kind-weapon .unlock-celebration-title
+{
+	color: #ff2a6d;
+}
+
+AimboxProgressionHud .unlock-celebration.kind-attachment .unlock-celebration-kicker, .aimbox-progression-hud .unlock-celebration.kind-attachment .unlock-celebration-kicker
+{
+	color: #ffd166;
+	text-shadow: 0 0 16px rgba(255, 209, 102, 0.45);
+}
+
+AimboxProgressionHud .unlock-celebration.kind-attachment .unlock-celebration-card, .aimbox-progression-hud .unlock-celebration.kind-attachment .unlock-celebration-card
+{
+	border-color: rgba(255, 209, 102, 0.68);
+	box-shadow: 0 0 48px rgba(255, 209, 102, 0.2), 0 24px 80px rgba(0, 0, 0, 0.55);
+}
+
+AimboxProgressionHud .unlock-celebration.kind-mastery .unlock-celebration-kicker, .aimbox-progression-hud .unlock-celebration.kind-mastery .unlock-celebration-kicker
+{
+	color: rgba(255, 255, 255, 0.88);
+	text-shadow: 0 0 12px rgba(255, 255, 255, 0.25);
+}
+
+
+/* Arcade shooter skin for progression overlay — scoped under .theme-arcade. */
+
+.aimbox-progression-hud.theme-arcade .xp-dock {
+	left: 50%;
+	right: auto;
+	bottom: 16px;
+	margin-left: -240px;
+	width: 480px;
+	padding: 0;
+	background-color: rgba(0, 0, 0, 0);
+	border: none;
+	border-radius: 0;
+	box-shadow: none;
+}
+
+.aimbox-progression-hud.theme-arcade .xp-track-label {
+	color: rgba(255, 42, 109, 0.72);
+	letter-spacing: 0.14em;
+}
+
+.aimbox-progression-hud.theme-arcade .xp-track-label.mastery {
+	color: rgba(255, 255, 255, 0.55);
+}
+
+.aimbox-progression-hud.theme-arcade .xp-bar .fill {
+	background-color: rgba(255, 42, 109, 0.78);
+	box-shadow: none;
+	border-radius: 2px;
+}
+
+.aimbox-progression-hud.theme-arcade .xp-bar .fill.mastery {
+	background-color: rgba(255, 255, 255, 0.62);
+	box-shadow: none;
+}
+
+.aimbox-progression-hud.theme-arcade .progression-toast {
+	left: 32px;
+	top: 50%;
+	margin-top: -72px;
+	width: 360px;
+}
+
+.aimbox-progression-hud.theme-arcade .progression-feed {
+	font-size: 20px;
+	color: #ff2a6d;
+	letter-spacing: 0.06em;
+	text-shadow: 0 0 16px rgba(255, 42, 109, 0.35);
+}
+
+.aimbox-progression-hud.theme-arcade .progression-feed.level-up,
+.aimbox-progression-hud.theme-arcade .progression-toast.level-up .progression-feed {
+	color: #fff;
+	font-size: 22px;
+	text-shadow: 0 0 20px rgba(255, 42, 109, 0.45);
+}
+
+.aimbox-progression-hud.theme-arcade .progression-feed-detail {
+	text-align: left;
+}
+
+.aimbox-progression-hud.theme-arcade .medal-feed {
+	bottom: 228px;
+	color: #ff2a6d;
+	font-size: 20px;
+	letter-spacing: 0.08em;
+}
+
+.aimbox-progression-hud.theme-arcade .killstreak-hud {
+	left: 32px;
+	bottom: 196px;
+	color: #fff;
+	background-color: rgba(8, 8, 12, 0.88);
+	border: 2px solid rgba(255, 42, 109, 0.45);
+	border-radius: 4px;
+	box-shadow: 0 0 16px rgba(255, 42, 109, 0.15);
+}
+
+.aimbox-progression-hud.theme-arcade .unlock-celebration {
+	left: 32px;
+	top: 50%;
+	margin-top: -132px;
+	width: 380px;
+}
+
+.aimbox-progression-hud.theme-arcade .unlock-celebration-card {
+	min-width: 0;
+	padding: 18px 22px;
+	border-width: 2px;
+}
+
+.aimbox-progression-hud.theme-arcade .unlock-celebration-title {
+	font-size: 30px;
+	letter-spacing: 0.04em;
+	text-align: left;
+}
+
+.aimbox-progression-hud.theme-spectra .unlock-celebration {
+	left: 32px;
+	top: 50%;
+	margin-top: -120px;
+	width: 340px;
+}
+
+.aimbox-progression-hud.theme-spectra .unlock-celebration-backdrop {
+	display: none;
+}
+
+.aimbox-progression-hud.theme-spectra .unlock-celebration-card {
+	min-width: 0;
+	width: 100%;
+	padding: 16px 18px;
+	background-color: rgba(8, 16, 28, 0.94);
+	border: 1px solid rgba(120, 210, 255, 0.42);
+	box-shadow: 0 0 32px rgba(120, 210, 255, 0.18);
+	align-items: flex-start;
+}
+
+.aimbox-progression-hud.theme-spectra .unlock-celebration-kicker {
+	font-size: 10px;
+	color: rgba(120, 210, 255, 0.85);
+	text-shadow: 0 0 12px rgba(120, 210, 255, 0.35);
+}
+
+.aimbox-progression-hud.theme-spectra .unlock-celebration-title {
+	font-size: 24px;
+	color: #fff;
+	text-align: left;
+	text-shadow: 0 0 20px rgba(120, 210, 255, 0.35);
+}
+
+.aimbox-progression-hud.theme-spectra .unlock-celebration-detail {
+	font-size: 12px;
+	color: #8ab4d8;
+}
+
+.aimbox-progression-hud.theme-spectra .unlock-celebration-extras {
+	color: #b8d8f8;
+	border-top-color: rgba(120, 210, 255, 0.18);
+}
+/* Spectra theme — holographic sci-fi progression overlay. */
+
+.aimbox-progression-hud.theme-spectra .xp-dock {
+	left: 50%;
+	right: auto;
+	top: auto;
+	bottom: 18px;
+	margin-left: -230px;
+	width: 460px;
+	padding: 0;
+	background-color: rgba(0, 0, 0, 0);
+	border: none;
+	border-radius: 0;
+	gap: 4px;
+	box-shadow: none;
+}
+
+.aimbox-progression-hud.theme-spectra .xp-track {
+	flex-direction: row;
+	align-items: center;
+	gap: 10px;
+	padding: 0;
+	background-color: rgba(0, 0, 0, 0);
+	border: none;
+	border-radius: 0;
+}
+
+.aimbox-progression-hud.theme-spectra .xp-track-label {
+	width: 64px;
+	font-size: 8px;
+	letter-spacing: 0.18em;
+	color: rgba(120, 210, 255, 0.5);
+}
+
+.aimbox-progression-hud.theme-spectra .xp-track-label.mastery {
+	color: rgba(160, 220, 255, 0.55);
+}
+
+.aimbox-progression-hud.theme-spectra .xp-bar {
+	height: 3px;
+	background-color: rgba(120, 210, 255, 0.1);
+	border: none;
+	border-radius: 2px;
+}
+
+.aimbox-progression-hud.theme-spectra .xp-bar .fill {
+	background-color: rgba(120, 210, 255, 0.65);
+	box-shadow: none;
+	border-radius: 2px;
+}
+
+.aimbox-progression-hud.theme-spectra .xp-bar .fill.mastery {
+	background-color: rgba(180, 230, 255, 0.62);
+}
+
+.aimbox-progression-hud.theme-spectra .xp-track-meta {
+	font-size: 9px;
+	color: rgba(138, 180, 216, 0.5);
+}
+
+.aimbox-progression-hud.theme-spectra .progression-toast {
+	left: 32px;
+	top: 50%;
+	margin-top: -72px;
+	width: 340px;
+	padding: 12px 16px;
+	background-color: rgba(8, 16, 28, 0.88);
+	border: 1px solid rgba(120, 210, 255, 0.28);
+	border-radius: 2px;
+}
+
+.aimbox-progression-hud.theme-spectra .progression-feed {
+	font-size: 14px;
+	font-weight: 800;
+	letter-spacing: 0.06em;
+	color: #d8ecff;
+	text-align: left;
+}
+
+.aimbox-progression-hud.theme-spectra .progression-toast.level-up .progression-feed {
+	color: #fff;
+	font-size: 15px;
+}
+
+.aimbox-progression-hud.theme-spectra .progression-feed-detail {
+	font-size: 11px;
+	text-align: left;
+	color: #8ab4d8;
+}
+
+.aimbox-progression-hud.theme-spectra .medal-feed {
+	left: auto;
+	right: 28px;
+	bottom: auto;
+	top: 248px;
+	margin-left: 0;
+	width: 220px;
+	font-size: 13px;
+	letter-spacing: 0.1em;
+	color: #b8d8f8;
+	text-align: right;
+}
+
+.aimbox-progression-hud.theme-spectra .killstreak-hud {
+	left: 36px;
+	bottom: auto;
+	top: 50%;
+	margin-top: 64px;
+	font-size: 11px;
+	font-weight: 800;
+	letter-spacing: 0.1em;
+	color: #d8ecff;
+	padding: 8px 10px;
+	background-color: rgba( 8, 16, 28, 0.72 );
+	border: 1px solid rgba( 120, 210, 255, 0.28 );
+	border-radius: 2px;
+	box-shadow: none;
+}

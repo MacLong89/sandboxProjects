@@ -1,0 +1,19 @@
+@using Sandbox.UI
+@inherits Panel
+@namespace Dynasty.UI.Components
+
+<Button class="btn secondary tiny" Text="+1" onclick=@HandleTrain />
+
+@code
+{
+	[Parameter] public string AttributeKey { get; set; } = "";
+	[Parameter] public Action<string> OnTrainAttribute { get; set; }
+
+	void HandleTrain()
+	{
+		if ( OnTrainAttribute == null || string.IsNullOrEmpty( AttributeKey ) )
+			return;
+
+		OnTrainAttribute.Invoke( AttributeKey );
+	}
+}

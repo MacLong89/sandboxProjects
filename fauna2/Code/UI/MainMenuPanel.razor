@@ -1,0 +1,541 @@
+@using Sandbox
+@using Sandbox.UI
+@inherits PanelComponent
+@namespace Fauna2.UI
+
+<root class="@(GameStarted ? "" : "menu-visible")">
+	@if ( !GameStarted )
+	{
+		<div class="backdrop">
+			<div class="backdrop-art" style="@MenuBackdropStyle"></div>
+			<div class="backdrop-shade"></div>
+			<div class="splatter splatter-left decor"></div>
+			<div class="splatter splatter-right decor"></div>
+		</div>
+
+		@if ( _screen == MenuScreen.Home )
+		{
+			<div class="menu-shell">
+				<div class="menu-left">
+					<div class="menu-brand">
+						<div class="brand-row">
+							<div class="brand-title">FAUNA</div>
+							<div class="brand-accent">2</div>
+						</div>
+						<div class="brand-subtitle">ZOO MANAGEMENT</div>
+					</div>
+
+					<div class="menu-nav" onmouseleave="@ResetNavHover">
+						<div class="nav-indicator" style="@NavIndicatorStyle()">
+							<div class="nav-chevron">&gt;</div>
+							<div class="nav-highlight"></div>
+						</div>
+						@foreach ( var navItem in NavItems )
+						{
+							var item = navItem;
+							<button class="nav-item @(ActiveNav == item.Id ? "active" : "") @(HighlightedNav == item.Id ? "highlighted" : "") @(NavItemClass(item))"
+								disabled="@(!CanActivateNav(item))"
+								onmouseover="@(() => SetNavHover(item.Id))"
+								onclick="@(() => ActivateNav(item))">
+								<div class="nav-label">@item.Label</div>
+							</button>
+						}
+					</div>
+
+					@if ( !CanControlSession )
+					{
+						<div class="joiner-status-banner">
+							<i class="icon">groups</i>
+							Explore the zoo while you wait — the host will start the session soon.
+						</div>
+					}
+
+					<div class="status-card">
+						<div class="status-frame">
+							<div class="status-badge">
+								<i class="icon">@StatusIcon</i>
+							</div>
+							<div class="status-copy">
+								<div class="status-header-row">
+									<div class="status-name">@StatusTitle</div>
+									<div class="status-meta">@StatusMeta</div>
+								</div>
+								<div class="status-track">
+									<div class="status-fill" style="width: @StatusFillWidth;"></div>
+								</div>
+								<div class="status-label">@StatusLabel</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="menu-right">
+					<div class="daily-widget">
+						<div class="widget-header">// DAILY BONUS</div>
+						<div class="daily-body">
+							<div class="daily-copy">
+								<div class="daily-title">@DailyStreak days logged in</div>
+								<div class="daily-task">Return tomorrow for escalating zoo funding</div>
+								<div class="daily-progress-row">
+									<div class="daily-progress-track">
+										<div class="daily-progress-fill" style="width: @DailyStreakFillWidth;"></div>
+									</div>
+									<div class="daily-progress-label">@DailyBonusSystem.NextBonusCountdown()</div>
+								</div>
+							</div>
+							<div class="daily-reward">
+								<div class="daily-reward-label">STREAK</div>
+								<div class="daily-reward-value">@DailyStreak</div>
+							</div>
+						</div>
+					</div>
+
+					@if ( LatestSave is not null )
+					{
+						<div class="save-widget">
+							<div class="widget-header">// RECENT SAVE</div>
+							<div class="save-card">
+								<div class="save-splatter decor"></div>
+								<div class="save-thumb">
+									<i class="icon">pets</i>
+								</div>
+								<div class="save-copy">
+									<div class="save-title">@LatestSave.ZooName</div>
+									<div class="save-subtitle">@LatestSave.SummaryText</div>
+								</div>
+							</div>
+						</div>
+					}
+				</div>
+			</div>
+		}
+		else if ( _screen == MenuScreen.Continue )
+		{
+			<div class="window menu-window menu-page">
+				<div class="submenu-header">
+					<div class="back" onclick=@GoHome><i class="icon">arrow_back</i> Back</div>
+					<div class="submenu-title">Continue</div>
+					<div class="submenu-subtitle">Pick a save slot to resume your zoo</div>
+				</div>
+
+				<div class="submenu-body">
+					<div class="menu-list">
+						@foreach ( var slot in SaveSlots )
+						{
+							<div class="save-row @(_selectedSlot == slot.SlotId ? "selected" : "")">
+								<div class="menu-item @(slot.Exists ? "" : "empty") @(_selectedSlot == slot.SlotId ? "selected" : "")"
+									 onclick=@( () => SelectSlot( slot.SlotId ) )>
+									<div class="slot-badge">@slot.SlotId</div>
+									<div class="info">
+										<div class="name">@slot.Label</div>
+										<div class="desc">@slot.SummaryText</div>
+									</div>
+									@if ( _selectedSlot == slot.SlotId && slot.Exists )
+									{
+										<i class="icon item-check">check_circle</i>
+									}
+								</div>
+								@if ( IsHost && slot.Exists )
+								{
+									<div class="delete-btn" onclick=@( () => DeleteSaveSlot( slot.SlotId ) ) title="Delete save">
+										<i class="icon">delete_outline</i>
+									</div>
+								}
+							</div>
+						}
+					</div>
+				</div>
+
+				<div class="submenu-footer">
+					@if ( CanControlSession )
+					{
+						<div class="button menu-action primary @(CanContinue ? "" : "disabled")" onclick=@( () => ContinueGame() )>
+							<i class="icon">play_arrow</i> Load Save
+						</div>
+					}
+					else
+					{
+						<div class="host-wait"><i class="icon">hourglass_top</i> Waiting for the host to start the game…</div>
+					}
+				</div>
+			</div>
+		}
+		else if ( _screen == MenuScreen.NewGame )
+		{
+			<div class="window menu-window menu-page">
+				<div class="submenu-header">
+					<div class="back" onclick=@GoHome><i class="icon">arrow_back</i> Back</div>
+					<div class="submenu-title">New Game</div>
+					<div class="submenu-subtitle">Every zoo shares the same wilderness map — pick a save slot</div>
+				</div>
+
+				<div class="submenu-body">
+					<div class="section-label">Save slot</div>
+					<div class="slot-list">
+						@for ( var i = 1; i <= SaveSlotCount; i++ )
+						{
+							var slotId = i;
+							var slot = SaveSlots.FirstOrDefault( s => s.SlotId == slotId && !s.IsLegacy );
+							<div class="menu-item slot @(_newGameSlot == slotId ? "selected" : "")"
+								 onclick=@( () => _newGameSlot = slotId )>
+								<div class="slot-badge">@slotId</div>
+								<div class="name">Slot @slotId</div>
+								<div class="desc">@(slot?.Exists == true ? slot.SummaryText : "Empty")</div>
+							</div>
+						}
+					</div>
+				</div>
+
+				<div class="submenu-footer">
+					@if ( CanControlSession )
+					{
+						<div class="button menu-action primary @(CanStartNew ? "" : "disabled")" onclick=@( () => StartNewGame() )>
+							<i class="icon">flag</i> Start New Zoo
+						</div>
+					}
+					else
+					{
+						<div class="host-wait"><i class="icon">hourglass_top</i> Waiting for the host to start the game…</div>
+					}
+				</div>
+			</div>
+		}
+		else if ( _screen == MenuScreen.Settings )
+		{
+			<div class="window menu-window menu-page">
+				<div class="submenu-header">
+					<div class="back" onclick=@GoHome><i class="icon">arrow_back</i> Back</div>
+					<div class="submenu-title">Settings</div>
+					<div class="submenu-subtitle">Audio, camera, and difficulty preferences</div>
+				</div>
+
+				<div class="submenu-body">
+					<div class="settings-group">
+						<div class="settings-group-title">Gameplay</div>
+						<div class="setting-row">
+							<div class="setting-name">Goal hints</div>
+							<div class="toggle @(_settings.ShowTutorialHints ? "on" : "")" onclick=@ToggleTutorialHints>
+								@(_settings.ShowTutorialHints ? "On" : "Off")
+							</div>
+						</div>
+					</div>
+
+					<div class="settings-group">
+						<div class="settings-group-title">Audio</div>
+						<div class="volume-control">
+							<div class="volume-label-row">
+								<div class="label">Master volume</div>
+								<div class="value">@(GameSettingsUi.VolumePercent( _settings ))%</div>
+							</div>
+							<div class="volume-bar">
+								@for ( var i = 1; i <= 10; i++ )
+								{
+									var segment = i;
+									<div class="segment @GameSettingsUi.VolumeSegmentClass( _settings, segment )"
+										 onclick=@( () => GameSettingsUi.SetVolume( _settings, segment / 10f ) )></div>
+								}
+							</div>
+						</div>
+					</div>
+
+					<div class="settings-group">
+						<div class="settings-group-title">Camera</div>
+						<div class="setting-row">
+							<div class="setting-name">Pan speed</div>
+							<div class="setting-value">@(_settings.CameraPanSpeed.ToString( "0.0" ))×</div>
+							<div class="stepper">
+								<div class="step" onclick=@( () => AdjustPan( -0.1f ) )>−</div>
+								<div class="step" onclick=@( () => AdjustPan( 0.1f ) )>+</div>
+							</div>
+						</div>
+						<div class="setting-row">
+							<div class="setting-name">Zoom speed</div>
+							<div class="setting-value">@(_settings.CameraZoomSpeed.ToString( "0.00" ))</div>
+							<div class="stepper">
+								<div class="step" onclick=@( () => AdjustZoom( -0.02f ) )>−</div>
+								<div class="step" onclick=@( () => AdjustZoom( 0.02f ) )>+</div>
+							</div>
+						</div>
+					</div>
+
+					<div class="settings-group">
+						<div class="settings-group-title">Economy</div>
+						<div class="setting-row">
+							<div class="setting-name">Guest revenue multiplier</div>
+							<div class="setting-value">@(_settings.GuestRevenueMultiplier.ToString( "0.00" ))×</div>
+							<div class="stepper">
+								<div class="step" onclick=@( () => AdjustRevenueMultiplier( -0.1f ) )>−</div>
+								<div class="step" onclick=@( () => AdjustRevenueMultiplier( 0.1f ) )>+</div>
+							</div>
+						</div>
+						<div class="setting-desc">Guest income = visitors × satisfaction × this multiplier.</div>
+						<div class="preset-row">
+							<div class="preset @IsRevenuePreset( 1.0f )" onclick=@( () => SetRevenueMultiplier( 1.0f ) )>Classic</div>
+							<div class="preset @IsRevenuePreset( 1.25f )" onclick=@( () => SetRevenueMultiplier( 1.25f ) )>Balanced</div>
+							<div class="preset @IsRevenuePreset( 1.45f )" onclick=@( () => SetRevenueMultiplier( 1.45f ) )>Relaxed</div>
+							<div class="preset @IsRevenuePreset( 1.75f )" onclick=@( () => SetRevenueMultiplier( 1.75f ) )>Generous</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		}
+	}
+</root>
+
+@code
+{
+	private enum MenuScreen { Home, Continue, NewGame, Settings }
+
+	sealed record NavItem( string Id, string Label, MenuScreen? Screen, bool IsQuit = false );
+
+	static readonly List<NavItem> NavItems = [
+		new( "continue", "CONTINUE", MenuScreen.Continue ),
+		new( "newgame", "NEW GAME", MenuScreen.NewGame ),
+		new( "settings", "SETTINGS", MenuScreen.Settings ),
+		new( "quit", "QUIT", null, true )
+	];
+
+	private MenuScreen _screen = MenuScreen.Home;
+	private string ActiveNav { get; set; } = "continue";
+	private string HoveredNav { get; set; } = "continue";
+	private string HighlightedNav => HoveredNav;
+	private int _selectedSlot = 1;
+	private int _newGameSlot = 1;
+	private GameSettingsData _settings = GameSettings.Current;
+
+	private bool GameStarted => GameManager.Instance?.GameStarted ?? false;
+	private bool CanControlSession => SaveHost.CanStartSession;
+	private bool IsHost => CanControlSession;
+	private int SaveSlotCount => GameConstants.SaveSlotCount;
+
+	private const string MenuBackgroundPath = "ui/menu_background.png";
+
+	private string MenuBackgroundSrc =>
+		FileSystem.Mounted.FileExists( MenuBackgroundPath ) ? MenuBackgroundPath : "textures/grass.png";
+
+	private string MenuBackdropStyle =>
+		$"background-image: url('{MenuBackgroundSrc}'); background-size: 100% 100%; background-repeat: no-repeat; background-position: center center;";
+
+	bool _loggedBackdrop;
+
+	private List<SaveSlotInfo> SaveSlots => SaveSystem.ListSlots();
+
+	private SaveSlotInfo LatestSave => SaveSlots.FirstOrDefault( s => s.Exists );
+
+	private int DailyStreak => DailyBonusSystem.Instance?.LoginStreak ?? 0;
+
+	private string DailyStreakFillWidth =>
+		$"{Math.Clamp( DailyStreak * 10, 8, 100 )}%";
+
+	private string StatusIcon => LatestSave is not null ? "save" : "add_location_alt";
+
+	private string StatusTitle => LatestSave?.ZooName ?? "No save yet";
+
+	private string StatusMeta => LatestSave is not null ? $"LV.{LatestSave.Level}" : "NEW ZOO";
+
+	private string StatusLabel => LatestSave is not null
+		? LatestSave.SavedAtText
+		: "Start a new game to begin your zoo";
+
+	private string StatusFillWidth => LatestSave is not null
+		? $"{Math.Clamp( LatestSave.Level * 8, 12, 100 )}%"
+		: "8%";
+
+	private bool CanContinue =>
+		IsHost && SaveSlots.Any( s => s.SlotId == _selectedSlot && s.Exists );
+
+	private bool CanStartNew => IsHost;
+
+	protected override void OnStart()
+	{
+		RefreshSlots();
+	}
+
+	private void RefreshSlots()
+	{
+		var first = SaveSlots.FirstOrDefault( s => s.Exists );
+		if ( first is not null ) _selectedSlot = first.SlotId;
+	}
+
+	void SetNavHover( string id ) => HoveredNav = id;
+
+	void ResetNavHover() => HoveredNav = ActiveNav;
+
+	const float NavRowHeight = 52f;
+	const float NavRowGap = 4f;
+	const float NavItemStride = NavRowHeight + NavRowGap;
+
+	string NavIndicatorStyle()
+	{
+		var index = NavItems.FindIndex( item => item.Id == HighlightedNav );
+		if ( index < 0 )
+			index = 0;
+
+		var offset = index * NavItemStride;
+		return $"transform: translateY({offset}px);";
+	}
+
+	string NavItemClass( NavItem item ) =>
+		CanActivateNav( item ) ? "" : "disabled";
+
+	bool CanActivateNav( NavItem item ) => true;
+
+	void ActivateNav( NavItem item )
+	{
+		if ( !CanActivateNav( item ) && !item.IsQuit && item.Screen != MenuScreen.Settings )
+			return;
+
+		ActiveNav = item.Id;
+		HoveredNav = item.Id;
+
+		if ( item.IsQuit )
+		{
+			Game.Close();
+			return;
+		}
+
+		if ( item.Screen is MenuScreen screen )
+			OpenScreen( screen );
+	}
+
+	private void GoHome()
+	{
+		_screen = MenuScreen.Home;
+		HoveredNav = ActiveNav;
+	}
+
+	private void OpenScreen( MenuScreen screen )
+	{
+		if ( screen == MenuScreen.Continue )
+			OpenContinue();
+		else if ( screen == MenuScreen.NewGame )
+			OpenNewGame();
+		else
+			_screen = screen;
+	}
+
+	private void OpenContinue()
+	{
+		RefreshSlots();
+		ActiveNav = "continue";
+		HoveredNav = "continue";
+		_screen = MenuScreen.Continue;
+	}
+
+	private void OpenNewGame()
+	{
+		ActiveNav = "newgame";
+		HoveredNav = "newgame";
+		_screen = MenuScreen.NewGame;
+	}
+
+	private void SelectSlot( int slotId ) => _selectedSlot = slotId;
+
+	private void DeleteSaveSlot( int slotId )
+	{
+		if ( !IsHost ) return;
+
+		var slot = SaveSlots.FirstOrDefault( s => s.SlotId == slotId );
+		if ( slot is null || !slot.Exists ) return;
+
+		if ( !SaveSystem.DeleteSlot( slotId ) ) return;
+
+		if ( _selectedSlot == slotId )
+		{
+			var next = SaveSystem.ListSlots().FirstOrDefault( s => s.Exists );
+			_selectedSlot = next?.SlotId ?? 1;
+		}
+
+		StateHasChanged();
+	}
+
+	private void ContinueGame()
+	{
+		if ( !CanContinue ) return;
+		GameManager.Instance?.BeginFromSave( _selectedSlot );
+	}
+
+	private void StartNewGame()
+	{
+		if ( !CanStartNew ) return;
+
+		var slot = SaveSlots.FirstOrDefault( s => s.SlotId == _newGameSlot && !s.IsLegacy );
+		if ( slot?.Exists == true )
+			Log.Info( $"Fauna: overwriting save slot {_newGameSlot}." );
+
+		GameManager.Instance?.BeginNewGame( ZooStarterProfiles.Default, _newGameSlot );
+	}
+
+	private void ToggleTutorialHints()
+	{
+		_settings.ShowTutorialHints = !_settings.ShowTutorialHints;
+		GameSettings.Current = _settings;
+		GameSettings.Save();
+	}
+
+	private void AdjustPan( float delta )
+	{
+		_settings.CameraPanSpeed = (_settings.CameraPanSpeed + delta).Clamp( 0.4f, 2.5f );
+		GameSettings.Current = _settings;
+		GameSettings.Save();
+	}
+
+	private void AdjustZoom( float delta )
+	{
+		_settings.CameraZoomSpeed = (_settings.CameraZoomSpeed + delta).Clamp( 0.05f, 0.35f );
+		GameSettings.Current = _settings;
+		GameSettings.Save();
+	}
+
+	private void AdjustRevenueMultiplier( float delta )
+	{
+		_settings.GuestRevenueMultiplier = (_settings.GuestRevenueMultiplier + delta).Clamp( 0.75f, 2.5f );
+		GameSettings.Current = _settings;
+		GameSettings.Save();
+	}
+
+	private void SetRevenueMultiplier( float multiplier )
+	{
+		_settings.GuestRevenueMultiplier = multiplier;
+		GameSettings.Current = _settings;
+		GameSettings.Save();
+	}
+
+	private string IsRevenuePreset( float multiplier ) =>
+		MathF.Abs( _settings.GuestRevenueMultiplier - multiplier ) < 0.01f ? "active" : "";
+
+	protected override void OnUpdate()
+	{
+		if ( Panel is not null )
+			Panel.Style.PointerEvents = GameStarted ? PointerEvents.None : PointerEvents.All;
+
+		if ( !_loggedBackdrop && !GameStarted )
+		{
+			_loggedBackdrop = true;
+			var exists = FileSystem.Mounted.FileExists( MenuBackgroundPath );
+			Fauna2Debug.Info( "UI",
+				$"MainMenu backdrop path={MenuBackgroundSrc} fileExists={exists}" );
+		}
+
+		if ( !_loggedMenu && Panel is not null )
+		{
+			_loggedMenu = true;
+			Fauna2Debug.Info( "UI", $"MainMenuPanel ready gameStarted={GameStarted} visible={Panel.IsVisible} " +
+				$"screen={_screen} canHost={CanControlSession}" );
+		}
+
+		if ( !GameStarted )
+			UiState.EnsureMenuMode();
+	}
+
+	bool _loggedMenu;
+
+	protected override int BuildHash() => System.HashCode.Combine(
+		(int)_screen, GameStarted, _selectedSlot, _newGameSlot,
+		ActiveNav, HoveredNav,
+		System.HashCode.Combine(
+			_settings.BuildDebug, _settings.CameraPanSpeed, _settings.GuestRevenueMultiplier,
+			_settings.MasterVolume,
+			SaveSlots.Count, SaveSlots.Count( s => s.Exists ),
+			DailyStreak ) );
+}

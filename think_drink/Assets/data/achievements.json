@@ -1,0 +1,41 @@
+{
+
+  "Achievements": [
+
+    { "Id": "first_win", "Title": "First Win", "Description": "Win your first match.", "Icon": "emoji_events", "Trigger": "FirstWin", "Threshold": 1, "XpReward": 100 },
+
+    { "Id": "trivia_master", "Title": "Trivia Master", "Description": "Win 25 matches.", "Icon": "school", "Trigger": "TotalWins", "Threshold": 25, "XpReward": 500 },
+
+    { "Id": "champion", "Title": "Champion", "Description": "Win 50 matches.", "Icon": "military_tech", "Trigger": "TotalWins", "Threshold": 50, "XpReward": 1000 },
+
+    { "Id": "century", "Title": "100 Answers", "Description": "Answer 100 questions correctly.", "Icon": "check_circle", "Trigger": "TotalCorrect", "Threshold": 100, "XpReward": 200 },
+
+    { "Id": "scholar", "Title": "500 Answers", "Description": "Answer 500 questions correctly.", "Icon": "auto_stories", "Trigger": "TotalCorrect", "Threshold": 500, "XpReward": 800 },
+
+    { "Id": "millennium", "Title": "1000 Answers", "Description": "Answer 1000 questions correctly.", "Icon": "stars", "Trigger": "TotalCorrect", "Threshold": 1000, "XpReward": 2000 },
+
+    { "Id": "streak_5", "Title": "Hot Hand", "Description": "Reach a 5 win streak.", "Icon": "whatshot", "Trigger": "WinStreak", "Threshold": 5, "XpReward": 300 },
+
+    { "Id": "streak_10", "Title": "10 Win Streak", "Description": "Reach a 10 win streak.", "Icon": "local_fire_department", "Trigger": "WinStreak", "Threshold": 10, "XpReward": 750 },
+
+    { "Id": "perfect_match", "Title": "Perfect Match", "Description": "Win a match without a wrong answer.", "Icon": "verified", "Trigger": "PerfectMatch", "Threshold": 1, "XpReward": 300 },
+
+    { "Id": "comeback_king", "Title": "Comeback King", "Description": "Win after trailing late.", "Icon": "trending_up", "Trigger": "ComebackWin", "Threshold": 1, "XpReward": 250 },
+
+    { "Id": "speed_demon", "Title": "Speed Demon", "Description": "Answer correctly in under 3 seconds.", "Icon": "bolt", "Trigger": "FastestAnswer", "Threshold": 3, "XpReward": 200 },
+
+    { "Id": "regular", "Title": "Regular", "Description": "Play 50 matches.", "Icon": "groups", "Trigger": "TotalGames", "Threshold": 50, "XpReward": 400 },
+
+    { "Id": "marathon", "Title": "Marathon", "Description": "Play 100 matches.", "Icon": "directions_run", "Trigger": "TotalGames", "Threshold": 100, "XpReward": 900 },
+
+    { "Id": "buzz_king", "Title": "Buzz King", "Description": "Win the buzz 100 times across all matches.", "Icon": "campaign", "Trigger": "BuzzWins", "Threshold": 100, "XpReward": 350 },
+
+    { "Id": "rookie", "Title": "Rookie", "Description": "Win 5 matches.", "Icon": "star", "Trigger": "TotalWins", "Threshold": 5, "XpReward": 150 },
+
+    { "Id": "clean_sweep", "Title": "Clean Sweep", "Description": "Get 5 correct answers in one match.", "Icon": "done_all", "Trigger": "MatchCorrect", "Threshold": 5, "XpReward": 275 }
+
+  ]
+
+}
+
+

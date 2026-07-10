@@ -1,0 +1,9 @@
+{
+	"DisplayName": "Golden",
+	"Description": "A shimmering golden coat. The crown jewel of any collection.",
+	"RarityWeight": 15,
+	"AppealMultiplier": 3.5,
+	"ValueMultiplier": 4,
+	"Tint": "1,0.82,0.22,1",
+	"ApplicableSpecies": []
+}

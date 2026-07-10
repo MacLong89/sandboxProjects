@@ -1,0 +1,3829 @@
+// Thorns modular shell — TAB menu + HUD layer (Companion: ThornsGameShell.cs)
+// Theme tokens (aligned with Tames mockup: charcoal + cyan/teal accent)
+$thorns-ui-teal: rgba(82, 201, 217, 1);
+$thorns-ui-teal-mid: rgba(82, 201, 217, 0.55);
+$thorns-ui-teal-soft: rgba(82, 201, 217, 0.35);
+$thorns-ui-teal-glow: rgba(82, 201, 217, 0.22);
+$thorns-ui-teal-fill: rgba(82, 201, 217, 0.18);
+$thorns-ui-surface-0: rgba(13, 17, 23, 0.94);
+$thorns-ui-surface-1: rgba(16, 18, 24, 0.92);
+$thorns-ui-surface-2: rgba(22, 26, 34, 0.95);
+$thorns-ui-border: rgba(44, 54, 68, 0.92);
+$thorns-ui-border-soft: rgba(52, 60, 74, 0.75);
+$thorns-ui-text: rgba(248, 250, 252, 0.98);
+$thorns-ui-text-muted: rgba(156, 163, 175, 0.9);
+$thorns-ui-radius-panel: 12px;
+$thorns-ui-radius-control: 8px;
+$thorns-ui-transition: 0.16s ease;
+
+.thorns-shell-root {
+	font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+	color: rgba(238, 240, 244, 0.95);
+	width: 100%;
+	height: 100%;
+	flex-direction: column;
+
+	&.menu-open .thorns-shell-hud-masked {
+		opacity: 0;
+		pointer-events: none;
+		transition: opacity 0.2s ease;
+	}
+
+	.thorns-shell-hud-masked {
+		opacity: 1;
+		transition: opacity 0.22s ease;
+	}
+
+	// Top-left stack: TAB hint + server chat (vitals live in .thorns-shell-hud-bottom-left).
+	.thorns-shell-hud-top-left {
+		position: absolute;
+		left: 24px;
+		top: 20px;
+		width: 300px;
+		z-index: 30;
+		flex-direction: column;
+		align-items: stretch;
+		gap: 8px;
+		pointer-events: none;
+	}
+
+	.thorns-shell-tab-menu-hint {
+		flex-shrink: 0;
+		pointer-events: none;
+		flex-direction: row;
+		align-items: center;
+		padding: 8px 12px;
+		border-radius: $thorns-ui-radius-control;
+		background: linear-gradient(165deg, rgba(22, 26, 34, 0.88), rgba(13, 17, 23, 0.84));
+		border: 1px solid $thorns-ui-border-soft;
+		box-shadow: 0 8px 20px rgba(0, 0, 0, 0.38);
+	}
+
+	.thorns-shell-tab-menu-hint__text {
+		font-size: 13px;
+		font-weight: 700;
+		letter-spacing: 0.08em;
+		color: $thorns-ui-text;
+		text-shadow: 0 1px 2px rgba(0, 0, 0, 0.65);
+	}
+
+	&.thorns-shell--dead-player {
+		.thorns-shell-crosshair-layer {
+			opacity: 0;
+		}
+
+		// Hotbar dock uses a high z-index; keep it from intercepting clicks meant for the death overlay.
+		.thorns-shell-toolbar-dock {
+			pointer-events: none;
+		}
+	}
+
+	// Local player damage feedback — opacity driven in C# (ThornsGameShell.NotifyLocalDamageVignette). Above toolbar (120) so edges read clearly.
+	.thorns-shell-damage-vignette.thorns-damage-vignette-root {
+		pointer-events: none;
+		// s&box UI rejects inset box-shadow; use outer glows (same 3-token blur pattern as rest of shell).
+		background-color: rgba(168, 6, 18, 0.44);
+		box-shadow: 0 0 240px rgba(255, 28, 28, 0.98), 0 0 120px rgba(255, 92, 92, 0.88), 0 0 56px rgba(255, 200, 200, 0.72);
+	}
+
+	// Level-up celebration — opacity driven in C# (ThornsGameShell.NotifyLocalLevelUpFlash). Bias glow toward center-left to match the level-up banner card (tame HUD column).
+	.thorns-shell-levelup-vignette.thorns-levelup-vignette-root {
+		pointer-events: none;
+		background-color: rgba(255, 190, 70, 0.1);
+		box-shadow:
+			-80px 0 160px rgba(255, 210, 120, 0.55),
+			-40px 0 100px rgba(255, 230, 160, 0.42),
+			0 0 72px rgba(255, 248, 210, 0.32);
+	}
+}
+
+.thorns-card-panel.thorns-shell-stats-card {
+	background: linear-gradient(165deg, rgba(22, 26, 34, 0.96), rgba(13, 17, 23, 0.94));
+	border-radius: $thorns-ui-radius-panel;
+	border: 1px solid $thorns-ui-border;
+	box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+	padding: 12px;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.thorns-shell-hud-bottom-left {
+	position: absolute;
+	left: 24px;
+	bottom: 24px;
+	top: auto;
+	width: 300px;
+	pointer-events: none;
+	flex-direction: column;
+	gap: 0;
+	align-items: stretch;
+}
+
+// Server chat — under TAB hint; pointer-events on card so TextEntry can focus while HUD stack stays non-blocking.
+.thorns-shell-server-chat {
+	flex-direction: column;
+	flex-shrink: 0;
+	width: 100%;
+	max-height: 168px;
+	padding: 10px 12px 10px;
+	border-radius: $thorns-ui-radius-panel;
+	border: 1px solid $thorns-ui-border-soft;
+	background: linear-gradient(165deg, rgba(18, 22, 30, 0.96), rgba(10, 13, 18, 0.94));
+	box-shadow: 0 8px 22px rgba(0, 0, 0, 0.45);
+	pointer-events: all;
+	gap: 6px;
+}
+
+.thorns-shell-server-chat-cap {
+	font-size: 10px;
+	font-weight: 800;
+	letter-spacing: 0.14em;
+	color: $thorns-ui-teal-mid;
+	line-height: 14px;
+	padding-top: 1px;
+	flex-shrink: 0;
+}
+
+.thorns-shell-server-chat-feed {
+	flex-direction: column;
+	flex-grow: 0;
+	flex-shrink: 0;
+	min-height: 0;
+	max-height: 54px;
+	width: 100%;
+	overflow: hidden;
+	padding: 4px 2px 4px 0;
+	gap: 2px;
+}
+
+.thorns-shell-server-chat-line {
+	font-size: 11px;
+	font-weight: 600;
+	line-height: 16px;
+	color: rgba(220, 226, 236, 0.92);
+	flex-shrink: 0;
+	width: 100%;
+	white-space: normal;
+}
+
+.thorns-shell-server-chat-line--system {
+	color: rgba(140, 170, 195, 0.88);
+	font-style: italic;
+}
+
+.thorns-shell-server-chat-entry {
+	flex-shrink: 0;
+	width: 100%;
+	min-height: 28px;
+	font-size: 12px;
+	font-weight: 600;
+	padding: 6px 8px;
+	border-radius: $thorns-ui-radius-control;
+	background-color: rgba(8, 10, 14, 0.75);
+	border: 1px solid $thorns-ui-border-soft;
+	color: $thorns-ui-text;
+}
+
+.thorns-stat-bar {
+	flex-direction: column;
+	width: 100%;
+}
+
+.thorns-stat-bar-row {
+	flex-direction: row;
+	align-items: center;
+	gap: 8px;
+}
+
+.thorns-stat-bar-cap {
+	font-size: 11px;
+	font-weight: 600;
+	min-width: 56px;
+	color: rgba(220, 224, 230, 0.68);
+}
+
+.thorns-stat-bar-track,
+.thorns-progress {
+	position: relative;
+	min-width: 96px;
+	height: 10px;
+	background-color: rgba(0, 0, 0, 0.35);
+	overflow: hidden;
+	border-radius: 5px;
+	flex-grow: 1;
+}
+
+.thorns-progress-fill {
+	height: 100%;
+	left: 0;
+	top: 0;
+	bottom: 0;
+	background-color: #6e8fad;
+	transition: width 0.22s ease;
+}
+
+.thorns-stat--food .thorns-progress-fill {
+	background-color: #d98a44;
+}
+
+.thorns-stat--water .thorns-progress-fill {
+	background-color: #4896d9;
+}
+
+.thorns-stat--stam .thorns-progress-fill {
+	background-color: #d9bd3a;
+}
+
+.thorns-stat--xp .thorns-progress-fill {
+	background-color: #9b6bcf;
+}
+
+.thorns-stat-bar.thorns-stat-bar--levelup-glow {
+	.thorns-stat-bar-cap {
+		color: rgba(255, 236, 190, 0.98);
+		font-weight: 800;
+	}
+
+	.thorns-progress-fill {
+		background-color: #f0d060;
+		box-shadow: 0 0 14px rgba(255, 220, 110, 0.85);
+	}
+}
+
+.thorns-stat--hp .thorns-progress-fill {
+	background-color: #5cb85c;
+}
+
+// System alerts live in `.thorns-tame-hud-column` with toasts + tame banners (center-left stack).
+.thorns-tame-hud-column > .thorns-shell-alerts {
+	position: relative;
+	left: auto;
+	right: auto;
+	top: auto;
+	width: 100%;
+	max-width: 420px;
+	flex-shrink: 0;
+	align-items: flex-start;
+	justify-content: flex-start;
+	flex-direction: row;
+	pointer-events: none;
+}
+
+.thorns-shell-alert-label {
+	font-size: 13px;
+	font-weight: 700;
+	text-shadow: 0 2px 8px rgba(0, 0, 0, 0.55);
+	max-width: 100%;
+	text-align: left;
+}
+
+.thorns-shell-interaction-hint {
+	padding: 8px 14px;
+	margin: 0;
+	width: 320px;
+	max-width: 420px;
+	flex-shrink: 0;
+	border-radius: 8px;
+	background-color: rgba(16, 22, 35, 0.82);
+	border: 1px solid rgba(255, 255, 255, 0.14);
+	font-size: 14px;
+	font-weight: 700;
+	color: rgba(232, 238, 248, 0.96);
+	text-shadow: 0 2px 10px rgba(0, 0, 0, 0.55);
+	white-space: normal;
+	opacity: 1;
+	text-align: center;
+
+	&.thorns-shell-interaction-hint--hidden {
+		display: none;
+	}
+
+	&.thorns-shell-interaction-hint--world {
+		position: absolute;
+	}
+}
+
+.thorns-tame-hud-column {
+	position: absolute;
+	left: 0;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	pointer-events: none;
+	z-index: 126;
+	flex-direction: column;
+	justify-content: center;
+	align-items: flex-start;
+	padding-left: 28px;
+	padding-right: 12px;
+	gap: 12px;
+}
+
+.thorns-tame-hud-column > .thorns-shell-toast-feed {
+	position: relative;
+	width: 100%;
+	max-width: 420px;
+	flex-shrink: 0;
+	min-width: 0;
+	align-self: flex-start;
+}
+
+.thorns-tame-hud-column > .thorns-tame-hud-root {
+	position: relative;
+	width: 100%;
+	max-width: 420px;
+	min-width: 260px;
+	flex-shrink: 0;
+}
+
+.thorns-tame-hud-root {
+	position: relative;
+	flex-direction: column;
+	background-color: rgba(12, 18, 28, 0.88);
+	border: 1px solid rgba(91, 225, 213, 0.35);
+	border-radius: 12px;
+	box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+	transition: opacity 0.12s ease-out;
+
+	&.thorns-tame-hud-root--hidden {
+		opacity: 0;
+		pointer-events: none;
+	}
+
+	&.thorns-tame-hud-root--radio-look {
+		border-color: rgba(210, 188, 130, 0.75);
+		background-color: rgba(36, 32, 22, 0.94);
+		box-shadow:
+			0 10px 28px rgba(0, 0, 0, 0.45),
+			0 0 20px rgba(210, 180, 100, 0.14);
+
+		.thorns-tame-hud-title {
+			color: rgba(255, 246, 228, 0.98);
+		}
+
+		.thorns-tame-hud-subtitle {
+			color: rgba(230, 222, 200, 0.92);
+		}
+	}
+
+	&.thorns-tame-hud-root--levelup {
+		border-color: rgba(255, 214, 120, 0.75);
+		background-color: rgba(52, 40, 14, 0.94);
+		box-shadow:
+			0 10px 28px rgba(0, 0, 0, 0.45),
+			0 0 28px rgba(255, 200, 80, 0.18);
+
+		.thorns-tame-hud-title {
+			letter-spacing: 0.02em;
+			color: rgba(255, 246, 220, 0.98);
+			text-shadow:
+				0 0 18px rgba(255, 200, 80, 0.45),
+				0 2px 10px rgba(0, 0, 0, 0.55);
+		}
+
+		.thorns-tame-hud-subtitle {
+			color: rgba(255, 244, 220, 0.9);
+		}
+	}
+
+	.thorns-tame-hud-title {
+		font-size: 15px;
+		font-weight: 900;
+		letter-spacing: 0.04em;
+		color: rgba(200, 248, 236, 0.98);
+		text-shadow: 0 2px 10px rgba(0, 0, 0, 0.55);
+		text-align: left;
+		/* px line-height — unitless ratios clip/overlap wrapped Label lines in s&box */
+		line-height: 20px;
+		width: 100%;
+		min-width: 0;
+		flex-shrink: 0;
+	}
+
+	.thorns-tame-hud-subtitle {
+		margin-top: 6px;
+		font-size: 12px;
+		font-weight: 600;
+		line-height: 18px;
+		color: rgba(220, 228, 240, 0.92);
+		text-shadow: 0 1px 6px rgba(0, 0, 0, 0.5);
+		text-align: left;
+		white-space: normal;
+		width: 100%;
+		min-width: 0;
+		flex-shrink: 0;
+		overflow: visible;
+
+		&.thorns-tame-hud-subtitle--hidden {
+			display: none;
+			margin-top: 0;
+		}
+	}
+
+	.thorns-tame-hud-track {
+		background-color: rgba(0, 0, 0, 0.35);
+		border: 1px solid rgba(255, 255, 255, 0.1);
+
+		&.thorns-tame-hud-track--hidden {
+			opacity: 0;
+			height: 0;
+			margin-top: 0;
+			border-width: 0;
+			overflow: hidden;
+		}
+
+		&.thorns-tame-hud-track--pulse {
+			border-color: rgba(120, 240, 220, 0.55);
+			box-shadow: 0 0 14px rgba(91, 225, 213, 0.28);
+		}
+	}
+
+	.thorns-tame-hud-fill {
+		background-color: rgba(72, 188, 168, 0.95);
+		border-radius: 4px;
+		min-width: 0;
+		transition: width 0.05s linear;
+	}
+}
+
+.thorns-hot-tip-feed {
+	align-items: flex-start;
+	flex-direction: column;
+	justify-content: flex-start;
+	max-width: 420px;
+	width: 100%;
+	min-width: 0;
+	flex-shrink: 0;
+	gap: 6px;
+}
+
+.thorns-hot-tip {
+	padding: 8px 12px 8px 10px;
+	border-radius: 9px;
+	background-color: rgba(12, 18, 28, 0.88);
+	border: 1px solid rgba(72, 203, 204, 0.38);
+	border-left: 3px solid #48cbcc;
+	align-self: flex-start;
+	flex-shrink: 0;
+	font-size: 13px;
+	font-weight: 700;
+	color: rgba(232, 244, 246, 0.96);
+	text-shadow: 0 2px 10px rgba(0, 0, 0, 0.55);
+	white-space: normal;
+	opacity: 1;
+	transition: opacity 0.38s ease-out;
+
+	&.thorns-hot-tip--fading {
+		opacity: 0;
+	}
+
+	&.thorns-hot-tip--survival {
+		border-left-color: #48cbcc;
+	}
+
+	&.thorns-hot-tip--building {
+		border-left-color: #6ec9a8;
+	}
+
+	&.thorns-hot-tip--combat {
+		border-left-color: #e8a070;
+	}
+
+	&.thorns-hot-tip--loot {
+		border-left-color: #8cb8e8;
+	}
+
+	&.thorns-hot-tip--exploration {
+		border-left-color: #c8a8e8;
+	}
+
+	&.thorns-hot-tip--taming {
+		border-left-color: #7ed4c4;
+	}
+}
+
+.thorns-shell-toast-feed {
+	align-items: flex-start;
+	flex-direction: column;
+	justify-content: flex-start;
+	max-width: 420px;
+	width: 100%;
+	min-width: 0;
+
+	.thorns-toast {
+		padding: 6px 10px;
+		border-radius: 8px;
+		background-color: rgba(18, 26, 38, 0.92);
+		border: 1px solid rgba(255, 255, 255, 0.12);
+		align-self: flex-start;
+		flex-shrink: 0;
+		font-size: 12px;
+		font-weight: 700;
+		color: rgba(236, 242, 252, 0.96);
+		text-shadow: 0 2px 10px rgba(0, 0, 0, 0.55);
+		white-space: normal;
+
+		&.thorns-toast--positive {
+			border-color: rgba(104, 208, 144, 0.55);
+			background-color: rgba(24, 56, 42, 0.92);
+		}
+
+		&.thorns-toast--combat {
+			border-color: rgba(240, 144, 96, 0.55);
+			background-color: rgba(52, 28, 22, 0.92);
+		}
+
+		&.thorns-toast--loot {
+			border-color: rgba(140, 188, 240, 0.55);
+			background-color: rgba(26, 34, 52, 0.92);
+		}
+
+		&.thorns-toast--hint {
+			border-color: rgba(232, 212, 140, 0.55);
+			background-color: rgba(44, 38, 22, 0.92);
+		}
+
+		&.thorns-toast--economy {
+			border-color: rgba(188, 164, 240, 0.55);
+			background-color: rgba(34, 26, 52, 0.92);
+		}
+
+		&.thorns-toast--levelup {
+			font-size: 13px;
+			font-weight: 900;
+			letter-spacing: 0.02em;
+			border-color: rgba(255, 214, 120, 0.75);
+			background-color: rgba(52, 40, 14, 0.94);
+			color: rgba(255, 246, 220, 0.98);
+			text-shadow: 0 0 18px rgba(255, 200, 80, 0.45), 0 2px 10px rgba(0, 0, 0, 0.55);
+		}
+	}
+}
+
+.thorns-wildlife-tame-loot-card {
+	flex-shrink: 0;
+	border-radius: 8px;
+	text-shadow: 0 2px 12px rgba(0, 0, 0, 0.65);
+}
+
+.thorns-shell-crosshair-layer {
+	position: absolute;
+	left: 0;
+	top: 0;
+	width: 100%;
+	height: 100%;
+	pointer-events: none;
+
+	&.thorns-ch-hidden {
+		opacity: 0;
+	}
+}
+
+// Pin stack to the viewport midpoint (avoids flex half-pixel drift vs hitmarker / camera center).
+.thorns-shell-crosshair-stack {
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%, -50%);
+	flex-direction: column;
+	align-items: center;
+}
+
+.thorns-shell-crosshair-mid {
+	flex-direction: row;
+	align-items: center;
+	justify-content: center;
+}
+
+.thorns-ch-v {
+	min-height: 14px;
+	width: 2px;
+	min-width: 2px;
+}
+
+.thorns-ch-h {
+	min-width: 14px;
+	height: 2px;
+	min-height: 2px;
+}
+
+.thorns-ch-arm {
+	background-color: rgba(240, 244, 250, 0.9);
+	border-radius: 1px;
+}
+
+.thorns-ch-gap {
+	width: 4px;
+	height: 4px;
+}
+
+.thorns-hotbar-row {
+	flex-direction: row;
+	gap: 8px;
+	align-items: center;
+	justify-content: center;
+	flex-wrap: nowrap;
+}
+
+.thorns-shell-hotbar-ammo-row {
+	flex-direction: row;
+	align-items: center;
+	justify-content: center;
+	flex-wrap: nowrap;
+	gap: 14px;
+}
+
+.thorns-shell-toolbar-ammo-mini {
+	font-size: 14px;
+	font-weight: 800;
+	color: rgba(232, 215, 175, 0.95);
+	text-shadow: 0 1px 4px rgba(0, 0, 0, 0.88);
+	letter-spacing: 0.5px;
+	pointer-events: none;
+	white-space: nowrap;
+	min-width: 56px;
+
+	&.thorns-shell-toolbar-ammo-mini--hidden {
+		opacity: 0;
+		width: 0;
+		min-width: 0;
+		overflow: hidden;
+		margin: 0;
+		padding: 0;
+		font-size: 0;
+	}
+}
+
+.thorns-shell-toolbar-dock {
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 14px;
+	align-items: center;
+	justify-content: center;
+	flex-direction: row;
+	z-index: 120;
+
+	&.thorns-shell-toolbar-dock--build-mode-hidden {
+		opacity: 0;
+		pointer-events: none;
+		height: 0;
+		bottom: -99999px;
+		overflow: hidden;
+	}
+}
+
+// Drag ghost host: wraps a cloned ThornsUiGridSlot under the shell cursor (TAB + storage overlay).
+// Stretch to match backpack row layout — centered flex was collapsing the icon stack (zero-height flex child).
+.thorns-shell-inv-drag-ghost-host.thorns-shell-inv-drag-ghost {
+	pointer-events: none;
+	flex-direction: column;
+	justify-content: flex-start;
+	align-items: stretch;
+	overflow: visible;
+	opacity: 0.98;
+
+	.thorns-grid-slot {
+		pointer-events: none;
+		flex-grow: 1;
+		width: 100%;
+		height: 100%;
+		min-width: 0;
+		min-height: 0;
+
+		&:hover,
+		&:active {
+			transform: none;
+			border-color: $thorns-ui-border-soft;
+			box-shadow: none;
+		}
+	}
+
+	// Match .thorns-inv-grid-row cell padding so icons read like the backpack.
+	.thorns-grid-slot:not(.thorns-grid-slot--toolbar) {
+		align-self: stretch;
+		justify-content: flex-start;
+		padding: 5px 5px 6px;
+		overflow: hidden;
+	}
+
+	.thorns-grid-slot--toolbar {
+		flex-grow: 0;
+		align-self: center;
+	}
+
+	&.thorns-shell-inv-drag-ghost--armor .thorns-grid-slot {
+		border-color: rgba(118, 170, 255, 0.55);
+	}
+}
+
+.thorns-grid-slot {
+	position: relative;
+	min-width: 48px;
+	min-height: 48px;
+	background-color: $thorns-ui-surface-2;
+	border: 1px solid $thorns-ui-border-soft;
+	border-radius: $thorns-ui-radius-control;
+	padding: 4px;
+	flex-direction: column;
+	justify-content: flex-start;
+	align-items: stretch;
+	overflow: hidden;
+	transition: transform $thorns-ui-transition, filter $thorns-ui-transition, border-color $thorns-ui-transition,
+		box-shadow $thorns-ui-transition;
+
+	&:hover {
+		filter: brightness(1.08);
+		transform: scale(1.02);
+		border-color: $thorns-ui-teal-soft;
+		box-shadow: 0 0 14px $thorns-ui-teal-glow;
+	}
+
+	&:active {
+		transform: scale(0.98);
+	}
+
+	&.thorns-grid-slot--selected {
+		border-color: $thorns-ui-teal-mid;
+		box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+	}
+}
+
+.thorns-grid-slot-icon-stack {
+	flex-direction: column;
+	flex-grow: 1;
+	flex-shrink: 1;
+	min-height: 0;
+	width: 100%;
+	position: relative;
+	align-items: stretch;
+	justify-content: center;
+}
+
+.thorns-grid-slot-icon-host {
+	flex-grow: 1;
+	align-self: stretch;
+	min-height: 0;
+	width: 100%;
+	border-radius: 6px;
+	overflow: hidden;
+	align-items: center;
+	justify-content: center;
+	position: relative;
+}
+
+.thorns-grid-slot-icon-img {
+	width: 100%;
+	height: 100%;
+	background-position: center center;
+	background-repeat: no-repeat;
+	background-size: contain;
+
+	&.thorns-grid-slot-icon-img--hidden {
+		display: none;
+	}
+}
+
+.thorns-grid-slot-icon-abbr {
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: 0;
+	bottom: 0;
+	align-items: center;
+	justify-content: center;
+	text-align: center;
+	font-size: 13px;
+	font-weight: 900;
+	letter-spacing: 0.04em;
+	color: rgba(236, 240, 248, 0.95);
+	text-shadow: 0 1px 4px rgba(0, 0, 0, 0.82);
+	z-index: 1;
+	pointer-events: none;
+
+	&.thorns-grid-slot-icon-abbr--hidden {
+		opacity: 0;
+	}
+
+	&.thorns-grid-slot-icon-abbr--glyph {
+		font-size: 22px;
+		font-weight: 500;
+		letter-spacing: 0;
+	}
+}
+
+.thorns-grid-slot-qty {
+	position: absolute;
+	right: 2px;
+	bottom: 1px;
+	font-size: 10px;
+	font-weight: 800;
+	color: rgba(246, 247, 252, 0.95);
+	text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+	z-index: 2;
+	pointer-events: none;
+}
+
+.thorns-grid-slot-dur {
+	flex-shrink: 0;
+	width: 100%;
+	height: 5px;
+	margin-top: 3px;
+	border-radius: 3px;
+	background-color: rgba(40, 46, 58, 0.98);
+	border: 1px solid rgba(110, 122, 142, 0.85);
+	overflow: hidden;
+
+	&.thorns-grid-slot-dur--hidden {
+		display: none;
+		height: 0;
+		margin-top: 0;
+		padding: 0;
+		border: none;
+		overflow: hidden;
+	}
+}
+
+.thorns-grid-slot-dur-fill {
+	height: 100%;
+	border-radius: 2px;
+	// Fill color set in ThornsUiGridSlot.ApplyDurabilityBar (solid — gradients rarely paint on thin strips).
+	background-color: rgba(90, 235, 200, 1);
+}
+
+.thorns-grid-slot--toolbar {
+	width: 56px;
+	min-width: 56px;
+	max-width: 56px;
+	height: 56px;
+	min-height: 56px;
+	max-height: 56px;
+	flex-shrink: 0;
+	padding: 4px;
+
+	.thorns-grid-slot-bind {
+		position: absolute;
+		left: 4px;
+		top: 2px;
+		font-size: 9px;
+		font-weight: 800;
+		color: rgba(200, 206, 218, 0.75);
+		z-index: 3;
+		text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
+		pointer-events: none;
+	}
+}
+
+.thorns-shell-menu-layer {
+	position: absolute;
+	left: 0;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	padding: 18px 20px 112px;
+	z-index: 100;
+	flex-direction: column;
+	align-items: stretch;
+	justify-content: flex-start;
+	width: 100%;
+	height: 100%;
+
+	&.thorns-shell-menu-hidden {
+		display: none;
+		pointer-events: none;
+	}
+}
+
+.thorns-shell-menu-backdrop {
+	position: absolute;
+	left: 0;
+	top: 0;
+	right: 0;
+	bottom: 112px;
+	background-color: rgba(5, 7, 10, 0.72);
+}
+
+.thorns-shell-menu-card {
+	flex-grow: 1;
+	flex-shrink: 1;
+	flex-basis: 0;
+	min-height: 0;
+	width: 100%;
+	margin: 10px 4px 0;
+	flex-direction: column;
+	background: linear-gradient(165deg, rgba(22, 26, 34, 0.98), $thorns-ui-surface-0);
+	border: 1px solid $thorns-ui-border;
+	box-shadow: 0 28px 64px rgba(0, 0, 0, 0.62);
+	border-radius: $thorns-ui-radius-panel;
+	overflow: hidden;
+	align-self: stretch;
+}
+
+.thorns-shell-menu-head {
+	flex-direction: row;
+	align-items: center;
+	justify-content: space-between;
+	flex-wrap: wrap;
+	flex-shrink: 0;
+	padding: 16px 18px 14px;
+	border-bottom: 1px solid $thorns-ui-border;
+	box-shadow: 0 1px 0 rgba(82, 201, 217, 0.12);
+	background-color: rgba(18, 22, 28, 0.98);
+	gap: 10px;
+}
+
+.thorns-shell-brand {
+	font-size: 12px;
+	font-weight: 800;
+	letter-spacing: 0.2em;
+	color: $thorns-ui-text;
+	flex-shrink: 0;
+}
+
+.thorns-shell-hint {
+	font-size: 10px;
+	color: $thorns-ui-text-muted;
+	flex-shrink: 0;
+}
+
+.thorns-shell-tabstrip {
+	flex-direction: row;
+	gap: 6px;
+	align-items: center;
+	flex-wrap: wrap;
+	flex-shrink: 0;
+}
+
+.thorns-tab-btn {
+	cursor: pointer;
+	padding: 8px 14px;
+	border-radius: $thorns-ui-radius-control;
+	flex-shrink: 0;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	transition: transform $thorns-ui-transition, filter $thorns-ui-transition, box-shadow $thorns-ui-transition,
+		border-color $thorns-ui-transition, background-color $thorns-ui-transition;
+	border: 1px solid $thorns-ui-border-soft;
+	background-color: rgba(28, 32, 40, 0.55);
+
+	&:hover:not(.active) {
+		transform: scale(1.02);
+		filter: brightness(1.06);
+		border-color: $thorns-ui-teal-soft;
+		background-color: rgba(36, 44, 52, 0.75);
+		box-shadow: 0 0 14px $thorns-ui-teal-glow;
+	}
+
+	&:active {
+		transform: scale(0.97);
+	}
+}
+
+.thorns-tab-btn-label {
+	font-weight: 600;
+	font-size: 11px;
+	min-height: 18px;
+	flex-shrink: 0;
+	font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+	color: rgba(230, 236, 244, 0.9);
+	letter-spacing: 0.06em;
+	padding-top: 2px;
+	padding-bottom: 2px;
+}
+
+.thorns-tab-btn.active .thorns-tab-btn-label {
+	color: $thorns-ui-text;
+	font-weight: 800;
+}
+
+// All main tabs share the same teal accent as Tames (per unified shell theme)
+.thorns-tab-accent-inv,
+.thorns-tab-accent-skills,
+.thorns-tab-accent-tames,
+.thorns-tab-accent-guild,
+.thorns-tab-accent-journal,
+.thorns-tab-accent-settings {
+	border-color: rgba(52, 60, 74, 0.85);
+
+	&.active {
+		background-color: $thorns-ui-teal-fill;
+		border-color: $thorns-ui-teal-mid;
+		box-shadow: 0 0 18px $thorns-ui-teal-glow;
+	}
+}
+
+.thorns-shell-tab-bodies-host {
+	flex-grow: 1;
+	flex-shrink: 1;
+	flex-basis: 0;
+	flex-direction: column;
+	min-height: 0;
+	width: 100%;
+	padding: 14px 12px 12px;
+	overflow-x: hidden;
+	overflow-y: hidden;
+	align-items: stretch;
+	font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+	color: $thorns-ui-text;
+}
+
+.thorns-tab-body--inactive {
+	display: none;
+	flex-grow: 0;
+	flex-shrink: 0;
+	overflow: hidden;
+	min-height: 0;
+}
+
+.thorns-tab-inventory,
+.thorns-tab-skills,
+.thorns-tab-tames,
+.thorns-tab-guild,
+.thorns-tab-journal,
+.thorns-tab-settings {
+	flex-grow: 1;
+	flex-shrink: 1;
+	flex-basis: 0;
+	flex-direction: column;
+	min-height: 0;
+	width: 100%;
+	align-self: stretch;
+}
+
+.thorns-tab-section-title {
+	font-size: 11px;
+	font-weight: 800;
+	letter-spacing: 0.14em;
+	min-height: 22px;
+	flex-shrink: 0;
+	font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+	color: $thorns-ui-text;
+	padding-top: 6px;
+	padding-bottom: 8px;
+	margin-bottom: 4px;
+}
+
+.thorns-tab-context-placeholder {
+	font-size: 13px;
+	font-weight: 500;
+	font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+	color: $thorns-ui-text-muted;
+	flex-shrink: 0;
+}
+
+.thorns-inv-ctx-title {
+	font-weight: 800;
+	font-size: 13px;
+	font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+	color: $thorns-ui-text;
+	letter-spacing: 0.02em;
+	min-height: 22px;
+	flex-shrink: 0;
+	margin-top: 2px;
+	margin-bottom: 8px;
+	padding-top: 2px;
+}
+
+.thorns-inv-ctx-stats {
+	font-size: 13px;
+	font-weight: 500;
+	font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+	color: $thorns-ui-text-muted;
+	flex-shrink: 0;
+	margin-bottom: 6px;
+	padding-top: 1px;
+}
+
+// —— Inventory inspect column (item card mockup) ——
+$thorns-inv-gold: rgba(236, 196, 108, 0.95);
+$thorns-inv-cyan: rgba(100, 210, 235, 0.95);
+
+.thorns-inv-inspect-root {
+	flex-direction: column;
+	flex-grow: 0;
+	flex-shrink: 0;
+	width: 100%;
+	overflow: visible;
+	padding-bottom: 4px;
+}
+
+.thorns-inv-inspect-head {
+	flex-direction: row;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 10px;
+}
+
+.thorns-inv-inspect-head-left {
+	flex-direction: column;
+	flex-grow: 1;
+	min-width: 0;
+}
+
+.thorns-inv-inspect-title {
+	font-size: 17px;
+	font-weight: 800;
+	letter-spacing: 0.06em;
+	/* Unitless ratios mis-resolve on s&box Labels — use px for stable line boxes */
+	line-height: 24px;
+	color: $thorns-ui-text;
+	font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+	padding-top: 1px;
+}
+
+.thorns-inv-inspect-head-right {
+	flex-direction: column;
+	align-items: flex-end;
+	flex-shrink: 0;
+}
+
+.thorns-inv-inspect-meta {
+	font-size: 11px;
+	font-weight: 700;
+	color: rgba(200, 208, 220, 0.75);
+	letter-spacing: 0.04em;
+	line-height: 17px;
+}
+
+.thorns-inv-inspect-sub {
+	font-size: 12px;
+	font-weight: 600;
+	line-height: 19px;
+	margin-top: 4px;
+	flex-shrink: 0;
+}
+
+.thorns-inv-inspect-craft-note {
+	font-size: 11px;
+	font-weight: 600;
+	color: rgba(200, 200, 120, 0.9);
+	margin-top: 6px;
+	font-style: italic;
+}
+
+.thorns-inv-inspect-hero-row {
+	flex-direction: row;
+	justify-content: center;
+	align-items: center;
+	flex-shrink: 0;
+	margin-top: 6px;
+	margin-bottom: 4px;
+}
+
+.thorns-inv-inspect-hero-frame {
+	flex-direction: column;
+	width: 100%;
+	max-width: 280px;
+	/* Tight horizontal padding + tall inner icon — maximize drawable area vs rounded-corner clip */
+	min-height: 256px;
+	flex-shrink: 0;
+	overflow: visible;
+	padding: 10px 8px 12px;
+	/* Shallower radius than controls — less aggressive masking of tall background textures */
+	border-radius: 6px;
+	border: 1px solid $thorns-ui-border-soft;
+	background: linear-gradient(180deg, rgba(32, 40, 52, 0.65), rgba(14, 16, 22, 0.92));
+	align-items: stretch;
+	justify-content: center;
+}
+
+.thorns-inv-inspect-hero-glyph-wrap {
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	min-height: 200px;
+	flex-shrink: 0;
+	overflow: visible;
+}
+
+.thorns-inv-inspect-hero-icon-img {
+	width: 100%;
+	align-self: stretch;
+	min-height: 232px;
+	height: 232px;
+	flex-shrink: 0;
+	overflow: visible;
+	background-position: center center;
+	background-repeat: no-repeat;
+	background-size: contain;
+}
+
+.thorns-inv-inspect-hero-glyph {
+	font-size: 112px;
+	line-height: 144px;
+	height: 144px;
+	min-height: 144px;
+	text-align: center;
+	overflow: visible;
+	white-space: nowrap;
+	padding: 0 4px;
+	margin: -42px 0 0;
+}
+
+.thorns-inv-inspect-rule {
+	height: 2px;
+	margin: 6px 0 8px;
+	flex-shrink: 0;
+	background: linear-gradient(
+		90deg,
+		transparent,
+		rgba(80, 150, 220, 0.55) 15%,
+		rgba(80, 150, 220, 0.55) 85%,
+		transparent
+	);
+}
+
+.thorns-inv-inspect-stats {
+	flex-direction: column;
+	flex-shrink: 0;
+	overflow: visible;
+	gap: 2px;
+}
+
+.thorns-inv-inspect-stat-row {
+	flex-direction: row;
+	align-items: flex-start;
+	margin-bottom: 6px;
+}
+
+.thorns-inv-inspect-stat-key {
+	font-size: 10px;
+	font-weight: 800;
+	letter-spacing: 0.12em;
+	color: rgba(200, 206, 216, 0.78);
+	min-width: 86px;
+	flex-shrink: 0;
+}
+
+.thorns-inv-inspect-stat-track {
+	flex-grow: 1;
+	height: 6px;
+	min-width: 40px;
+	margin-left: 6px;
+	margin-right: 8px;
+	border-radius: 3px;
+	background-color: rgba(10, 12, 16, 0.95);
+	border: 1px solid rgba(48, 56, 68, 0.9);
+	overflow: hidden;
+}
+
+.thorns-inv-inspect-stat-fill {
+	height: 100%;
+	background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(220, 226, 236, 0.82));
+	border-radius: 2px;
+}
+
+.thorns-inv-inspect-stat-val {
+	font-size: 12px;
+	font-weight: 700;
+	color: rgba(236, 240, 248, 0.92);
+	min-width: 44px;
+	text-align: right;
+	flex-shrink: 0;
+}
+
+.thorns-inv-inspect-section-title {
+	font-size: 11px;
+	font-weight: 800;
+	letter-spacing: 0.16em;
+	line-height: 19px;
+	min-height: 24px;
+	color: $thorns-inv-gold;
+	flex-shrink: 0;
+	font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+	margin-top: 10px;
+	margin-bottom: 5px;
+	padding-top: 2px;
+	padding-bottom: 2px;
+	overflow: visible;
+}
+
+.thorns-inv-inspect-mods {
+	flex-direction: row;
+	justify-content: space-between;
+	gap: 8px;
+}
+
+.thorns-inv-inspect-mod-slot {
+	flex-direction: column;
+	align-items: center;
+	flex-grow: 1;
+	min-width: 52px;
+	padding: 8px 4px;
+	border-radius: $thorns-ui-radius-control;
+	border: 1px solid rgba(90, 100, 118, 0.65);
+	background-color: rgba(18, 22, 30, 0.75);
+}
+
+.thorns-inv-inspect-mod-icon {
+	font-size: 18px;
+	opacity: 0.85;
+}
+
+.thorns-inv-inspect-mod-cap {
+	font-size: 9px;
+	font-weight: 700;
+	letter-spacing: 0.06em;
+	color: rgba(190, 198, 210, 0.8);
+	margin-top: 4px;
+	text-align: center;
+}
+
+.thorns-inv-inspect-effects {
+	flex-direction: column;
+	flex-shrink: 0;
+	overflow: visible;
+	padding-top: 0;
+	padding-bottom: 8px;
+	gap: 2px;
+}
+
+.thorns-inv-inspect-effect-row {
+	flex-direction: row;
+	align-items: flex-start;
+	flex-shrink: 0;
+	overflow: visible;
+	padding-top: 0;
+	// C# applies margin-bottom; keep non-zero fallback so stylesheet never collapses gaps
+	min-height: 1px;
+}
+
+.thorns-inv-inspect-effect-bullet {
+	font-size: 11px;
+	min-width: 18px;
+	margin-right: 8px;
+	flex-shrink: 0;
+	margin-top: 2px;
+	line-height: 18px;
+	overflow: visible;
+}
+
+.thorns-inv-inspect-effect-bullet--orange {
+	color: rgba(255, 160, 96, 0.95);
+}
+
+.thorns-inv-inspect-effect-bullet--cyan {
+	color: $thorns-inv-cyan;
+}
+
+.thorns-inv-inspect-effect-bullet--blue {
+	color: rgba(120, 170, 255, 0.92);
+}
+
+.thorns-inv-inspect-effect-bullet--muted {
+	color: rgba(140, 148, 160, 0.75);
+}
+
+.thorns-inv-inspect-effect-text {
+	font-size: 12px;
+	font-weight: 500;
+	line-height: 21px;
+	min-height: 21px;
+	font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+	color: rgba(210, 216, 226, 0.9);
+	flex-grow: 1;
+	flex-shrink: 1;
+	min-width: 0;
+	white-space: pre-line;
+	margin-right: 10px;
+	padding: 3px 2px 3px 0;
+	overflow: visible;
+}
+
+.thorns-inv-inspect-effect-val {
+	font-size: 12px;
+	font-weight: 700;
+	line-height: 21px;
+	min-height: 21px;
+	font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+	flex-shrink: 1;
+	min-width: 0;
+	max-width: 52%;
+	text-align: right;
+	white-space: normal;
+	padding: 3px 0 3px 8px;
+	overflow: visible;
+}
+
+.thorns-inv-inspect-effect-val--orange {
+	color: rgba(255, 160, 96, 0.95);
+}
+
+.thorns-inv-inspect-effect-val--cyan {
+	color: $thorns-inv-cyan;
+}
+
+.thorns-inv-inspect-effect-val--blue {
+	color: rgba(120, 190, 255, 0.95);
+}
+
+.thorns-inv-inspect-effect-val--muted {
+	color: rgba(160, 168, 182, 0.85);
+}
+
+.thorns-inv-inspect-effect-empty {
+	font-size: 12px;
+	font-style: italic;
+	line-height: 19px;
+	padding-top: 2px;
+	color: rgba(150, 158, 172, 0.75);
+	overflow: visible;
+}
+
+.thorns-inv-inspect-spacer {
+	flex-grow: 0;
+	flex-shrink: 0;
+	min-height: 8px;
+}
+
+.thorns-inv-inspect-flavor {
+	font-size: 11px;
+	font-style: italic;
+	font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+	color: rgba(130, 138, 152, 0.88);
+	margin-top: 4px;
+	margin-bottom: 2px;
+	padding-top: 6px;
+	line-height: 18px;
+	min-height: 20px;
+	flex-shrink: 0;
+	overflow: visible;
+}
+
+.thorns-inv-inspect-actions {
+	flex-direction: row;
+	margin-top: 10px;
+	gap: 10px;
+	flex-shrink: 0;
+}
+
+.thorns-inv-inspect-btn {
+	flex-grow: 1;
+	justify-content: center;
+	align-items: center;
+	padding: 10px 8px;
+	border-radius: $thorns-ui-radius-control;
+	cursor: pointer;
+	transition: filter $thorns-ui-transition, opacity $thorns-ui-transition;
+}
+
+.thorns-inv-inspect-btn--equip {
+	background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(230, 234, 240, 0.92));
+	border: 1px solid rgba(255, 255, 255, 0.35);
+	box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+
+	.thorns-inv-inspect-btn-label {
+		color: rgba(12, 14, 18, 0.92);
+		font-weight: 900;
+		letter-spacing: 0.12em;
+		font-size: 10px;
+	}
+}
+
+.thorns-inv-inspect-btn--use {
+	background: linear-gradient(180deg, rgba(92, 220, 200, 0.35), rgba(42, 150, 140, 0.28));
+	border: 1px solid rgba(82, 201, 217, 0.55);
+	box-shadow: 0 3px 12px rgba(0, 0, 0, 0.32);
+
+	.thorns-inv-inspect-btn-label {
+		color: rgba(230, 252, 248, 0.96);
+		font-weight: 900;
+		letter-spacing: 0.1em;
+		font-size: 10px;
+		text-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+	}
+
+	&:not(.thorns-inv-inspect-btn--disabled):hover {
+		filter: brightness(1.08);
+	}
+}
+
+.thorns-inv-inspect-btn--ghost {
+	background-color: rgba(22, 26, 34, 0.92);
+	border: 1px solid $thorns-ui-border-soft;
+
+	.thorns-inv-inspect-btn-label {
+		color: rgba(236, 240, 248, 0.9);
+		font-weight: 800;
+		letter-spacing: 0.1em;
+		font-size: 10px;
+	}
+}
+
+.thorns-inv-inspect-btn--disabled {
+	opacity: 0.45;
+	cursor: default;
+	filter: grayscale(0.25);
+}
+
+.thorns-inv-inspect-btn-label {
+	font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+}
+
+
+.thorns-tab-inventory-shell {
+	flex-direction: row;
+	flex-grow: 1;
+	min-height: 0;
+	flex-shrink: 1;
+	align-items: stretch;
+	overflow: hidden;
+	flex-wrap: nowrap;
+	gap: 16px;
+	// Columns: Inventory 40%, Inspect 30%, Crafting 30% via grow ratio 4:3:3
+}
+
+.thorns-tab-inventory-left {
+	flex-direction: column;
+	flex-grow: 4;
+	flex-shrink: 1;
+	flex-basis: 0;
+	min-height: 0;
+	min-width: 0;
+	gap: 8px;
+
+	> .thorns-tab-section-title {
+		flex-shrink: 0;
+	}
+}
+
+// Wraps backpack grid + armor + in-menu toolbar — one flex stack so pointer routing matches the screenshot column.
+.thorns-inv-dnd-stack {
+	flex-direction: column;
+	flex-grow: 1;
+	flex-shrink: 1;
+	flex-basis: 0;
+	min-height: 0;
+	width: 100%;
+	align-self: stretch;
+	gap: 8px;
+}
+
+.thorns-tab-inventory-context > .thorns-tab-section-title,
+.thorns-tab-inventory-crafting > .thorns-tab-section-title,
+.thorns-tab-inventory-crafting > .thorns-inv-craft-tier {
+	flex-shrink: 0;
+}
+
+.thorns-inv-grid-wrap {
+	flex-direction: column;
+	padding: 10px 8px 14px;
+	border-radius: $thorns-ui-radius-panel;
+	background-color: $thorns-ui-surface-1;
+	border: 1px solid $thorns-ui-border;
+	overflow-x: hidden;
+	overflow-y: scroll;
+	flex-grow: 1;
+	flex-shrink: 1;
+	flex-basis: 0;
+	min-height: 0;
+	width: 100%;
+	align-self: stretch;
+}
+
+// DnD scroll lock: set BackpackGridWrap.Style.Overflow in ShellSetBackpackGridScrollLocked — s&box stylesheet rejects overflow hidden !important.
+
+.thorns-inv-grid-row {
+	flex-direction: row;
+	align-items: stretch;
+	gap: 6px;
+	flex-grow: 0;
+	flex-shrink: 0;
+	flex-basis: auto;
+	min-height: 76px;
+	width: 100%;
+}
+
+.thorns-tab-inventory-armor-block,
+.thorns-tab-inventory-toolbar-block {
+	flex-direction: column;
+	flex-shrink: 0;
+	gap: 6px;
+	width: 100%;
+
+	> .thorns-tab-section-title {
+		margin-bottom: 0;
+		padding-bottom: 2px;
+	}
+}
+
+.thorns-armor-equip-row {
+	flex-direction: row;
+	flex-wrap: wrap;
+	gap: 8px;
+	align-items: stretch;
+}
+
+.thorns-armor-equip-slot {
+	flex-direction: column;
+	min-width: 72px;
+	flex-grow: 1;
+	flex-shrink: 0;
+	flex-basis: 72px;
+	max-width: 120px;
+	padding: 10px 8px;
+	border-radius: $thorns-ui-radius-control;
+	border: 1px solid $thorns-ui-border-soft;
+	background-color: $thorns-ui-surface-2;
+	align-items: center;
+	gap: 4px;
+	cursor: pointer;
+	transition: filter $thorns-ui-transition, box-shadow $thorns-ui-transition, border-color $thorns-ui-transition,
+		background-color $thorns-ui-transition;
+
+	&:hover {
+		filter: brightness(1.06);
+		border-color: $thorns-ui-teal-soft;
+		box-shadow: 0 0 12px $thorns-ui-teal-glow;
+	}
+
+	&.thorns-armor-equip-slot--hover {
+		border-color: $thorns-ui-teal-mid;
+		box-shadow: 0 0 16px $thorns-ui-teal-glow;
+	}
+
+	&.thorns-armor-equip-slot--drag-source {
+		border-color: rgba(208, 135, 112, 0.95);
+		box-shadow: 0 0 0 2px rgba(208, 135, 112, 0.45);
+	}
+
+	&.thorns-armor-equip-slot--selected {
+		border-color: rgba(91, 225, 213, 0.9);
+		box-shadow: 0 0 0 1px rgba(91, 225, 213, 0.45), 0 0 16px rgba(91, 225, 213, 0.22);
+	}
+}
+
+.thorns-armor-equip-cap {
+	font-size: 9px;
+	font-weight: 700;
+	color: rgba(200, 206, 218, 0.72);
+	letter-spacing: 0.08em;
+}
+
+.thorns-armor-equip-icon-host {
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	width: 40px;
+	height: 40px;
+	flex-shrink: 0;
+	border-radius: 5px;
+	overflow: hidden;
+}
+
+.thorns-armor-equip-icon {
+	font-size: 22px;
+	text-align: center;
+}
+
+.thorns-armor-equip-icon--hidden {
+	display: none;
+}
+
+.thorns-armor-equip-icon-img {
+	width: 34px;
+	height: 34px;
+	background-size: contain;
+	background-repeat: no-repeat;
+	background-position: center;
+	flex-shrink: 0;
+}
+
+.thorns-armor-equip-icon-img--hidden {
+	display: none;
+}
+
+.thorns-armor-equip-dur {
+	font-size: 9px;
+	color: rgba(220, 224, 230, 0.65);
+}
+
+.thorns-inv-menu-toolbar-row {
+	flex-direction: row;
+	flex-wrap: wrap;
+	gap: 8px;
+	align-items: center;
+	justify-content: flex-start;
+}
+
+.thorns-grid-slot--drag-source {
+	border-color: rgba(208, 135, 112, 0.95) !important;
+	box-shadow: 0 0 0 2px rgba(208, 135, 112, 0.4);
+}
+
+.thorns-inv-grid-row .thorns-grid-slot:not(.thorns-grid-slot--toolbar) {
+	flex-grow: 1;
+	flex-shrink: 0;
+	flex-basis: 0;
+	align-self: stretch;
+	min-width: 0;
+	min-height: 76px;
+	width: auto;
+	height: auto;
+	padding: 5px 5px 6px;
+	justify-content: flex-start;
+	overflow: hidden;
+
+	.thorns-grid-slot-icon-abbr.thorns-grid-slot-icon-abbr--glyph {
+		font-size: 28px;
+	}
+}
+
+.thorns-tab-inventory-context {
+	flex-grow: 3;
+	flex-shrink: 1;
+	flex-basis: 0;
+	min-width: 0;
+	align-self: stretch;
+	min-height: 0;
+	padding: 14px 14px 16px;
+	background-color: $thorns-ui-surface-1;
+	border: 1px solid $thorns-ui-border;
+	border-radius: $thorns-ui-radius-panel;
+	flex-direction: column;
+	gap: 10px;
+
+	// Title is first child — avoid doubling gap with section-title margin
+	> .thorns-tab-section-title {
+		margin-bottom: 0;
+		padding-bottom: 2px;
+	}
+}
+
+.thorns-tab-context-body {
+	flex-grow: 1;
+	min-height: 0;
+	flex-shrink: 1;
+	overflow-x: hidden;
+	overflow-y: scroll;
+	flex-direction: column;
+	gap: 0;
+	padding: 8px 6px 18px;
+}
+
+.thorns-tab-inventory-crafting {
+	flex-grow: 3;
+	flex-shrink: 1;
+	flex-basis: 0;
+	min-width: 0;
+	flex-direction: column;
+	min-height: 0;
+	gap: 10px;
+	padding: 14px 14px 16px;
+	background-color: $thorns-ui-surface-1;
+	border: 1px solid $thorns-ui-border;
+	border-radius: $thorns-ui-radius-panel;
+
+	> .thorns-tab-section-title {
+		margin-bottom: 0;
+		padding-bottom: 2px;
+	}
+}
+
+.thorns-tab-inventory-left > .thorns-tab-section-title {
+	margin-bottom: 0;
+	padding-bottom: 4px;
+}
+
+.thorns-inv-craft-tier {
+	font-size: 12px;
+	font-weight: 600;
+	font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+	color: $thorns-ui-text-muted;
+	flex-shrink: 0;
+}
+
+.thorns-inv-craft-filters {
+	flex-direction: row;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin-top: 8px;
+	margin-bottom: 8px;
+	flex-shrink: 0;
+}
+
+.thorns-inv-craft-filter-btn {
+	padding: 6px 8px;
+	border-radius: 6px;
+	background-color: rgba(24, 28, 36, 0.86);
+	border: 1px solid $thorns-ui-border-soft;
+	cursor: pointer;
+	transition: background-color $thorns-ui-transition, border-color $thorns-ui-transition, filter $thorns-ui-transition;
+
+	&:hover {
+		border-color: $thorns-ui-teal-soft;
+		filter: brightness(1.08);
+	}
+
+	&.thorns-inv-craft-filter-btn--active {
+		background-color: rgba(82, 201, 217, 0.2);
+		border-color: rgba(82, 201, 217, 0.62);
+		box-shadow: 0 0 12px $thorns-ui-teal-glow;
+	}
+}
+
+.thorns-inv-craft-filter-label {
+	font-size: 9px;
+	font-weight: 800;
+	letter-spacing: 0.06em;
+	font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+	color: rgba(190, 198, 210, 0.9);
+	white-space: nowrap;
+}
+
+.thorns-inv-craft-filter-btn--active .thorns-inv-craft-filter-label {
+	color: rgba(230, 252, 255, 0.98);
+}
+
+.thorns-inv-craft-scroll {
+	flex-grow: 1;
+	min-height: 0;
+	flex-shrink: 1;
+	flex-direction: column;
+	padding: 8px 6px 12px 0;
+}
+
+.thorns-inv-craft-recipe-header {
+	flex-direction: row;
+	align-items: center;
+	gap: 10px;
+	flex-shrink: 0;
+}
+
+.thorns-inv-craft-recipe-icon {
+	width: 44px;
+	height: 44px;
+	min-width: 44px;
+	min-height: 44px;
+	flex-shrink: 0;
+	position: relative;
+	border-radius: $thorns-ui-radius-control;
+	background-color: rgba(18, 24, 28, 0.92);
+	border: 1px solid $thorns-ui-border-soft;
+	overflow: hidden;
+}
+
+.thorns-inv-craft-recipe-icon-img {
+	position: absolute;
+	left: 0;
+	top: 0;
+	width: 100%;
+	height: 100%;
+	background-size: contain;
+	background-repeat: no-repeat;
+	background-position: center;
+}
+
+.thorns-inv-craft-recipe-icon-glyph {
+	position: absolute;
+	left: 0;
+	top: 0;
+	width: 100%;
+	height: 100%;
+	font-size: 22px;
+	line-height: 44px;
+	text-align: center;
+	justify-content: center;
+	align-items: center;
+
+	&.thorns-inv-craft-recipe-icon-glyph--hidden {
+		opacity: 0;
+	}
+}
+
+.thorns-inv-craft-recipe-title {
+	font-size: 12px;
+	font-weight: 800;
+	min-height: 20px;
+	flex-shrink: 0;
+	font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+	color: $thorns-ui-text;
+	padding-top: 2px;
+}
+
+.thorns-inv-craft-ing {
+	font-size: 11px;
+	font-weight: 600;
+	min-height: 17px;
+	flex-shrink: 0;
+	font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+}
+
+.thorns-inv-craft-tier-warn {
+	font-size: 10px;
+	font-weight: 700;
+	min-height: 16px;
+	flex-shrink: 0;
+	font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+}
+
+.thorns-inv-craft-scroll > .thorns-inv-craft-recipe {
+	flex-direction: column;
+	gap: 8px;
+	padding: 14px 12px 14px;
+	flex-shrink: 0;
+	margin-bottom: 12px;
+	border-radius: $thorns-ui-radius-control;
+	transition: border-color $thorns-ui-transition, box-shadow $thorns-ui-transition, background-color $thorns-ui-transition;
+
+	&:hover {
+		box-shadow: 0 0 14px $thorns-ui-teal-glow;
+	}
+
+	&.thorns-inv-craft-recipe--ok {
+		background-color: $thorns-ui-surface-2;
+		border: 1px solid $thorns-ui-teal-soft;
+	}
+
+	&.thorns-inv-craft-recipe--blocked {
+		background-color: rgba(28, 22, 22, 0.75);
+		border: 1px solid rgba(180, 90, 80, 0.45);
+	}
+}
+
+.thorns-inv-craft-btn {
+	margin-top: 6px;
+	padding: 8px 14px;
+	border-radius: $thorns-ui-radius-control;
+	font-weight: 800;
+	letter-spacing: 0.08em;
+	font-size: 11px;
+	cursor: pointer;
+	transition: filter $thorns-ui-transition, transform $thorns-ui-transition, opacity $thorns-ui-transition;
+
+	&.thorns-inv-craft-btn--primary {
+		color: rgba(10, 18, 22, 0.95);
+		background: linear-gradient(180deg, rgba(100, 230, 220, 0.95), rgba(45, 190, 200, 0.92));
+		border: 1px solid rgba(120, 240, 230, 0.45);
+		box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+
+		&:hover {
+			filter: brightness(1.08);
+			transform: translateY(-1px);
+		}
+	}
+
+	&.thorns-inv-craft-btn--disabled {
+		color: rgba(180, 186, 196, 0.75);
+		background-color: rgba(36, 40, 48, 0.9);
+		border: 1px solid $thorns-ui-border-soft;
+		cursor: default;
+		opacity: 0.85;
+	}
+}
+
+// —— Skills tab (category rail · tree · detail + split unlock) ——
+.thorns-tab-skills.thorns-skills-layout-root {
+	flex-direction: row;
+	flex-grow: 1;
+	flex-shrink: 1;
+	flex-basis: 0;
+	min-height: 0;
+	width: 100%;
+	overflow: hidden;
+	gap: 14px;
+
+	// 2 : 3 : 5 flex-grow with basis 0 → 20% / 30% / 50% of space remaining after column gaps.
+	> .thorns-skills-nav {
+		flex-grow: 2;
+		flex-shrink: 1;
+		flex-basis: 0;
+		min-width: 0;
+	}
+
+	> .thorns-skills-tree-wrap {
+		flex-grow: 3;
+		flex-shrink: 1;
+		flex-basis: 0;
+		min-width: 0;
+	}
+
+	> .thorns-skills-detail {
+		flex-grow: 5;
+		flex-shrink: 1;
+		flex-basis: 0;
+		min-width: 0;
+	}
+}
+
+.thorns-skills-nav {
+	background-color: $thorns-ui-surface-1;
+	border: 1px solid $thorns-ui-border;
+	border-radius: $thorns-ui-radius-panel;
+	padding: 12px 10px 12px 12px;
+}
+
+.thorns-skills-nav-brand {
+	font-size: 18px;
+	font-weight: 800;
+	letter-spacing: 0.1em;
+	color: $thorns-ui-text;
+}
+
+.thorns-skills-nav-rows {
+	gap: 8px;
+}
+
+.thorns-skills-nav-row {
+	border-radius: $thorns-ui-radius-control;
+	border: 1px solid $thorns-ui-border-soft;
+	background-color: rgba(22, 26, 34, 0.75);
+	transition: border-color $thorns-ui-transition, box-shadow $thorns-ui-transition, filter $thorns-ui-transition;
+
+	&:hover {
+		border-color: $thorns-ui-teal-soft;
+		box-shadow: 0 0 12px $thorns-ui-teal-glow;
+	}
+
+	&.thorns-skills-nav-row--active {
+		border-color: $thorns-ui-teal-mid;
+		background-color: $thorns-ui-teal-fill;
+		box-shadow: 0 0 18px $thorns-ui-teal-glow;
+	}
+}
+
+.thorns-skills-nav-row-mid {
+	flex-grow: 1;
+	flex-direction: column;
+	min-width: 0;
+}
+
+.thorns-skills-nav-row-icon {
+	font-size: 18px;
+	min-width: 28px;
+	text-align: center;
+	color: rgba(200, 220, 235, 0.85);
+}
+
+.thorns-skills-nav-row-title {
+	font-size: 10px;
+	font-weight: 800;
+	letter-spacing: 0.12em;
+	color: rgba(236, 242, 252, 0.95);
+}
+
+.thorns-skills-nav-mini-track {
+	height: 4px;
+	border-radius: 3px;
+	background-color: rgba(12, 14, 18, 0.95);
+	border: 1px solid rgba(48, 56, 68, 0.85);
+	overflow: hidden;
+}
+
+.thorns-skills-nav-mini-fill {
+	height: 100%;
+	background: linear-gradient(90deg, rgba(255, 184, 0, 0.75), rgba(255, 214, 120, 0.95));
+	border-radius: 2px;
+}
+
+.thorns-skills-nav-row-count {
+	font-size: 10px;
+	font-weight: 700;
+	color: $thorns-ui-text-muted;
+	min-width: 36px;
+	text-align: right;
+}
+
+.thorns-skills-tree-wrap {
+	background-color: $thorns-ui-surface-1;
+	border: 1px solid $thorns-ui-border;
+	border-radius: $thorns-ui-radius-panel;
+	// Overflow is set in ThornsUiSkillsTabBody (C#) — SCSS overflow-y values are flaky in the UI validator.
+	overflow: hidden;
+}
+
+.thorns-skills-tree-grid {
+	flex-direction: column;
+	align-content: center;
+	align-items: center;
+	flex-shrink: 0;
+	gap: 18px;
+}
+
+.thorns-skills-tree-row {
+	flex-shrink: 0;
+	gap: 16px;
+}
+
+.thorns-skills-tree-node {
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+	transition: filter $thorns-ui-transition, transform $thorns-ui-transition;
+
+	&:hover {
+		filter: brightness(1.06);
+		transform: scale(1.04);
+	}
+
+	&.thorns-skills-tree-node--picked .thorns-skills-tree-node-ring {
+		box-shadow: 0 0 28px rgba(82, 201, 217, 0.35);
+	}
+
+	&.thorns-skills-tree-node--afford .thorns-skills-tree-node-ring {
+		border-color: rgba(100, 230, 220, 0.75);
+	}
+
+	&.thorns-skills-tree-node--locked .thorns-skills-tree-node-ring {
+		opacity: 0.55;
+		border-color: rgba(72, 80, 92, 0.9);
+	}
+
+	&.thorns-skills-tree-node--max .thorns-skills-tree-node-ring {
+		border-color: rgba(120, 200, 140, 0.55);
+		box-shadow: 0 0 14px rgba(100, 200, 140, 0.2);
+	}
+}
+
+.thorns-skills-tree-node-ring {
+	width: 152px;
+	height: 152px;
+	min-width: 152px;
+	min-height: 152px;
+	border-radius: 999px;
+	border: 2px solid $thorns-ui-teal-soft;
+	background: linear-gradient(180deg, rgba(60, 90, 100, 0.45), rgba(14, 16, 22, 0.95));
+	align-items: center;
+	justify-content: center;
+	position: relative;
+}
+
+.thorns-skills-tree-node-icon-stack {
+	position: relative;
+	width: 112px;
+	height: 112px;
+	min-width: 112px;
+	min-height: 112px;
+	flex-shrink: 0;
+}
+
+.thorns-skills-tree-node-icon-img {
+	position: absolute;
+	left: 0;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	background-size: contain;
+	background-position: center;
+	background-repeat: no-repeat;
+	pointer-events: none;
+}
+
+.thorns-skills-tree-node-abbr {
+	position: absolute;
+	left: 0;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	z-index: 1;
+	align-items: center;
+	justify-content: center;
+	font-size: 24px;
+	font-weight: 900;
+	letter-spacing: 0.06em;
+	color: rgba(240, 250, 255, 0.95);
+	text-shadow: 0 0 12px rgba(82, 201, 217, 0.35);
+	text-align: center;
+	pointer-events: none;
+}
+
+.thorns-skills-tree-node-abbr--hidden {
+	display: none;
+}
+
+.thorns-skills-tree-node-lock {
+	position: absolute;
+	right: 10px;
+	bottom: 12px;
+	font-size: 18px;
+	color: rgba(200, 200, 210, 0.75);
+	pointer-events: none;
+}
+
+// Scroll only `.thorns-skills-detail-mid` so the hero + description never share an outer
+// scroll clip (which was cropping the first line of the description against the title row).
+.thorns-skills-detail {
+	flex-direction: column;
+	padding: 16px 16px 18px;
+	background-color: $thorns-ui-surface-1;
+	border: 1px solid $thorns-ui-border;
+	border-radius: $thorns-ui-radius-panel;
+	overflow-x: hidden;
+	overflow-y: hidden;
+	min-height: 0;
+	gap: 0;
+}
+
+.thorns-skills-points {
+	font-size: 11px;
+	line-height: 16px;
+	min-height: 18px;
+	font-weight: 800;
+	letter-spacing: 0.12em;
+	color: rgba(100, 230, 220, 0.95);
+	text-align: right;
+	align-self: flex-end;
+	flex-shrink: 0;
+}
+
+// Include padding so flex layout height clears the detail icon box-shadow (otherwise the
+// glow paints over the first line of the description while the row stays only ~52px tall).
+.thorns-skills-detail-hero {
+	flex-direction: row;
+	align-items: center;
+	flex-shrink: 0;
+	margin-bottom: 10px;
+	overflow: visible;
+	padding-bottom: 10px;
+}
+
+.thorns-skills-detail-mid {
+	flex-direction: column;
+	flex-grow: 0;
+	flex-shrink: 0;
+	min-height: 0;
+	max-height: 220px;
+	width: 100%;
+	overflow-y: scroll;
+	overflow-x: hidden;
+	padding-top: 2px;
+	gap: 4px;
+}
+
+.thorns-skills-detail-titles {
+	flex-direction: column;
+	flex-grow: 1;
+	min-width: 0;
+	overflow: visible;
+	padding-bottom: 2px;
+}
+
+.thorns-skills-detail-icon-wrap {
+	position: relative;
+	width: 88px;
+	height: 88px;
+	min-width: 88px;
+	min-height: 88px;
+	flex-shrink: 0;
+	border-radius: 12px;
+	border: 1px solid $thorns-ui-teal-mid;
+	background: linear-gradient(145deg, rgba(60, 100, 110, 0.55), rgba(16, 20, 28, 0.95));
+	box-shadow: 0 0 14px $thorns-ui-teal-glow;
+	overflow: hidden;
+}
+
+.thorns-skills-detail-icon-img {
+	position: absolute;
+	left: 5px;
+	top: 5px;
+	right: 5px;
+	bottom: 5px;
+	background-size: contain;
+	background-position: center;
+	background-repeat: no-repeat;
+	pointer-events: none;
+}
+
+.thorns-skills-detail-icon-fallback {
+	position: absolute;
+	left: 0;
+	top: 0;
+	width: 100%;
+	height: 100%;
+	align-items: center;
+	justify-content: center;
+	font-size: 26px;
+	font-weight: 900;
+	color: rgba(230, 252, 255, 0.98);
+	text-align: center;
+	pointer-events: none;
+}
+
+.thorns-skills-detail-icon-fallback--hidden {
+	display: none;
+}
+
+.thorns-skills-detail-name {
+	font-size: 17px;
+	line-height: 24px;
+	min-height: 26px;
+	font-weight: 800;
+	color: $thorns-ui-text;
+	letter-spacing: 0.02em;
+	white-space: normal;
+	overflow: visible;
+	min-width: 0;
+}
+
+.thorns-skills-detail-kind {
+	font-size: 11px;
+	line-height: 16px;
+	min-height: 17px;
+	font-weight: 600;
+	color: $thorns-ui-text-muted;
+	margin-top: 2px;
+	white-space: normal;
+	overflow: visible;
+}
+
+.thorns-skills-detail-ranks {
+	font-size: 13px;
+	line-height: 18px;
+	min-height: 20px;
+	font-weight: 800;
+	font-family: monospace;
+	letter-spacing: 0.06em;
+	color: rgba(140, 150, 168, 0.95);
+	pointer-events: none;
+	overflow: visible;
+
+	&.thorns-skills-detail-ranks--invested {
+		color: rgba(110, 230, 210, 0.98);
+		text-shadow: 0 0 12px rgba(80, 200, 190, 0.35);
+	}
+}
+
+.thorns-skills-detail-desc-block {
+	flex-shrink: 0;
+	width: 100%;
+	overflow: visible;
+	position: relative;
+	z-index: 2;
+	padding-top: 2px;
+	margin-bottom: 10px;
+}
+
+.thorns-skills-detail-desc {
+	font-size: 12px;
+	line-height: 20px;
+	min-height: 42px;
+	font-weight: 500;
+	color: rgba(200, 208, 220, 0.9);
+	flex-shrink: 0;
+	white-space: normal;
+	overflow: visible;
+	width: 100%;
+	min-width: 0;
+}
+
+.thorns-skills-detail-stats {
+	flex-shrink: 0;
+	gap: 2px;
+	padding-bottom: 8px;
+}
+
+.thorns-skills-stat-line {
+	flex-direction: row;
+	align-items: flex-start;
+	gap: 6px;
+	min-height: 22px;
+	overflow: visible;
+}
+
+.thorns-skills-stat-bullet {
+	color: $thorns-ui-teal-mid;
+	font-size: 11px;
+	line-height: 18px;
+	min-height: 18px;
+	min-width: 14px;
+	flex-shrink: 0;
+	overflow: visible;
+}
+
+.thorns-skills-stat-text {
+	font-size: 12px;
+	line-height: 18px;
+	min-height: 20px;
+	font-weight: 600;
+	color: rgba(220, 228, 238, 0.9);
+	white-space: normal;
+	overflow: visible;
+	flex-grow: 1;
+	min-width: 0;
+}
+
+.thorns-skills-unlock-split {
+	border-radius: $thorns-ui-radius-control;
+	overflow: hidden;
+	cursor: pointer;
+	flex-direction: row;
+	align-items: stretch;
+	flex-shrink: 0;
+	min-height: 44px;
+	margin-top: 6px;
+	box-shadow: 0 8px 22px rgba(0, 0, 0, 0.4);
+	transition: filter $thorns-ui-transition, opacity $thorns-ui-transition;
+
+	&:hover:not(.thorns-skills-unlock-split--disabled) {
+		filter: brightness(1.05);
+	}
+
+	&.thorns-skills-unlock-split--disabled {
+		opacity: 0.55;
+		cursor: default;
+		filter: grayscale(0.35);
+	}
+}
+
+.thorns-skills-unlock-split-left {
+	background: linear-gradient(180deg, rgba(100, 230, 220, 0.95), rgba(45, 190, 200, 0.92));
+	align-items: center;
+	justify-content: center;
+	padding: 12px 10px;
+	margin-right: 0;
+	min-width: 0;
+}
+
+.thorns-skills-unlock-split-left-label {
+	font-size: 12px;
+	line-height: 18px;
+	min-height: 18px;
+	font-weight: 900;
+	letter-spacing: 0.14em;
+	color: rgba(10, 18, 22, 0.95);
+	white-space: normal;
+	text-align: center;
+	overflow: visible;
+}
+
+.thorns-skills-unlock-split-right {
+	background-color: rgba(28, 32, 40, 0.98);
+	align-items: center;
+	justify-content: center;
+	padding: 12px 14px 12px 18px;
+	border: 1px solid $thorns-ui-border-soft;
+	border-left: none;
+	min-width: 96px;
+}
+
+.thorns-skills-unlock-split-right-label {
+	font-size: 11px;
+	line-height: 16px;
+	min-height: 17px;
+	font-weight: 800;
+	letter-spacing: 0.06em;
+	color: rgba(220, 226, 236, 0.92);
+	white-space: normal;
+	text-align: center;
+	overflow: visible;
+}
+
+.thorns-tab-skills {
+	flex-grow: 1;
+	min-height: 0;
+	flex-basis: 0;
+}
+
+.thorns-tab-tames-layout,
+.thorns-tab-guild-layout {
+	flex-direction: row;
+	flex-grow: 1;
+	flex-shrink: 1;
+	flex-basis: 0;
+	min-height: 0;
+	width: 100%;
+	flex-wrap: nowrap;
+	align-items: stretch;
+	gap: 10px;
+}
+
+.thorns-guild-title {
+	font-size: 22px;
+	font-weight: 800;
+	letter-spacing: 0.06em;
+	font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+	color: rgba(248, 250, 252, 0.98);
+}
+
+.thorns-guild-subtitle {
+	font-size: 12px;
+	font-weight: 600;
+	font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+	color: rgba(160, 168, 184, 0.85);
+	margin-top: 2px;
+}
+
+.thorns-guild-source-row {
+	flex-direction: row;
+	gap: 8px;
+	flex-shrink: 0;
+}
+
+.thorns-guild-member-row {
+	border-radius: 8px;
+	background-color: rgba(28, 34, 44, 0.72);
+	border: 1px solid rgba(46, 56, 72, 0.75);
+}
+
+.thorns-guild-member-name {
+	font-size: 14px;
+	font-weight: 700;
+	color: rgba(248, 250, 252, 0.96);
+}
+
+.thorns-guild-member-status {
+	font-size: 11px;
+	font-weight: 600;
+	color: rgba(160, 168, 184, 0.88);
+	margin-top: 2px;
+}
+
+.thorns-tab-tames {
+	overflow-x: hidden;
+	overflow-y: visible;
+}
+
+// —— Tames tab mockup (list · preview · detail) ——
+.thorns-tames-panel-hidden {
+	display: none;
+}
+
+.thorns-tames-mock-root {
+	gap: 0;
+}
+
+.thorns-tames-mock-order-row {
+	gap: 6px;
+	flex-wrap: wrap;
+}
+
+.thorns-tames-mock-head {
+	flex-shrink: 0;
+}
+
+.thorns-tames-mock-title {
+	font-size: 22px;
+	font-weight: 800;
+	letter-spacing: 0.06em;
+	font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+	color: rgba(248, 250, 252, 0.98);
+}
+
+.thorns-tames-mock-subtitle {
+	font-size: 12px;
+	font-weight: 600;
+	font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+	color: rgba(160, 168, 184, 0.85);
+	margin-top: 2px;
+}
+
+.thorns-tames-mock-close {
+	min-width: 36px;
+	min-height: 36px;
+	padding: 0;
+	font-size: 22px;
+	font-weight: 300;
+	line-height: 1;
+	color: rgba(200, 206, 218, 0.9);
+	background-color: transparent;
+	border: 1px solid transparent;
+	border-radius: 8px;
+	cursor: pointer;
+	transition: color 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+
+	&:hover {
+		color: rgba(248, 250, 252, 1);
+		border-color: rgba(82, 201, 217, 0.35);
+		background-color: rgba(82, 201, 217, 0.08);
+	}
+}
+
+.thorns-tames-mock-root .thorns-tab-tames-layout {
+	gap: 14px;
+}
+
+.thorns-tames-mock-preview-wrap {
+	flex-direction: column;
+	min-height: 0;
+	border-radius: 12px;
+	overflow: hidden;
+	background: linear-gradient(180deg, rgba(34, 40, 52, 0.95), rgba(18, 20, 26, 0.98));
+	border: 1px solid rgba(46, 56, 72, 0.85);
+}
+
+.thorns-tames-mock-preview-stage {
+	flex-grow: 1;
+	min-height: 180px;
+	align-items: center;
+	justify-content: center;
+	position: relative;
+
+	&.thorns-tames-mock-preview-stage--wolf {
+		background: linear-gradient(180deg, rgba(70, 45, 95, 0.85), rgba(12, 10, 18, 0.98));
+	}
+
+	&.thorns-tames-mock-preview-stage--deer {
+		background: linear-gradient(180deg, rgba(45, 75, 58, 0.85), rgba(12, 16, 14, 0.98));
+	}
+}
+
+.thorns-tames-mock-preview-image-host {
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: 0;
+	bottom: 0;
+	pointer-events: none;
+	background-position: center;
+	background-repeat: no-repeat;
+	background-size: contain;
+}
+
+.thorns-tames-mock-preview-glyph {
+	font-size: 120px;
+	font-weight: 800;
+	font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+	color: rgba(180, 200, 255, 0.12);
+	text-shadow: 0 0 40px rgba(130, 180, 255, 0.25);
+	position: relative;
+	z-index: 1;
+
+	&.thorns-tames-mock-preview-glyph--hidden {
+		display: none;
+	}
+}
+
+.thorns-tames-mock-detail {
+	flex-direction: column;
+	gap: 0;
+	padding: 6px 8px 0 6px;
+}
+
+.thorns-tames-mock-detail-heading {
+	font-size: 18px;
+	font-weight: 800;
+	font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+	letter-spacing: 0.02em;
+	line-height: 24px;
+	flex-grow: 1;
+	min-width: 0;
+}
+
+.thorns-tames-mock-level {
+	font-size: 14px;
+	font-weight: 700;
+	margin-bottom: 8px;
+	line-height: 20px;
+}
+
+.thorns-tames-mock-xp-row {
+	gap: 8px;
+}
+
+.thorns-tames-mock-xp-track {
+	background-color: rgba(24, 28, 36, 0.95);
+	border-radius: 4px;
+	border: 1px solid rgba(52, 60, 74, 0.9);
+	overflow: hidden;
+	position: relative;
+}
+
+.thorns-tames-mock-xp-fill {
+	height: 100%;
+	background: linear-gradient(90deg, rgba(45, 180, 200, 0.85), rgba(100, 220, 200, 0.95));
+	border-radius: 3px;
+	box-shadow: 0 0 10px rgba(82, 201, 217, 0.35);
+}
+
+.thorns-tames-mock-xp-nums {
+	font-size: 11px;
+	font-weight: 600;
+	font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+	color: rgba(160, 172, 190, 0.9);
+	white-space: nowrap;
+	flex-shrink: 0;
+	min-width: 110px;
+	text-align: right;
+}
+
+.thorns-tames-mock-tabs {
+	gap: 6px;
+}
+
+.thorns-tames-tab-chip {
+	padding: 8px 14px;
+	border-radius: 6px;
+	cursor: pointer;
+	background-color: rgba(32, 36, 44, 0.75);
+	border: 1px solid rgba(52, 60, 74, 0.65);
+	transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+
+	&:hover:not(.thorns-tames-tab-chip--active) {
+		border-color: rgba(82, 201, 217, 0.35);
+		background-color: rgba(40, 48, 58, 0.85);
+	}
+
+	&.thorns-tames-tab-chip--active {
+		background-color: rgba(82, 201, 217, 0.22);
+		border-color: rgba(82, 201, 217, 0.55);
+		box-shadow: 0 0 16px rgba(82, 201, 217, 0.2);
+	}
+}
+
+.thorns-tames-tab-chip-label {
+	font-size: 10px;
+	font-weight: 800;
+	letter-spacing: 0.1em;
+	font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+	color: rgba(190, 198, 210, 0.88);
+}
+
+.thorns-tames-tab-chip--active .thorns-tames-tab-chip-label {
+	color: rgba(230, 252, 255, 0.98);
+}
+
+.thorns-tames-mock-tab-scroll-host {
+	flex-direction: column;
+	flex-grow: 1;
+	flex-shrink: 1;
+	min-height: 0;
+	width: 100%;
+	overflow-x: hidden;
+	overflow-y: scroll;
+	gap: 14px;
+	padding-bottom: 12px;
+}
+
+.thorns-tames-mock-stats-body {
+	margin-top: 0;
+	flex-shrink: 0;
+}
+
+.thorns-tames-mock-stats-feed-row {
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.thorns-tames-mock-upgrade-banner {
+	flex-shrink: 0;
+}
+
+.thorns-tames-mock-upgrade-prompt {
+	font-size: 12px;
+	font-weight: 600;
+	color: rgba(200, 230, 245, 0.92);
+	white-space: normal;
+}
+
+.thorns-tames-mock-upgrade-buttons {
+	align-items: center;
+	gap: 6px;
+}
+
+.thorns-tames-mock-tab-body {
+	font-size: 12px;
+	line-height: 20px;
+	font-weight: 500;
+	font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+	color: rgba(200, 206, 218, 0.88);
+	white-space: pre-line;
+	flex-shrink: 0;
+	width: 100%;
+	min-height: 0;
+	margin-bottom: 12px;
+	overflow: visible;
+}
+
+.thorns-tames-abilities-root {
+	flex-direction: column;
+	align-items: stretch;
+	flex-shrink: 0;
+	width: 100%;
+	min-height: 0;
+	margin-bottom: 16px;
+	padding-right: 8px;
+	gap: 12px;
+	font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+}
+
+.thorns-tames-abilities-gap {
+	height: 22px;
+	min-height: 22px;
+	flex-shrink: 0;
+}
+
+.thorns-tames-abilities-kv {
+	font-size: 15px;
+	font-weight: 800;
+	line-height: 26px;
+	color: rgba(238, 244, 252, 0.98);
+	letter-spacing: 0.02em;
+	white-space: normal;
+	margin-bottom: 2px;
+}
+
+.thorns-tames-abilities-subhead {
+	margin-top: 4px;
+	margin-bottom: 6px;
+	font-size: 13px;
+	font-weight: 800;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	line-height: 22px;
+	color: rgba(82, 201, 217, 0.92);
+	white-space: normal;
+}
+
+.thorns-tames-abilities-bullet {
+	font-size: 13px;
+	font-weight: 600;
+	line-height: 24px;
+	color: rgba(200, 210, 224, 0.92);
+	padding: 2px 6px 10px 10px;
+	white-space: normal;
+}
+
+.thorns-tames-mock-root TextEntry {
+	background-color: rgba(22, 26, 34, 0.95);
+	border: 1px solid rgba(62, 72, 88, 0.85);
+	border-radius: 6px;
+	padding: 8px 10px;
+	font-size: 13px;
+	color: rgba(238, 240, 244, 0.95);
+}
+
+.thorns-tames-mock-ability-strip {
+	gap: 8px;
+	margin-top: auto;
+	padding-top: 8px;
+}
+
+.thorns-tames-ability-icon {
+	width: 44px;
+	height: 44px;
+	min-width: 44px;
+	min-height: 44px;
+	border-radius: 8px;
+	background-color: rgba(28, 32, 40, 0.95);
+	border: 1px solid rgba(56, 64, 78, 0.85);
+	align-items: center;
+	justify-content: center;
+
+	&:last-child {
+		opacity: 0.85;
+	}
+}
+
+.thorns-tames-ability-icon-inner {
+	font-size: 18px;
+	text-align: center;
+	color: rgba(200, 210, 140, 0.95);
+}
+
+.thorns-tames-mock-summon {
+	margin-top: 10px;
+	padding: 14px 20px;
+	font-size: 13px;
+	font-weight: 800;
+	letter-spacing: 0.14em;
+	font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+	color: rgba(10, 18, 22, 0.95);
+	background: linear-gradient(180deg, rgba(100, 230, 220, 0.95), rgba(45, 190, 200, 0.92));
+	border: 1px solid rgba(120, 240, 230, 0.5);
+	border-radius: 8px;
+	cursor: pointer;
+	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+	transition: filter 0.15s ease, transform 0.12s ease;
+
+	&:hover {
+		filter: brightness(1.08);
+		transform: translateY(-1px);
+	}
+
+	&:active {
+		transform: translateY(0);
+		filter: brightness(0.96);
+	}
+}
+
+.thorns-tames-list {
+	flex-grow: 1;
+	flex-shrink: 1;
+	flex-basis: 0;
+	min-width: 0;
+	min-height: 0;
+	overflow: scroll;
+	flex-direction: column;
+	padding: 8px 8px 4px;
+	background-color: rgba(30, 34, 40, 0.4);
+	border: 1px solid rgba(46, 52, 64, 0.55);
+	border-radius: 10px;
+}
+
+.thorns-tames-mock-root .thorns-tames-list {
+	background-color: rgba(16, 18, 24, 0.88);
+	border: 1px solid rgba(44, 54, 68, 0.95);
+	border-radius: 12px;
+	padding: 10px 8px;
+	gap: 8px;
+}
+
+.thorns-tames-list-card {
+	flex-shrink: 0;
+	padding: 10px 10px;
+	margin-bottom: 0;
+	border-radius: 10px;
+	background-color: rgba(28, 32, 40, 0.92);
+	border: 1px solid rgba(48, 56, 70, 0.85);
+	cursor: pointer;
+	gap: 10px;
+	transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+
+	&:hover:not(.thorns-tames-list-card--selected) {
+		border-color: rgba(82, 201, 217, 0.28);
+		background-color: rgba(34, 40, 50, 0.95);
+	}
+
+	&.thorns-tames-list-card--selected {
+		border-color: rgba(82, 201, 217, 0.75);
+		background-color: rgba(36, 52, 58, 0.55);
+		box-shadow: 0 0 22px rgba(82, 201, 217, 0.18);
+	}
+}
+
+.thorns-tames-list-portrait {
+	width: 44px;
+	height: 44px;
+	min-width: 44px;
+	min-height: 44px;
+	flex-shrink: 0;
+	border-radius: 8px;
+	align-items: center;
+	justify-content: center;
+	border: 1px solid rgba(56, 64, 78, 0.9);
+	overflow: hidden;
+	background-position: center;
+	background-repeat: no-repeat;
+	background-size: contain;
+
+	&.thorns-tames-list-portrait--wolf {
+		background: linear-gradient(145deg, rgba(60, 40, 90, 0.95), rgba(18, 14, 28, 1));
+	}
+
+	&.thorns-tames-list-portrait--deer {
+		background: linear-gradient(145deg, rgba(50, 90, 70, 0.95), rgba(14, 22, 18, 1));
+	}
+}
+
+.thorns-tames-list-portrait-letter {
+	font-size: 18px;
+	font-weight: 800;
+	font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+	color: rgba(200, 220, 255, 0.35);
+	position: relative;
+	z-index: 1;
+}
+
+.thorns-tames-list-card-title {
+	font-size: 13px;
+	font-weight: 800;
+	font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+	letter-spacing: 0.02em;
+	line-height: 18px;
+}
+
+.thorns-tames-list-card-level {
+	font-size: 11px;
+	font-weight: 600;
+	margin-top: 2px;
+	line-height: 16px;
+}
+
+.thorns-tames-list-mini-xp {
+	height: 4px;
+	margin-top: 6px;
+	border-radius: 3px;
+	background-color: rgba(20, 24, 30, 0.95);
+	border: 1px solid rgba(48, 54, 66, 0.85);
+	overflow: hidden;
+}
+
+.thorns-tames-list-mini-xp-fill {
+	height: 100%;
+	background: linear-gradient(90deg, rgba(45, 180, 200, 0.75), rgba(110, 220, 200, 0.9));
+	border-radius: 2px;
+}
+
+.thorns-tames-list-mini-hp {
+	height: 4px;
+	margin-top: 4px;
+	border-radius: 3px;
+	background-color: rgba(20, 24, 30, 0.95);
+	border: 1px solid rgba(48, 54, 66, 0.85);
+	overflow: hidden;
+}
+
+.thorns-tames-list-mini-hp-fill {
+	height: 100%;
+	background: linear-gradient(90deg, rgba(35, 150, 95, 0.85), rgba(110, 220, 150, 0.95));
+	border-radius: 2px;
+}
+
+.thorns-tames-list-status {
+	font-size: 14px;
+	min-width: 22px;
+	text-align: center;
+	color: rgba(82, 201, 217, 0.75);
+}
+
+.thorns-tames-stat-row {
+	flex-shrink: 0;
+}
+
+.thorns-tames-stat-label {
+	font-size: 11px;
+	font-weight: 700;
+	letter-spacing: 0.04em;
+	font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+	color: rgba(170, 180, 196, 0.88);
+}
+
+.thorns-tames-stat-track {
+	background-color: rgba(20, 24, 30, 0.95);
+	border-radius: 4px;
+	border: 1px solid rgba(48, 56, 68, 0.85);
+	overflow: hidden;
+}
+
+.thorns-tames-stat-fill {
+	height: 100%;
+	background: linear-gradient(90deg, rgba(50, 170, 190, 0.75), rgba(100, 215, 200, 0.9));
+	border-radius: 3px;
+}
+
+.thorns-tames-stat-value {
+	font-size: 12px;
+	font-weight: 700;
+	font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+	color: rgba(230, 236, 244, 0.95);
+	min-width: 52px;
+	text-align: right;
+	flex-shrink: 0;
+}
+
+.thorns-tame-row {
+	flex-direction: column;
+	padding: 8px 10px;
+	margin-bottom: 6px;
+	border-radius: 8px;
+	background-color: rgba(40, 44, 52, 0.55);
+	border: 1px solid rgba(56, 62, 76, 0.55);
+	cursor: pointer;
+
+	&.thorns-tame-row--selected {
+		border-color: rgba(130, 175, 255, 0.55);
+		background-color: rgba(48, 56, 74, 0.82);
+	}
+}
+
+.thorns-tames-preview {
+	flex-grow: 1;
+	flex-shrink: 1;
+	flex-basis: 0;
+	min-width: 0;
+	min-height: 0;
+	flex-direction: column;
+	gap: 14px;
+	padding: 16px;
+	background-color: rgba(30, 34, 40, 0.55);
+	border: 1px solid rgba(46, 52, 64, 0.7);
+	border-radius: 10px;
+	overflow: visible;
+
+	> .thorns-tab-section-title {
+		margin-bottom: 8px;
+	}
+
+	.thorns-tab-context-placeholder {
+		margin-top: 2px;
+	}
+}
+
+.thorns-tames-actions {
+	justify-content: center;
+	flex-direction: column;
+	gap: 8px;
+	flex-shrink: 0;
+	min-width: 120px;
+	max-width: 160px;
+}
+
+.thorns-tab-journal-layout {
+	flex-direction: column;
+	flex-grow: 1;
+	flex-shrink: 1;
+	flex-basis: 0;
+	min-height: 0;
+	width: 100%;
+	overflow: hidden;
+}
+
+.thorns-tab-journal {
+	overflow: hidden;
+}
+
+.thorns-journal-toolbar {
+	flex-direction: row;
+	gap: 8px;
+	margin-bottom: 8px;
+	flex-shrink: 0;
+	flex-wrap: wrap;
+}
+
+.thorns-journal-body {
+	flex-direction: row;
+	flex-grow: 1;
+	flex-shrink: 1;
+	flex-basis: 0;
+	min-height: 0;
+	width: 100%;
+	flex-wrap: nowrap;
+	align-items: stretch;
+	overflow-x: scroll;
+	overflow-y: hidden;
+	gap: 12px;
+}
+
+.thorns-journal-list {
+	flex-direction: column;
+	flex-grow: 1;
+	flex-shrink: 0;
+	flex-basis: 0;
+	min-width: 380px;
+	max-width: 480px;
+	min-height: 0;
+	overflow-x: hidden;
+	overflow-y: scroll;
+	padding: 14px 14px 18px;
+	background-color: $thorns-ui-surface-1;
+	border: 1px solid $thorns-ui-border;
+	border-radius: $thorns-ui-radius-panel;
+
+	// Goal cards: generous vertical rhythm so title + hint + count + bar never clip or overlap.
+	.thorns-journal-goal-row.thorns-card-panel {
+		flex-shrink: 0;
+		margin-bottom: 14px;
+		padding: 24px 16px 18px;
+		gap: 10px;
+		overflow: visible;
+
+		.thorns-item-card-title {
+			font-size: 14px;
+			font-weight: 800;
+			/* Unitless line-height ratios mis-resolve on s&box Labels — clip ascenders; use px */
+			line-height: 24px;
+			white-space: normal;
+			margin-bottom: 0;
+			min-height: 0;
+			padding-top: 4px;
+			padding-bottom: 2px;
+			flex-shrink: 0;
+			overflow: visible;
+		}
+
+		.thorns-item-card-sub {
+			font-size: 12px;
+			font-weight: 600;
+			line-height: 18px;
+			white-space: normal;
+			padding-top: 2px;
+			flex-shrink: 0;
+			overflow: visible;
+		}
+	}
+
+	.thorns-journal-goal-row-meta {
+		flex-direction: column;
+		align-items: stretch;
+		align-content: stretch;
+		gap: 6px;
+		margin-top: 4px;
+		width: 100%;
+		flex-shrink: 0;
+		overflow: visible;
+
+		.thorns-journal-goal-row-count {
+			font-size: 12px;
+			font-weight: 800;
+			color: rgba(200, 210, 222, 0.95);
+			min-width: 0;
+			align-self: flex-start;
+			line-height: 17px;
+			padding-top: 1px;
+			flex-shrink: 0;
+		}
+
+		.thorns-progress {
+			flex-grow: 0;
+			flex-shrink: 0;
+			align-self: stretch;
+			width: 100%;
+			height: 12px;
+			min-height: 12px;
+			max-height: 12px;
+			border-radius: 6px;
+			margin-top: 2px;
+		}
+
+		.thorns-progress-fill {
+			background: linear-gradient(90deg, rgba(45, 180, 200, 0.85), rgba(100, 220, 200, 0.95));
+			box-shadow: 0 0 6px $thorns-ui-teal-glow;
+		}
+	}
+}
+
+.thorns-journal-detail {
+	flex-direction: column;
+	flex-grow: 2;
+	flex-shrink: 1;
+	flex-basis: 0;
+	min-width: 0;
+	min-height: 0;
+	overflow: hidden;
+	gap: 14px;
+	padding: 16px 16px 20px;
+	background-color: $thorns-ui-surface-1;
+	border: 1px solid $thorns-ui-border;
+	border-radius: $thorns-ui-radius-panel;
+
+	> .thorns-tab-section-title {
+		margin-bottom: 8px;
+	}
+
+	// Stat HUD reuses `.thorns-progress` with flex-grow in a row; in this column it must not expand vertically.
+	.thorns-progress {
+		margin-bottom: 4px;
+		flex-grow: 0;
+		flex-shrink: 0;
+		align-self: stretch;
+		width: 100%;
+		height: 12px;
+		min-height: 12px;
+		max-height: 12px;
+		border-radius: 6px;
+	}
+
+	.thorns-progress-fill {
+		background: linear-gradient(90deg, rgba(45, 180, 200, 0.85), rgba(100, 220, 200, 0.95));
+		box-shadow: 0 0 8px $thorns-ui-teal-glow;
+	}
+}
+
+.thorns-journal-detail-progress-count {
+	font-size: 13px;
+	font-weight: 800;
+	letter-spacing: 0.02em;
+	color: rgba(248, 250, 252, 0.95);
+	margin-bottom: 8px;
+}
+
+.thorns-journal-detail-title {
+	font-size: 17px;
+	font-weight: 900;
+	letter-spacing: 0.02em;
+	color: rgba(248, 250, 252, 0.98);
+}
+
+.thorns-journal-detail-hint {
+	font-size: 12px;
+	font-weight: 600;
+	color: $thorns-ui-text-muted;
+	margin-bottom: 4px;
+}
+
+.thorns-journal-detail-reward {
+	font-size: 12px;
+	font-weight: 700;
+	color: rgba(82, 201, 217, 0.92);
+}
+
+.thorns-journal-pin-row {
+	margin-top: 4px;
+	flex-shrink: 0;
+}
+
+.thorns-journal-goal-row.thorns-journal-goal-row--selected {
+	border-color: rgba(82, 201, 217, 0.55);
+	box-shadow: 0 0 0 1px rgba(82, 201, 217, 0.2);
+}
+
+.thorns-journal-goal-row.thorns-journal-goal-row--complete {
+	opacity: 0.72;
+}
+
+.thorns-tab-settings-layout {
+	flex-direction: row;
+	flex-grow: 1;
+	flex-shrink: 1;
+	flex-basis: 0;
+	min-height: 0;
+	width: 100%;
+	flex-wrap: nowrap;
+	align-items: stretch;
+	gap: 12px;
+}
+
+.thorns-tab-settings {
+	overflow: hidden;
+}
+
+.thorns-settings-nav {
+	flex-grow: 0;
+	flex-shrink: 0;
+	flex-basis: 220px;
+	width: 220px;
+	flex-direction: column;
+	gap: 12px;
+	padding: 16px;
+	background-color: $thorns-ui-surface-1;
+	border: 1px solid $thorns-ui-border;
+	border-radius: $thorns-ui-radius-panel;
+	overflow: visible;
+
+	> .thorns-tab-section-title {
+		margin-bottom: 10px;
+	}
+}
+
+.thorns-settings-body {
+	flex-grow: 1;
+	flex-shrink: 1;
+	flex-basis: 0;
+	min-width: 0;
+	min-height: 0;
+	overflow: hidden;
+	flex-direction: column;
+	gap: 14px;
+	padding: 16px 16px 20px;
+	background-color: $thorns-ui-surface-1;
+	border: 1px solid $thorns-ui-border;
+	border-radius: $thorns-ui-radius-panel;
+
+	> .thorns-tab-section-title {
+		margin-bottom: 12px;
+	}
+}
+
+.thorns-settings-controls-scroll {
+	flex-grow: 1;
+	flex-shrink: 1;
+	flex-basis: 0;
+	min-height: 0;
+	flex-direction: column;
+	gap: 6px;
+	overflow-x: hidden;
+	overflow-y: scroll;
+}
+
+.thorns-settings-controls-section {
+	font-size: 11px;
+	font-weight: 800;
+	letter-spacing: 0.14em;
+	color: rgba(72, 203, 204, 0.92);
+	margin-top: 10px;
+	margin-bottom: 4px;
+	padding-left: 2px;
+}
+
+.thorns-settings-controls-section:first-child {
+	margin-top: 0;
+}
+
+.thorns-settings-placeholder {
+	font-size: 13px;
+	font-weight: 500;
+	font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+	color: rgba(220, 224, 230, 0.68);
+	line-height: 1.45;
+	flex-grow: 1;
+	justify-content: center;
+	align-items: center;
+	text-align: center;
+	padding: 24px 16px;
+}
+
+.thorns-settings-row {
+	flex-direction: row;
+	justify-content: space-between;
+	padding: 14px 12px;
+	border-radius: $thorns-ui-radius-control;
+	background-color: $thorns-ui-surface-2;
+	border: 1px solid $thorns-ui-border-soft;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 8px;
+	transition: border-color $thorns-ui-transition, box-shadow $thorns-ui-transition, filter $thorns-ui-transition;
+
+	&:hover {
+		border-color: $thorns-ui-teal-soft;
+		box-shadow: 0 0 12px $thorns-ui-teal-glow;
+		filter: brightness(1.03);
+	}
+}
+
+.thorns-settings-kv {
+	font-size: 13px;
+	font-weight: 600;
+	font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+	color: rgba(238, 240, 244, 0.92);
+	flex-shrink: 0;
+}
+
+.thorns-settings-kv-val {
+	font-size: 13px;
+	font-weight: 500;
+	font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+	color: rgba(220, 224, 230, 0.68);
+	text-align: right;
+	flex-shrink: 0;
+}
+
+.thorns-capsule-btn {
+	padding: 10px 12px;
+	border-radius: 6px;
+	flex-shrink: 0;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	transition: transform 0.18s ease, filter 0.18s ease;
+
+	&:hover {
+		transform: scale(1.02);
+		filter: brightness(1.06);
+	}
+
+	&:active {
+		transform: scale(0.98);
+	}
+}
+
+.thorns-capsule-btn-label {
+	font-weight: 600;
+	font-size: 11px;
+	min-height: 18px;
+	flex-shrink: 0;
+	font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+	color: rgba(238, 240, 244, 0.94);
+	letter-spacing: 0.04em;
+	padding-top: 2px;
+	padding-bottom: 2px;
+}
+
+.thorns-capsule-btn--secondary {
+	cursor: pointer;
+	background-color: $thorns-ui-surface-2;
+	border: 1px solid $thorns-ui-border-soft;
+
+	&:hover:not(.active) {
+		box-shadow: 0 10px 22px rgba(0, 0, 0, 0.35);
+		border-color: $thorns-ui-teal-soft;
+	}
+
+	&.active {
+		border-color: $thorns-ui-teal-soft;
+		box-shadow: 0 0 12px $thorns-ui-teal-glow;
+		background-color: rgba(72, 203, 204, 0.12);
+	}
+}
+
+.thorns-capsule-btn--accent {
+	cursor: pointer;
+	background-color: rgba(82, 201, 217, 0.16);
+	border: 1px solid rgba(82, 201, 217, 0.42);
+}
+
+.thorns-capsule-btn--accent.active {
+	background-color: rgba(82, 201, 217, 0.32);
+	border-color: rgba(130, 230, 245, 0.65);
+	box-shadow: 0 0 14px rgba(82, 201, 217, 0.28);
+}
+
+.thorns-capsule-btn--secondary.active {
+	background-color: rgba(72, 90, 120, 0.35);
+	border-color: rgba(255, 255, 255, 0.22);
+}
+
+.thorns-item-card.thorns-card-panel.thorns-item-card {
+	margin-bottom: 10px;
+	flex-direction: column;
+	gap: 8px;
+	padding: 14px 12px;
+	overflow: visible;
+	background-color: $thorns-ui-surface-2;
+	border-radius: $thorns-ui-radius-control;
+	border: 1px solid $thorns-ui-border-soft;
+	transition: transform $thorns-ui-transition, filter $thorns-ui-transition, box-shadow $thorns-ui-transition,
+		border-color $thorns-ui-transition;
+
+	&:hover {
+		transform: scale(1.01);
+		filter: brightness(1.05);
+		box-shadow: 0 14px 30px rgba(0, 0, 0, 0.42);
+		border-color: $thorns-ui-teal-soft;
+	}
+}
+
+.thorns-item-card-title {
+	font-size: 13px;
+	font-weight: 800;
+	font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+	color: rgba(238, 240, 244, 0.95);
+	letter-spacing: 0.02em;
+	min-height: 21px;
+	margin-bottom: 6px;
+	padding-top: 2px;
+	flex-shrink: 0;
+}
+
+.thorns-item-card-sub {
+	font-size: 13px;
+	font-weight: 500;
+	font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+	color: $thorns-ui-text-muted;
+	flex-shrink: 0;
+	padding-top: 1px;
+}
+
+// Storage chest overlay (same shell theme as Tames / inventory)
+.thorns-storage-chest-layer {
+	align-items: center;
+	justify-content: center;
+	background-color: rgba(5, 7, 10, 0.72);
+}
+
+.thorns-storage-chest-card {
+	flex-direction: column;
+	gap: 12px;
+	padding: 18px 20px 20px;
+	min-width: 320px;
+	max-width: 92%;
+	background: linear-gradient(165deg, rgba(22, 26, 34, 0.98), $thorns-ui-surface-0);
+	border: 1px solid $thorns-ui-border;
+	border-radius: $thorns-ui-radius-panel;
+	box-shadow: 0 24px 56px rgba(0, 0, 0, 0.55);
+}
+
+.thorns-storage-chest-header {
+	flex-direction: row;
+	align-items: center;
+	justify-content: space-between;
+	width: 100%;
+	flex-shrink: 0;
+	gap: 12px;
+}
+
+.thorns-storage-chest-close {
+	min-width: 36px;
+	min-height: 36px;
+	padding: 0;
+	font-size: 22px;
+	font-weight: 300;
+	line-height: 1;
+	color: rgba(200, 206, 218, 0.9);
+	background-color: transparent;
+	border: 1px solid transparent;
+	border-radius: 8px;
+	cursor: pointer;
+	transition: color 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+
+	&:hover {
+		color: rgba(248, 250, 252, 1);
+		border-color: rgba(82, 201, 217, 0.35);
+		background-color: rgba(82, 201, 217, 0.08);
+	}
+}
+
+.thorns-storage-chest-close-glyph {
+	font-size: 22px;
+	font-weight: 300;
+	line-height: 1;
+	margin: auto;
+	text-align: center;
+	pointer-events: none;
+}
+
+.thorns-storage-chest-title {
+	font-size: 14px;
+	font-weight: 800;
+	letter-spacing: 0.12em;
+	color: $thorns-ui-text;
+}
+
+.thorns-storage-chest-hint {
+	font-size: 11px;
+	font-weight: 600;
+	color: $thorns-ui-text-muted;
+}
+
+.thorns-storage-chest-section {
+	font-size: 10px;
+	font-weight: 800;
+	letter-spacing: 0.12em;
+	color: $thorns-ui-text-muted;
+	margin-top: 4px;
+}
+
+.thorns-storage-chest-slots-host,
+.thorns-storage-player-slots-host {
+	flex-direction: column;
+	gap: 6px;
+	padding: 10px;
+	background-color: $thorns-ui-surface-1;
+	border: 1px solid $thorns-ui-border-soft;
+	border-radius: $thorns-ui-radius-control;
+}
+
+// Chest / furniture / campfire / workbench overlays — keep grid cells fixed size (global slot hover scales).
+.thorns-storage-chest-layer,
+.thorns-campfire-layer,
+.thorns-workbench-layer {
+	.thorns-grid-slot {
+		&:hover,
+		&:active {
+			transform: none;
+		}
+	}
+}
+
+// Radio shop — wide card (fits viewport), 50/50 buy | sell, lists scroll inside
+.thorns-radio-shop-layer.thorns-storage-chest-layer {
+	padding: 20px;
+	overflow: hidden;
+}
+
+.thorns-radio-shop-card.thorns-storage-chest-card {
+	width: 92%;
+	min-width: 640px;
+	max-width: 1100px;
+	max-height: 88%;
+	flex-shrink: 1;
+	min-height: 0;
+	overflow: hidden;
+
+	> .thorns-storage-chest-header,
+	> .thorns-storage-chest-hint,
+	> .thorns-storage-chest-section {
+		flex-shrink: 0;
+	}
+}
+
+.thorns-radio-shop-split {
+	flex-direction: row;
+	gap: 16px;
+	width: 100%;
+	flex-grow: 1;
+	flex-shrink: 1;
+	min-height: 0;
+	align-items: stretch;
+}
+
+.thorns-radio-shop-col {
+	flex-direction: column;
+	flex-grow: 1;
+	flex-shrink: 1;
+	flex-basis: 0;
+	min-width: 0;
+	gap: 8px;
+}
+
+.thorns-radio-shop-offers,
+.thorns-radio-shop-sell {
+	flex-direction: column;
+	flex-grow: 1;
+	flex-shrink: 1;
+	min-height: 0;
+	overflow-y: scroll;
+	overflow-x: hidden;
+	padding: 14px 12px 12px;
+	gap: 2px;
+	background-color: $thorns-ui-surface-1;
+	border: 1px solid $thorns-ui-border-soft;
+	border-radius: $thorns-ui-radius-control;
+}
+
+.thorns-radio-shop-offer-row,
+.thorns-radio-shop-sell-row {
+	flex-direction: row;
+	align-items: center;
+	justify-content: space-between;
+	flex-shrink: 0;
+	min-height: 52px;
+	width: 100%;
+	padding: 10px 8px;
+	gap: 12px;
+	overflow: visible;
+	border-bottom: 1px solid rgba(52, 60, 74, 0.85);
+
+	&:last-child {
+		border-bottom: none;
+	}
+}
+
+.thorns-radio-shop-sell-row.thorns-radio-shop-sell-row--empty {
+	opacity: 0.62;
+}
+
+.thorns-radio-shop-offer-label,
+.thorns-radio-shop-sell-label {
+	flex-grow: 1;
+	flex-shrink: 1;
+	min-width: 0;
+	min-height: 20px;
+	white-space: normal;
+	overflow: visible;
+	font-size: 12px;
+	font-weight: 600;
+	line-height: 20px;
+	padding-top: 2px;
+	padding-bottom: 2px;
+	color: rgba(220, 226, 236, 0.94);
+}
+
+.thorns-radio-shop-buy-row,
+.thorns-radio-shop-sell-actions {
+	flex-direction: row;
+	align-items: center;
+	flex-shrink: 0;
+	gap: 8px;
+}
+
+.thorns-radio-shop-sell-actions {
+	justify-content: flex-end;
+	min-width: 96px;
+}
+
+.thorns-radio-shop-btn {
+	cursor: pointer;
+	flex-shrink: 0;
+	flex-direction: row;
+	align-items: center;
+	justify-content: center;
+	min-width: 56px;
+	min-height: 32px;
+	padding: 7px 14px;
+	border-radius: $thorns-ui-radius-control;
+	border: 1px solid rgba(82, 201, 217, 0.5);
+	background-color: rgba(24, 32, 44, 0.98);
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+	transition: filter 0.14s ease, border-color 0.14s ease, box-shadow 0.14s ease, transform 0.1s ease;
+
+	&:hover {
+		filter: brightness(1.14);
+		border-color: rgba(120, 230, 245, 0.85);
+		box-shadow: 0 0 14px $thorns-ui-teal-glow;
+	}
+
+	&:active {
+		transform: scale(0.97);
+		filter: brightness(0.94);
+	}
+
+	&.thorns-radio-shop-btn--buy {
+		border-color: rgba(100, 210, 225, 0.55);
+		background: linear-gradient(180deg, rgba(36, 52, 62, 0.98), rgba(20, 28, 38, 0.98));
+	}
+
+	&.thorns-radio-shop-btn--sell {
+		min-width: 88px;
+		border-color: rgba(210, 188, 130, 0.6);
+		background: linear-gradient(180deg, rgba(52, 44, 26, 0.98), rgba(32, 28, 18, 0.98));
+
+		&:hover {
+			border-color: rgba(255, 220, 150, 0.85);
+			box-shadow: 0 0 14px rgba(210, 180, 100, 0.22);
+		}
+	}
+}
+
+.thorns-radio-shop-btn-label {
+	font-size: 11px;
+	font-weight: 800;
+	letter-spacing: 0.06em;
+	line-height: 16px;
+	min-height: 16px;
+	text-align: center;
+	color: rgba(232, 248, 252, 0.98);
+	text-shadow: 0 1px 3px rgba(0, 0, 0, 0.65);
+	pointer-events: none;
+}
+
+.thorns-radio-shop-btn--sell .thorns-radio-shop-btn-label {
+	color: rgba(255, 246, 228, 0.98);
+}
+
+.thorns-radio-shop-sell-dash {
+	font-size: 12px;
+	font-weight: 700;
+	line-height: 18px;
+	min-height: 18px;
+	text-align: center;
+	min-width: 88px;
+	color: rgba(120, 126, 136, 0.9);
+}
+
+.thorns-tooltip-root.thorns-tooltip-root--hidden {
+	display: none;
+}

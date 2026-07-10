@@ -1,0 +1,23 @@
+// Plain opaque material for generated overhead cloud silhouettes.
+// This intentionally avoids alpha/translucency so cloud visibility does not
+// depend on PNG transparency or sprite shader behavior.
+
+Layer0
+{
+	shader "shaders/complex.shader"
+
+	F_RENDER_BACKFACES 1
+
+	g_flAmbientOcclusionDirectDiffuse "0.000"
+	TextureAmbientOcclusion "materials/default/default_ao.tga"
+
+	g_flModelTintAmount "1.000"
+	g_vColorTint "[1.000000 1.000000 1.000000 1.000000]"
+	TextureColor "materials/default/default.tga"
+
+	g_bFogEnabled "0"
+	g_flMetalness "0.000"
+	TextureNormal "materials/default/default_normal.tga"
+	g_flRoughnessScaleFactor "1.000"
+	TextureRoughness "materials/default/default_rough.tga"
+}

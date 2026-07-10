@@ -1,0 +1,41 @@
+@using Sandbox
+@using Sandbox.UI
+@using Dynasty.UI.ViewModels
+@inherits Panel
+@namespace Dynasty.UI.Team
+@attribute [StyleSheet( "/Dynasty/UI/Team/FormationPlayerCard.razor.scss" )]
+
+<root class="formation-player-card @( IsSelected ? "selected" : "" ) @( Slot.IsEmpty ? "empty" : "filled" )" @onclick=@HandleCardClick>
+	<Label class="slot-pos">@Slot.DisplayLabel</Label>
+	@if ( Slot.IsEmpty )
+	{
+		<Label class="slot-empty">Empty</Label>
+		<Label class="slot-assign muted">Assign Player</Label>
+	}
+	else
+	{
+		<Label class="slot-name">@Slot.LastName</Label>
+		<div class="slot-meta">
+			<Label class="slot-ovr">@Slot.Overall</Label>
+			<Label class="slot-age muted">@Slot.Age</Label>
+		</div>
+		@if ( !string.IsNullOrEmpty( Slot.TraitIcon ) )
+		{
+			<Label class="slot-trait" style="@($"color: {Slot.TraitColor}")">@Slot.TraitIcon</Label>
+		}
+		@if ( !string.IsNullOrEmpty( Slot.StatusIndicator ) )
+		{
+			<Label class="@($"slot-status {Slot.StatusClass}")">@Slot.StatusIndicator</Label>
+		}
+	}
+</root>
+
+@code
+{
+	[Parameter] public FormationSlotCardViewModel Slot { get; set; }
+	[Parameter] public string SlotKey { get; set; } = "";
+	[Parameter] public bool IsSelected { get; set; }
+	[Parameter] public Action<string> OnSlotSelected { get; set; }
+
+	void HandleCardClick() => OnSlotSelected?.Invoke( SlotKey );
+}

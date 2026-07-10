@@ -1,0 +1,484 @@
+ThornsMenuHost, ThornsHudRoot, ThornsHudRoot.hud-pass-through
+{
+	font-family: Poppins, Roboto, Arial, sans-serif;
+	font-size: 14px;
+	color: #d8d5cf;
+}
+
+.thorns-glass
+{
+	background-color: rgba(10, 12, 15, 0.78);
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	backdrop-filter: blur(8px);
+}
+
+.thorns-header
+{
+	font-size: 13px;
+	font-weight: 700;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: #d8d5cf;
+}
+
+.thorns-muted
+{
+	font-size: 12px;
+	font-weight: 700;
+	color: #9ea7b1;
+}
+
+.thorns-accent
+{
+	color: #c9a45d;
+}
+
+ThornsMenuHost
+{
+	position: absolute;
+	left: 0;
+	top: 0;
+	width: 100%;
+	height: 100%;
+	pointer-events: none;
+	z-index: 1000;
+}
+
+ThornsMenuHost.menu-open
+{
+	pointer-events: all;
+
+	ThornsHudRoot, ThornsHudRoot.hud-pass-through
+	{
+		display: none;
+		opacity: 0;
+		pointer-events: none;
+	}
+}
+
+ThornsHudRoot.thorns-ui-dimmed
+{
+	opacity: 0.15;
+	pointer-events: none;
+}
+
+.thorns-tooltip-host
+{
+	pointer-events: none;
+}
+
+.thorns-tooltip-bubble
+{
+	opacity: 1;
+	border-radius: 4px;
+	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+}
+
+.thorns-modal-overlay
+{
+	opacity: 1;
+}
+
+.thorns-modal-card
+{
+	opacity: 1;
+}
+
+.notify-row.error .thorns-accent { color: #e07070; }
+.notify-row.warning .thorns-accent { color: #e0b060; }
+.notify-row.info .thorns-accent { color: #c9a45d; }
+
+.thorns-menu-overlay
+{
+	position: absolute;
+	left: 0;
+	top: 0;
+	width: 100%;
+	height: 100%;
+	pointer-events: all;
+	flex-direction: column;
+	z-index: 12000;
+	background-color: rgba(4, 6, 10, 0.72);
+}
+
+.thorns-menu-topbar
+{
+	flex-direction: row;
+	align-items: stretch;
+	height: 56px;
+	padding: 0 24px;
+	border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.thorns-menu-brand
+{
+	flex-direction: row;
+	font-size: 22px;
+	font-weight: 700;
+	letter-spacing: 0.08em;
+	margin-right: 32px;
+	align-items: center;
+	gap: 10px;
+}
+
+.thorns-tab-bar
+{
+	flex-direction: row;
+	flex-grow: 1;
+	align-items: stretch;
+	justify-content: center;
+	gap: 4px;
+}
+
+.thorns-tab
+{
+	padding: 0 18px;
+	align-items: center;
+	justify-content: center;
+	font-size: 12px;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: #9ea7b1;
+	cursor: pointer;
+	border-bottom: 2px solid transparent;
+
+	&:hover
+	{
+		color: #d8d5cf;
+		background-color: rgba(255, 255, 255, 0.04);
+	}
+
+	&.active
+	{
+		color: #d8d5cf;
+		background-color: rgba(201, 164, 93, 0.12);
+		border-bottom-color: #c9a45d;
+	}
+}
+
+.thorns-menu-body
+{
+	flex-grow: 1;
+	flex-direction: row;
+	min-height: 0;
+	padding: 16px;
+	gap: 12px;
+}
+
+.thorns-menu-column
+{
+	flex-direction: column;
+	min-height: 0;
+}
+
+.thorns-col-left { width: 22%; flex-shrink: 0; }
+.thorns-col-center { flex-grow: 1; min-width: 0; }
+.thorns-col-right { width: 28%; flex-shrink: 0; }
+
+.thorns-item-slot
+{
+	width: 72px;
+	height: 72px;
+	min-width: 72px;
+	min-height: 72px;
+	flex-shrink: 0;
+	flex-grow: 0;
+	border: 1px solid rgba(255, 255, 255, 0.12);
+	background-color: rgba(0, 0, 0, 0.25);
+	cursor: pointer;
+	position: relative;
+
+	&:hover { border-color: rgba(201, 164, 93, 0.5); }
+	&.selected { border-color: #c9a45d; }
+	&.drag-source { opacity: 0.5; }
+
+	.slot-ammo-badge
+	{
+		text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
+	}
+
+	.slot-ammo-badge.hidden { opacity: 0; }
+
+	.slot-dur-track
+	{
+		background-color: rgba(0, 0, 0, 0.55);
+		border-radius: 2px;
+		overflow: hidden;
+
+		&.hidden { opacity: 0; height: 0; }
+	}
+
+	.slot-dur-fill
+	{
+		min-width: 2px;
+	}
+}
+
+.thorns-item-grid
+{
+	flex-direction: row;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.thorns-hotbar
+{
+	flex-direction: row;
+	gap: 6px;
+	margin-top: 12px;
+}
+
+.thorns-progress
+{
+	height: 6px;
+	background-color: rgba(255, 255, 255, 0.08);
+
+	.fill
+	{
+		height: 100%;
+	}
+}
+
+.thorns-stat-row
+{
+	flex-direction: row;
+	align-items: center;
+	padding: 6px 0;
+	gap: 10px;
+
+	.value { margin-left: auto; }
+}
+
+.thorns-btn-primary
+{
+	background-color: #c9a45d;
+	color: #1a1408;
+	padding: 10px 20px;
+	font-weight: 700;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+	cursor: pointer;
+	border: none;
+
+	&:hover { background-color: #dbb56e; }
+}
+
+.thorns-scene-preview
+{
+	flex-grow: 1;
+	min-height: 280px;
+	border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.thorns-hidden { display: none; }
+
+.hud-pass-through { pointer-events: none; }
+
+.thorns-craft-collapsed .thorns-col-right { width: 48px; opacity: 0.35; }
+
+.hud-pass-through { pointer-events: none; }
+
+.map-cover { background-size: 100% 100%; background-position: center; background-repeat: no-repeat; }
+
+.slot-icon { background-size: contain; background-position: center; background-repeat: no-repeat; }
+
+.hotbar-hud, .vitals-hud, .notification-hud, .armor-row, .commands, .stepper-row, .toggle-row
+{
+	margin-bottom: 6px;
+}
+
+/* V7 menu layout guard: flex row topbar with 2× tab icons (see ThornsUiMetrics.TabIcon). */
+.thorns-menu-topbar
+{
+	justify-content: flex-start;
+	align-items: center;
+	height: 72px;
+	min-height: 72px;
+	position: relative;
+}
+
+.thorns-menu-brand
+{
+	position: relative;
+	left: auto;
+	top: auto;
+	bottom: auto;
+	width: auto;
+	margin-right: 0;
+	flex-direction: row;
+	align-items: center;
+	justify-content: flex-start;
+	gap: 10px;
+}
+
+.thorns-tab-bar
+{
+	flex: 1 1 0;
+	justify-content: stretch;
+	align-items: center;
+	margin-left: 0;
+	margin-right: 0;
+	gap: 8px;
+	min-width: 0;
+}
+
+.thorns-tab
+{
+	flex: 1 1 0;
+	flex-direction: row;
+	align-items: center;
+	justify-content: center;
+	gap: 10px;
+	height: 72px;
+	min-width: 0;
+	width: auto;
+	padding: 0 8px;
+	white-space: nowrap;
+	overflow: hidden;
+}
+
+.thorns-tab-icon
+{
+	width: 56px;
+	height: 56px;
+	min-width: 56px;
+	max-width: 56px;
+	min-height: 56px;
+	max-height: 56px;
+	flex-shrink: 0;
+	background-size: contain;
+	background-position: center;
+	background-repeat: no-repeat;
+}
+
+.thorns-tab-label
+{
+	font-size: 11px;
+	letter-spacing: 0.08em;
+	white-space: nowrap;
+	overflow: visible;
+	text-overflow: clip;
+	width: auto;
+	flex-shrink: 0;
+}
+
+.thorns-menu-topbar > .close
+{
+	position: relative;
+	right: auto;
+	top: auto;
+	align-self: center;
+}
+/* Craft categories: single horizontal row in the right craft column. */
+.craft-categories
+{
+	flex-direction: row;
+	flex-wrap: nowrap;
+	flex-shrink: 0;
+	overflow: hidden;
+}
+
+.craft-categories .craft-cat-btn
+{
+	flex: 1 1 0;
+	min-width: 0;
+	width: auto;
+	min-height: 60px;
+	max-height: 60px;
+	align-items: center;
+	justify-content: center;
+	padding: 4px 2px;
+	gap: 0;
+}
+
+.craft-categories .craft-cat-icon
+{
+	width: 52px;
+	height: 52px;
+	min-width: 52px;
+	min-height: 52px;
+	max-width: 52px;
+	max-height: 52px;
+	background-size: contain;
+	background-position: center;
+	background-repeat: no-repeat;
+	flex-shrink: 0;
+}
+
+.craft-categories .craft-cat-label
+{
+	display: none;
+	width: 100%;
+	font-size: 6px;
+	letter-spacing: 0.02em;
+	text-align: center;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.section-btn
+{
+	min-height: 64px;
+	gap: 10px;
+}
+
+.section-btn-icon
+{
+	width: 40px;
+	height: 40px;
+	min-width: 40px;
+	min-height: 40px;
+	align-items: center;
+	justify-content: center;
+	background-size: contain;
+	background-position: center;
+	background-repeat: no-repeat;
+	flex-shrink: 0;
+}
+
+.section-btn-body
+{
+	min-width: 0;
+	justify-content: center;
+}
+
+.skill-node-diamond > .skill-node-icon,
+.skill-node-diamond > .skill-node-lock
+{
+	transform: rotate(-45deg);
+}
+
+.tame-cmd-btn
+{
+	flex-grow: 1;
+	flex-basis: 160px;
+	min-width: 140px;
+	min-height: 70px;
+}
+
+.tame-cmd-icon
+{
+	width: 34px;
+	height: 34px;
+	min-width: 34px;
+	min-height: 34px;
+	background-size: contain;
+	background-position: center;
+	background-repeat: no-repeat;
+}
+
+.tame-cmd-label
+{
+	font-size: 10px;
+	letter-spacing: 0.06em;
+	overflow: visible;
+	text-overflow: clip;
+}
+
+.guild-victory-card-hero
+{
+	background-size: contain;
+	background-position: center;
+	background-repeat: no-repeat;
+}

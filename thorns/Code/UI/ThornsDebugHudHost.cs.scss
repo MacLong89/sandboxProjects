@@ -1,0 +1,318 @@
+// Companion stylesheet for ThornsDebugHudHost (s&box loads ui/thornsdebughudhost.cs.scss).
+// Theme tokens aligned with ThornsGameShell (charcoal + teal); this file loads independently of the shell stylesheet.
+
+$thorns-ui-teal: rgba(82, 201, 217, 1);
+$thorns-ui-teal-soft: rgba(82, 201, 217, 0.35);
+$thorns-ui-teal-glow: rgba(82, 201, 217, 0.22);
+$thorns-ui-border: rgba(44, 54, 68, 0.92);
+$thorns-ui-text-muted: rgba(156, 163, 175, 0.9);
+$thorns-ui-radius-panel: 12px;
+$thorns-ui-radius-control: 8px;
+$thorns-ui-transition: 0.16s ease;
+
+// Gap-X hitmarker — align wrapper matches BuildCrosshair stack box; pivot is 2×2 at wrapper center.
+.thorns-hit-marker-crosshair-align {
+	overflow: visible;
+	pointer-events: none;
+}
+
+.thorns-hit-gap-cross-pivot {
+	width: 2px;
+	height: 2px;
+	overflow: visible;
+}
+
+.thorns-hit-gap-arm {
+	position: absolute;
+	border-radius: 2px;
+	transform-origin: center center;
+}
+
+// Local player damage feedback — opacity driven in C# (ThornsDebugHudHost.NotifyLocalDamageVignette).
+.thorns-debug-damage-vignette.thorns-damage-vignette-root {
+	pointer-events: none;
+	// s&box UI rejects inset box-shadow; use outer glows (same 3-token blur pattern as rest of HUD).
+	background-color: rgba(168, 6, 18, 0.44);
+	box-shadow: 0 0 240px rgba(255, 28, 28, 0.98), 0 0 120px rgba(255, 92, 92, 0.88), 0 0 56px rgba(255, 200, 200, 0.72);
+}
+
+.thorns-game-hud {
+	font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+	color: rgba(238, 240, 244, 0.95);
+
+	.player-card-inner {
+		border-radius: 12px;
+		box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(82, 201, 217, 0.06);
+	}
+
+	.toolbar-rail-v2,
+	.toolbar-build-rail-v2 {
+		border-radius: 12px;
+		box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(82, 201, 217, 0.06);
+	}
+
+	.inv-shell-v2,
+	.radio-shop-card {
+		border-radius: 12px;
+		box-shadow: 0 24px 56px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(82, 201, 217, 0.08);
+	}
+
+	.toolbar-hint-v2,
+	.toolbar-build-hint-v2,
+	.inv-help-v2 {
+		color: rgba(156, 163, 175, 0.9);
+	}
+
+	.thorns-build-banner-v2 {
+		border-radius: 12px;
+		box-shadow: 0 10px 28px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(82, 201, 217, 0.08);
+	}
+
+	.health-bar-wrap {
+		border-radius: 6px;
+	}
+
+	.hud-main-bar {
+		border-radius: 12px;
+	}
+
+	.inv-card {
+		border-radius: 12px;
+	}
+
+	.dev-card {
+		border-radius: 10px;
+	}
+
+	.thorns-death-dim {
+		background-color: rgba(5, 7, 11, 0.88);
+		backdrop-filter: blur(3px);
+	}
+
+	.thorns-death-card {
+		flex-direction: column;
+		background: linear-gradient(165deg, rgba(22, 26, 34, 0.97), rgba(13, 17, 23, 0.95));
+		border: 1px solid $thorns-ui-border;
+		border-radius: $thorns-ui-radius-panel;
+		box-shadow: 0 24px 56px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(82, 201, 217, 0.08);
+		padding: 44px 40px 48px;
+		gap: 22px;
+		flex-shrink: 0;
+		overflow: visible;
+		// Avoid CSS min(92vw,540px) here — Sass parses min() as its math function and can error on vw vs px,
+		// failing the whole companion stylesheet (HUD falls back to plain unstyled text).
+		width: 92vw;
+		min-width: 280px;
+		max-width: 560px;
+	}
+
+	.thorns-death-title {
+		font-size: 32px;
+		font-weight: 900;
+		letter-spacing: 0.12em;
+		color: rgba(248, 113, 113, 0.95);
+		text-align: center;
+		line-height: 1.28;
+		flex-shrink: 0;
+		margin-bottom: 0;
+		padding-bottom: 4px;
+		white-space: normal;
+		text-shadow: 0 0 28px rgba(248, 113, 113, 0.22);
+	}
+
+	.thorns-death-sub {
+		font-size: 15px;
+		font-weight: 500;
+		color: $thorns-ui-text-muted;
+		text-align: center;
+		line-height: 26px;
+		width: 100%;
+		max-width: 100%;
+		white-space: pre-line;
+		flex-shrink: 0;
+		overflow: visible;
+		margin-bottom: 6px;
+		padding: 0 12px;
+	}
+
+	.thorns-death-respawn-btn {
+		align-self: center;
+		margin-top: 8px;
+		cursor: pointer;
+		padding: 14px 28px;
+		font-size: 12px;
+		font-weight: 700;
+		letter-spacing: 0.14em;
+		border-radius: $thorns-ui-radius-control;
+		background-color: rgba(82, 201, 217, 0.16);
+		border: 1px solid rgba(82, 201, 217, 0.42);
+		color: rgba(238, 240, 244, 0.96);
+		transition: transform $thorns-ui-transition, filter $thorns-ui-transition, box-shadow $thorns-ui-transition,
+			border-color $thorns-ui-transition;
+
+		&:hover {
+			transform: scale(1.02);
+			filter: brightness(1.06);
+			box-shadow: 0 10px 22px rgba(0, 0, 0, 0.35), 0 0 14px $thorns-ui-teal-glow;
+			border-color: $thorns-ui-teal-soft;
+		}
+
+		&:active {
+			transform: scale(0.98);
+		}
+	}
+
+	.thorns-crate-sidebar {
+		border-radius: 10px;
+		background: linear-gradient(165deg, rgba(22, 26, 34, 0.96), rgba(13, 17, 23, 0.94));
+		border: 1px solid $thorns-ui-border;
+		box-shadow: 0 16px 40px rgba(0, 0, 0, 0.48), 0 0 0 1px rgba(82, 201, 217, 0.06);
+		padding: 12px;
+	}
+
+	.thorns-crate-head {
+		font-size: 11px;
+		font-weight: 800;
+		letter-spacing: 0.14em;
+		color: rgba(82, 201, 217, 0.88);
+		margin-bottom: 10px;
+		flex-shrink: 0;
+	}
+
+	.thorns-crate-line {
+		flex-shrink: 0;
+		gap: 8px;
+	}
+
+	.thorns-crate-item {
+		font-size: 13px;
+		font-weight: 600;
+		color: rgba(238, 240, 244, 0.92);
+		flex-grow: 1;
+		min-width: 0;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.thorns-crate-take-btn {
+		flex-shrink: 0;
+		cursor: pointer;
+		padding: 6px 12px;
+		font-size: 10px;
+		font-weight: 700;
+		letter-spacing: 0.08em;
+		border-radius: 6px;
+		background-color: rgba(82, 201, 217, 0.14);
+		border: 1px solid rgba(82, 201, 217, 0.38);
+		color: rgba(238, 240, 244, 0.94);
+		transition: transform $thorns-ui-transition, filter $thorns-ui-transition, box-shadow $thorns-ui-transition;
+
+		&:hover {
+			transform: scale(1.02);
+			filter: brightness(1.08);
+			box-shadow: 0 0 12px $thorns-ui-teal-glow;
+		}
+
+		&:active {
+			transform: scale(0.97);
+		}
+	}
+
+	// Armor chip panels use classes armor-0, armor-1, armor-2
+	[class^="armor-"] {
+		border-radius: 6px;
+	}
+
+	.hotbar-toolbar button,
+	.slot-grid button {
+		border-radius: 8px;
+	}
+
+	.slot-grid-row button {
+		border-radius: 6px;
+	}
+
+	.hud-hp-text {
+		text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.9);
+	}
+
+	.toolbar-hotbar-bar-row-v2 {
+		flex-direction: row;
+		align-items: center;
+		justify-content: center;
+		flex-wrap: nowrap;
+		gap: 14px;
+	}
+
+	.toolbar-ammo-mini-v2 {
+		font-size: 13px;
+		font-weight: 800;
+		color: rgba(232, 212, 158, 0.96);
+		text-shadow: 0 1px 4px rgba(0, 0, 0, 0.88);
+		letter-spacing: 0.5px;
+		pointer-events: none;
+		white-space: nowrap;
+		min-width: 52px;
+	}
+
+	// Dock hotbar slot: PNG icon (when present) or unicode glyph — matches shell toolbar rules (weapons skip lettered placeholder PNGs).
+	.tb-slot-stack-v2 {
+		width: 100%;
+		min-height: 0;
+	}
+
+	.tb-slot-icon-wrap-v2 {
+		position: relative;
+		width: 36px;
+		height: 32px;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.tb-slot-icon-fg-v2 {
+		position: absolute;
+		left: 0;
+		top: 0;
+		right: 0;
+		bottom: 0;
+		background-position: center center;
+		background-repeat: no-repeat;
+		background-size: contain;
+	}
+
+	.tb-slot-icon-glyph-v2 {
+		position: relative;
+		font-size: 22px;
+		font-weight: 500;
+		line-height: 1;
+		color: rgba(236, 240, 248, 0.95);
+		text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+		z-index: 1;
+
+		&.tb-slot-icon-glyph-v2--hidden {
+			display: none;
+		}
+	}
+
+	.tb-slot-qty-v2 {
+		font-size: 9px;
+		font-weight: 800;
+		color: rgba(232, 212, 158, 0.92);
+		text-shadow: 0 1px 2px rgba(0, 0, 0, 0.88);
+		margin-top: 1px;
+		min-height: 11px;
+	}
+
+	.inspect-selected {
+		box-shadow: 0 0 0 2px $thorns-ui-teal-soft;
+	}
+
+	.drop-target {
+		box-shadow: 0 0 0 2px $thorns-ui-teal-soft;
+	}
+
+	.dragging {
+		opacity: 0.88;
+	}
+}

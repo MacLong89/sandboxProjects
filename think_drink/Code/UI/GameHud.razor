@@ -1,0 +1,1163 @@
+@using Sandbox
+@using Sandbox.UI
+@using ThinkDrink.UI
+@inherits PanelComponent
+@namespace ThinkDrink.UI
+
+<root class="@RootClass @(UIManager.ShouldDimBackground ? "ui-dimmed" : "")">
+	<div class="vignette @(VignetteActive ? "active" : "")"></div>
+	<div class="flash @(FlashCorrect ? "correct" : "wrong") @(FlashMessage != "" ? "show" : "")">@FlashMessage</div>
+	@for ( var ti = 0; ti < UIManager.Toasts.Count; ti++ )
+	{
+		var toast = UIManager.Toasts[ti];
+		<div class="toast @(toast.Positive ? "positive" : "neutral")" style="top: @(GetToastTopPercent(ti))%;">@toast.DisplayText</div>
+	}
+	@if ( !string.IsNullOrEmpty( UiState.LevelUpMessage ) )
+	{
+		<div class="level-up-banner">@UiState.LevelUpMessage</div>
+	}
+	@if ( UIManager.ShowBoardTuner )
+	{
+		<div class="board-tuner">
+			<div class="tuner-title">Board tuner</div>
+			<div class="tuner-value">@StudioBoardTuner.Readout</div>
+			<div class="tuner-help">7/8 size  9/0 up/down  3/4 distance  R reset  ·  Q hide</div>
+		</div>
+	}
+	@if ( UiState.BuzzerHoverActive && !UIManager.HasModalOpen )
+	{
+		<div class="buzzer-hover-prompt">
+			<div class="prompt-key">M1</div>
+			<div class="prompt-text">BUZZ</div>
+		</div>
+	}
+	@if ( ShowCrosshair && !UIManager.HasModalOpen )
+	{
+		<div class="dot-crosshair"></div>
+	}
+	@if ( UIManager.Tooltip.Visible )
+	{
+		<div class="ui-tooltip">@UIManager.Tooltip.Text</div>
+	}
+
+	@if ( ShowOnboarding )
+	{
+		<div class="onboarding-backdrop"></div>
+		<div class="onboarding-panel">
+			<div class="onboarding-title">HOW TO PLAY</div>
+			<div class="onboarding-step"><span class="step-num">1</span> Ready up in the lobby — solo players can tap <strong>Play vs Practice Bot</strong>.</div>
+			<div class="onboarding-step"><span class="step-num">2</span> Watch the big board, then press <strong>E</strong> or the red buzzer to buzz in.</div>
+			<div class="onboarding-step"><span class="step-num">3</span> Type your answer and submit. First to the win threshold takes the match!</div>
+			<div class="onboarding-goal">Goal: first to @VotedThreshold points wins.</div>
+			<div class="onboarding-btn btn" onclick=@DismissOnboarding>Got it — let's play!</div>
+		</div>
+	}
+
+	@if ( Phase == MatchPhase.Lobby )
+	{
+		<div class="lobby @(CountdownActive ? "countdown-active" : "") @(UIManager.IsOverlayOpen ? "shell-suppressed" : "")">
+			<div class="logo-block">
+				<i class="icon logo">local_bar</i>
+				<div class="title">THINK &amp; DRINK</div>
+				<div class="tagline">Buzz fast. Answer smart. Climb the board.</div>
+			</div>
+
+			<div class="retention-strip">
+				@if ( DailyChallenge is not null )
+				{
+					<div class="retention-chip">Daily: @DailyChallenge.Current/@DailyChallenge.Target @ChallengeNudge</div>
+				}
+				@if ( LocalProfile?.ConsecutivePlayDays > 0 )
+				{
+					<div class="retention-chip streak">🔥 @LocalProfile.ConsecutivePlayDays-day streak</div>
+				}
+				@if ( DailyBonusAvailable )
+				{
+					<div class="retention-chip bonus">+@GameConstants.DailyFirstMatchXpBonus XP first match today</div>
+				}
+				<div class="retention-chip featured">Featured: @FeaturedCategory</div>
+			</div>
+
+			<div class="lobby-grid">
+				<div class="panel players-panel">
+					<div class="panel-title"><i class="icon">groups</i> Players (@ConnectedCount/@GameConstants.MaxPlayers)</div>
+					@foreach ( var p in Players )
+					{
+						<div class="player-row @(p.IsBot ? "bot" : "")">
+							<div class="name">@p.PlayerName @(p.IsBot ? "🤖" : "")</div>
+							<div class="meta">@(p.IsBot ? "Practice partner" : $"Lv {p.LifetimeLevel} · {ProgressionTitles.GetTitle(p.LifetimeLevel)} · {p.LifetimeWins} W")</div>
+							<div class="ready @(p.IsReady ? "on" : "")">@(p.IsReady ? "READY" : "…")</div>
+						</div>
+					}
+					@if ( CountdownActive )
+					{
+						<div class="countdown">Match starts in @CountdownText — look around the studio</div>
+					}
+					else if ( BotActive )
+					{
+						<div class="hint bot-hint">Practice Bot is ready — hit READY UP to start.</div>
+					}
+					else if ( HumanCount == 1 )
+					{
+						<div class="hint solo-guide">Solo? Tap <strong>PLAY VS BOT</strong> below, then ready up.</div>
+					}
+					else
+					{
+						<div class="hint">Need @GameConstants.MinPlayers+ players ready to start</div>
+					}
+				</div>
+
+				<div class="panel settings-panel">
+					<div class="panel-title"><i class="icon">tune</i> Match Settings</div>
+					<div class="setting-row">Win threshold: <strong>@VotedThreshold</strong> pts</div>
+					<div class="vote-row">
+						@foreach ( var t in ThresholdOptions )
+						{
+							<div class="vote-btn btn @(VotedThreshold == t ? "active" : "")" onclick=@(() => VoteThreshold(t))>@t</div>
+						}
+					</div>
+					<div class="setting-row mode-title">Game mode: <strong>@SelectedMode.DisplayName</strong></div>
+					<div class="mode-grid">
+						@foreach ( var mode in SelectableModes )
+						{
+							<div class="mode-btn btn @(SelectedMode.Id == mode.Id ? "active" : "")" onclick=@(() => SelectGameMode(mode.Id))>
+								<div class="mode-name">@mode.DisplayName</div>
+								<div class="mode-desc">@mode.ShortName · @GetModeBlurb( mode.Id )</div>
+							</div>
+						}
+					</div>
+					<div class="setting-row mode-info">@SelectedMode.DisplayName · @LobbyModeTagline</div>
+
+					<div class="ready-btn btn @(LocalReady ? "ready" : "")" onclick=@ToggleReady>
+						<i class="icon">@(LocalReady ? "check_circle" : "radio_button_unchecked")</i>
+						@(LocalReady ? "READY!" : "READY UP")
+					</div>
+
+					@if ( HumanCount == 1 && !BotActive )
+					{
+						<div class="practice-btn btn highlight" onclick=@StartPractice>
+							<i class="icon">smart_toy</i> PLAY VS BOT
+						</div>
+					}
+
+					<div class="nav-row @(ShowOnboarding ? "disabled" : "")">
+						<div class="nav-btn btn @(UIManager.IsWindowOpen(UiWindowId.Leaderboard) ? "open" : "")" onclick=@(() => OpenOverlay(UiScreen.Leaderboard)) onmouseover=@(() => QueueTooltip("Global leaderboards")) onmouseout=@HideTooltip>Leaderboard</div>
+						<div class="nav-btn btn @(UIManager.IsWindowOpen(UiWindowId.Profile) ? "open" : "")" onclick=@(() => OpenOverlay(UiScreen.Profile)) onmouseover=@(() => QueueTooltip("Your stats and progression")) onmouseout=@HideTooltip>Profile</div>
+						<div class="nav-btn btn @(UIManager.IsWindowOpen(UiWindowId.Challenges) ? "open" : "")" onclick=@(() => OpenOverlay(UiScreen.Challenges)) onmouseover=@(() => QueueTooltip("Daily and weekly goals")) onmouseout=@HideTooltip>Challenges</div>
+						<div class="nav-btn btn @(UIManager.IsWindowOpen(UiWindowId.Achievements) ? "open" : "")" onclick=@(() => OpenOverlay(UiScreen.Achievements)) onmouseover=@(() => QueueTooltip("Achievement progress")) onmouseout=@HideTooltip>Achievements</div>
+						<div class="nav-btn btn @(UIManager.IsWindowOpen(UiWindowId.Settings) ? "open" : "")" onclick=@(() => OpenOverlay(UiScreen.Settings)) onmouseover=@(() => QueueTooltip("Audio and gameplay options")) onmouseout=@HideTooltip>Settings</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	}
+	else if ( Phase == MatchPhase.PostMatch && LastResult is not null )
+	{
+		<div class="postmatch @(UIManager.IsOverlayOpen ? "shell-suppressed" : "")">
+			<div class="winner-banner">
+				<i class="icon">emoji_events</i>
+				<div class="winner-name">@LastResult.WinnerName WINS!</div>
+			</div>
+			<div class="results-grid">
+				@foreach ( var p in LastResult.Players )
+				{
+					<div class="result-row @(p.IsWinner ? "winner" : "") @(p.IsMvp ? "mvp" : "")">
+						<div class="rank">#@(LastResult.Players.IndexOf(p) + 1)</div>
+						<div class="name">@p.DisplayName @(p.IsMvp ? "★ MVP" : "")</div>
+						<div class="score">@p.Score pts</div>
+						<div class="detail">@p.Correct correct · +@p.XpEarned XP</div>
+					</div>
+				}
+			</div>
+			@if ( LastResult.NewAchievements.Count > 0 )
+			{
+				<div class="achieve-banner">🏆 New achievements unlocked!</div>
+				@foreach ( var id in LastResult.NewAchievements.Take( 4 ) )
+				{
+					<div class="achieve-row">@GetAchievementTitle( id )</div>
+				}
+			}
+			@if ( LastResult.CompletedChallenges.Count > 0 )
+			{
+				<div class="challenge-banner">✅ Challenges completed!</div>
+				@foreach ( var id in LastResult.CompletedChallenges )
+				{
+					<div class="achieve-row">@id</div>
+				}
+			}
+			@if ( LocalPostMatchResult?.XpLines?.Count > 0 )
+			{
+				<div class="xp-breakdown">
+					<div class="xp-title">XP Breakdown</div>
+					@foreach ( var line in LocalPostMatchResult.XpLines )
+					{
+						<div class="xp-line">@line</div>
+					}
+					<div class="xp-total">Total +@LocalPostMatchResult.XpEarned XP</div>
+				</div>
+			}
+			<div class="postmatch-actions">
+				@if ( CanSkipPostMatch )
+				{
+					<div class="skip-btn btn" onclick=@SkipPostMatch>Skip</div>
+				}
+				<div class="rematch-btn btn" onclick=@Rematch>Rematch</div>
+			</div>
+			<div class="return-hint">@(CanSkipPostMatch ? "Auto-returning soon…" : $"Returning in {PostMatchText}…")</div>
+		</div>
+	}
+	else
+	{
+		<div class="match-hud @(ShowPhaseSkipHint ? "has-skip-hint" : "")">
+			@if ( LocalPlayer?.IsSpectator == true )
+			{
+				<div class="spectator-banner">Spectating — you'll play in the next lobby match.</div>
+			}
+
+			<div class="win-goal">FIRST TO @WinThreshold WINS</div>
+			<div class="phase-ribbon @PhaseRibbonClass">@PhaseRibbonText</div>
+			@if ( ShowPhaseSkipHint )
+			{
+				<div class="phase-skip-hint btn" onclick=@RequestPhaseSkip>Tab — skip reveal (@PhaseSkipCount/@PhaseSkipRequired)</div>
+			}
+
+			<div class="top-strip">
+				<div class="brand-mini">THINK &amp; DRINK</div>
+				<div class="round">@SelectedMode.ShortName · Round @RoundNumber · First to @WinThreshold</div>
+				@if ( !string.IsNullOrEmpty( EventBanner ) )
+				{
+					<div class="event-banner">@EventBanner</div>
+				}
+			</div>
+
+			<div class="score-strip">
+				@foreach ( var p in LiveScores )
+				{
+					<div class="score-chip @(p.SteamKey == BuzzWinnerKey ? "buzz" : "") @(p.SteamKey == LocalPlayer?.SteamKey ? "you" : "")">
+						<span class="chip-name">@p.PlayerName</span>
+						<span class="chip-score">@p.MatchScore</span>
+						@if ( GetScorePop( p.PlayerName ) is { } pop )
+						{
+							<span class="score-pop">+@pop</span>
+						}
+					</div>
+				}
+			</div>
+
+			@if ( LocalPlayer is not null && UiState.MatchStreak >= 2 && MatchManager.Instance?.LastScorerName == LocalPlayer.PlayerName )
+			{
+				<div class="streak-badge">🔥 @UiState.MatchStreak streak</div>
+			}
+
+			<div class="controls-panel @(ControlsFocused ? "focused" : "") @(Phase == MatchPhase.BuzzIn ? "buzz-phase" : "") @(ControlsInteractive ? "interactive" : "")">
+				@if ( ShowAnswerControls )
+				{
+					<div class="timer @(CreativeSubmitPhase ? "answer" : IsStealTurn ? "steal" : CreativeVotePhase ? "answer" : "answer")">@AnswerPromptTitle — @AnswerWindowText</div>
+					@if ( CreativeVotePhase && CreativeVoteOptions.Count > 0 )
+					{
+						<div class="mcq-row">
+							@foreach ( var option in CreativeVoteOptions )
+							{
+								var letter = option.Letter;
+								var isOwn = letter == LocalCreativeLetter;
+								<div class="mcq-btn btn @(isOwn ? "disabled" : "")" onclick=@(() => SubmitCreativeVoteClick(letter))>
+									<span class="mcq-letter">@letter</span>
+									<span class="mcq-text">@option.Text</span>
+								</div>
+							}
+						</div>
+						@if ( !string.IsNullOrEmpty( LocalCreativeLetter ) )
+						{
+							<div class="board-hint">You can't vote for your own quip (marked above).</div>
+						}
+					}
+					else if ( UsesMultipleChoice )
+					{
+						<div class="mcq-row">
+							@if ( !string.IsNullOrEmpty( McqA ) )
+							{
+								<div class="mcq-btn btn" onclick=@(() => SubmitMcq("A"))><span class="mcq-letter">A</span><span class="mcq-text">@McqA</span></div>
+							}
+							@if ( !string.IsNullOrEmpty( McqB ) )
+							{
+								<div class="mcq-btn btn" onclick=@(() => SubmitMcq("B"))><span class="mcq-letter">B</span><span class="mcq-text">@McqB</span></div>
+							}
+							@if ( !string.IsNullOrEmpty( McqC ) )
+							{
+								<div class="mcq-btn btn" onclick=@(() => SubmitMcq("C"))><span class="mcq-letter">C</span><span class="mcq-text">@McqC</span></div>
+							}
+							@if ( !string.IsNullOrEmpty( McqD ) )
+							{
+								<div class="mcq-btn btn" onclick=@(() => SubmitMcq("D"))><span class="mcq-letter">D</span><span class="mcq-text">@McqD</span></div>
+							}
+						</div>
+					}
+					else
+					{
+						<div class="answer-row">
+							<TextEntry @ref="AnswerInput" class="answer-input" placeholder="@AnswerInputPlaceholder" Value:bind="@UiState.AnswerDraft" onsubmit=@SubmitCurrentAnswer />
+							<div class="submit-btn btn @(IsStealTurn ? "steal" : "")" onclick=@SubmitCurrentAnswer>@(CreativeSubmitPhase ? "LOCK IN" : IsStealTurn ? "STEAL" : "SUBMIT")</div>
+						</div>
+					}
+				}
+				else if ( Phase == MatchPhase.BuzzIn )
+				{
+					<div class="timer buzz">BUZZ IN! @TimerText · E or click the red buzzer</div>
+					<div class="buzz-btn btn armed" onclick=@Buzz>BUZZ!</div>
+				}
+				else if ( !ShowPredictOffer )
+				{
+					@if ( GameSettings.Current.ShowHints )
+					{
+						<div class="board-hint">@MatchHint</div>
+					}
+					else
+					{
+						<div class="board-hint">Look toward the question billboard on the back wall</div>
+					}
+				}
+
+				@if ( ShowPredictOffer )
+				{
+					@if ( !UiState.PredictionInputOpen )
+					{
+						<div class="predict-toggle-btn btn" onclick=@OpenPredictionInput>Predict answer for +@GameConstants.PredictionXpBonus XP</div>
+					}
+					else
+					{
+						<div class="predict-box">
+							<div class="predict-label">Guess the answer for +@GameConstants.PredictionXpBonus XP before it's revealed</div>
+							<div class="answer-row">
+								<TextEntry @ref="PredictInput" class="answer-input small" placeholder="Your prediction…" Value:bind="@UiState.PredictionDraft" onsubmit=@SubmitPrediction />
+								<div class="submit-btn btn small" onclick=@SubmitPrediction>LOCK IN</div>
+							</div>
+						</div>
+					}
+				}
+			</div>
+		</div>
+	}
+
+	@if ( UiState.Overlay != UiScreen.Lobby )
+	{
+		<div class="overlay-backdrop modal-blocker" onclick=@CloseOverlay></div>
+		<div class="overlay-panel modal-panel">
+			<div class="overlay-header">
+				<div class="overlay-title">@OverlayTitle</div>
+				<div class="overlay-close btn" onclick=@CloseOverlay><i class="icon">close</i></div>
+			</div>
+			<div class="overlay-body">
+				@if ( UiState.Overlay == UiScreen.Leaderboard )
+				{
+					<div class="tabs">
+						<div class="tab-title">🏆 Wins</div>
+						@foreach ( var e in Leaderboard.Wins.Take( 10 ) )
+						{
+							<div class="lb-row"><span>@e.DisplayName</span><span>@e.Value</span></div>
+						}
+						<div class="tab-title">✓ Correct</div>
+						@foreach ( var e in Leaderboard.CorrectAnswers.Take( 10 ) )
+						{
+							<div class="lb-row"><span>@e.DisplayName</span><span>@e.Value</span></div>
+						}
+						<div class="tab-title">🎯 Accuracy (10+ games)</div>
+						@foreach ( var e in Leaderboard.Accuracy.Take( 10 ) )
+						{
+							<div class="lb-row"><span>@e.DisplayName</span><span>@e.Value%</span></div>
+						}
+						<div class="tab-title">📅 Monthly wins (@CurrentMonthlyPeriod)</div>
+						@if ( Leaderboard.MonthlyWins.Count == 0 )
+						{
+							<div class="lb-empty">No monthly wins yet — win a match this month!</div>
+						}
+						@foreach ( var e in Leaderboard.MonthlyWins.Take( 10 ) )
+						{
+							<div class="lb-row"><span>@e.DisplayName</span><span>@e.Value</span></div>
+						}
+					</div>
+				}
+				else if ( UiState.Overlay == UiScreen.Profile )
+				{
+					@if ( LocalProfile is not null )
+					{
+						<div class="profile-title">@ProgressionTitles.GetTitle( LocalProfile.Level )</div>
+						<div class="profile-grid">
+							<div class="stat"><label>Level</label><value>@LocalProfile.Level</value></div>
+							<div class="stat"><label>XP</label><value>@LocalProfile.Xp</value></div>
+							<div class="stat wide"><label>Next level</label><value>@XpToNextLevel XP to go</value></div>
+							<div class="stat"><label>Wins</label><value>@LocalProfile.Wins</value></div>
+							<div class="stat"><label>Win Rate</label><value>@((LocalProfile.WinRate * 100f).ToString("0"))%</value></div>
+							<div class="stat"><label>Accuracy</label><value>@((LocalProfile.Accuracy * 100f).ToString("0"))%</value></div>
+							<div class="stat"><label>Streak</label><value>@LocalProfile.CurrentWinStreak (best @LocalProfile.BestWinStreak)</value></div>
+							<div class="stat wide"><label>Correct Answers</label><value>@LocalProfile.CorrectAnswers</value></div>
+							<div class="stat wide"><label>Monthly Wins</label><value>@LocalProfile.MonthlyWins (@CurrentMonthlyPeriod)</value></div>
+						</div>
+						@if ( CategoryBadges.Count > 0 )
+						{
+							<div class="category-badges">
+								<div class="badges-title">Category mastery</div>
+								@foreach ( var badge in CategoryBadges )
+								{
+									<div class="category-badge">
+										<span class="badge-cat">@badge.Category</span>
+										<span class="badge-tier">@badge.Badge</span>
+										<span class="badge-count">@badge.Count correct</span>
+									</div>
+								}
+							</div>
+						}
+					}
+					else if ( LocalPlayer is not null )
+					{
+						<div class="profile-grid">
+							<div class="stat"><label>Level</label><value>@LocalPlayer.LifetimeLevel</value></div>
+							<div class="stat"><label>Wins</label><value>@LocalPlayer.LifetimeWins</value></div>
+							<div class="stat wide"><label>Correct Answers</label><value>@LocalPlayer.LifetimeCorrect</value></div>
+							<div class="stat wide"><label>Leaderboard Rank</label><value>@(LocalPlayer.LeaderboardRank > 0 ? $"#{LocalPlayer.LeaderboardRank}" : "—")</value></div>
+						</div>
+					}
+				}
+				else if ( UiState.Overlay == UiScreen.Achievements )
+				{
+					@foreach ( var a in Achievements )
+					{
+						var unlocked = LocalProfile?.UnlockedAchievements?.Contains( a.Id ) == true;
+						var progress = AchievementService.GetProgressValue( LocalProfile, a );
+						var target = AchievementService.GetProgressTarget( a );
+						var showProgress = !unlocked && target > 1 && progress < target;
+						<div class="ach-row @(unlocked ? "unlocked" : "locked")">
+							<i class="icon">@a.Icon</i>
+							<div class="ach-text">
+								<div class="ach-title">@a.Title</div>
+								<div class="ach-desc">@a.Description</div>
+								@if ( showProgress )
+								{
+									<div class="ach-progress">@Math.Min( progress, target ) / @target</div>
+								}
+							</div>
+						</div>
+					}
+				}
+				else if ( UiState.Overlay == UiScreen.Challenges )
+				{
+					@if ( DailyChallenge is not null )
+					{
+						<div class="challenge-card">
+							<div class="ch-label">Daily</div>
+							<div class="ch-desc">@DailyChallenge.Description</div>
+							<div class="ch-progress">@DailyChallenge.Current / @DailyChallenge.Target · +@DailyChallenge.XpReward XP</div>
+						</div>
+					}
+					@if ( WeeklyChallenge is not null )
+					{
+						<div class="challenge-card">
+							<div class="ch-label">Weekly</div>
+							<div class="ch-desc">@WeeklyChallenge.Description</div>
+							<div class="ch-progress">@WeeklyChallenge.Current / @WeeklyChallenge.Target · +@WeeklyChallenge.XpReward XP</div>
+						</div>
+					}
+				}
+				else if ( UiState.Overlay == UiScreen.Settings )
+				{
+					<div class="setting-line">Master Volume: @((GameSettings.Current.MasterVolume * 100).ToString("0"))%</div>
+					<div class="vol-row">
+						<div class="vol-btn btn" onclick=@(() => AdjustVolume( "master", -0.1f ))>-</div>
+						<div class="vol-btn btn" onclick=@(() => AdjustVolume( "master", 0.1f ))>+</div>
+					</div>
+					<div class="setting-line">SFX Volume: @((GameSettings.Current.SfxVolume * 100).ToString("0"))%</div>
+					<div class="vol-row">
+						<div class="vol-btn btn" onclick=@(() => AdjustVolume( "sfx", -0.1f ))>-</div>
+						<div class="vol-btn btn" onclick=@(() => AdjustVolume( "sfx", 0.1f ))>+</div>
+					</div>
+					<div class="setting-line">Music Volume: @((GameSettings.Current.MusicVolume * 100).ToString("0"))%</div>
+					<div class="vol-row">
+						<div class="vol-btn btn" onclick=@(() => AdjustVolume( "music", -0.1f ))>-</div>
+						<div class="vol-btn btn" onclick=@(() => AdjustVolume( "music", 0.1f ))>+</div>
+					</div>
+					<div class="setting-line hints-row">
+						<span>Show Hints</span>
+						<div class="vol-btn btn toggle @(GameSettings.Current.ShowHints ? "active" : "")" onclick=@ToggleHints>@(GameSettings.Current.ShowHints ? "ON" : "OFF")</div>
+					</div>
+					<div class="setting-line hints-row">
+						<span>Auto-ready after matches</span>
+						<div class="vol-btn btn toggle @(GameSettings.Current.AutoReady ? "active" : "")" onclick=@ToggleAutoReady>@(GameSettings.Current.AutoReady ? "ON" : "OFF")</div>
+					</div>
+				}
+			</div>
+		</div>
+	}
+</root>
+
+@code
+{
+	private ThinkDrinkPlayer LocalPlayer => ThinkDrinkPlayer.Local;
+	private MatchPhase Phase => MatchManager.Instance?.Phase ?? MatchPhase.Lobby;
+	private int RoundNumber => MatchManager.Instance?.RoundNumber ?? 0;
+	private int WinThreshold => MatchManager.Instance?.WinThreshold ?? GameConstants.DefaultWinThreshold;
+	private string CurrentCategory => MatchManager.Instance?.CurrentCategory ?? "";
+	private string QuestionText => MatchManager.Instance?.QuestionText ?? "";
+	private string RevealedAnswer => MatchManager.Instance?.RevealedAnswer ?? "";
+	private string Explanation => MatchManager.Instance?.Explanation ?? "";
+	private string BuzzWinnerKey => MatchManager.Instance?.BuzzWinnerKey ?? "";
+	private string BuzzWinnerName => MatchManager.Instance?.BuzzWinnerName ?? "";
+	private string WinnerName => MatchManager.Instance?.WinnerName ?? "";
+	private string EventBanner => MatchManager.Instance?.EventBanner ?? "";
+	private bool ActiveModeUsesBuzzers => MatchManager.Instance?.ActiveModeUsesBuzzers ?? true;
+	private bool UsesMultipleChoice => MatchManager.Instance?.UsesMultipleChoice ?? false;
+	private string McqA => MatchManager.Instance?.McqA ?? "";
+	private string McqB => MatchManager.Instance?.McqB ?? "";
+	private string McqC => MatchManager.Instance?.McqC ?? "";
+	private string McqD => MatchManager.Instance?.McqD ?? "";
+	private int PhaseSkipCount => MatchManager.Instance?.PhaseSkipCount ?? 0;
+	private int PhaseSkipRequired => MatchManager.Instance?.PhaseSkipRequired ?? 1;
+	private bool ShowPhaseSkipHint => Phase is MatchPhase.CategoryReveal or MatchPhase.QuestionReveal or MatchPhase.CreativeSubmit or MatchPhase.CreativeVote or MatchPhase.AnswerReveal or MatchPhase.ScoreboardReveal or MatchPhase.MatchEnd;
+	private string CurrentMonthlyPeriod => GameConstants.CurrentMonthlyPeriod();
+	private IReadOnlyList<(string Category, int Count, string Badge)> CategoryBadges =>
+		LocalProfile is not null ? CategoryMastery.GetTopCategories( LocalProfile, 6 ) : Array.Empty<(string, int, string)>();
+	private bool PredictionsEnabled => MatchManager.Instance?.PredictionsEnabled ?? true;
+	private bool MatchStealsEnabled => GameModeRegistry.Create( SelectedMode.Id ).GetRoundSettings( 1, RandomEventType.None ).StealsEnabled;
+	private bool LobbyModeUsesBuzzers => GameModeRegistry.Create( SelectedMode.Id ).GetRoundSettings( 1, RandomEventType.None ).UsesBuzzers;
+	private string FeaturedCategory => GameConstants.GetFeaturedCategory();
+	private bool DailyBonusAvailable => LocalProfile is not null && LocalProfile.DailyBonusClaimedDate != DateTime.UtcNow.ToString( "yyyy-MM-dd" );
+	private bool ShowOnboarding => Phase == MatchPhase.Lobby && LocalProfile is not null && !LocalProfile.HasSeenOnboarding && !_onboardingDismissed;
+	private MatchPlayerResult LocalPostMatchResult => LastResult?.Players?.FirstOrDefault( p => p.SteamId == LocalPlayer?.SteamKey );
+	private string PostMatchText => PhaseTimer > 0 ? $"{MathF.Ceiling( PhaseTimer ):0}s" : "";
+	private bool CanSkipPostMatch => Phase == MatchPhase.PostMatch && PhaseTimer <= GameConstants.PostMatchSeconds - GameConstants.PostMatchSkipDelaySeconds;
+	private int XpToNextLevel
+	{
+		get
+		{
+			if ( LocalProfile is null ) return 0;
+			var level = LocalProfile.Level;
+			var xpIntoLevel = LocalProfile.Xp;
+			for ( var l = 1; l < level; l++ )
+				xpIntoLevel -= GameConstants.XpForLevel( l );
+			return Math.Max( 0, GameConstants.XpForLevel( level ) - xpIntoLevel );
+		}
+	}
+	private string ChallengeNudge
+	{
+		get
+		{
+			if ( DailyChallenge is null || DailyChallenge.Completed ) return "";
+			var left = DailyChallenge.Target - DailyChallenge.Current;
+			return left == 1 ? "· 1 to go!" : "";
+		}
+	}
+	private float PhaseTimer => MatchManager.Instance?.PhaseTimer ?? 0;
+	private bool CountdownActive => LobbyManager.Instance?.CountdownActive ?? false;
+	private float CountdownRemaining => LobbyManager.Instance?.CountdownRemaining ?? 0;
+	private string CountdownText => CountdownRemaining > 0 ? $"{CountdownRemaining:0}s" : "0s";
+	private int VotedThreshold => LobbyManager.Instance?.VotedWinThreshold ?? GameConstants.DefaultWinThreshold;
+	private GameModeDefinition SelectedMode => GameNightManager.Instance?.SelectedDefinition ?? GameModeRegistry.GetDefinition( GameModeId.TriviaShowdown );
+	private List<GameModeDefinition> SelectableModes => GameModeRegistry.Selectable
+		.Select( m => m.Definition )
+		.ToList();
+	private bool IsCreativeMode => MatchManager.Instance?.IsCreativeMode ?? false;
+	private bool CreativeSubmitPhase => Phase == MatchPhase.CreativeSubmit;
+	private bool CreativeVotePhase => Phase == MatchPhase.CreativeVote;
+	private IReadOnlyList<CreativeVoteOption> CreativeVoteOptions => MatchManager.Instance?.CreativeVoteOptions ?? Array.Empty<CreativeVoteOption>();
+	private string LocalCreativeLetter => LocalPlayer?.CreativeOwnVoteLetter ?? "";
+	private string LobbyModeTagline => IsCreativeLobbyMode
+		? "Write quips · Vote on favorites"
+		: $"{(LobbyModeUsesBuzzers ? "Buzz-in" : "Everyone answers")} · Steals {(MatchStealsEnabled ? "ON" : "OFF")}";
+	private bool IsCreativeLobbyMode => GameModeRegistry.UsesCreativeFlow( SelectedMode.Id );
+	private MatchResult LastResult => MatchManager.Instance?.LastResult;
+
+	private List<ThinkDrinkPlayer> Players => ThinkDrinkPlayer.All.Where( p => p.IsParticipant || p.IsConnected ).OrderBy( p => p.IsBot ).ThenBy( p => p.PlayerName ).ToList();
+	private int ConnectedCount => ThinkDrinkPlayer.CountParticipants();
+	private int HumanCount => ThinkDrinkPlayer.CountHumans();
+	private bool BotActive => BotManager.Instance?.BotActive ?? false;
+	private bool LocalReady => LocalPlayer?.IsReady ?? false;
+	private bool IsBuzzWinner => LocalPlayer?.SteamKey == BuzzWinnerKey;
+	private string FlashMessage => UiState.FlashMessage;
+	private bool FlashCorrect => UiState.FlashCorrect;
+	private string TimerText => PhaseTimer > 0 ? $"{PhaseTimer:0}s" : "";
+	private string AnswerWindowText => PhaseTimer > 0 ? $"{MathF.Ceiling( PhaseTimer ):0}s LEFT" : $"{GameConstants.AnswerWindowSeconds:0}s";
+	private string StealWindowText => PhaseTimer > 0 ? $"{MathF.Ceiling( PhaseTimer ):0}s LEFT" : $"{GameConstants.StealWindowSeconds:0}s";
+	private LeaderboardSnapshot Leaderboard => LeaderboardManager.Instance?.GetSnapshot() ?? new();
+	private PlayerProfile LocalProfile => PlayerProfileManager.GetLocalProfile();
+	private ChallengeProgress DailyChallenge => PlayerProfileManager.GetDailyChallenge( LocalProfile );
+	private ChallengeProgress WeeklyChallenge => PlayerProfileManager.GetWeeklyChallenge( LocalProfile );
+	private List<AchievementDefinition> Achievements => AchievementManager.Instance?.GetAllDefinitions()?.ToList() ?? new();
+
+	private static readonly int[] ThresholdOptions = { 5, 10, 15, 20 };
+	private TextEntry AnswerInput { get; set; }
+	private TextEntry PredictInput { get; set; }
+	private MatchPhase _lastPhase = MatchPhase.Lobby;
+	private string _lastBuzzWinnerKey = "";
+	private int _answerFocusFrames;
+	private int _predictFocusFrames;
+	private bool _attemptedBuzzThisRound;
+	private bool _onboardingDismissed;
+	private bool _onboardingSynced;
+	private readonly Dictionary<string, int> _scorePopByName = new();
+	private readonly Dictionary<string, int> _lastMatchScores = new();
+
+	private List<ThinkDrinkPlayer> LiveScores => ThinkDrinkPlayer.All
+		.Where( p => p.IsParticipant )
+		.OrderByDescending( p => p.MatchScore )
+		.ThenBy( p => p.PlayerName )
+		.ToList();
+
+	private bool ShowAnswerControls =>
+		(CreativeSubmitPhase && LocalPlayer?.IsParticipant == true && LocalPlayer.HasAnsweredThisRound == false)
+		|| (CreativeVotePhase && LocalPlayer?.IsParticipant == true && LocalPlayer.HasAnsweredThisRound == false)
+		|| (Phase == MatchPhase.Answering && !ActiveModeUsesBuzzers && LocalPlayer?.IsParticipant == true && LocalPlayer.HasAnsweredThisRound == false)
+		|| (Phase == MatchPhase.Answering && IsBuzzWinner)
+		|| (Phase == MatchPhase.StealAttempt && !IsBuzzWinner);
+
+	private string AnswerInputPlaceholder => CreativeSubmitPhase
+		? "Type something funny…"
+		: IsStealTurn ? "Steal answer..." : "Type your answer...";
+
+	private bool ShowPredictPanel => PredictionsEnabled && ActiveModeUsesBuzzers
+		&& Phase is MatchPhase.QuestionReveal or MatchPhase.BuzzIn or MatchPhase.Answering or MatchPhase.StealAttempt
+		&& !IsBuzzWinner && LocalPlayer?.IsParticipant == true && !LocalPlayer.IsSpectator;
+
+	private bool ShowPredictOffer => ShowPredictPanel && !UiState.HasSubmittedPredictionThisRound;
+
+	private bool ControlsInteractive => ShowAnswerControls || Phase == MatchPhase.BuzzIn || ShowPredictOffer || UiState.PredictionInputOpen;
+
+	private bool IsStealTurn => Phase == MatchPhase.StealAttempt && !IsBuzzWinner;
+	private string AnswerPromptTitle => CreativeSubmitPhase
+		? (MatchManager.Instance?.ActiveModeLabel ?? "WRITE YOUR QUIP")
+		: CreativeVotePhase
+			? (MatchManager.Instance?.ActiveModeLabel ?? "PICK THE FUNNIEST")
+			: IsStealTurn ? "STEAL" : (ActiveModeUsesBuzzers ? "YOU BUZZED IN" : "EVERYONE ANSWERS");
+
+	private bool ControlsFocused => ShowAnswerControls || _answerFocusFrames > 0 || UiState.PredictionInputOpen;
+	private bool ShowCrosshair =>
+		Phase is not MatchPhase.Lobby and not MatchPhase.PostMatch
+		&& UiState.Overlay == UiScreen.Lobby
+		&& !ShowAnswerControls
+		&& string.IsNullOrEmpty( FlashMessage )
+		&& !UIManager.HasModalOpen;
+
+	private bool ShowBoardTuner => UIManager.ShowBoardTuner;
+	private bool VignetteActive { get; set; }
+	private TimeUntil _vignetteClear;
+
+	private string RootClass => Phase switch
+	{
+		MatchPhase.BuzzIn => "phase-buzz",
+		MatchPhase.Answering => "phase-answer",
+		MatchPhase.ScoreboardReveal => "phase-standings",
+		_ => ""
+	};
+
+	private string PhaseRibbonClass => Phase switch
+	{
+		MatchPhase.CategoryReveal => "ribbon-cat",
+		MatchPhase.QuestionReveal => "ribbon-q",
+		MatchPhase.BuzzIn => "ribbon-buzz",
+		MatchPhase.Answering => "ribbon-answer",
+		MatchPhase.StealAttempt => "ribbon-steal",
+		MatchPhase.AnswerReveal => "ribbon-reveal",
+		MatchPhase.ScoreboardReveal => "ribbon-standings",
+		MatchPhase.RandomEvent => "ribbon-event",
+		MatchPhase.MatchEnd => "ribbon-win",
+		_ => ""
+	};
+
+	private string PhaseRibbonText => Phase switch
+	{
+		MatchPhase.CategoryReveal => IsCreativeMode ? $"CREATIVE — {CurrentCategory}" : $"CATEGORY — {CurrentCategory}",
+		MatchPhase.QuestionReveal => IsCreativeMode ? "READ THE PROMPT" : "QUESTION REVEAL",
+		MatchPhase.CreativeSubmit => MatchManager.Instance?.ActiveModeLabel ?? "WRITE YOUR QUIP",
+		MatchPhase.CreativeVote => MatchManager.Instance?.ActiveModeLabel ?? "VOTE",
+		MatchPhase.BuzzIn => "BUZZ IN!",
+		MatchPhase.Answering => ActiveModeUsesBuzzers ? $"{BuzzWinnerName} ANSWERING" : "EVERYONE ANSWER",
+		MatchPhase.StealAttempt => "STEAL OPPORTUNITY",
+		MatchPhase.AnswerReveal => "ANSWER REVEAL",
+		MatchPhase.ScoreboardReveal => "STANDINGS",
+		MatchPhase.RandomEvent => EventBanner,
+		MatchPhase.MatchEnd => $"{WinnerName} WINS!",
+		_ => ""
+	};
+
+	private string GetAchievementTitle( string id ) =>
+		Achievements.FirstOrDefault( a => a.Id == id )?.Title ?? id;
+
+	private string MatchHint => Phase switch
+	{
+		MatchPhase.BuzzIn => "Tip: Press E or click the red buzzer — fastest hand wins control.",
+		MatchPhase.QuestionReveal => ActiveModeUsesBuzzers ? "Tip: Submit a prediction for bonus XP before someone buzzes." : "Tip: Get ready. Everyone answers once when the timer starts.",
+		MatchPhase.Answering when !ActiveModeUsesBuzzers => "Tip: Everyone can answer once before the timer expires.",
+		MatchPhase.StealAttempt => "Tip: Steals are worth slightly less — still worth the shot.",
+		MatchPhase.ScoreboardReveal => "Tip: First to the win threshold takes the match.",
+		_ => "Tip: Categories rotate — listen for the reveal on the big board."
+	};
+
+	private bool CanPredict => ShowPredictPanel;
+
+	private int? GetScorePop( string playerName )
+	{
+		if ( string.IsNullOrEmpty( playerName ) ) return null;
+		return _scorePopByName.TryGetValue( playerName, out var pop ) ? pop : null;
+	}
+
+	private static float GetToastTopPercent( int index ) => UiScreenRegions.NotificationTopPercent( index );
+
+	private void QueueTooltip( string text ) => UIManager.QueueTooltip( text );
+	private void HideTooltip() => UIManager.HideTooltip();
+
+	private int PlayerLobbyHash
+	{
+		get
+		{
+			var hash = new HashCode();
+			for ( var i = 0; i < ThinkDrinkPlayer.All.Count; i++ )
+			{
+				var p = ThinkDrinkPlayer.All[i];
+				hash.Add( p.PlayerName );
+				hash.Add( p.SteamKey );
+				hash.Add( p.IsReady );
+				hash.Add( p.IsConnected );
+				hash.Add( p.IsSpectator );
+				hash.Add( p.IsBot );
+				hash.Add( p.MatchScore );
+				hash.Add( p.HasAnsweredThisRound );
+			}
+			return hash.ToHashCode();
+		}
+	}
+
+	private void SubmitCurrentAnswer()
+	{
+		if ( CreativeSubmitPhase )
+			SubmitCreativeQuip();
+		else if ( IsStealTurn )
+			SubmitSteal();
+		else
+			SubmitAnswer();
+	}
+
+	private void SubmitCreativeQuip()
+	{
+		if ( string.IsNullOrWhiteSpace( UiState.AnswerDraft ) ) return;
+		UiFeedback.Click();
+		LocalPlayer?.SubmitCreativeQuip( UiState.AnswerDraft );
+		UiState.ClearAnswerDraft();
+	}
+
+	private void SubmitCreativeVoteClick( string letter )
+	{
+		if ( string.IsNullOrWhiteSpace( letter ) ) return;
+		if ( string.Equals( letter, LocalCreativeLetter, StringComparison.OrdinalIgnoreCase ) ) return;
+		UiFeedback.Click();
+		LocalPlayer?.SubmitCreativeVote( letter );
+	}
+
+	private void AdjustVolume( string channel, float delta )
+	{
+		UiFeedback.Click();
+		switch ( channel )
+		{
+			case "master":
+				GameSettings.Current.MasterVolume = Math.Clamp( GameSettings.Current.MasterVolume + delta, 0f, 1f );
+				break;
+			case "music":
+				GameSettings.Current.MusicVolume = Math.Clamp( GameSettings.Current.MusicVolume + delta, 0f, 1f );
+				break;
+			default:
+				GameSettings.Current.SfxVolume = Math.Clamp( GameSettings.Current.SfxVolume + delta, 0f, 1f );
+				break;
+		}
+
+		GameSettings.Save();
+		UiState.Bump();
+	}
+
+	private void ToggleHints()
+	{
+		UiFeedback.Click();
+		GameSettings.Current.ShowHints = !GameSettings.Current.ShowHints;
+		GameSettings.Save();
+		UiState.Bump();
+	}
+
+	private void ToggleAutoReady()
+	{
+		UiFeedback.Click();
+		GameSettings.Current.AutoReady = !GameSettings.Current.AutoReady;
+		GameSettings.Save();
+		UiState.Bump();
+	}
+
+	private void DismissOnboarding()
+	{
+		UiFeedback.Click();
+		_onboardingDismissed = true;
+		UIManager.SetOnboardingActive( false );
+		LocalPlayer?.CompleteOnboarding();
+		UiState.Bump();
+	}
+
+	private void SkipPostMatch()
+	{
+		UiFeedback.Click();
+		LocalPlayer?.RequestSkipPostMatch();
+	}
+
+	private void RequestPhaseSkip()
+	{
+		UiFeedback.Click();
+		LocalPlayer?.RequestSkipPhase();
+	}
+
+	private void SubmitMcq( string letter )
+	{
+		if ( string.IsNullOrWhiteSpace( letter ) ) return;
+		UiFeedback.Click();
+		if ( IsStealTurn )
+			LocalPlayer?.SubmitStealAnswer( letter );
+		else
+			LocalPlayer?.SubmitAnswer( letter );
+	}
+
+	private void Rematch()
+	{
+		UiFeedback.Click();
+		LocalPlayer?.RequestRematch();
+	}
+
+	private string OverlayTitle => UiState.Overlay switch
+	{
+		UiScreen.Leaderboard => "Leaderboards",
+		UiScreen.Profile => "Profile",
+		UiScreen.Achievements => "Achievements",
+		UiScreen.Challenges => "Challenges",
+		UiScreen.Settings => "Settings",
+		_ => ""
+	};
+
+	protected override void OnStart()
+	{
+		GameEvents.AnswerResolved += OnAnswerResolved;
+		GameEvents.BuzzWinner += OnBuzzWinner;
+		GameEvents.BuzzRejected += OnBuzzRejected;
+		GameEvents.ScoreAwarded += OnScoreAwarded;
+		GameEvents.PhaseChanged += OnPhaseChanged;
+		GameEvents.QuestionShown += OnQuestionShown;
+		GameEvents.GameModeChanged += OnGameModeChanged;
+		GameEvents.MatchEnded += OnMatchEnded;
+	}
+
+	protected override void OnDestroy()
+	{
+		GameEvents.AnswerResolved -= OnAnswerResolved;
+		GameEvents.BuzzWinner -= OnBuzzWinner;
+		GameEvents.BuzzRejected -= OnBuzzRejected;
+		GameEvents.ScoreAwarded -= OnScoreAwarded;
+		GameEvents.PhaseChanged -= OnPhaseChanged;
+		GameEvents.QuestionShown -= OnQuestionShown;
+		GameEvents.GameModeChanged -= OnGameModeChanged;
+		GameEvents.MatchEnded -= OnMatchEnded;
+	}
+
+	private void OnPhaseChanged( MatchPhase phase ) => HandlePhaseEntered( phase );
+	private void OnGameModeChanged( GameModeId mode ) => UiState.Bump();
+
+	private void OnQuestionShown( TriviaQuestion question )
+	{
+		UiState.ClearRoundDrafts();
+		_attemptedBuzzThisRound = false;
+		_scorePopByName.Clear();
+	}
+
+	private void OnMatchEnded( MatchResult result ) => UiState.Bump();
+
+	private void OnAnswerResolved( string steamId, bool correct )
+	{
+		// Host-only event; clients receive NotifyAnswerResult Rpc.
+	}
+
+	private void OnBuzzWinner( string steamId )
+	{
+		if ( LocalPlayer?.SteamKey == steamId )
+		{
+			UiState.ClearAnswerDraft();
+			UiState.CloseOverlay();
+			QueueAnswerFocus();
+		}
+	}
+
+	private void OnBuzzRejected( string steamId )
+	{
+		// Host-only event; clients receive NotifyBuzzTooSlow Rpc.
+	}
+
+	private void OnScoreAwarded( string steamKey, int points, bool isSteal )
+	{
+		if ( LocalPlayer?.SteamKey != steamKey ) return;
+
+		if ( isSteal )
+			UiState.ShowToast( $"Steal! +{points} pts", true );
+		else if ( MatchManager.Instance?.LastScorerStreak >= 3 )
+			UiState.SetMatchStreak( MatchManager.Instance.LastScorerStreak );
+	}
+
+	private void ToggleReady()
+	{
+		UiFeedback.Click();
+		var local = LocalPlayer;
+		if ( local is null )
+		{
+			Log.Warning( "[ThinkDrink][Ready] ready click ignored: local player not found." );
+			return;
+		}
+
+		local.RequestReady( !local.IsReady );
+	}
+	private void StartPractice() { UiFeedback.Click(); LocalPlayer?.RequestPracticeBot(); }
+	private void VoteThreshold( int t ) { UiFeedback.Click(); LocalPlayer?.VoteWinThreshold( t ); }
+	private void SelectGameMode( GameModeId mode ) { UiFeedback.Click(); LocalPlayer?.RequestGameMode( mode ); }
+
+	private static string GetModeBlurb( GameModeId id ) => id switch
+	{
+		GameModeId.QuipFill => "Fill-in-the-blank quips",
+		GameModeId.CaptionThis => "Caption silly scenes",
+		GameModeId.SketchQuips => "Describe funny doodles",
+		_ => "Classic buzz-in trivia"
+	};
+	private void OpenOverlay( UiScreen screen )
+	{
+		var window = UiWindowRegistry.FromScreen( screen );
+		if ( window == UiWindowId.None ) return;
+		if ( !UIManager.Request( UiRequest.Open( window ) ) ) return;
+		UiFeedback.Click();
+	}
+
+	private void CloseOverlay()
+	{
+		UiFeedback.Click();
+		UIManager.CloseOverlay();
+	}
+	private void Buzz()
+	{
+		GameEvents.RaiseAudio( AudioEventId.BuzzerPress );
+		_attemptedBuzzThisRound = true;
+		LocalPlayer?.RequestBuzz();
+	}
+	private void SubmitAnswer()
+	{
+		if ( string.IsNullOrWhiteSpace( UiState.AnswerDraft ) ) return;
+		UiFeedback.Click();
+		LocalPlayer?.SubmitAnswer( UiState.AnswerDraft );
+		UiState.ClearAnswerDraft();
+	}
+
+	private void SubmitSteal()
+	{
+		if ( string.IsNullOrWhiteSpace( UiState.AnswerDraft ) ) return;
+		UiFeedback.Click();
+		LocalPlayer?.SubmitStealAnswer( UiState.AnswerDraft );
+		UiState.ClearAnswerDraft();
+	}
+
+	private void SubmitPrediction()
+	{
+		if ( string.IsNullOrWhiteSpace( UiState.PredictionDraft ) ) return;
+		UiFeedback.Click();
+		LocalPlayer?.SubmitPrediction( UiState.PredictionDraft );
+		UiState.ClearPredictionDraft();
+		UiState.MarkPredictionSubmitted();
+	}
+
+	private void OpenPredictionInput()
+	{
+		UiFeedback.Click();
+		UiState.OpenPredictionInput();
+		_predictFocusFrames = 10;
+	}
+
+	protected override void OnUpdate()
+	{
+		SyncOnboardingState();
+		UIManager.HandleInput();
+
+		if ( ShowPhaseSkipHint && Input.Pressed( "Score" ) && UiState.Overlay == UiScreen.Lobby && !UIManager.BlocksGameplayInput )
+			RequestPhaseSkip();
+
+		if ( Phase == MatchPhase.PostMatch && CanSkipPostMatch && Input.Pressed( "Score" ) )
+			SkipPostMatch();
+
+		if ( _vignetteClear )
+			VignetteActive = false;
+
+		TrackSyncedState();
+		TrackScoreChanges();
+		TryFocusAnswerInput();
+		TryFocusPredictInput();
+		UiState.Update();
+	}
+
+	private void SyncOnboardingState()
+	{
+		var active = ShowOnboarding;
+		if ( active == _onboardingSynced ) return;
+		_onboardingSynced = active;
+		UIManager.SetOnboardingActive( active );
+	}
+
+	private void TrackScoreChanges()
+	{
+		for ( var i = 0; i < LiveScores.Count; i++ )
+		{
+			var p = LiveScores[i];
+			var prev = _lastMatchScores.TryGetValue( p.SteamKey, out var score ) ? score : 0;
+			if ( p.MatchScore > prev )
+			{
+				var delta = p.MatchScore - prev;
+				_scorePopByName[p.PlayerName] = delta;
+				UiState.AddScorePop( p.PlayerName, delta );
+			}
+			_lastMatchScores[p.SteamKey] = p.MatchScore;
+		}
+	}
+
+	private void PulseVignette()
+	{
+		VignetteActive = true;
+		_vignetteClear = 0.35f;
+	}
+
+	private void TrackSyncedState()
+	{
+		if ( Phase != _lastPhase )
+		{
+			_lastPhase = Phase;
+			HandlePhaseEntered( Phase );
+		}
+
+		if ( MatchManager.Instance?.LastScorerName == LocalPlayer?.PlayerName )
+			UiState.SetMatchStreak( MatchManager.Instance.LastScorerStreak );
+
+		if ( BuzzWinnerKey == _lastBuzzWinnerKey ) return;
+
+		_lastBuzzWinnerKey = BuzzWinnerKey;
+		if ( IsBuzzWinner && Phase == MatchPhase.Answering )
+		{
+			UiState.ClearAnswerDraft();
+			UiState.CloseOverlay();
+			QueueAnswerFocus();
+		}
+	}
+
+	private void HandlePhaseEntered( MatchPhase phase )
+	{
+		UIManager.OnMatchPhaseChanged( phase );
+
+		if ( phase is MatchPhase.BuzzIn or MatchPhase.ScoreboardReveal or MatchPhase.MatchEnd )
+			PulseVignette();
+
+		if ( phase == MatchPhase.MatchEnd && !string.IsNullOrWhiteSpace( WinnerName ) )
+			UiState.ShowToast( $"{WinnerName} wins the match!", true );
+
+		switch ( phase )
+		{
+			case MatchPhase.CategoryReveal:
+			case MatchPhase.QuestionReveal:
+			case MatchPhase.BuzzIn:
+			case MatchPhase.AnswerReveal:
+			case MatchPhase.ScoreboardReveal:
+			case MatchPhase.MatchEnd:
+			case MatchPhase.PostMatch:
+			case MatchPhase.Lobby:
+				UiState.ClearRoundDrafts();
+				break;
+			case MatchPhase.CreativeSubmit:
+			case MatchPhase.CreativeVote:
+			case MatchPhase.Answering when !ActiveModeUsesBuzzers && LocalPlayer?.IsParticipant == true:
+			case MatchPhase.Answering when IsBuzzWinner:
+			case MatchPhase.StealAttempt when !IsBuzzWinner:
+				UiState.ClearAnswerDraft();
+				UiState.CloseOverlay();
+				QueueAnswerFocus();
+				break;
+			case MatchPhase.StealAttempt:
+				UiState.ClearAnswerDraft();
+				break;
+		}
+	}
+
+	private void QueueAnswerFocus()
+	{
+		_answerFocusFrames = 10;
+	}
+
+	private void TryFocusAnswerInput()
+	{
+		if ( _answerFocusFrames <= 0 ) return;
+		_answerFocusFrames--;
+
+		if ( AnswerInput is null || !AnswerInput.IsValid() ) return;
+
+		AnswerInput.Focus();
+		AnswerInput.CaretPosition = AnswerInput.TextLength;
+		_answerFocusFrames = 0;
+	}
+
+	private void TryFocusPredictInput()
+	{
+		if ( _predictFocusFrames <= 0 ) return;
+		_predictFocusFrames--;
+
+		if ( PredictInput is null || !PredictInput.IsValid() ) return;
+
+		PredictInput.Focus();
+		PredictInput.CaretPosition = PredictInput.TextLength;
+		_predictFocusFrames = 0;
+	}
+
+	protected override int BuildHash()
+	{
+		var stateHashA = HashCode.Combine(
+			Phase,
+			RoundNumber,
+			PhaseTimer,
+			UiState.Revision,
+			UiState.InteractionPulse,
+			ShowBoardTuner,
+			VignetteActive,
+			CountdownActive
+		);
+
+		var stateHashB = HashCode.Combine(
+			UiState.PredictionInputOpen,
+			UiState.HasSubmittedPredictionThisRound,
+			IsCreativeMode,
+			CreativeVoteOptions.Count
+		);
+
+		var stateHashC = HashCode.Combine(
+			QuestionText,
+			BuzzWinnerKey,
+			VotedThreshold,
+			ConnectedCount,
+			FlashMessage,
+			CountdownRemaining,
+			SelectedMode.Id,
+			LiveScores.Count
+		);
+
+		var stateHashD = HashCode.Combine(
+			PlayerLobbyHash,
+			UIManager.Toasts.Count,
+			UiState.LevelUpMessage,
+			UiState.MatchStreak,
+			ShowOnboarding,
+			CanSkipPostMatch,
+			UsesMultipleChoice,
+			PhaseSkipCount
+		);
+
+		return HashCode.Combine(
+			HashCode.Combine(stateHashA, stateHashB),
+			ActiveModeUsesBuzzers,
+			BotActive,
+			HashCode.Combine(stateHashC, HashCode.Combine(stateHashD, UIManager.Tooltip.Visible, UIManager.InputContext))
+		);
+	}
+}

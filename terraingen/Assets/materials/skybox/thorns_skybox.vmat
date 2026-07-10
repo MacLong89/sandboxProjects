@@ -1,0 +1,10 @@
+// Legacy equirect sky — can show a vertical seam at the panorama wrap. Prefer thorns_sky_atmosphere.vmat.
+
+Layer0
+{
+	shader "shaders/sky.shader"
+
+	g_flBrightnessExposureBias "0.000"
+	g_flRenderOnlyExposureBias "0.000"
+	SkyTexture "materials/skybox/skybox.png"
+}

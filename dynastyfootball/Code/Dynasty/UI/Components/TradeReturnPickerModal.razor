@@ -1,0 +1,52 @@
+@using System
+@using Sandbox.UI
+@using Dynasty.Core.Identifiers
+@using Dynasty.UI.ViewModels
+@using Dynasty.UI.Components
+@inherits Panel
+@namespace Dynasty.UI.Components
+@attribute [StyleSheet( "/Dynasty/UI/Components/TradeReturnPickerModal.razor.scss" )]
+
+<root class="trade-return-picker-root">
+@if ( Visible )
+{
+	<div class="ui-modal-backdrop ui-anim-fade" @onclick='@(() => OnCancel?.Invoke())'>
+		<div class="ui-modal-card" @onmousedown='@UiModalHelpers.StopPropagation'>
+			<Label class="modal-title">Choose player from @PartnerLabel</Label>
+			<Label class="muted">You send @OutgoingPlayerName — select who you receive.</Label>
+
+			<div class="picker-list">
+				@foreach ( var row in Candidates )
+				{
+					<div class="picker-row" @onclick='@(() => PickPlayer( row.PlayerId.Value ))'>
+						<Label class="picker-name">@row.Name</Label>
+						<Label class="picker-pos muted">@row.Position</Label>
+						<Label class="picker-ovr">@row.Overall OVR</Label>
+					</div>
+				}
+
+				@if ( Candidates == null || Candidates.Count == 0 )
+				{
+					<Label class="muted">No players available on this roster.</Label>
+				}
+			</div>
+
+			<div class="modal-actions">
+				<Button class="btn secondary" Text="Cancel" onclick='@(() => OnCancel?.Invoke())' />
+			</div>
+		</div>
+	</div>
+}
+</root>
+
+@code
+{
+	[Parameter] public bool Visible { get; set; }
+	[Parameter] public string PartnerLabel { get; set; } = "";
+	[Parameter] public string OutgoingPlayerName { get; set; } = "";
+	[Parameter] public IReadOnlyList<TradePlayerRow> Candidates { get; set; }
+	[Parameter] public Action<PlayerId> OnSelect { get; set; }
+	[Parameter] public Action OnCancel { get; set; }
+
+	void PickPlayer( Guid playerId ) => OnSelect?.Invoke( new PlayerId( playerId ) );
+}

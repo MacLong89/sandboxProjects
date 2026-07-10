@@ -1,0 +1,125 @@
+.ui-modal-backdrop
+{
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	align-items: center;
+	justify-content: center;
+	background-color: rgba( 0, 0, 0, 0.88 );
+	pointer-events: all;
+	z-index: 70;
+}
+
+.ui-modal-card
+{
+	flex-direction: column;
+	gap: 12px;
+	width: 960px;
+	max-width: 95%;
+	max-height: 80%;
+	padding: 24px;
+	background-color: #151d2e;
+	border: 1px solid #243044;
+	border-radius: 14px;
+	pointer-events: all;
+	overflow: scroll;
+}
+
+.picker-body
+{
+	flex-direction: row;
+	gap: 16px;
+	width: 100%;
+	min-height: 320px;
+}
+
+.picker-list
+{
+	flex-direction: column;
+	gap: 6px;
+	width: 42%;
+	flex-shrink: 0;
+}
+
+.picker-profile-panel
+{
+	flex-grow: 1;
+	min-width: 0;
+	padding: 8px;
+	background-color: #0a0f18;
+	border: 1px solid #243044;
+	border-radius: 10px;
+	overflow: scroll;
+}
+
+.picker-row
+{
+	flex-direction: row;
+	align-items: center;
+	gap: 10px;
+	padding: 10px 12px;
+	background-color: #0a0f18;
+	border: 1px solid #243044;
+	border-radius: 10px;
+	width: 100%;
+	cursor: pointer;
+}
+
+.picker-row.current
+{
+	border-left: 3px solid #34c759;
+}
+
+.picker-row.selected
+{
+	border-color: #3b82f6;
+	background-color: #111827;
+}
+
+.picker-name
+{
+	flex-grow: 1;
+	font-weight: 600;
+	color: white;
+}
+
+.picker-pos
+{
+	width: 36px;
+	font-size: 11px;
+	color: #8b9cb3;
+}
+
+.picker-ovr
+{
+	width: 56px;
+	font-weight: 700;
+	color: #fbbf24;
+	text-align: right;
+}
+
+PlayerPickerModal,
+.player-picker-modal-root
+{
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	pointer-events: none;
+
+	.modal-title
+	{
+		font-size: 18px;
+		font-weight: 700;
+		color: white;
+	}
+
+	.picker-subtitle
+	{
+		font-size: 12px;
+		color: #8b9cb3;
+	}
+}

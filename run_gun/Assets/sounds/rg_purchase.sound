@@ -1,0 +1,12 @@
+{
+  "UI": true,
+  "Volume": "0.85",
+  "Pitch": "1",
+  "Decibels": 60,
+  "SelectionMode": "Random",
+  "Sounds": [],
+  "Occlusion": false,
+  "DistanceAttenuation": false,
+  "__references": [],
+  "__version": 1
+}
