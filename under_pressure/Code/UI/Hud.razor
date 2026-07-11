@@ -457,10 +457,6 @@
 						<div class="mission-location"><i class="icon">place</i> @Core.MissionBriefingLocation</div>
 					}
 					<div class="popup-body mission-copy">@Core.MissionBriefingBody</div>
-					@if ( !string.IsNullOrEmpty( Core.MissionBriefingRevealHook ) )
-					{
-						<div class="mission-reveal"><b>Wash to reveal:</b> @Core.MissionBriefingRevealHook</div>
-					}
 					<div class="popup-btn" onclick=@DismissMissionBriefing>Start Job</div>
 				</div>
 			</div>

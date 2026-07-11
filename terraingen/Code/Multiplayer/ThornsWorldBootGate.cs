@@ -17,7 +17,10 @@ public sealed class ThornsWorldBootGate : Component
 
 	/// <summary>True while the local owner should defer camera/HUD activation.</summary>
 	public static bool BlocksLocalOwnerPresentation =>
-		Game.IsPlaying && _bootActive && !IsLocalBootComplete;
+		Game.IsPlaying && (
+			( _bootActive && !IsLocalBootComplete )
+			|| ThornsMenuJoinFlow.IsProgressVisible
+			|| ThornsLocalHostSpawnCoordinator.IsDeferredPending );
 
 	static bool _bootActive;
 	static double _bootStartedRealtime;
@@ -32,12 +35,17 @@ public sealed class ThornsWorldBootGate : Component
 		if ( _bootActive && !IsLocalBootComplete )
 			return;
 
+		// Terrain is already live — do not reopen the boot gate (join clients hit this repeatedly).
+		if ( IsLocalBootComplete && ThornsTerrainBootstrap.Instance?.IsWorldApplied == true )
+			return;
+
 		_bootActive = true;
 		IsLocalBootComplete = false;
 		_terrainReady = false;
 		_terrainReadyAtRealtime = 0;
 		_bootStartedRealtime = Time.Now;
-		LoadingScreen.Title = "Loading world…";
+		ThornsJoinFlowDebug.LogMilestone( "BeginLocalBoot" );
+		ThornsLoadingScreenUtil.Show( "Loading world…" );
 	}
 
 	public static void NotifyWorldApplied( Scene scene )
@@ -130,6 +138,8 @@ public sealed class ThornsWorldBootGate : Component
 		_bootActive = false;
 		IsLocalBootComplete = true;
 		Log.Info( $"[Thorns Terrain] World boot complete ({reason})." );
+		ThornsJoinFlowDebug.LogMilestone( $"CompleteBoot ({reason}) — {ThornsJoinFlowDebug.DescribeEnterGates( compact: true )}" );
+		ThornsSessionEnterController.NotifyWorldBootComplete();
 	}
 
 	static bool IsWorldReadyForPlay( Scene scene )

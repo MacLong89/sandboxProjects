@@ -1259,6 +1259,18 @@ public sealed class AimboxPlayerController : Component, IAimboxCombatActor
 
 	public AimboxMatchSummary BuildMatchSummary( bool won )
 	{
+		var mode = AimboxGame.Instance?.Match.Mode ?? AimboxGameMode.FreeForAll;
+
+		if ( IsProxy || Data is null )
+		{
+			return new AimboxMatchSummary
+			{
+				AccountId = AccountId,
+				Mode = mode,
+				Won = won
+			};
+		}
+
 		var masteryEntries = _sessionMasteryXp
 			.Where( x => x.Value > 0 )
 			.Select( x =>
@@ -1270,10 +1282,26 @@ public sealed class AimboxPlayerController : Component, IAimboxCombatActor
 			.OrderByDescending( x => x.XpEarned )
 			.ToList();
 
+		var aimScore = 0;
+		var aimPersonalBest = 0;
+		var isNewAimPersonalBest = false;
+		var aimLeaderboardRank = 0;
+
+		if ( !IsProxy && Data is not null && AimboxAimModeRules.IsAimMode( mode ) )
+		{
+			aimScore = AimboxGame.Instance?.Match.GetAimScore( AccountId ) ?? 0;
+			var aimResult = AimboxGame.Instance?.Leaderboards.SubmitAimRun( mode, Data, DisplayName, aimScore )
+			                ?? new AimboxAimLeaderboardSubmitResult();
+			aimPersonalBest = aimResult.PersonalBest;
+			isNewAimPersonalBest = aimResult.IsNewPersonalBest;
+			aimLeaderboardRank = aimResult.LeaderboardRank;
+			QueueSaveProgress();
+		}
+
 		return new AimboxMatchSummary
 		{
 			AccountId = AccountId,
-			Mode = AimboxGame.Instance?.Match.Mode ?? AimboxGameMode.FreeForAll,
+			Mode = mode,
 			Won = won,
 			Kills = Data.Kills - _matchStartKills,
 			Deaths = Data.Deaths - _matchStartDeaths,
@@ -1283,7 +1311,11 @@ public sealed class AimboxPlayerController : Component, IAimboxCombatActor
 			MasteryXpEntries = masteryEntries,
 			Unlocks = _sessionUnlocks.ToList(),
 			Medals = _recentMedals.ToList(),
-			CompletedChallenges = _sessionCompletedChallenges.ToList()
+			CompletedChallenges = _sessionCompletedChallenges.ToList(),
+			AimScore = aimScore,
+			AimPersonalBest = aimPersonalBest,
+			IsNewAimPersonalBest = isNewAimPersonalBest,
+			AimLeaderboardRank = aimLeaderboardRank
 		};
 	}
 
@@ -1755,7 +1787,15 @@ public sealed class AimboxPlayerController : Component, IAimboxCombatActor
 
 	public bool IsTeammate( IAimboxCombatActor other )
 	{
-		return other is not null && Team != AimboxTeam.None && Team == other.Team;
+		if ( other is null )
+			return false;
+
+		if ( other is AimboxPlayerController otherPlayer
+		     && !string.IsNullOrWhiteSpace( AccountId )
+		     && string.Equals( AccountId, otherPlayer.AccountId, StringComparison.OrdinalIgnoreCase ) )
+			return true;
+
+		return Team != AimboxTeam.None && Team == other.Team;
 	}
 
 	public bool IsTeammate( AimboxPlayerController other ) => IsTeammate( other as IAimboxCombatActor );

@@ -197,6 +197,7 @@
 	string HoveredNav { get; set; } = "play";
 	string HighlightedNav => HoveredNav;
 	OverlayKind ActiveOverlay { get; set; } = OverlayKind.None;
+	AimboxGameMode SelectedAimLeaderboardMode { get; set; } = AimboxGameMode.AimLevel1;
 	int NewsIndex { get; set; }
 	TimeSince _newsTimer;
 
@@ -456,32 +457,49 @@
 			<div class="settings-hint">More audio and gameplay settings are coming soon.</div>
 		</div>,
 		OverlayKind.Leaderboards => @<div class="leaderboard-panel">
-			@if ( PlayerData is null )
+			<div class="leaderboard-mode-tabs">
+				@foreach ( var mode in AimboxAimModeRules.AllAimModes )
+				{
+					var tabMode = mode;
+					<button class="leaderboard-mode-tab @(SelectedAimLeaderboardMode == tabMode ? "active" : "")"
+						onclick="@(() => SelectAimLeaderboardMode(tabMode))">
+						@AimboxGameModeLabels.Short( tabMode )
+					</button>
+				}
+			</div>
+			<div class="leaderboard-mode-title">@AimboxGameModeLabels.Long( SelectedAimLeaderboardMode )</div>
+			<div class="leaderboard-personal">
+				<div class="leaderboard-personal-label">YOUR BEST</div>
+				<div class="leaderboard-personal-value">@FormatScore( SelectedAimPersonalBest )</div>
+			</div>
+			@if ( SelectedAimLeaderboardEntries.Count == 0 )
 			{
-				<div class="overlay-empty">No player data available.</div>
+				<div class="overlay-empty">No scores yet. Break targets in this AIM mode to set the first record.</div>
 			}
 			else
 			{
-				<div class="leaderboard-hero">
-					<div class="leaderboard-stat">
-						<div class="leaderboard-stat-label">KILLS</div>
-						<div class="leaderboard-stat-value">@FormatScore( PlayerData.Kills )</div>
+				<div class="leaderboard-table">
+					<div class="leaderboard-row header">
+						<div class="leaderboard-rank">#</div>
+						<div class="leaderboard-name">PLAYER</div>
+						<div class="leaderboard-score">SCORE</div>
 					</div>
-					<div class="leaderboard-stat">
-						<div class="leaderboard-stat-label">K/D</div>
-						<div class="leaderboard-stat-value">@FormatKd( PlayerData.KdRatio )</div>
-					</div>
-					<div class="leaderboard-stat">
-						<div class="leaderboard-stat-label">HEADSHOTS</div>
-						<div class="leaderboard-stat-value">@FormatScore( PlayerData.Headshots )</div>
-					</div>
-					<div class="leaderboard-stat">
-						<div class="leaderboard-stat-label">DUEL MMR</div>
-						<div class="leaderboard-stat-value">@FormatScore( PlayerData.Ranked.DuelMmr )</div>
-					</div>
+					@{
+						var rank = 1;
+					}
+					@foreach ( var entry in SelectedAimLeaderboardEntries )
+					{
+						var item = entry;
+						var rowRank = rank++;
+						<div class="leaderboard-row @(IsLocalLeaderboardEntry(item) ? "local" : "")">
+							<div class="leaderboard-rank">@FormatRank( rowRank )</div>
+							<div class="leaderboard-name">@LeaderboardDisplayName( item )</div>
+							<div class="leaderboard-score">@FormatScore( item.Score )</div>
+						</div>
+					}
 				</div>
-				<div class="overlay-hint">Global leaderboards sync in a future update. Showing your local stats.</div>
 			}
+			<div class="overlay-hint">Every run is saved locally. Top 100 scores per mode persist across sessions.</div>
 		</div>,
 		OverlayKind.Messages => @<div class="overlay-empty">No new messages.</div>,
 		OverlayKind.Friends => @<div class="overlay-empty">Friends list coming soon.</div>,
@@ -496,6 +514,31 @@
 
 	string FormatKd( float kd ) => kd.ToString( "0.00" );
 
+	static string FormatRank( int rank ) => rank.ToString( "00" );
+
+	IReadOnlyList<AimboxAimLeaderboardEntry> SelectedAimLeaderboardEntries =>
+		AimboxGame.Instance?.Leaderboards.GetAimLeaderboard( SelectedAimLeaderboardMode, 25 ) ?? [];
+
+	int SelectedAimPersonalBest =>
+		AimboxGame.Instance?.Leaderboards.GetAimPersonalBest( PlayerData, SelectedAimLeaderboardMode ) ?? 0;
+
+	void SelectAimLeaderboardMode( AimboxGameMode mode ) => SelectedAimLeaderboardMode = mode;
+
+	bool IsLocalLeaderboardEntry( AimboxAimLeaderboardEntry entry ) =>
+		entry?.AccountId == Player?.AccountId;
+
+	string LeaderboardDisplayName( AimboxAimLeaderboardEntry entry )
+	{
+		if ( entry is null )
+			return "UNKNOWN";
+
+		var name = entry.DisplayName;
+		if ( string.IsNullOrWhiteSpace( name ) )
+			name = entry.AccountId;
+
+		return name.Length > 18 ? name[..18].ToUpperInvariant() : name.ToUpperInvariant();
+	}
+
 	protected override int BuildHash()
 	{
 		if ( !Visible )
@@ -503,6 +546,6 @@
 
 		return HashCode.Combine(
 			HashCode.Combine( Visible, IsLobbyJoiner, ActiveNav, HoveredNav, ActiveOverlay, NewsIndex, PlayerData?.TotalXp, PlayerData?.PlayerLevel ),
-			HashCode.Combine( PlayerData?.Kills, PlayerData?.Headshots, FeaturedChallengeProgress, AimboxUiTheme.Version ) );
+			HashCode.Combine( PlayerData?.Kills, PlayerData?.Headshots, FeaturedChallengeProgress, AimboxUiTheme.Version, SelectedAimLeaderboardMode, SelectedAimPersonalBest, SelectedAimLeaderboardEntries.Count ) );
 	}
 }

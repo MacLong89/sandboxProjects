@@ -45,8 +45,8 @@ public static class ThornsMapTextureCache
 				return;
 		}
 
-		if ( terrain.IsValid() )
-			TryBuildFromTerrainRays( terrain, config, seed );
+		// Heightfield not ready yet — wait for ThornsMapWorldService.NotifyTerrainReady instead of
+		// blocking the client on hundreds of thousands of terrain raycasts (published builds hit this path).
 	}
 
 	static bool TryBuildFromHeightfield( Terrain terrain, HeightmapField field, ThornsTerrainConfig config, int seed )
@@ -80,43 +80,6 @@ public static class ThornsMapTextureCache
 		{
 			Log.Warning( e, "[Thorns Map] Heightfield map texture generation failed." );
 			return false;
-		}
-	}
-
-	static void TryBuildFromTerrainRays( Terrain terrain, ThornsTerrainConfig config, int seed )
-	{
-		try
-		{
-			const int resolution = 512;
-			var bmp = new Bitmap( resolution, resolution );
-			var origin = terrain.GameObject.WorldPosition;
-			var maxH = terrain.TerrainHeight;
-			var waterLevel = ThornsMapProjection.GetVisualWaterLevelNormalized( config );
-
-			for ( var y = 0; y < resolution; y++ )
-			{
-				for ( var x = 0; x < resolution; x++ )
-				{
-					ThornsMapProjection.MapPixelToWorld( terrain, x, y, resolution, out var wx, out var wy );
-					var rayStart = new Vector3( wx, wy, origin.z + maxH * 2f );
-					var color = new Color( 0.91f, 0.85f, 0.75f );
-
-					if ( terrain.RayIntersects( new Ray( rayStart, Vector3.Down ), maxH * 4f, out var localHit ) )
-					{
-						var h01 = (localHit.z / maxH).Clamp( 0f, 1.25f );
-						color = HeightToColor( h01, waterLevel );
-					}
-
-					bmp.SetPixel( x, y, color );
-				}
-			}
-
-			ApplyTexture( bmp, seed, fromSculptedField: false );
-			Log.Info( $"[Thorns Map] Map texture generated from terrain rays ({resolution}x{resolution})." );
-		}
-		catch ( Exception e )
-		{
-			Log.Warning( e, "[Thorns Map] Terrain ray map texture generation failed." );
 		}
 	}
 

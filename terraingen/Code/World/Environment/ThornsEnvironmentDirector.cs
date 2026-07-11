@@ -56,6 +56,12 @@ public sealed class ThornsEnvironmentDirector : Component
 		if ( TimeSystem is null || !TimeSystem.IsValid() )
 			return;
 
+		if ( Networking.IsActive && !Networking.IsHost )
+		{
+			ApplyCurrentState();
+			return;
+		}
+
 		TimeSystem.TickClock();
 		ApplyCurrentState();
 

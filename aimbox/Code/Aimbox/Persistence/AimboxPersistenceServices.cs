@@ -107,6 +107,9 @@ public sealed class AimboxPlayerDataService
 
 			data.Weapons.Remove( AimboxWeaponId.Bow );
 		}
+
+		if ( fromVersion < 13 )
+			data.AimModeBestScores ??= new Dictionary<AimboxGameMode, int>();
 	}
 
 	static void MigrateAttachmentCompatibility( AimboxPlayerData data )

@@ -208,5 +208,6 @@ public static class AimboxMetaNavigation
 	{
 		AimboxGame.Instance?.SyncMetaUiActive();
 		AimboxCursor.Sync();
+		AimboxMenuMusic.Sync();
 	}
 }

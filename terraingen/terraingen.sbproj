@@ -1,11 +1,11 @@
 {
-  "Title": "Bloom - Testing Stage",
+  "Title": "Thorns",
   "Type": "game",
   "Org": "maclgames",
-  "Ident": "terraingen",
+  "Ident": "thorns",
   "Schema": 1,
   "IncludeSourceFiles": false,
-  "Resources": "*.png\n*.scss\n*.json\n*.fbx\n*.sound\n*.tmat\n*.scene\nmap/*\nui/**/*\nscenes/**/*\nnews.json\nsounds/*\ntemplates/*\nmodels/**/*\nmaterials/**/*\nterrain_materials/**/*\nshaders/**/*\n*.vmdl\n*.vmat\n*.vtex\n*.shader\n*.shader_c",
+  "Resources": "*.png\n*.scss\n*.json\n*.tmat\n*.scene\nmap/*\nui/**/*\nnews.json\nsounds/*\ntemplates/*\nmodels/**/*\nmaterials/**/*\nterrain_materials/**/*\nshaders/**",
   "PackageReferences": [
     "facepunch.sboxweapons",
     "facepunch.reddotrmr",
@@ -31,7 +31,23 @@
     "RankType": "None",
     "PerMapRanking": false,
     "LeaderboardType": "None",
-    "CsProjName": "terraingen",
-    "StartupScene": "scenes/thorns_main_menu.scene"
+    "CsProjName": "Code/terraingen.csproj",
+    "Compiler": {
+      "RootNamespace": "Sandbox",
+      "DefineConstants": "SANDBOX",
+      "NoWarn": "1701;1702;1591;",
+      "WarningsAsErrors": "",
+      "TreatWarningsAsErrors": false,
+      "Nullables": false,
+      "Whitelist": false,
+      "AssemblyReferences": [],
+      "IgnoreFolders": [
+        "editor",
+        "unittest"
+      ],
+      "DistinctAssemblyReferences": []
+    },
+    "StartupScene": "scenes/thorns_main_menu.scene",
+    "LaunchMode": "Normal"
   }
 }

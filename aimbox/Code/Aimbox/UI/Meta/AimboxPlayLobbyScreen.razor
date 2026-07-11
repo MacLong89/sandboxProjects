@@ -192,6 +192,17 @@
 
 					</div>
 
+					@if ( AimboxAimModeRules.IsAimMode( SelectedMode ) )
+					{
+						<div class="detail-stat">
+
+							<div class="detail-stat-label">YOUR BEST</div>
+
+							<div class="detail-stat-value">@FormatScore( SelectedAimPersonalBest )</div>
+
+						</div>
+					}
+
 				</div>
 
 
@@ -888,13 +899,18 @@
 
 	string ReadySeconds() => $"{(int)MathF.Ceiling( Game?.ReadyCountdownRemaining ?? 0f )}";
 
+	int SelectedAimPersonalBest =>
+		Game?.Leaderboards.GetAimPersonalBest( LocalPlayer?.Data, SelectedMode ) ?? 0;
+
+	static string FormatScore( int score ) => AimboxUiFormat.Score( score );
+
 
 
 	protected override int BuildHash() => HashCode.Combine(
 
 		HashCode.Combine( Visible, SelectedMode, SelectedMap.Id, LocalMapVote, SoloMapSelection, IsLocalReady, IsHost, Game?.ReadyCountdownRemaining ),
 
-		HashCode.Combine( MapSelectEnabled, TeamSelectEnabled, LobbyEntries.Count, Game?.Players.Count, Game?.Bots.Count, MapVoteHash(), TeamPickHash() ) );
+		HashCode.Combine( MapSelectEnabled, TeamSelectEnabled, LobbyEntries.Count, Game?.Players.Count, Game?.Bots.Count, MapVoteHash(), TeamPickHash(), SelectedAimPersonalBest ) );
 
 
 

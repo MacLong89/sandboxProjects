@@ -23,14 +23,26 @@ public static class ThornsLocalHostSpawnCoordinator
 	static bool _loggedStall;
 	static double _lastTickRealtime = -1;
 	static bool _cosmeticsWaitStarted;
+	static bool _presentationComplete;
 
 	public static bool IsDeferredPending => _deferredStep > 0;
 
 	public static bool IsHandling( GameObject player ) =>
 		player.IsValid() && ReferenceEquals( _player, player );
 
+	public static bool HasCompletedPresentation( GameObject player ) =>
+		player.IsValid() && ReferenceEquals( _player, player ) && _presentationComplete;
+
 	public static void Queue( Scene scene, GameObject player )
 	{
+		if ( !player.IsValid() || scene is null || !scene.IsValid )
+			return;
+
+		if ( IsHandling( player ) || HasCompletedPresentation( player ) )
+			return;
+
+		ThornsJoinFlowDebug.LogMilestone( $"SpawnCoordinator.Queue player={player.Name}" );
+
 		_scene = scene;
 		_player = player;
 		_deferredStep = 0;
@@ -38,18 +50,15 @@ public static class ThornsLocalHostSpawnCoordinator
 		_deferredQueuedAt = 0;
 		_loggedStall = false;
 		_lastTickRealtime = -1;
+		_presentationComplete = false;
 
 		try
 		{
 			ThornsWorldBootGate.EnsureDriver();
 
 			var bootstrap = scene.GetAllComponents<ThornsTerrainBootstrap>().FirstOrDefault();
-			var joiningClient = Networking.IsActive && !Networking.IsHost;
-			if ( joiningClient || ( Networking.IsActive && Networking.IsHost ) )
-			{
-				if ( bootstrap?.IsWorldApplied != true )
-					ThornsWorldBootGate.BeginLocalBoot();
-			}
+			if ( bootstrap?.IsWorldApplied != true )
+				ThornsWorldBootGate.BeginLocalBoot();
 
 			ThornsSceneObserver.SuppressTerrainPreviewMainCamera( scene );
 			ThornsMenuJoinFlow.SetStage( ThornsMenuJoinStage.EnteringWorld );
@@ -74,6 +83,9 @@ public static class ThornsLocalHostSpawnCoordinator
 			_stepRetries = 0;
 			ThornsMenuJoinFlow.SetProgressMessage( "Loading HUD..." );
 			ThornsLocalHostSpawnDriver.Ensure();
+			ThornsJoinFlowDebug.JoinInfo( $"SpawnCoordinator step 1 (HUD) — {ThornsJoinFlowDebug.DescribeHud()}" );
+			ThornsMenuJoinDriver.NotifyLocalPawnSpawned();
+			ThornsMenuJoinHandoff.TryComplete();
 		}
 		catch ( Exception e )
 		{
@@ -97,7 +109,8 @@ public static class ThornsLocalHostSpawnCoordinator
 		if ( !_loggedStall && _deferredQueuedAt > 3f )
 		{
 			_loggedStall = true;
-			Log.Warning( $"[Thorns Terrain] Local player deferred setup stalled at step {_deferredStep} for {_deferredQueuedAt:F1}s." );
+			ThornsJoinFlowDebug.JoinWarn(
+				$"SpawnCoordinator stalled step={_deferredStep} for {_deferredQueuedAt:F1}s retries={_stepRetries} — {ThornsJoinFlowDebug.DescribeHud()}" );
 		}
 
 		var player = _player;
@@ -120,6 +133,9 @@ public static class ThornsLocalHostSpawnCoordinator
 
 					if ( !ThornsLocalPlayerPresentation.IsHudReady() && _stepRetries++ < 240 )
 					{
+						if ( _stepRetries == 1 || _stepRetries % 40 == 0 )
+							ThornsJoinFlowDebug.JoinInfo( $"SpawnCoordinator step 1 waiting HUD try={_stepRetries} — {ThornsJoinFlowDebug.DescribeHud()}" );
+
 						ThornsMenuJoinFlow.SetProgressMessage( "Loading HUD..." );
 						return;
 					}
@@ -131,15 +147,21 @@ public static class ThornsLocalHostSpawnCoordinator
 
 						if ( _stepRetries++ < 240 )
 						{
+							if ( _stepRetries == 1 || _stepRetries % 40 == 0 )
+								ThornsJoinFlowDebug.JoinInfo( $"SpawnCoordinator step 1 waiting snapshot try={_stepRetries} snapshot={ThornsUiClientState.HasSnapshot}" );
+
 							ThornsMenuJoinFlow.SetProgressMessage( "Loading HUD..." );
 							return;
 						}
 					}
 
+					ThornsJoinFlowDebug.LogMilestone( "SpawnCoordinator step 1 complete (HUD ready)" );
 					_stepRetries = 0;
 					_deferredStep = 2;
+					ThornsSessionEnterController.TryCompleteEnter( "hud" );
 					return;
 				case 2:
+					ThornsJoinFlowDebug.LogMilestone( "SpawnCoordinator step 2 (queue cosmetics)" );
 					bootstrap?.QueueLocalPlayerCosmetics();
 					_deferredStep = 3;
 					return;
@@ -163,6 +185,8 @@ public static class ThornsLocalHostSpawnCoordinator
 		}
 	}
 
+	static bool _loggedPresentationTimeout;
+
 	static bool TryCompletePresentation( GameObject player, ThornsPlayerGameplay gameplay )
 	{
 		ThornsLocalPlayerPresentation.TickAssetBootstrap();
@@ -173,9 +197,14 @@ public static class ThornsLocalHostSpawnCoordinator
 		{
 			if ( _stepRetries++ >= 300 )
 			{
-				Log.Warning(
-					$"[Thorns Terrain] Local player presentation timed out (boot={ThornsLocalPlayerPresentation.IsBootReady()} " +
-					$"hud={ThornsLocalPlayerPresentation.IsHudReady()} snapshot={ThornsLocalPlayerPresentation.IsSnapshotReady()}) — entering anyway." );
+				if ( !_loggedPresentationTimeout )
+				{
+					_loggedPresentationTimeout = true;
+					ThornsJoinFlowDebug.JoinWarn(
+						$"SpawnCoordinator presentation timeout — boot={ThornsLocalPlayerPresentation.IsBootReady()} " +
+						$"hud={ThornsLocalPlayerPresentation.IsHudReady()} snapshot={ThornsLocalPlayerPresentation.IsSnapshotReady()} " +
+						$"{ThornsJoinFlowDebug.DescribeHud()} — entering anyway." );
+				}
 			}
 			else
 			{
@@ -188,26 +217,35 @@ public static class ThornsLocalHostSpawnCoordinator
 
 		if ( !_cosmeticsWaitStarted )
 		{
-			ThornsNearbyCosmeticsReadiness.Begin( player );
 			_cosmeticsWaitStarted = true;
-			return false;
+			// Stream nearby cosmetics in the background — do not block session enter or TAB input.
 		}
 
-		if ( !ThornsNearbyCosmeticsReadiness.TryComplete( _scene ) )
-			return false;
-
-		_cosmeticsWaitStarted = false;
 		ThornsAudioWorldService.EnsureForScene( _scene );
 		ThornsGameplaySfx.WarmHarvestToolSounds();
-		ThornsMenuJoinFlow.CompleteEnterWorld();
-		Reset();
+		FinishPresentation();
 		return true;
+	}
+
+	static void FinishPresentation()
+	{
+		ThornsJoinFlowDebug.LogMilestone( "SpawnCoordinator presentation complete" );
+		ThornsNearbyCosmeticsReadiness.Cancel();
+		_presentationComplete = true;
+		_deferredStep = 0;
+		_stepRetries = 0;
+		_cosmeticsWaitStarted = false;
+		_loggedPresentationTimeout = false;
+		_lastTickRealtime = -1;
+		ThornsSessionEnterController.TryCompleteEnter( "presentation" );
 	}
 
 	static void Reset()
 	{
 		ThornsNearbyCosmeticsReadiness.Cancel();
 		_cosmeticsWaitStarted = false;
+		_loggedPresentationTimeout = false;
+		_presentationComplete = false;
 		_deferredStep = 0;
 		_stepRetries = 0;
 		_player = null;
@@ -216,4 +254,13 @@ public static class ThornsLocalHostSpawnCoordinator
 	}
 
 	public static void ResetState() => Reset();
+
+	/// <summary>Release cosmetics input hold without waiting — session enter owns overlay/input.</summary>
+	public static void CancelCosmeticsHold()
+	{
+		ThornsNearbyCosmeticsReadiness.Cancel();
+		_cosmeticsWaitStarted = false;
+		if ( _deferredStep >= 3 )
+			FinishPresentation();
+	}
 }

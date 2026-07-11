@@ -12,7 +12,7 @@ public static class WorldSprites
 	public const float WildernessLayer = -200f;
 	public const float GrassLayer = -199f;
 	/// <summary>Habitat interior floor — above owned plot grass, below paths.</summary>
-	public const float HabitatGroundLayer = -198f;
+	public const float HabitatGroundLayer = GrassLayer + 2f;
 	public const float PathLayer = -50f;
 	public const float BuildingLayer = 0f;
 	public const float DecorationLayer = 5f;
@@ -203,6 +203,14 @@ public static class WorldSprites
 		Texture texture,
 		float worldSize,
 		string name = "GroundTile",
+		float layer = WildernessLayer ) =>
+		SpawnGroundTileWorld( worldPosition, texture, new Vector2( worldSize, worldSize ), name, layer );
+
+	public static GameObject SpawnGroundTileWorld(
+		Vector3 worldPosition,
+		Texture texture,
+		Vector2 drawSize,
+		string name = "GroundTile",
 		float layer = WildernessLayer )
 	{
 		var feet = worldPosition.WithZ( 0f );
@@ -213,7 +221,7 @@ public static class WorldSprites
 		var spriteGo = new GameObject( root, true, "Sprite" );
 		var renderer = spriteGo.AddComponent<SpriteRenderer>();
 		AssignSprite( renderer, texture );
-		PixelArt.ApplyWorldScale( renderer, worldSize, PixelArt.TileSourcePixels, texture );
+		PixelArt.ApplyWorldScale( renderer, drawSize, PixelArt.TileSourcePixels, texture );
 		ConfigureRenderer( renderer, depthSort: true );
 		renderer.Opaque = true;
 		renderer.AlphaCutoff = 0.08f;
@@ -224,6 +232,64 @@ public static class WorldSprites
 
 		return root;
 	}
+
+	/// <summary>Habitat interior floor tile — same sorted billboard layout as owned/wilderness grass.</summary>
+	public static GameObject SpawnHabitatGroundTile(
+		GameObject parent,
+		Texture texture,
+		Vector2 drawSize,
+		Vector3 localPosition,
+		string name = "HabitatGroundTile",
+		float layer = HabitatGroundLayer )
+	{
+		var root = new GameObject( parent, true, name );
+		root.LocalPosition = localPosition.WithZ( 0f );
+
+		var spriteGo = new GameObject( root, true, "Sprite" );
+		var renderer = spriteGo.AddComponent<SpriteRenderer>();
+		AssignSprite( renderer, texture );
+		PixelArt.ApplyWorldScale( renderer, drawSize, PixelArt.TileSourcePixels, texture );
+		ConfigureRenderer( renderer, depthSort: true );
+		renderer.Opaque = true;
+		renderer.AlphaCutoff = 0.08f;
+
+		var sorter = spriteGo.AddComponent<HabitatFloorDepthSorter>();
+		sorter.SortOrigin = root;
+
+		root.Tags.Add( "habitat_ground" );
+		return root;
+	}
+
+	/// <summary>Habitat interior floor tile — local position under a shared sort origin.</summary>
+	public static GameObject SpawnHabitatGroundTile(
+		GameObject parent,
+		Texture texture,
+		Vector2 drawSize,
+		Vector3 localPosition,
+		GameObject sortOrigin,
+		string name = "HabitatGroundTile",
+		float layer = HabitatGroundLayer )
+	{
+		var root = SpawnHabitatGroundTile( parent, texture, drawSize, localPosition, name, layer );
+		foreach ( var sorter in root.GetComponentsInChildren<HabitatFloorDepthSorter>( true ) )
+		{
+			if ( !sorter.IsValid() ) continue;
+			sorter.SortOrigin = sortOrigin.IsValid() ? sortOrigin : parent;
+			sorter.ForceApplyDepth();
+		}
+
+		return root;
+	}
+
+	/// <summary>Habitat interior floor tile — square draw size.</summary>
+	public static GameObject SpawnHabitatGroundTile(
+		GameObject parent,
+		Texture texture,
+		float worldSize,
+		Vector3 localPosition,
+		string name = "HabitatGroundTile",
+		float layer = HabitatGroundLayer ) =>
+		SpawnHabitatGroundTile( parent, texture, new Vector2( worldSize, worldSize ), localPosition, name, layer );
 
 	/// <summary>Semi-transparent biome fringe — softens hard edges between neighboring ground tiles.</summary>
 	public static GameObject SpawnGroundBlendOverlayWorld(

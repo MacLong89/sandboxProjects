@@ -3,6 +3,8 @@ namespace Terraingen.Clutter;
 using Terraingen.Foliage;
 using Terraingen.Minerals;
 using Terraingen.Player;
+using Terraingen.UI;
+using Terraingen.UI.Core;
 using Terraingen.UI.Menu;
 
 /// <summary>Holds local player on a loading overlay while nearby cosmetics stream in.</summary>
@@ -63,6 +65,10 @@ public static class ThornsNearbyCosmeticsReadiness
 	static void UpdateProgressMessage()
 	{
 		if ( !_waiting )
+			return;
+
+		// Join handoff already released input — stream cosmetics without reopening the join overlay.
+		if ( ThornsUiManager.ActiveContext == ThornsUiManager.UiContext.Gameplay )
 			return;
 
 		ThornsMenuJoinFlow.SetProgressMessage( DescribeBlockingWork() );

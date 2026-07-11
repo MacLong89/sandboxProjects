@@ -38,6 +38,28 @@ public static class CureConstants
 	public const double LabPointsPerSeasonBase = 12;
 	public const double LabPointsPerLevel = 6;
 	public const double LabPointsPerCraftsman = 4;
+	public const double LabPointsPerScholar = 4;
+
+	// Civic building output (per building, per second)
+	public const float FarmFoodPerSec = 1.5f;
+	public const float FactorySuppliesPerSec = 1.0f;
+	public const float FactoryFoodPerSec = 0.35f;
+	public const float LibraryKnowledgePerSec = 0.75f;
+	public const float SchoolKnowledgePerSec = 0.45f;
+	public const float HospitalRecruitHealPerSec = 2.5f;
+	public const float HospitalSicknessHealPerSec = 0.02f;
+	public const float HospitalHealRadius = 220f;
+	public const float ShopScrapPerSec = 0.3f;
+	/// <summary>Baseline command-post scrap drip (Cure mode only).</summary>
+	public const float CommandPostScrapPerSec = 5f;
+
+	// Colony worker output (per worker, per second)
+	public const float FarmerFoodPerSec = 0.9f;
+	public const float ScholarKnowledgePerSec = 0.45f;
+	public const float OperatorSuppliesPerSec = 0.55f;
+	public const float MedicRecruitHealPerSec = 2.0f;
+	public const float MedicHealRadius = 180f;
+	public const float MerchantScrapPerSec = 0.22f;
 
 	public const int ResearchTierCount = 4;
 

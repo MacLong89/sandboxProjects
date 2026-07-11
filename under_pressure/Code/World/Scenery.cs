@@ -16,6 +16,24 @@ public enum DecorKind
 	Cloud,
 	GasCanopy,
 	Building,
+	CarWashBay,
+	Restaurant,
+	Warehouse,
+	EstateGarage,
+	SubwayStation,
+	ContainerYard,
+	Yacht,
+	WaterPlant,
+	Cabin,
+	HighwayUnderpass,
+	DataCenter,
+	Penthouse,
+	MeatPlant,
+	PlayerShop,
+	BioLab,
+	Locomotive,
+	Museum,
+	Dam,
 }
 
 /// <summary>
@@ -74,6 +92,24 @@ public static class Scenery
 			case DecorKind.Cloud: BuildCloud( root, def ); break;
 			case DecorKind.GasCanopy: BuildGasCanopy( root, def ); break;
 			case DecorKind.Building: BuildBuilding( root, def ); break;
+			case DecorKind.CarWashBay: BuildCarWashBay( root, def ); break;
+			case DecorKind.Restaurant: BuildRestaurant( root, def ); break;
+			case DecorKind.Warehouse: BuildWarehouse( root, def ); break;
+			case DecorKind.EstateGarage: BuildEstateGarage( root, def ); break;
+			case DecorKind.SubwayStation: BuildSubwayStation( root, def ); break;
+			case DecorKind.ContainerYard: BuildContainerYard( root, def ); break;
+			case DecorKind.Yacht: BuildYacht( root, def ); break;
+			case DecorKind.WaterPlant: BuildWaterPlant( root, def ); break;
+			case DecorKind.Cabin: BuildCabin( root, def ); break;
+			case DecorKind.HighwayUnderpass: BuildHighwayUnderpass( root, def ); break;
+			case DecorKind.DataCenter: BuildDataCenter( root, def ); break;
+			case DecorKind.Penthouse: BuildPenthouse( root, def ); break;
+			case DecorKind.MeatPlant: BuildMeatPlant( root, def ); break;
+			case DecorKind.PlayerShop: BuildPlayerShop( root, def ); break;
+			case DecorKind.BioLab: BuildBioLab( root, def ); break;
+			case DecorKind.Locomotive: BuildLocomotive( root, def ); break;
+			case DecorKind.Museum: BuildMuseum( root, def ); break;
+			case DecorKind.Dam: BuildDam( root, def ); break;
 		}
 	}
 
@@ -309,6 +345,297 @@ public static class Scenery
 		col.Center = new Vector3( 0, 0, h * 0.5f );
 		col.Scale = new Vector3( w, d, h );
 		col.Static = true;
+	}
+
+	private static void BuildCarWashBay( GameObject root, DecorDef def )
+	{
+		var w = def.Size.x;
+		var d = def.Size.y;
+		var h = def.Size.z;
+		var wall = new Color( 0.72f, 0.74f, 0.78f );
+		var trim = new Color( 0.9f, 0.2f, 0.2f );
+		var curtain = new Color( 0.42f, 0.78f, 0.96f, 0.55f );
+
+		Box( root, "FloorLip", new Vector3( 0, 0, 2 ), new Vector3( w + 20, d + 20, 4 ), Foundation, default, GameMaterials.Concrete );
+		Box( root, "WallL", new Vector3( -w * 0.5f - 14, 0, h * 0.45f ), new Vector3( 28, d + 30, h * 0.9f ), wall, default, GameMaterials.Metal );
+		Box( root, "WallR", new Vector3( w * 0.5f + 14, 0, h * 0.45f ), new Vector3( 28, d + 30, h * 0.9f ), wall, default, GameMaterials.Metal );
+		Box( root, "BackWall", new Vector3( 0, d * 0.5f + 14, h * 0.45f ), new Vector3( w + 56, 28, h * 0.9f ), wall, default, GameMaterials.Metal );
+		Box( root, "Beam", new Vector3( 0, 0, h + 8 ), new Vector3( w + 40, d + 40, 18 ), trim, default, GameMaterials.Metal );
+		Box( root, "CurtainL", new Vector3( -w * 0.22f, -d * 0.5f - 4, h * 0.42f ), new Vector3( w * 0.35f, 6, h * 0.75f ), curtain, default, GameMaterials.Metal );
+		Box( root, "CurtainR", new Vector3( w * 0.22f, -d * 0.5f - 4, h * 0.42f ), new Vector3( w * 0.35f, 6, h * 0.75f ), curtain, default, GameMaterials.Metal );
+		Box( root, "BrushRailL", new Vector3( -w * 0.38f, 0, 24 ), new Vector3( 10, d * 0.7f, 48 ), trim );
+		Box( root, "BrushRailR", new Vector3( w * 0.38f, 0, 24 ), new Vector3( 10, d * 0.7f, 48 ), trim );
+	}
+
+	private static void BuildRestaurant( GameObject root, DecorDef def )
+	{
+		var w = def.Size.x;
+		var d = def.Size.y;
+		var h = def.Size.z;
+		var brick = def.Color == Color.White ? new Color( 0.82f, 0.32f, 0.24f ) : def.Color;
+		var front = -d * 0.5f;
+		var faceSlot = 0;
+		float FaceY() => front - DepthLayers.NextFaceDepth( ref faceSlot );
+
+		Box( root, "Kitchen", new Vector3( 0, 0, h * 0.5f ), new Vector3( w, d, h ), brick, default, GameMaterials.Concrete );
+		Box( root, "Roof", new Vector3( 0, 0, h + 10 ), new Vector3( w + 16, d + 16, 20 ), new Color( 0.22f, 0.22f, 0.24f ), default, GameMaterials.Metal );
+		Box( root, "Exhaust", new Vector3( w * 0.25f, d * 0.15f, h + 36 ), new Vector3( 80, 50, 40 ), new Color( 0.5f, 0.5f, 0.52f ), default, GameMaterials.Metal );
+		Box( root, "AC", new Vector3( -w * 0.28f, d * 0.1f, h + 28 ), new Vector3( 60, 40, 28 ), new Color( 0.62f, 0.64f, 0.66f ), default, GameMaterials.Metal );
+		Box( root, "BackDoor", new Vector3( 0, FaceY(), h * 0.28f ), new Vector3( 72, 6, h * 0.52f ), new Color( 0.34f, 0.36f, 0.38f ), default, GameMaterials.Metal );
+		Box( root, "Neon", new Vector3( 0, FaceY(), h * 0.78f ), new Vector3( w * 0.55f, 5, 28 ), new Color( 1f, 0.45f, 0.65f ), default, GameMaterials.Metal );
+		Box( root, "Dumpster", new Vector3( -w * 0.42f, -d * 0.2f, 34 ), new Vector3( 90, 140, 68 ), new Color( 0.16f, 0.42f, 0.18f ), default, GameMaterials.Metal );
+		Box( root, "GreaseTrap", new Vector3( w * 0.3f, -d * 0.15f, 8 ), new Vector3( 70, 70, 16 ), new Color( 0.48f, 0.48f, 0.50f ), default, GameMaterials.Metal );
+
+		var col = root.Components.Create<BoxCollider>();
+		col.Center = new Vector3( 0, 0, h * 0.5f );
+		col.Scale = new Vector3( w, d, h );
+		col.Static = true;
+	}
+
+	private static void BuildWarehouse( GameObject root, DecorDef def )
+	{
+		var w = def.Size.x;
+		var d = def.Size.y;
+		var h = def.Size.z;
+		var front = -d * 0.5f;
+		var faceSlot = 0;
+		float FaceY() => front - DepthLayers.NextFaceDepth( ref faceSlot );
+		var steel = def.Color == Color.White ? new Color( 0.58f, 0.58f, 0.60f ) : def.Color;
+
+		Box( root, "Shell", new Vector3( 0, 0, h * 0.5f ), new Vector3( w, d, h ), steel, default, GameMaterials.Metal );
+		Box( root, "DockLip", new Vector3( 0, front - 30, 10 ), new Vector3( w * 0.7f, 40, 20 ), Foundation, default, GameMaterials.Concrete );
+		Box( root, "RollDoor", new Vector3( 0, FaceY(), h * 0.38f ), new Vector3( w * 0.55f, 6, h * 0.72f ), new Color( 0.42f, 0.44f, 0.46f ), default, GameMaterials.Metal );
+		Box( root, "PalletA", new Vector3( -w * 0.28f, d * 0.2f, 28 ), new Vector3( 80, 80, 56 ), Wood, default, GameMaterials.Wood );
+		Box( root, "PalletB", new Vector3( w * 0.25f, d * 0.28f, 28 ), new Vector3( 80, 80, 56 ), Wood, default, GameMaterials.Wood );
+		Box( root, "Warning", new Vector3( 0, FaceY(), h * 0.82f ), new Vector3( 120, 5, 36 ), new Color( 1f, 0.82f, 0.08f ), default, GameMaterials.Metal );
+	}
+
+	private static void BuildEstateGarage( GameObject root, DecorDef def )
+	{
+		var w = def.Size.x;
+		var d = def.Size.y;
+		var h = def.Size.z;
+		var front = -d * 0.5f;
+		var faceSlot = 0;
+		float FaceY() => front - DepthLayers.NextFaceDepth( ref faceSlot );
+		var stone = def.Color == Color.White ? new Color( 0.68f, 0.64f, 0.58f ) : def.Color;
+
+		Box( root, "Foundation", new Vector3( 0, 0, 8 ), new Vector3( w + 24, d + 24, 16 ), Foundation, default, GameMaterials.Concrete );
+		Box( root, "Walls", new Vector3( 0, 0, h * 0.5f + 10 ), new Vector3( w, d, h ), stone, default, GameMaterials.Concrete );
+		BuildGableRoof( root, w, d, h + 10 );
+		Box( root, "GarageDoor", new Vector3( 0, FaceY(), h * 0.42f ), new Vector3( w * 0.72f, 6, h * 0.78f ), Garage, default, GameMaterials.Metal );
+		Box( root, "PillarL", new Vector3( -w * 0.38f, FaceY(), h * 0.5f ), new Vector3( 20, 8, h * 0.9f ), stone, default, GameMaterials.Concrete );
+		Box( root, "PillarR", new Vector3( w * 0.38f, FaceY(), h * 0.5f ), new Vector3( 20, 8, h * 0.9f ), stone, default, GameMaterials.Concrete );
+	}
+
+	private static void BuildSubwayStation( GameObject root, DecorDef def )
+	{
+		var w = def.Size.x;
+		var d = def.Size.y;
+		var h = def.Size.z;
+		var tile = new Color( 0.88f, 0.86f, 0.82f );
+		var trim = new Color( 0.22f, 0.48f, 0.82f );
+
+		Box( root, "Canopy", new Vector3( 0, 0, h + 20 ), new Vector3( w + 40, d + 40, 24 ), trim, default, GameMaterials.Metal );
+		Box( root, "WallL", new Vector3( -w * 0.5f - 18, 0, h * 0.5f ), new Vector3( 36, d + 20, h ), tile, default, GameMaterials.Concrete );
+		Box( root, "WallR", new Vector3( w * 0.5f + 18, 0, h * 0.5f ), new Vector3( 36, d + 20, h ), tile, default, GameMaterials.Concrete );
+		Box( root, "Bench", new Vector3( -w * 0.2f, -d * 0.25f, 22 ), new Vector3( 140, 40, 44 ), trim, default, GameMaterials.Metal );
+		Box( root, "Mosaic", new Vector3( 0, d * 0.42f, h * 0.55f ), new Vector3( w * 0.6f, 6, h * 0.35f ), trim, default, GameMaterials.Metal );
+		Box( root, "Track", new Vector3( 0, d * 0.35f, 3 ), new Vector3( w, 30, 6 ), new Color( 0.28f, 0.28f, 0.30f ), default, GameMaterials.Metal );
+	}
+
+	private static void BuildContainerYard( GameObject root, DecorDef def )
+	{
+		var s = def.Size.x;
+		var rust = new Color( 0.48f, 0.30f, 0.22f );
+		var blue = new Color( 0.22f, 0.42f, 0.72f );
+		var olive = new Color( 0.38f, 0.44f, 0.28f );
+
+		Box( root, "Center", new Vector3( 0, 40, s * 0.42f ), new Vector3( s, s * 0.82f, s * 0.84f ), rust, default, GameMaterials.Metal );
+		Box( root, "Left", new Vector3( -s * 1.05f, -20, s * 0.38f ), new Vector3( s * 0.9f, s * 0.82f, s * 0.76f ), blue, default, GameMaterials.Metal );
+		Box( root, "Right", new Vector3( s * 1.05f, -20, s * 0.38f ), new Vector3( s * 0.9f, s * 0.82f, s * 0.76f ), olive, default, GameMaterials.Metal );
+		Box( root, "Door", new Vector3( 0, -s * 0.41f, s * 0.3f ), new Vector3( s * 0.7f, 6, s * 0.55f ), new Color( 0.32f, 0.34f, 0.36f ), default, GameMaterials.Metal );
+	}
+
+	private static void BuildYacht( GameObject root, DecorDef def )
+	{
+		var w = def.Size.x;
+		var d = def.Size.y;
+		var h = def.Size.z;
+		var hull = new Color( 0.92f, 0.94f, 0.96f );
+		var deck = def.Color == Color.White ? new Color( 0.96f, 0.70f, 0.26f ) : def.Color;
+		var cabin = new Color( 0.78f, 0.82f, 0.88f );
+
+		Box( root, "Hull", new Vector3( 0, 0, h * 0.22f ), new Vector3( w, d, h * 0.44f ), hull, default, GameMaterials.Metal );
+		Box( root, "Deck", new Vector3( 0, -d * 0.05f, h * 0.48f ), new Vector3( w * 0.92f, d * 0.88f, 8 ), deck, default, GameMaterials.Wood );
+		Box( root, "Cabin", new Vector3( 0, d * 0.18f, h * 0.72f ), new Vector3( w * 0.45f, d * 0.42f, h * 0.5f ), cabin, default, GameMaterials.Metal );
+		Box( root, "RailL", new Vector3( -w * 0.46f, 0, h * 0.56f ), new Vector3( 6, d * 0.9f, 28 ), new Color( 0.82f, 0.72f, 0.56f ), default, GameMaterials.Metal );
+		Box( root, "RailR", new Vector3( w * 0.46f, 0, h * 0.56f ), new Vector3( 6, d * 0.9f, 28 ), new Color( 0.82f, 0.72f, 0.56f ), default, GameMaterials.Metal );
+		Box( root, "Mast", new Vector3( 0, d * 0.3f, h * 1.1f ), new Vector3( 12, 12, h * 0.9f ), new Color( 0.62f, 0.38f, 0.14f ), default, GameMaterials.Bark );
+	}
+
+	private static void BuildWaterPlant( GameObject root, DecorDef def )
+	{
+		var w = def.Size.x;
+		var h = def.Size.z;
+		var concrete = new Color( 0.62f, 0.62f, 0.64f );
+		var pipe = new Color( 0.42f, 0.78f, 0.96f );
+
+		Box( root, "Basin", new Vector3( 0, 40, h * 0.25f ), new Vector3( w, w * 0.7f, h * 0.5f ), concrete, default, GameMaterials.Concrete );
+		Box( root, "Control", new Vector3( -w * 0.35f, -60, h * 0.55f ), new Vector3( w * 0.35f, w * 0.35f, h * 0.7f ), def.Color == Color.White ? concrete : def.Color, default, GameMaterials.Metal );
+		Box( root, "Tank", new Vector3( w * 0.3f, -40, h * 0.75f ), new Vector3( w * 0.28f, w * 0.28f, h ), pipe, default, GameMaterials.Metal );
+		Box( root, "PipeA", new Vector3( 0, 0, h * 0.45f ), new Vector3( w * 0.8f, 20, 20 ), pipe, default, GameMaterials.Metal );
+		Box( root, "PipeB", new Vector3( w * 0.15f, 80, h * 0.65f ), new Vector3( 20, w * 0.5f, 20 ), pipe, default, GameMaterials.Metal );
+	}
+
+	private static void BuildCabin( GameObject root, DecorDef def )
+	{
+		var w = def.Size.x;
+		var d = def.Size.y;
+		var h = def.Size.z;
+		var log = def.Color == Color.White ? new Color( 0.52f, 0.34f, 0.18f ) : def.Color;
+		var front = -d * 0.5f;
+		var faceSlot = 0;
+		float FaceY() => front - DepthLayers.NextFaceDepth( ref faceSlot );
+
+		Box( root, "Walls", new Vector3( 0, 0, h * 0.5f ), new Vector3( w, d, h ), log, default, GameMaterials.Wood );
+		BuildGableRoof( root, w, d, h );
+		Box( root, "Porch", new Vector3( 0, front - 40, 8 ), new Vector3( w * 0.7f, 80, 16 ), Wood, default, GameMaterials.Wood );
+		Box( root, "Door", new Vector3( 0, FaceY(), h * 0.3f ), new Vector3( 52, 6, h * 0.55f ), DoorColor, default, GameMaterials.Wood );
+		Box( root, "Chimney", new Vector3( w * 0.28f, d * 0.1f, h + 40 ), new Vector3( 36, 36, 50 ), new Color( 0.42f, 0.40f, 0.38f ), default, GameMaterials.Concrete );
+	}
+
+	private static void BuildHighwayUnderpass( GameObject root, DecorDef def )
+	{
+		var w = def.Size.x;
+		var d = def.Size.y;
+		var h = def.Size.z;
+		var concrete = new Color( 0.56f, 0.54f, 0.52f );
+
+		Box( root, "Deck", new Vector3( 0, 0, h + 20 ), new Vector3( w + 80, d + 80, 36 ), concrete, default, GameMaterials.Concrete );
+		Box( root, "PillarL", new Vector3( -w * 0.38f, 0, h * 0.5f ), new Vector3( 60, 60, h ), concrete, default, GameMaterials.Concrete );
+		Box( root, "PillarR", new Vector3( w * 0.38f, 0, h * 0.5f ), new Vector3( 60, 60, h ), concrete, default, GameMaterials.Concrete );
+		Box( root, "Guardrail", new Vector3( 0, -d * 0.42f, 42 ), new Vector3( w, 10, 36 ), new Color( 0.72f, 0.72f, 0.74f ), default, GameMaterials.Metal );
+		Box( root, "CrashScorch", new Vector3( 40, 30, 2 ), new Vector3( 120, 90, 3 ), new Color( 0.18f, 0.16f, 0.14f ), default, GameMaterials.Concrete );
+	}
+
+	private static void BuildDataCenter( GameObject root, DecorDef def )
+	{
+		var w = def.Size.x;
+		var d = def.Size.y;
+		var h = def.Size.z;
+		var shell = new Color( 0.24f, 0.24f, 0.26f );
+		var glow = new Color( 0.22f, 0.88f, 1f );
+
+		Box( root, "Shell", new Vector3( 0, 0, h * 0.5f ), new Vector3( w, d, h ), shell, default, GameMaterials.Metal );
+		for ( var i = -2; i <= 2; i++ )
+			Box( root, $"Rack_{i}", new Vector3( i * 70f, d * 0.15f, h * 0.35f ), new Vector3( 40, 30, h * 0.65f ), new Color( 0.14f, 0.14f, 0.16f ), default, GameMaterials.Metal );
+		Box( root, "GlassWall", new Vector3( 0, -d * 0.5f - 3, h * 0.45f ), new Vector3( w * 0.85f, 6, h * 0.75f ), WindowGlass, default, GameMaterials.Metal );
+		Box( root, "LedStrip", new Vector3( 0, -d * 0.5f - 6, h * 0.82f ), new Vector3( w * 0.7f, 4, 10 ), glow, default, GameMaterials.Metal );
+	}
+
+	private static void BuildPenthouse( GameObject root, DecorDef def )
+	{
+		var w = def.Size.x;
+		var d = def.Size.y;
+		var h = def.Size.z;
+		var glass = new Color( 0.58f, 0.78f, 0.92f );
+		var frame = new Color( 0.42f, 0.44f, 0.48f );
+
+		Box( root, "Tower", new Vector3( 0, 0, h * 0.55f ), new Vector3( w * 0.55f, d * 0.55f, h * 1.1f ), frame, default, GameMaterials.Concrete );
+		Box( root, "Penthouse", new Vector3( 0, 0, h * 0.82f ), new Vector3( w, d, h * 0.36f ), glass, default, GameMaterials.Metal );
+		Box( root, "Terrace", new Vector3( 0, -d * 0.42f, h * 0.62f ), new Vector3( w * 0.9f, 40, 8 ), new Color( 0.72f, 0.72f, 0.74f ), default, GameMaterials.Concrete );
+		Box( root, "Helipad", new Vector3( w * 0.32f, d * 0.2f, h + 8 ), new Vector3( 80, 80, 4 ), new Color( 0.9f, 0.9f, 0.92f ), default, GameMaterials.Concrete );
+	}
+
+	private static void BuildMeatPlant( GameObject root, DecorDef def )
+	{
+		var w = def.Size.x;
+		var d = def.Size.y;
+		var h = def.Size.z;
+		var steel = new Color( 0.78f, 0.80f, 0.82f );
+		var frost = new Color( 0.86f, 0.90f, 0.94f );
+
+		Box( root, "Plant", new Vector3( 0, 0, h * 0.5f ), new Vector3( w, d, h ), frost, default, GameMaterials.Metal );
+		Box( root, "Rail", new Vector3( 0, 0, h * 0.82f ), new Vector3( w * 0.8f, 10, 10 ), steel, default, GameMaterials.Metal );
+		for ( var i = -2; i <= 2; i++ )
+			Box( root, $"Hook_{i}", new Vector3( i * 55f, 0, h * 0.72f ), new Vector3( 6, 6, 36 ), steel, default, GameMaterials.Metal );
+		Box( root, "Drain", new Vector3( 0, -d * 0.25f, 4 ), new Vector3( 80, 80, 8 ), new Color( 0.34f, 0.36f, 0.38f ), default, GameMaterials.Metal );
+	}
+
+	private static void BuildPlayerShop( GameObject root, DecorDef def )
+	{
+		var w = def.Size.x;
+		var d = def.Size.y;
+		var h = def.Size.z;
+		var cream = new Color( 0.88f, 0.80f, 0.60f );
+		var accent = new Color( 0.22f, 0.62f, 0.92f );
+		var front = -d * 0.5f;
+		var faceSlot = 0;
+		float FaceY() => front - DepthLayers.NextFaceDepth( ref faceSlot );
+
+		Box( root, "Shop", new Vector3( 0, 0, h * 0.5f ), new Vector3( w, d, h ), cream, default, GameMaterials.Metal );
+		Box( root, "GarageBay", new Vector3( -w * 0.22f, FaceY(), h * 0.35f ), new Vector3( w * 0.45f, 6, h * 0.68f ), Garage, default, GameMaterials.Metal );
+		Box( root, "Sign", new Vector3( 0, FaceY(), h * 0.82f ), new Vector3( w * 0.75f, 6, 42 ), accent, default, GameMaterials.Metal );
+		Box( root, "VanPad", new Vector3( w * 0.28f, -d * 0.1f, 2 ), new Vector3( 120, 160, 4 ), Foundation, default, GameMaterials.Concrete );
+	}
+
+	private static void BuildBioLab( GameObject root, DecorDef def )
+	{
+		var w = def.Size.x;
+		var d = def.Size.y;
+		var h = def.Size.z;
+		var white = new Color( 0.92f, 0.94f, 0.96f );
+		var hazard = new Color( 0.22f, 0.88f, 1f );
+
+		Box( root, "Lab", new Vector3( 0, 0, h * 0.5f ), new Vector3( w, d, h ), white, default, GameMaterials.Metal );
+		Box( root, "Airlock", new Vector3( 0, -d * 0.5f - 4, h * 0.35f ), new Vector3( 80, 8, h * 0.65f ), new Color( 0.72f, 0.74f, 0.76f ), default, GameMaterials.Metal );
+		Box( root, "Window", new Vector3( 0, -d * 0.5f - 4, h * 0.55f ), new Vector3( w * 0.55f, 6, h * 0.35f ), WindowGlass, default, GameMaterials.Metal );
+		Box( root, "HazardStripe", new Vector3( 0, -d * 0.5f - 7, 18 ), new Vector3( w * 0.7f, 4, 20 ), hazard, default, GameMaterials.Metal );
+	}
+
+	private static void BuildLocomotive( GameObject root, DecorDef def )
+	{
+		var len = def.Size.x;
+		var h = def.Size.z;
+		var body = new Color( 0.48f, 0.30f, 0.22f );
+		var cab = new Color( 0.92f, 0.82f, 0.66f );
+
+		Box( root, "Engine", new Vector3( 0, 0, h * 0.38f ), new Vector3( len, len * 0.42f, h * 0.76f ), body, default, GameMaterials.Metal );
+		Box( root, "Cab", new Vector3( len * 0.28f, 0, h * 0.62f ), new Vector3( len * 0.32f, len * 0.44f, h * 0.5f ), cab, default, GameMaterials.Metal );
+		Box( root, "Stack", new Vector3( -len * 0.18f, 0, h * 0.92f ), new Vector3( 36, 36, h * 0.45f ), new Color( 0.22f, 0.22f, 0.24f ), default, GameMaterials.Metal );
+		Box( root, "Track", new Vector3( 0, -len * 0.35f, 3 ), new Vector3( len * 1.4f, 24, 6 ), new Color( 0.28f, 0.28f, 0.30f ), default, GameMaterials.Metal );
+	}
+
+	private static void BuildMuseum( GameObject root, DecorDef def )
+	{
+		var w = def.Size.x;
+		var d = def.Size.y;
+		var h = def.Size.z;
+		var marble = new Color( 0.88f, 0.86f, 0.82f );
+		var gold = new Color( 0.92f, 0.72f, 0.28f );
+		var front = -d * 0.5f;
+		var faceSlot = 0;
+		float FaceY() => front - DepthLayers.NextFaceDepth( ref faceSlot );
+
+		Box( root, "Hall", new Vector3( 0, 0, h * 0.5f ), new Vector3( w, d, h ), marble, default, GameMaterials.Concrete );
+		Box( root, "Steps", new Vector3( 0, front - 50, 12 ), new Vector3( w * 0.8f, 100, 24 ), marble, default, GameMaterials.Concrete );
+		Box( root, "ColumnsL", new Vector3( -w * 0.32f, FaceY(), h * 0.45f ), new Vector3( 28, 28, h * 0.9f ), marble, default, GameMaterials.Concrete );
+		Box( root, "ColumnsR", new Vector3( w * 0.32f, FaceY(), h * 0.45f ), new Vector3( 28, 28, h * 0.9f ), marble, default, GameMaterials.Concrete );
+		Box( root, "Banner", new Vector3( 0, FaceY(), h * 0.78f ), new Vector3( w * 0.5f, 6, 48 ), gold, default, GameMaterials.Metal );
+	}
+
+	private static void BuildDam( GameObject root, DecorDef def )
+	{
+		var w = def.Size.x;
+		var h = def.Size.z;
+		var concrete = new Color( 0.62f, 0.62f, 0.64f );
+		var water = new Color( 0.22f, 0.62f, 0.88f );
+
+		Box( root, "SpillwayL", new Vector3( -w * 0.28f, 60, h * 0.45f ), new Vector3( w * 0.4f, w * 0.35f, h * 0.9f ), concrete, default, GameMaterials.Concrete );
+		Box( root, "SpillwayR", new Vector3( w * 0.28f, 60, h * 0.45f ), new Vector3( w * 0.4f, w * 0.35f, h * 0.9f ), concrete, default, GameMaterials.Concrete );
+		Box( root, "Pool", new Vector3( 0, -w * 0.35f, 4 ), new Vector3( w * 1.1f, w * 0.55f, 8 ), water, default, GameMaterials.Metal );
+		Box( root, "ValveHouse", new Vector3( 0, w * 0.15f, h * 0.3f ), new Vector3( w * 0.35f, w * 0.28f, h * 0.55f ), def.Color == Color.White ? concrete : def.Color, default, GameMaterials.Metal );
 	}
 
 	// --- Player van (tiered, built at runtime by the Van component) ---

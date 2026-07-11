@@ -140,10 +140,9 @@ public sealed class PlacedBuilding : Component, ISelectable
 		fireDir = default;
 
 		var range = Def.Range( Level ) + upgrades.TurretRangeBonus;
-		var target = combat.NearestZombie( WorldPosition, range );
-		if ( target is null ) return false;
-
 		var pivot = _headRoot.IsValid() ? _headRoot.WorldPosition : WorldPosition + Vector3.Up * (Def.VisualSize.z * 0.55f);
+		var target = combat.NearestEngageableZombie( WorldPosition, range, pivot );
+		if ( target is null ) return false;
 		var toTarget = (target.Position - pivot).WithZ( 0f );
 		if ( toTarget.Length < 1f ) return false;
 
@@ -161,6 +160,9 @@ public sealed class PlacedBuilding : Component, ISelectable
 			fireDir = desired.Forward;
 			muzzle = pivot + fireDir * _muzzleLocal.x + Vector3.Up * _muzzleLocal.z;
 		}
+
+		if ( !BuildingCollision.HasLineOfFire( muzzle, target.Position ) )
+			return false;
 
 		return true;
 	}
@@ -225,6 +227,11 @@ public sealed class PlacedBuilding : Component, ISelectable
 				list.Add( new StatLine( "Day Heal", $"{GameConstants.BarracksHealPerSec:0}/s" ) );
 				list.Add( new StatLine( "Dawn Heal", "Full in range" ) );
 				list.Add( new StatLine( "Heal Range", $"{GameConstants.BarracksHealRadius:0}" ) );
+			}
+			else if ( Def.Role == BuildingRole.Civic )
+			{
+				foreach ( var line in BuildableDef.CivicOutputStats( Type ) )
+					list.Add( line );
 			}
 			return list;
 		}
@@ -404,6 +411,37 @@ public sealed class PlacedBuilding : Component, ISelectable
 			case BuildableId.Lab:
 				Part( box, stone, new Vector3( 0, 0, 24 ), new Vector3( 56, 56, 48 ), white, new Color( 0.65f, 0.72f, 0.82f ) );
 				Part( box, stone, new Vector3( 0, 0, 58 ), new Vector3( 20, 20, 36 ), white, new Color( 0.45f, 0.85f, 0.95f ) );
+				break;
+
+			case BuildableId.Farm:
+				Part( box, wood, new Vector3( 0, 0, 16 ), new Vector3( 58, 58, 32 ), white, new Color( 0.55f, 0.42f, 0.28f ) );
+				Part( pyr, MeshPrimitives.Mat, new Vector3( -18, 12, 6 ), new Vector3( 28, 28, 16 ), white, new Color( 0.45f, 0.82f, 0.38f ) );
+				Part( pyr, MeshPrimitives.Mat, new Vector3( 16, -14, 6 ), new Vector3( 24, 24, 14 ), white, new Color( 0.42f, 0.78f, 0.35f ) );
+				break;
+
+			case BuildableId.Factory:
+				Part( box, stone, new Vector3( 0, 0, 22 ), new Vector3( 64, 64, 44 ), white, new Color( 0.62f, 0.62f, 0.66f ) );
+				Part( cyl, stone, new Vector3( 24, 0, 52 ), new Vector3( 16, 16, 28 ), white, new Color( 0.45f, 0.45f, 0.48f ) );
+				break;
+
+			case BuildableId.Library:
+				Part( box, wood, new Vector3( 0, 0, 24 ), new Vector3( 56, 56, 48 ), white, new Color( 0.55f, 0.72f, 0.95f ) );
+				Part( pyr, roof, new Vector3( 0, 0, 56 ), new Vector3( 64, 64, 22 ), white, RoofFallback );
+				break;
+
+			case BuildableId.School:
+				Part( box, wood, new Vector3( 0, 0, 26 ), new Vector3( 60, 60, 52 ), white, new Color( 0.62f, 0.78f, 0.55f ) );
+				Part( pyr, roof, new Vector3( 0, 0, 60 ), new Vector3( 68, 68, 24 ), white, RoofFallback );
+				break;
+
+			case BuildableId.Hospital:
+				Part( box, stone, new Vector3( 0, 0, 26 ), new Vector3( 62, 62, 52 ), white, new Color( 0.92f, 0.92f, 0.95f ) );
+				Part( box, stone, new Vector3( 0, 0, 58 ), new Vector3( 18, 18, 32 ), white, new Color( 0.75f, 0.85f, 0.95f ) );
+				break;
+
+			case BuildableId.Shop:
+				Part( box, wood, new Vector3( 0, 0, 20 ), new Vector3( 54, 54, 40 ), white, new Color( 0.85f, 0.62f, 0.32f ) );
+				Part( pyr, roof, new Vector3( 0, 0, 48 ), new Vector3( 60, 60, 18 ), white, RoofFallback );
 				break;
 		}
 

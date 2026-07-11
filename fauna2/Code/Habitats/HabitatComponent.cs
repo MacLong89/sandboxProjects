@@ -163,9 +163,20 @@ public sealed class HabitatComponent : Component
 
 		_visualRoot = new GameObject( GameObject, true, "Visuals" );
 
+		var footprint = HabitatSizing.EffectiveFootprint( Size );
 		var center = Vector3.Zero;
-		HabitatGroundOverlay.Attach( _visualRoot, Size, Biome );
-		_fenceTiles = HabitatFenceGenerator.CreateHabitatFence( center, Size );
+		HabitatGroundOverlay.Attach(
+			_visualRoot,
+			footprint,
+			Biome,
+			context: $"habitat id={HabitatId} def={DefinitionId} world=({GameObject.WorldPosition.x:0.##},{GameObject.WorldPosition.y:0.##})" );
+		_fenceTiles = HabitatFenceGenerator.CreateHabitatFence( center, footprint );
 		HabitatFenceRenderer.Build( _visualRoot, _fenceTiles, center, collision: true );
+
+		if ( Fauna2Debug.Enabled || _fenceTiles.Count == 0 )
+		{
+			Log.Info( $"[Fauna2 Habitat] visuals id={HabitatId} size={footprint.x:0}x{footprint.y:0} " +
+			          $"world=({GameObject.WorldPosition.x:0.##},{GameObject.WorldPosition.y:0.##}) fence={_fenceTiles.Count} biome={Biome}" );
+		}
 	}
 }

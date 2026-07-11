@@ -20,6 +20,10 @@ public sealed class AimboxMatchSummary
 	public List<AimboxUnlock> Unlocks { get; init; } = [];
 	public List<AimboxMedalId> Medals { get; init; } = [];
 	public List<string> CompletedChallenges { get; init; } = [];
+	public int AimScore { get; init; }
+	public int AimPersonalBest { get; init; }
+	public bool IsNewAimPersonalBest { get; init; }
+	public int AimLeaderboardRank { get; init; }
 
 	public int TotalMasteryXpEarned
 	{

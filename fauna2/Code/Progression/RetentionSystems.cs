@@ -175,6 +175,35 @@ public static class AnimalLineage
 
 public static class BiomeIdentity
 {
+	/// <summary>Maps legacy biome synonyms in data files to the canonical enum name.</summary>
+	public static string NormalizeToken( string value )
+	{
+		if ( string.IsNullOrWhiteSpace( value ) )
+			return null;
+
+		return value.Trim().ToLowerInvariant() switch
+		{
+			"meadow" or "prairie" or "savanna" or "savannah" or "plains" => nameof( Biome.Grassland ),
+			"wetland" or "marsh" => nameof( Biome.Swamp ),
+			"tundra" or "polar" => nameof( Biome.Arctic ),
+			"jungle" => nameof( Biome.Rainforest ),
+			"mountain" or "mountains" => nameof( Biome.Alpine ),
+			"beach" or "ocean" or "marine" => nameof( Biome.Coastal ),
+			"woodland" => nameof( Biome.Forest ),
+			_ => value.Trim(),
+		};
+	}
+
+	public static bool TryParse( string value, out Biome biome )
+	{
+		var token = NormalizeToken( value );
+		if ( !string.IsNullOrWhiteSpace( token ) && Enum.TryParse( token, true, out biome ) )
+			return true;
+
+		biome = default;
+		return false;
+	}
+
 	public static string Label( Biome biome ) => biome switch
 	{
 		Biome.Forest => "Forest",

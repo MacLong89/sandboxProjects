@@ -109,7 +109,7 @@ public sealed class ThornsWorldPersistence : Component
 	/// <summary>Ensure the host save file is loaded before world restore/spawn.</summary>
 	public static void EnsureHostReady( GameObject hostObject = null )
 	{
-		if ( !ThornsMultiplayer.IsHostOrOffline || !Game.IsPlaying )
+		if ( !ThornsMultiplayer.ShouldRunHostPersistence || !Game.IsPlaying )
 			return;
 
 		if ( Instance is null || !Instance.IsValid() )
@@ -212,7 +212,7 @@ public sealed class ThornsWorldPersistence : Component
 
 	public void HostEnsureInitialized()
 	{
-		if ( !Game.IsPlaying || !ThornsMultiplayer.IsHostOrOffline )
+		if ( !Game.IsPlaying || !ThornsMultiplayer.ShouldRunHostPersistence )
 			return;
 
 		if ( !string.IsNullOrEmpty( _pendingRelativeSavePath ) )

@@ -49,7 +49,7 @@ public sealed class ThornsGameplayUiHost : Component
 			await WaitForMountedAssetsAsync( cancel );
 			ThornsMountedFiles.LogMountProbe( "gameplay bootstrap" );
 			if ( !ThornsMountedFiles.SamplePublishAssetsPresent )
-				ThornsGameplayUiDiagnostics.EnableForMountFailure();
+				ThornsRequiredPublishAssets.LogMissingMounted( "gameplay bootstrap" );
 
 			await System.Threading.Tasks.Task.Yield();
 			await System.Threading.Tasks.Task.Yield();
@@ -102,8 +102,8 @@ public sealed class ThornsGameplayUiHost : Component
 		if ( ThornsMountedFiles.SamplePublishAssetsPresent )
 			return;
 
-		ThornsMenuJoinFlow.SetProgressMessage( "Downloading game files..." );
-		for ( var attempt = 0; attempt < 300; attempt++ )
+		ThornsMenuJoinFlow.SetProgressMessage( "Loading game files..." );
+		for ( var attempt = 0; attempt < 120; attempt++ )
 		{
 			cancel.ThrowIfCancellationRequested();
 			if ( ThornsMountedFiles.SamplePublishAssetsPresent )
@@ -112,7 +112,7 @@ public sealed class ThornsGameplayUiHost : Component
 			await System.Threading.Tasks.Task.Delay( 100, cancel );
 		}
 
-		Log.Warning( "[Thorns UI] Gameplay bootstrap: publish assets still missing after wait — HUD may use placeholders until mount completes." );
+		ThornsRequiredPublishAssets.LogMissingMounted( "gameplay bootstrap timeout" );
 	}
 
 	void OnUpdateGameplayUi()
@@ -155,10 +155,19 @@ public sealed class ThornsGameplayUiHost : Component
 
 	public void EnsureScreenUiForDeferredHud()
 	{
+		ThornsJoinFlowDebug.JoinInfo( "EnsureScreenUiForDeferredHud begin" );
 		EnsureScreenUiComponents();
 		var menuHost = ResolveMenuHost();
 		if ( menuHost.IsValid() )
+		{
+			ThornsJoinFlowDebug.JoinInfo( $"EnsureScreenUiForDeferredHud menuHost ok — {ThornsJoinFlowDebug.DescribeHud()}" );
 			menuHost.EnsureUiReady();
+		}
+		else
+		{
+			ThornsJoinFlowDebug.JoinWarn(
+				$"EnsureScreenUiForDeferredHud menuHost still missing — screenRoot={_screenUiRoot.IsValid()} scene={Scene?.Name ?? "null"}" );
+		}
 	}
 
 	/// <summary>Rebind gameplay ScreenPanel to the active scene camera after local pawn spawn.</summary>

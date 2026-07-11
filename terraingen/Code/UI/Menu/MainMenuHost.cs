@@ -120,7 +120,6 @@ public sealed class MainMenuHost : PanelComponent
 
 		if ( ThornsMenuSceneLoader.IsInGameplayScene() )
 		{
-			ThornsMenuJoinFlow.CompleteEnterWorld();
 			GameObject.Destroy();
 			return;
 		}

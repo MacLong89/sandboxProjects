@@ -10,7 +10,7 @@ public enum HabitatSizeTier
 /// <summary>Biome and habitat size rules for placing animals.</summary>
 public static class AnimalHabitatRules
 {
-	// 12×12 and 16×16 build tiles (768² and 1024² world units at 64/tile).
+	// Large habitats are 18×18 build tiles after the fence-margin expansion.
 	public const float LargeAreaThreshold = 900_000f;
 
 	public static HabitatSizeTier GetSizeTier( Vector2 size )
@@ -51,14 +51,14 @@ public static class AnimalHabitatRules
 
 		if ( habitat.Biome != def.Biome )
 		{
-			error = $"{def.DisplayName} needs a {def.Biome} habitat.";
+			error = $"{def.DisplayName} needs a {BiomeIdentity.Label( def.Biome )} habitat.";
 			return false;
 		}
 
 		var habitatTier = GetSizeTier( habitat.Size );
 		if ( !MeetsSize( habitatTier, def.MinHabitatSize ) )
 		{
-			error = $"{def.DisplayName} needs at least a {TierLabelTitle( def.MinHabitatSize )} {def.Biome} habitat.";
+			error = $"{def.DisplayName} needs at least a {TierLabelTitle( def.MinHabitatSize )} {BiomeIdentity.Label( def.Biome )} habitat.";
 			return false;
 		}
 
@@ -70,7 +70,7 @@ public static class AnimalHabitatRules
 		if ( def is null )
 			return "";
 
-		return $"{def.Biome} · {TierLabelTitle( def.MinHabitatSize )}+ habitat";
+		return $"{BiomeIdentity.Label( def.Biome )} · {TierLabelTitle( def.MinHabitatSize )}+ habitat";
 	}
 
 	/// <summary>True when at least one buildable habitat satisfies this species' biome and size.</summary>

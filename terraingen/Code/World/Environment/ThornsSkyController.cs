@@ -74,7 +74,7 @@ public sealed class ThornsSkyController : Component
 			return;
 
 		_lastHash = hash;
-		SkyBox.Enabled = nightDepth <= 0.001f;
+		SkyBox.Enabled = activeMaterial.IsValid();
 		SkyBox.SkyIndirectLighting = state.SunFactor > 0.2f;
 		_usingNightMaterial = activeMaterial == _nightMaterial;
 		SkyBox.SkyMaterial = activeMaterial;

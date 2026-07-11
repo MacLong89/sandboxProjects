@@ -828,10 +828,133 @@ AimboxMainMenu .settings-hint, .aimbox-main-menu .settings-hint
 	color: rgba(255, 255, 255, 0.55);
 }
 
+AimboxMainMenu .menu-overlay.leaderboards, .aimbox-main-menu .menu-overlay.leaderboards
+{
+	width: 640px;
+	margin-left: -320px;
+	margin-top: -240px;
+	max-height: 520px;
+}
+
 AimboxMainMenu .leaderboard-panel, .aimbox-main-menu .leaderboard-panel
 {
 	flex-direction: column;
 	gap: 12px;
+}
+
+AimboxMainMenu .leaderboard-mode-tabs, .aimbox-main-menu .leaderboard-mode-tabs
+{
+	flex-direction: row;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+
+AimboxMainMenu .leaderboard-mode-tab, .aimbox-main-menu .leaderboard-mode-tab
+{
+	padding: 6px 10px;
+	font-size: 11px;
+	font-weight: 800;
+	letter-spacing: 1px;
+	color: rgba(255, 255, 255, 0.72);
+	background-color: rgba(255, 255, 255, 0.04);
+	border: 1px solid rgba(255, 255, 255, 0.12);
+	border-radius: 4px;
+}
+
+AimboxMainMenu .leaderboard-mode-tab.active, .aimbox-main-menu .leaderboard-mode-tab.active
+{
+	color: #fff;
+	background-color: rgba(255, 42, 109, 0.22);
+	border-color: rgba(255, 42, 109, 0.65);
+}
+
+AimboxMainMenu .leaderboard-mode-title, .aimbox-main-menu .leaderboard-mode-title
+{
+	font-size: 16px;
+	font-weight: 800;
+	letter-spacing: 2px;
+}
+
+AimboxMainMenu .leaderboard-personal, .aimbox-main-menu .leaderboard-personal
+{
+	flex-direction: row;
+	align-items: center;
+	justify-content: space-between;
+	padding: 10px 12px;
+	background-color: rgba(255, 42, 109, 0.12);
+	border: 1px solid rgba(255, 42, 109, 0.35);
+	border-radius: 4px;
+}
+
+AimboxMainMenu .leaderboard-personal-label, .aimbox-main-menu .leaderboard-personal-label
+{
+	font-size: 11px;
+	font-weight: 700;
+	letter-spacing: 2px;
+	color: rgba(255, 255, 255, 0.65);
+}
+
+AimboxMainMenu .leaderboard-personal-value, .aimbox-main-menu .leaderboard-personal-value
+{
+	font-size: 24px;
+	font-weight: 800;
+	color: #ff2a6d;
+}
+
+AimboxMainMenu .leaderboard-table, .aimbox-main-menu .leaderboard-table
+{
+	flex-direction: column;
+	gap: 4px;
+	max-height: 240px;
+	overflow: scroll;
+}
+
+AimboxMainMenu .leaderboard-row, .aimbox-main-menu .leaderboard-row
+{
+	flex-direction: row;
+	align-items: center;
+	gap: 8px;
+	padding: 8px 10px;
+	background-color: rgba(255, 255, 255, 0.03);
+	border: 1px solid rgba(255, 255, 255, 0.08);
+	border-radius: 4px;
+}
+
+AimboxMainMenu .leaderboard-row.header, .aimbox-main-menu .leaderboard-row.header
+{
+	background-color: transparent;
+	border-color: transparent;
+	padding-top: 0;
+	padding-bottom: 0;
+}
+
+AimboxMainMenu .leaderboard-row.local, .aimbox-main-menu .leaderboard-row.local
+{
+	border-color: rgba(255, 42, 109, 0.55);
+	background-color: rgba(255, 42, 109, 0.12);
+}
+
+AimboxMainMenu .leaderboard-rank, .aimbox-main-menu .leaderboard-rank
+{
+	width: 28px;
+	font-size: 12px;
+	font-weight: 800;
+	color: rgba(255, 255, 255, 0.55);
+}
+
+AimboxMainMenu .leaderboard-name, .aimbox-main-menu .leaderboard-name
+{
+	flex-grow: 1;
+	font-size: 13px;
+	font-weight: 700;
+	letter-spacing: 1px;
+}
+
+AimboxMainMenu .leaderboard-score, .aimbox-main-menu .leaderboard-score
+{
+	font-size: 14px;
+	font-weight: 800;
+	color: #ff2a6d;
 }
 
 AimboxMainMenu .leaderboard-hero, .aimbox-main-menu .leaderboard-hero

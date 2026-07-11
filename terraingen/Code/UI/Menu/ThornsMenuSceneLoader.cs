@@ -13,15 +13,43 @@ public static class ThornsMenuSceneLoader
 	public const string GameplayScenePath = "scenes/thorns_terrain.scene";
 	public const string MainMenuScenePath = "scenes/thorns_main_menu.scene";
 
-	public static bool IsInGameplayScene( Scene scene = null )
-	{
-		scene ??= Game.ActiveScene;
-		if ( scene is null || !scene.IsValid )
-			return false;
+	public static bool IsInGameplayScene( Scene scene = null ) =>
+		TryGetGameplayScene( scene, out _ );
 
-		return scene.GetAllComponents<ThornsTerrainBootstrap>().Any()
-		       || scene.GetAllComponents<ThornsNetworkGameManager>().Any();
+	/// <summary>
+	/// Resolves the live gameplay scene. Joining clients can keep the menu as <see cref="Game.ActiveScene"/>
+	/// while the host's terrain scene is already resident — use bootstrap/network markers globally.
+	/// </summary>
+	public static bool TryGetGameplayScene( Scene scene, out Scene gameplayScene )
+	{
+		gameplayScene = null;
+
+		var bootstrap = ThornsTerrainBootstrap.Instance;
+		if ( bootstrap.IsValid() && bootstrap.Scene is { IsValid: true } bootstrapScene )
+		{
+			gameplayScene = bootstrapScene;
+			return true;
+		}
+
+		if ( scene is { IsValid: true } explicitScene && HasGameplayMarker( explicitScene ) )
+		{
+			gameplayScene = explicitScene;
+			return true;
+		}
+
+		var active = Game.ActiveScene;
+		if ( active is { IsValid: true } && HasGameplayMarker( active ) )
+		{
+			gameplayScene = active;
+			return true;
+		}
+
+		return false;
 	}
+
+	static bool HasGameplayMarker( Scene scene ) =>
+		scene.GetAllComponents<ThornsTerrainBootstrap>().Any()
+		|| scene.GetAllComponents<ThornsNetworkGameManager>().Any();
 
 	public static async Task LoadGameplayAsync()
 	{
@@ -35,6 +63,7 @@ public static class ThornsMenuSceneLoader
 		ThornsMenuAudioHandoff.ArmForGameplayTransition();
 		ThornsMainMenuAtmosphere.BeginMusicFadeOut( 1.5f );
 		ThornsMenuJoinFlow.SetStage( ThornsMenuJoinStage.LoadingWorld );
+		ThornsLoadingScreenUtil.Show( ThornsMenuJoinFlow.StageLabel( ThornsMenuJoinStage.LoadingWorld ) );
 		await Task.Delay( 80 );
 
 		var opt = new SceneLoadOptions();
@@ -65,7 +94,22 @@ public static class ThornsMenuSceneLoader
 		{
 			await Task.Delay( 50 );
 			if ( IsInGameplayScene() )
+			{
+				if ( TryGetGameplayScene( null, out var gameplayScene ) )
+				{
+					ThornsSessionEnterController.Ensure( gameplayScene );
+					ThornsWorldBootGate.EnsureDriver();
+					var bootstrap = gameplayScene.GetAllComponents<ThornsTerrainBootstrap>().FirstOrDefault();
+					if ( bootstrap.IsValid() )
+						ThornsGameplayUiHost.EnsureOnBootstrap( bootstrap );
+					else
+						ThornsGameplayUiHost.EnsureOnHost( gameplayScene.GetAllComponents<ThornsNetworkGameManager>().FirstOrDefault()?.GameObject );
+					ThornsJoinFlowDebug.LogMilestone(
+						$"LoadGameplayAsync ready scene={gameplayScene.Name} controller={( ThornsSessionEnterController.Instance?.IsValid() == true )} uiHost={( ThornsGameplayUiHost.Instance?.IsValid() == true )}" );
+				}
+
 				return;
+			}
 		}
 
 		Log.Warning( "[Thorns Menu] Gameplay scene did not become active after ChangeScene." );
@@ -75,11 +119,17 @@ public static class ThornsMenuSceneLoader
 	public static void DismissActiveMainMenuUi()
 	{
 		DestroyActiveMainMenuUiRoots();
-		ThornsMenuJoinFlow.CompleteEnterWorld();
 	}
 
 	public static void DestroyActiveMainMenuUiRoots()
 	{
+		if ( MainMenuHost.Instance is { IsValid: true } liveHost )
+		{
+			var root = liveHost.GameObject;
+			if ( root.IsValid() )
+				root.Destroy();
+		}
+
 		var scene = Game.ActiveScene;
 		if ( scene is null || !scene.IsValid )
 			return;
@@ -107,10 +157,19 @@ public static class ThornsMenuSceneLoader
 
 	public static async Task LoadMainMenuAsync()
 	{
-		await ThornsNetworkSessionReset.DisconnectAndResetAsync();
+		if ( Networking.IsActive )
+		{
+			Networking.Disconnect();
+			await Task.Delay( 300 );
+		}
+
+		ThornsNetworkSessionReset.ResetStaticState( "load-main-menu" );
 		ThornsMenuAudioHandoff.Cancel();
 		ThornsUiCursor.EnsureMainMenuVisible();
-		await Task.Delay( 50 );
+		await Task.Delay( 80 );
+
+		if ( IsMainMenuScene( Game.ActiveScene ) )
+			return;
 
 		var opt = new SceneLoadOptions();
 		if ( !opt.SetScene( MainMenuScenePath ) )
@@ -120,6 +179,30 @@ public static class ThornsMenuSceneLoader
 		}
 
 		if ( !Game.ChangeScene( opt ) )
+		{
 			Log.Error( "[Thorns Menu] Game.ChangeScene to main menu rejected." );
+			return;
+		}
+
+		for ( var attempt = 0; attempt < 120; attempt++ )
+		{
+			await Task.Delay( 50 );
+			if ( IsMainMenuScene( Game.ActiveScene ) )
+				return;
+		}
+
+		Log.Warning( "[Thorns Menu] Thorns main menu did not become active after disconnect." );
+	}
+
+	static bool IsMainMenuScene( Scene scene )
+	{
+		if ( scene is null || !scene.IsValid )
+			return false;
+
+		if ( IsInGameplayScene( scene ) )
+			return false;
+
+		return scene.GetAllComponents<MainMenuHost>().Any()
+		       || scene.GetAllComponents<ThornsMenuSceneBootstrap>().Any();
 	}
 }

@@ -414,13 +414,17 @@ public sealed class CleanableSurface : Component
 			return 0;
 
 		var completed = 0;
+		// Total is the active-cell count after shape masking — walk the full texel buffer.
+		var texelCount = _texW * _texH;
 
 		for ( var layerIdx = 0; layerIdx < _layers.Count; layerIdx++ )
 		{
 			var layer = _layers[layerIdx];
 
-			for ( var i = 0; i < layer.Total; i++ )
+			for ( var i = 0; i < texelCount; i++ )
 			{
+				if ( _active is not null && !_active[i] )
+					continue;
 				if ( layer.Clean[i] >= 1f )
 					continue;
 
@@ -686,8 +690,10 @@ public sealed class CleanableSurface : Component
 			return true;
 
 		// Follow-up layers: work exists wherever the prior pass is already clear locally.
-		for ( var i = 0; i < layer.Total; i++ )
+		var texelCount = layer.Clean.Length;
+		for ( var i = 0; i < texelCount; i++ )
 		{
+			if ( _active is not null && !_active[i] ) continue;
 			if ( layer.Clean[i] >= 1f ) continue;
 			if ( PriorLayersClean( layerIdx, i ) )
 				return true;

@@ -39,6 +39,10 @@ public sealed class AimboxDamageSystem
 		if ( attacker is null || target is null )
 			return;
 
+		var mode = AimboxGame.Instance?.Match.Mode ?? default;
+		if ( AimboxAimModeRules.IsAimMode( mode ) && attacker.IsHumanPlayer && target.IsHumanPlayer )
+			return;
+
 		if ( attacker == target )
 		{
 			if ( !allowSelfDamage )

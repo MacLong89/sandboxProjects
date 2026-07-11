@@ -344,47 +344,51 @@ $fd-label: "Arial Narrow", "Segoe UI", Arial, sans-serif;
 
 	.mainmenu-brand
 	{
-		font-family: $fd-mono;
-		font-size: 28px;
-		font-weight: 700;
-		letter-spacing: 0.28em;
-		color: $fd-stamp;
+		font-family: Poppins, Roboto, Arial, sans-serif;
+		font-size: 56px;
+		font-weight: 800;
+		letter-spacing: 0.14em;
+		color: #ffffff;
+		text-shadow: -2px -2px 0 #000000, 2px -2px 0 #000000, -2px 2px 0 #000000, 2px 2px 0 #000000;
 	}
 
 	.mainmenu-tagline
 	{
-		font-family: $fd-mono;
-		font-size: 10px;
-		letter-spacing: 0.2em;
-		color: $fd-text-muted;
+		font-family: Poppins, Roboto, Arial, sans-serif;
+		font-size: 17px;
+		letter-spacing: 0.14em;
+		color: #ffffff;
 	}
 
 	.mainmenu-nav-btn
 	{
-		font-family: $fd-mono;
-		font-size: 12px;
-		font-weight: 700;
-		letter-spacing: 0.14em;
-		color: $fd-text-muted;
-		border-left: 2px solid transparent;
+		font-family: Poppins, Roboto, Arial, sans-serif;
+		font-size: 21px;
+		font-weight: 800;
+		letter-spacing: 0.1em;
+		color: #ffffff;
+		border: 3px solid #000000;
+		background-color: rgba(6, 8, 12, 0.94);
 
 		&:hover
 		{
-			color: $fd-text;
-			border-left-color: $fd-stamp;
-			text-shadow: none;
+			color: #ffffff;
+			border-color: #000000;
+			background-color: rgba(22, 26, 34, 0.96);
 		}
 
 		&.primary
 		{
-			color: $fd-stamp;
-			border-left-color: $fd-stamp;
+			color: #ffffff;
+			font-size: 24px;
+			border-color: #000000;
 		}
 
 		&.disabled
 		{
-			color: rgba(138, 130, 120, 0.45);
-			border-left-color: rgba(120, 102, 72, 0.35);
+			color: #ffffff;
+			border-color: #000000;
+			opacity: 0.58;
 		}
 	}
 

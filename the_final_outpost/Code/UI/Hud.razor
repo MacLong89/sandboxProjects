@@ -13,17 +13,80 @@
 				<div class="topbar-shell">
 					<div class="topbar">
 						<div class="cluster left">
-							<div class="pill scrap">
+							<div class="pill scrap" title="Scrap">
 								<i class="icon">settings</i>
-								<span class="val">@Format(Core?.Wallet.Scrap ?? 0)</span>
+								<div class="pill-stack">
+									<span class="val">@Format(Core?.Wallet.Scrap ?? 0)</span>
+									@if ( ScrapRateLabel is not null )
+									{
+										<span class="pill-rate">@ScrapRateLabel</span>
+									}
+								</div>
 								<span class="pill-tag">SCRAP</span>
 							</div>
-							<div class="pill res wood" title="Wood"><i class="icon">park</i><span class="val">@Wood</span></div>
-							<div class="pill res stone" title="Stone"><i class="icon">landscape</i><span class="val">@Stone</span></div>
-							<div class="pill res water" title="Water"><i class="icon">water_drop</i><span class="val">@Water</span></div>
+							<div class="pill res wood" title="Wood">
+								<i class="icon">park</i>
+								<div class="pill-stack">
+									<span class="val">@Wood</span>
+									@if ( WoodRateLabel is not null )
+									{
+										<span class="pill-rate">@WoodRateLabel</span>
+									}
+								</div>
+							</div>
+							<div class="pill res stone" title="Stone">
+								<i class="icon">landscape</i>
+								<div class="pill-stack">
+									<span class="val">@Stone</span>
+									@if ( StoneRateLabel is not null )
+									{
+										<span class="pill-rate">@StoneRateLabel</span>
+									}
+								</div>
+							</div>
+							<div class="pill res water" title="Water">
+								<i class="icon">water_drop</i>
+								<div class="pill-stack">
+									<span class="val">@Water</span>
+									@if ( WaterRateLabel is not null )
+									{
+										<span class="pill-rate">@WaterRateLabel</span>
+									}
+								</div>
+							</div>
 							@if ( IsCure )
 							{
 								<div class="pill res specimens" title="Specimens"><i class="icon">biotech</i><span class="val">@Specimens</span></div>
+								<div class="pill res food" title="Food">
+									<i class="icon">restaurant</i>
+									<div class="pill-stack">
+										<span class="val">@Food</span>
+										@if ( FoodRateLabel is not null )
+										{
+											<span class="pill-rate @(IncomeRates.FoodPerSec < 0 ? "neg" : "")">@FoodRateLabel</span>
+										}
+									</div>
+								</div>
+								<div class="pill res supplies" title="Supplies">
+									<i class="icon">inventory_2</i>
+									<div class="pill-stack">
+										<span class="val">@Supplies</span>
+										@if ( SuppliesRateLabel is not null )
+										{
+											<span class="pill-rate">@SuppliesRateLabel</span>
+										}
+									</div>
+								</div>
+								<div class="pill res knowledge" title="Knowledge">
+									<i class="icon">school</i>
+									<div class="pill-stack">
+										<span class="val">@Knowledge</span>
+										@if ( KnowledgeRateLabel is not null )
+										{
+											<span class="pill-rate">@KnowledgeRateLabel</span>
+										}
+									</div>
+								</div>
 							}
 						</div>
 
@@ -33,7 +96,8 @@
 								<i class="icon">calendar_month</i>
 								<div class="night-text">
 									<span class="lbl">@TeamName</span>
-									<span class="num">Year @Core.Save.CurrentYear · @SeasonName · Day @Core.Save.SeasonDay/@CureConstants.DaysPerSeason</span>
+									<span class="num">Year @Core.Save.CurrentYear · @SeasonName</span>
+									<span class="num-sub">Day @Core.Save.SeasonDay / @CureConstants.DaysPerSeason</span>
 								</div>
 							</div>
 						}
@@ -77,14 +141,22 @@
 							</div>
 							@if ( IsCure )
 							{
+								<div class="meta-btn" onclick=@OpenTechTree title="Tech Tree">
+									<i class="icon">account_tree</i>
+									<span>Tech</span>
+								</div>
 								<div class="meta-btn" onclick=@OpenCureProgress title="Cure Progress">
 									<i class="icon">science</i>
 									<span>Cure</span>
 								</div>
 							}
+							<div class="meta-btn" onclick=@GoMenu title="Back to Main Menu">
+								<i class="icon">home</i>
+								<span>Home</span>
+							</div>
 							<div class="meta-btn" onclick=@OpenSettings title="Settings">
 								<i class="icon">settings</i>
-								<span>Menu</span>
+								<span>Settings</span>
 							</div>
 						</div>
 					</div>
@@ -432,15 +504,6 @@
 										</div>
 									</div>
 								}
-								else
-								{
-									<div class="dock-start cure-wait">
-										<div class="start-text">
-											<span class="start-title">Seasons advance automatically</span>
-											<span class="start-sub">Threats arrive on their own — build, expand, research the cure</span>
-										</div>
-									</div>
-								}
 							</div>
 						</div>
 					</div>
@@ -666,23 +729,31 @@
 			<div class="overlay">
 				<div class="modal wide">
 					<div class="modal-head">
-						<div class="modal-title">Choose Your Team</div>
-						<div class="modal-sub">Specialists locked in for this run</div>
+						<div class="modal-title-col">
+							<div class="modal-title">Choose Your Team</div>
+							<div class="modal-sub">Specialists are locked in for this run. Select one, then begin.</div>
+						</div>
+						<div class="sel-close" onclick=@CancelTeamPicker><i class="icon">close</i></div>
 					</div>
-					<div class="team-grid">
+					<div class="list team-list">
 						@foreach ( var team in CureTeamCatalog.All )
 						{
 							var selected = _pickedTeam == team.Id;
-							<div class="team-card @(selected ? "selected" : "")" onclick=@(() => PickTeam(team.Id))>
-								<i class="icon">@team.Icon</i>
-								<div class="team-name">@team.Name</div>
-								<div class="team-desc">@team.Description</div>
+							<div class="row team-pick-row @(selected ? "picked" : "")" onclick=@(() => PickTeam(team.Id))>
+								<div class="row-icon-wrap"><i class="icon">@team.Icon</i></div>
+								<div class="row-text">
+									<div class="row-name">@team.Name</div>
+									<div class="row-desc">@team.Description</div>
+								</div>
+								<div class="team-pick-check @(selected ? "on" : "")">
+									<i class="icon">@(selected ? "check_circle" : "radio_button_unchecked")</i>
+								</div>
 							</div>
 						}
 					</div>
-					<div class="btn-row">
+					<div class="team-pick-actions">
 						<div class="btn" onclick=@CancelTeamPicker><span>Cancel</span></div>
-						<div class="btn primary @(_pickedTeam == CureTeamId.None ? "disabled" : "")" onclick=@ConfirmTeamPicker><span>Begin Run</span></div>
+						<div class="btn primary lg @(_pickedTeam == CureTeamId.None ? "disabled" : "")" onclick=@ConfirmTeamPicker><span>Begin Run</span></div>
 					</div>
 				</div>
 			</div>
@@ -778,6 +849,36 @@
 						<div class="btn" onclick=@CancelReset><span>Cancel</span></div>
 						<div class="btn warn" onclick=@DoReset><i class="icon">delete_forever</i><span>Wipe & Restart</span></div>
 					</div>
+				</div>
+			</div>
+		}
+
+		@if ( TechTreeOpen )
+		{
+			<div class="overlay">
+				<div class="modal wide">
+					<div class="modal-head">
+						<div class="modal-title">Tech Tree</div>
+						<div class="modal-sub">Knowledge @Knowledge · Scrap @Format(Core?.Wallet.Scrap ?? 0)</div>
+						<div class="sel-close" onclick=@CloseTechTree><i class="icon">close</i></div>
+					</div>
+					<div class="list">
+						@foreach ( var node in TechTreeCatalog.All )
+						{
+							var unlocked = TechTreeCatalog.IsUnlocked( Core.Save, node.Id );
+							var canResearch = !unlocked && TechTreeCatalog.CanResearch( Core, node );
+							<div class="row @(unlocked ? "maxed" : canResearch ? "afford" : "poor")" onclick=@(() => ResearchTech(node.Id))>
+								<div class="row-icon-wrap"><i class="icon">@node.Icon</i></div>
+								<div class="row-text">
+									<div class="row-name">@node.Name</div>
+									<div class="row-desc">@node.Description</div>
+									<div class="row-now">Season @node.RequiredSeason+ · @node.KnowledgeCost.ToString("0") Knowledge@(node.ScrapCost > 0 ? $" · {Format(node.ScrapCost)} Scrap" : "")</div>
+								</div>
+								<div class="row-cost">@(unlocked ? "DONE" : canResearch ? "Research" : "Locked")</div>
+							</div>
+						}
+					</div>
+					<div class="btn wide-btn" onclick=@CloseTechTree><span>Close</span></div>
 				</div>
 			</div>
 		}
@@ -963,13 +1064,13 @@
 					<div class="modal-head">
 						<div class="modal-title-col">
 							<div class="modal-title">Workers</div>
-							<div class="modal-sub">@WorkerCount / @MaxWorkers hired · foragers are assigned from claimed plots</div>
+							<div class="modal-sub">@WorkersModalSub</div>
 						</div>
 						<div class="pill scrap sm"><i class="icon">settings</i><span class="val">@Format(Core?.Wallet.Scrap ?? 0)</span></div>
 						<div class="sel-close" onclick=@CloseWorkers><i class="icon">close</i></div>
 					</div>
 					<div class="list">
-						@foreach ( var role in BaseWorkerRoles )
+						@foreach ( var role in WorkerRoles )
 						{
 							var cost = WorkerInfo.HireCost( role );
 							var unlocked = NightUnlocks.IsWorkerUnlocked( Core.Save, role );
@@ -978,11 +1079,11 @@
 								<div class="row-icon-wrap"><i class="icon">@(unlocked ? WorkerInfo.Icon( role ) : "lock")</i></div>
 								<div class="row-text">
 									<div class="row-name">@WorkerInfo.Name( role ) <span class="row-lvl">x@(Workers?.CountRole( role ) ?? 0)</span></div>
-									<div class="row-desc">@(unlocked ? WorkerInfo.Blurb( role ) : $"Unlocks on Night {WorkerInfo.UnlockNight( role )}")</div>
+									<div class="row-desc">@(unlocked ? WorkerInfo.Blurb( role ) : WorkerUnlockHint( role ))</div>
 								</div>
 								<div class="recruit-actions">
 									<div class="btn sm @(canHire ? "" : "poor")" onclick=@(() => HireWorker(role))>
-										<span>Hire</span><span class="btn-cost">@(unlocked ? Format(cost) : $"N{WorkerInfo.UnlockNight( role )}")</span>
+										<span>Hire</span><span class="btn-cost">@(unlocked ? Format(cost) : WorkerUnlockCostHint( role ))</span>
 									</div>
 								</div>
 							</div>
@@ -1301,7 +1402,8 @@
 				<div class="modal wide lb-modal">
 					<div class="modal-head">
 						<div class="modal-title-col">
-							<div class="modal-title">Leaderboard</div>
+							<div class="modal-title">Survival Leaderboard</div>
+							<div class="modal-sub">Your best: Night @SurvivalBestNight@(SurvivalRunInProgress ? $" · Current run: Night {SurvivalCurrentNight}" : "")</div>
 						</div>
 						<div class="sel-close" onclick=@CloseLeaderboard><i class="icon">close</i></div>
 					</div>
@@ -1310,7 +1412,7 @@
 						<div class="lb-head">
 							<div class="lb-col rank">Rank</div>
 							<div class="lb-col name">Name</div>
-							<div class="lb-col nights">Nights Survived</div>
+							<div class="lb-col nights">Night Reached</div>
 						</div>
 
 						@if ( _lbLoading )
@@ -1325,10 +1427,10 @@
 						{
 							@foreach ( var e in _lbEntries )
 							{
-								<div class="lb-row @(e.IsLocal ? "you" : "")">
-									<div class="lb-col rank">@e.Rank</div>
+								<div class="lb-row @(e.IsLocal ? "you" : "") @(e.IsInProgress ? "in-progress" : "")">
+									<div class="lb-col rank">@(e.IsInProgress ? "—" : e.Rank.ToString())</div>
 									<div class="lb-col name">@e.Name</div>
-									<div class="lb-col nights">@e.Nights</div>
+									<div class="lb-col nights">Night @e.Nights</div>
 								</div>
 							}
 						}
@@ -1352,9 +1454,9 @@
 	private PlacedBuilding Moving => BuildManager.Instance?.MovingBuilding;
 	private TutorialTipDef TutorialTip => Core?.ActiveTutorialTip;
 	private bool TutorialTipsHidden => Core?.TutorialTipsHidden ?? false;
-	private bool ShowTipsToggle => Core is not null && IsSurvival
-		&& (Phase == GamePhase.Day || Phase == GamePhase.Night)
-		&& NightUnlocks.ProgressNight( Core.Save ) <= TutorialTips.MaxNight;
+	private bool ShowTipsToggle => Core is not null && (Phase == GamePhase.Day || Phase == GamePhase.Night)
+		&& (IsSurvival && NightUnlocks.ProgressNight( Core.Save ) <= TutorialTips.MaxNight
+			|| IsCure && CureConstants.ProgressSeason( Core.Save ) <= CureTutorialTips.MaxSeason);
 
 	private GamePhase Phase => Core?.Phase ?? GamePhase.MainMenu;
 	private NightRecap NightRecap => Core?.PendingNightRecap;
@@ -1368,6 +1470,7 @@
 	private bool CatalogOpen => Core?.CatalogOpen ?? false;
 	private bool LegacyOpen => Core?.LegacyOpen ?? false;
 	private bool CureProgressOpen => Core?.CureProgressOpen ?? false;
+	private bool TechTreeOpen => Core?.TechTreeOpen ?? false;
 	private bool IsSurvival => Core?.IsSurvival ?? true;
 	private bool IsCure => Core?.IsCure ?? false;
 	private bool CanContinueSurvival => Core?.CanContinueSurvival ?? false;
@@ -1375,6 +1478,9 @@
 	private string SeasonName => CureConstants.SeasonName( Core?.Save.CurrentSeason ?? 0 );
 	private string TeamName => TeamBonuses.Get( TeamBonuses.Team( Core ) ).Name;
 	private string Specimens => $"{Core?.Resources.Get( ResourceKind.Specimens ) ?? 0:0}";
+	private string Food => $"{Core?.Resources.Get( ResourceKind.Food ) ?? 0:0}";
+	private string Supplies => $"{Core?.Resources.Get( ResourceKind.Supplies ) ?? 0:0}";
+	private string Knowledge => $"{Core?.Resources.Get( ResourceKind.Knowledge ) ?? 0:0}";
 	private bool WelcomePending => Core?.WelcomePending ?? false;
 	private bool DailyPending => Core?.DailyPending ?? false;
 	private string ObjectiveToast => Core?.ObjectiveToast;
@@ -1425,6 +1531,9 @@
 	private int ScrapBonusAfterEvacuate => (int)MathF.Round( (float)(TotalLegacyAfterEvacuate * GameConstants.LegacyScrapBonusPer * 100f) );
 	private bool PrestigeAvailable => Core?.PrestigeAvailable ?? false;
 	private int PrestigeGain => Core?.PrestigeGain ?? 0;
+	private int SurvivalBestNight => SaveManager.SurvivalSave.BestNight;
+	private int SurvivalCurrentNight => SaveManager.SurvivalSave.CurrentNight;
+	private bool SurvivalRunInProgress => SaveManager.SurvivalSave.HasRunInProgress;
 	private int BestNight => Core?.Save.BestNight ?? 0;
 	private string LegacyChipHint => PrestigeAvailable ? "Evacuate ready" : (LegacyPoints > 0 ? $"+{LegacyBonusPercent}% scrap" : "Prestige");
 
@@ -1435,12 +1544,23 @@
 	private string DailyNextLabel => $"Come back tomorrow for +{Format( GameConstants.DailyRewardPerStreak )} more.";
 
 	private string Scrap => GameConstants.FormatScrap( Core?.Wallet.Scrap ?? 0 );
+	private ColonyIncomeRates.Snapshot IncomeRates => ColonyIncomeRates.Get( Core );
+	private string ScrapRateLabel => ColonyIncomeRates.FormatRate( IncomeRates.ScrapPerSec );
+	private string WoodRateLabel => ColonyIncomeRates.FormatRate( IncomeRates.WoodPerSec );
+	private string StoneRateLabel => ColonyIncomeRates.FormatRate( IncomeRates.StonePerSec );
+	private string WaterRateLabel => ColonyIncomeRates.FormatRate( IncomeRates.WaterPerSec );
+	private string FoodRateLabel => ColonyIncomeRates.FormatRate( IncomeRates.FoodPerSec );
+	private string SuppliesRateLabel => ColonyIncomeRates.FormatRate( IncomeRates.SuppliesPerSec );
+	private string KnowledgeRateLabel => ColonyIncomeRates.FormatRate( IncomeRates.KnowledgePerSec );
 	private string Wood => $"{Core?.Resources.Get( ResourceKind.Wood ) ?? 0:0}";
 	private string Stone => $"{Core?.Resources.Get( ResourceKind.Stone ) ?? 0:0}";
 	private string Water => $"{Core?.Resources.Get( ResourceKind.Water ) ?? 0:0}";
 	private int WorkerCount => Workers?.Count ?? 0;
 	private int MaxWorkers => GameConstants.MaxWorkers;
-	private static readonly WorkerRole[] BaseWorkerRoles = { WorkerRole.Craftsman, WorkerRole.Repairman };
+	private WorkerRole[] WorkerRoles => WorkerInfo.RolesForMode( IsCure );
+	private string WorkersModalSub => IsCure
+		? $"{WorkerCount} / {MaxWorkers} hired · specialists boost colony output"
+		: $"{WorkerCount} / {MaxWorkers} hired · foragers are assigned from claimed plots";
 	private int CorePercent => (int)MathF.Round( (Core?.Outpost?.CoreHealth ?? 0) / MathF.Max( 1f, Core?.Outpost?.CoreMaxHealth ?? 1 ) * 100f );
 	private int WallPercent => (int)MathF.Round( (Core?.Outpost?.WallIntegrityFraction ?? 0f) * 100f );
 	private int DefensesPercent
@@ -1577,7 +1697,11 @@
 
 	private void StartDay() => Core?.StartDay();
 	private void StartNight() => Core?.StartNight();
-	private void GoMenu() => Core?.ReturnToMenu();
+	private void GoMenu()
+	{
+		UiClick();
+		Core?.ReturnToMenu();
+	}
 	private void RetrySeason() => Core?.RetrySeason();
 	private void UiClick() => Sfx.PlayUi();
 
@@ -1649,6 +1773,20 @@
 
 	private void CloseCureProgress() => Core?.CloseCureProgress();
 
+	private void OpenTechTree()
+	{
+		UiClick();
+		Core?.OpenTechTree();
+	}
+
+	private void CloseTechTree() => Core?.CloseTechTree();
+
+	private void ResearchTech( string id )
+	{
+		if ( TechTreeCatalog.TryUnlock( Core, id ) )
+			StateHasChanged();
+	}
+
 	private void UnlockTier( int tier )
 	{
 		if ( CureResearch.TryUnlockTier( Core, tier ) )
@@ -1719,6 +1857,12 @@
 
 	private void CloseWorkers() => Core?.CloseWorkers();
 	private void HireWorker( WorkerRole role ) => Workers?.TryHire( role );
+
+	private string WorkerUnlockHint( WorkerRole role ) =>
+		IsCure ? CureUnlocks.WorkerUnlockLabel( Core?.Save, role ) : $"Unlocks on Night {WorkerInfo.UnlockNight( role )}";
+
+	private string WorkerUnlockCostHint( WorkerRole role ) =>
+		IsCure ? CureUnlocks.WorkerUnlockLabel( Core?.Save, role ) : $"N{WorkerInfo.UnlockNight( role )}";
 	private void DismissWorker( WorkerManager.WorkerUnit u ) => Workers?.Dismiss( u );
 
 	private void OpenExpeditions()
@@ -1887,13 +2031,14 @@
 		_lbLoading = true;
 		StateHasChanged();
 
-		var entries = await LeaderboardService.FetchDisplayAsync( Core?.Save, 100 );
+		var entries = await LeaderboardService.FetchDisplayAsync( SaveManager.SurvivalSave, 100 );
 		_lbEntries = entries.Select( e => new LbEntry
 		{
 			Rank = e.Rank,
 			Name = e.Name,
 			Nights = e.Nights,
-			IsLocal = e.IsLocal
+			IsLocal = e.IsLocal,
+			IsInProgress = e.IsInProgress
 		} ).ToList();
 
 		_lbLoading = false;
@@ -1906,6 +2051,7 @@
 		public string Name;
 		public int Nights;
 		public bool IsLocal;
+		public bool IsInProgress;
 	}
 
 	protected override int BuildHash() => System.HashCode.Combine(
@@ -1918,6 +2064,10 @@
 			System.HashCode.Combine( Selected?.Name?.GetHashCode() ?? -1, SelHpPercent, DefenderCount, WorkerCount, _lbEntries.Count, _lbLoading, RepairLineHash ),
 			RepairBusy ),
 		System.HashCode.Combine( (int)(Core?.Resources.Get( ResourceKind.Wood ) ?? 0), (int)(Core?.Resources.Get( ResourceKind.Stone ) ?? 0), (int)(Core?.Resources.Get( ResourceKind.Water ) ?? 0) ),
+		System.HashCode.Combine(
+			(int)(IncomeRates.ScrapPerSec * 10f), (int)(IncomeRates.FoodPerSec * 10f),
+			(int)(IncomeRates.SuppliesPerSec * 10f), (int)(IncomeRates.KnowledgePerSec * 10f),
+			WorkerCount, DefenderCount ),
 		System.HashCode.Combine( ExpeditionsOpen, ExpeditionActive, (int)(Exp?.SecondsRemaining ?? 0f), ObjectivesDone, WelcomePending, ObjectiveToast?.GetHashCode() ?? 0, System.HashCode.Combine( ExpSoldiers, ExpCivilians ) ),
 		System.HashCode.Combine(
 			System.HashCode.Combine( MilestonesOpen, CatalogOpen, LegacyOpen, DailyPending, MilestonesDone, PrestigeLevel, LegacyPoints ),

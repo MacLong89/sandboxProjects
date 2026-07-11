@@ -1,5 +1,3 @@
-using System.Threading.Tasks;
-
 namespace FinalOutpost;
 
 /// <summary>
@@ -8,8 +6,6 @@ namespace FinalOutpost;
 /// </summary>
 public sealed class OutpostBootstrap : GameObjectSystem<OutpostBootstrap>, ISceneStartup
 {
-	private static bool _weaponsMounted;
-
 	public OutpostBootstrap( Scene scene ) : base( scene )
 	{
 	}
@@ -37,8 +33,7 @@ public sealed class OutpostBootstrap : GameObjectSystem<OutpostBootstrap>, IScen
 		bootGo.Components.Create<AmbiencePlayer>();
 		bootGo.Components.Create<NightCombatMusicPlayer>();
 		bootGo.Components.Create<DayNightLighting>();
-
-		_ = MountWeaponsAsync();
+		bootGo.Components.Create<WeaponModelLoader>();
 
 		if ( !Networking.IsActive )
 		{
@@ -52,24 +47,5 @@ public sealed class OutpostBootstrap : GameObjectSystem<OutpostBootstrap>, IScen
 
 		var coreGo = new GameObject( true, "GameCore" );
 		coreGo.Components.Create<GameCore>();
-	}
-
-	private static async Task MountWeaponsAsync()
-	{
-		if ( _weaponsMounted )
-			return;
-
-		try
-		{
-			var package = await Package.Fetch( "facepunch.sboxweapons", false );
-			if ( package is not null && !package.IsMounted() )
-				await package.MountAsync( false );
-
-			_weaponsMounted = true;
-		}
-		catch ( Exception e )
-		{
-			Log.Warning( $"[FinalOutpost] Weapon package mount failed: {e.Message}" );
-		}
 	}
 }

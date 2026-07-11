@@ -2,6 +2,7 @@ namespace Terraingen.Multiplayer;
 
 using Terraingen.Player;
 using Terraingen.UI.Core;
+using Terraingen.UI.Menu;
 
 /// <summary>Non-networked tick driver — editor listen-server host pawns may not receive OnUpdate reliably.</summary>
 [Title( "Thorns Local Host Spawn Driver" )]
@@ -50,11 +51,15 @@ public sealed class ThornsLocalHostSpawnDriver : Component
 			return;
 
 		_nextJoinerRepair = 0.25f;
-		var scene = Game.ActiveScene;
+		if ( !ThornsMenuSceneLoader.TryGetGameplayScene( null, out var scene ) || !scene.IsValid )
+			scene = Game.ActiveScene;
+
 		if ( scene is null || !scene.IsValid )
 			return;
 
-		var player = ThornsSceneObserver.FindLocalPlayerObject( scene );
+		var player = ThornsJoinLocalPlayer.TryResolve( out var resolvedPlayer, out _ )
+			? resolvedPlayer
+			: ThornsSceneObserver.FindLocalPlayerObject( scene );
 		if ( !player.IsValid() || !ThornsLocalPlayer.IsLocallyControlledPawn( player ) )
 			return;
 
@@ -76,5 +81,7 @@ public sealed class ThornsLocalHostSpawnDriver : Component
 
 		if ( !ThornsMenuHost.IsOpen )
 			ThornsUiCursor.SyncForActiveContext();
+
+		ThornsMenuJoinHandoff.TryComplete();
 	}
 }

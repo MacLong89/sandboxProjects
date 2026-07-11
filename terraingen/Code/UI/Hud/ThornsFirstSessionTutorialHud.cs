@@ -7,6 +7,7 @@ using Terraingen.UI.Core;
 /// <summary>First-session control primer — dismissible overlay for ~60 seconds.</summary>
 public sealed class ThornsFirstSessionTutorialHud
 {
+	public static bool Enabled { get; set; }
 	readonly Panel _root;
 	readonly Label _title;
 	readonly Label _body;

@@ -192,8 +192,9 @@ public static class ThornsMountDiagnostics
 		Log.Warning(
 			"[Thorns Mount] Published builds need loose assets in the package. " +
 			"Set Project Settings → Resource Files (or terraingen.sbproj Resources) to include:\n" +
-			"  *.png, *.scss, *.json, *.fbx, *.sound, *.tmat, *.scene, map/*, ui/**/*, scenes/**/*, news.json, sounds/*, templates/*,\n" +
-			"  models/**/*, materials/**/*, terrain_materials/**/*, shaders/**/*, *.vmdl, *.vmat, *.vtex, *.shader, *.shader_c\n" +
+			"  *.scss, *.json, *.tmat, *.scene, map/*, ui/icons/*, ui/iconsv8/*, ui/menu/**/*, ui/forge/*, ui/map/*, ui/fonts/*,\n" +
+			"  scenes/**/*, news.json, templates/*, materials/skybox/*.png, materials/default/*.tga, materials/foliage/*.png,\n" +
+			"  materials/building_materials/airdrop.png, terrain_materials/water_1024.png (compiled _c assets ship automatically)\n" +
 			"Then Publish again from the s&box editor (not just Save)." );
 	}
 }

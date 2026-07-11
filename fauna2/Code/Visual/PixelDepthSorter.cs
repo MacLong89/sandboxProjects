@@ -85,4 +85,8 @@ public sealed class PixelDepthSorter : Component
 
 	public static float SortZForPath( Vector3 feet ) =>
 		SortZFor( feet, WorldSprites.PathLayer );
+
+	/// <summary>Flat floor paint for a whole enclosure — one depth for all cells.</summary>
+	public static float SortZForHabitatFloor( Vector3 habitatCenter ) =>
+		SortZFor( habitatCenter.WithZ( 0f ), WorldSprites.HabitatGroundLayer );
 }

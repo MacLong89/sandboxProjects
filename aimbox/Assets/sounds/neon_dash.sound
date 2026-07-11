@@ -1,0 +1,19 @@
+{
+  "UI": true,
+  "Volume": "1",
+  "Pitch": "1",
+  "Decibels": 0,
+  "SelectionMode": "Random",
+  "Sounds": [
+    "sounds/neon_dash.mp3"
+  ],
+  "Occlusion": false,
+  "AirAbsorption": false,
+  "Transmission": false,
+  "OcclusionRadius": 0,
+  "DistanceAttenuation": false,
+  "Distance": 0,
+  "Falloff": [],
+  "__references": [],
+  "__version": 1
+}

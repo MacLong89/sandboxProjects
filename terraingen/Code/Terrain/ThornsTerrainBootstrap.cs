@@ -99,14 +99,31 @@ public sealed class ThornsTerrainBootstrap : Component
 		if ( Scene.IsEditor || !Config.GenerateOnStart )
 			return;
 
+		if ( !ThornsLightingTestSceneBootstrap.IsActive )
+			ThornsEnvironmentDirector.EnsureGameplayEnvironment( Scene );
+
 		var netManager = Scene.GetAllComponents<ThornsNetworkGameManager>().FirstOrDefault();
 		_cacheRpc = netManager?.EnsureHeightCacheRpc( this );
+		_ = netManager?.EnsureBuildingSyncRpc( this );
 
 		ThornsWorldSession.TryReadFromLobby();
 		ThornsWorldSession.ApplyConfig( Config );
 
-		if ( ThornsTerrainHeightCache.TryLoad( Config, out var cached ) )
+		// Joining clients load the gameplay scene before Connect. Do not apply a local
+		// height cache / sculpt with the default seed — wait for the host lobby seed.
+		if ( ShouldWaitForHostWorld() )
 		{
+			ThornsWorldBootGate.BeginLocalBoot();
+			_waitingForLobbyWorld = true;
+			_clientCacheRequestDelay = 0.35f;
+			ThornsMenuJoinFlow.SetStage( ThornsMenuJoinStage.LoadingWorld );
+			ThornsLoadingScreenUtil.Show( "Waiting for host world..." );
+			return;
+		}
+
+		if ( CanUseLocalHeightCache() && ThornsTerrainHeightCache.TryLoad( Config, out var cached ) )
+		{
+			ThornsWorldBootGate.BeginLocalBoot();
 			ThornsMenuJoinFlow.SetStage( ThornsMenuJoinStage.GeneratingTerrain );
 			ApplyCachedField( cached );
 			ThornsMenuJoinFlow.SetStage( ThornsMenuJoinStage.SyncCharacter );
@@ -117,9 +134,32 @@ public sealed class ThornsTerrainBootstrap : Component
 			BeginAsyncGenerate();
 		else
 		{
+			ThornsWorldBootGate.BeginLocalBoot();
 			_waitingForLobbyWorld = true;
 			_clientCacheRequestDelay = 0.35f;
 		}
+	}
+
+	static bool CanUseLocalHeightCache()
+	{
+		if ( ThornsMultiplayer.IsRemoteJoinClient )
+			return false;
+
+		return true;
+	}
+
+	bool ShouldWaitForHostWorld()
+	{
+		if ( ThornsMultiplayer.IsRemoteJoinClient && !_worldReady )
+			return true;
+
+		if ( ThornsWorldSession.WorldReady )
+			return false;
+
+		if ( ThornsSessionBootstrap.IsJoiningRemoteLobby )
+			return true;
+
+		return Networking.IsActive && !Networking.IsHost;
 	}
 
 	protected override void OnUpdate()
@@ -138,10 +178,35 @@ public sealed class ThornsTerrainBootstrap : Component
 			ThornsWorldSession.TryReadFromLobby();
 			ThornsWorldSession.ApplyConfig( Config );
 
-			if ( ThornsTerrainHeightCache.TryLoad( Config, out var cached ) )
+			if ( _worldReady && Config.WorldSeed != ThornsWorldSession.WorldSeed )
+			{
+				ThornsJoinFlowDebug.JoinWarn(
+					$"Lobby seed changed ({Config.WorldSeed} → {ThornsWorldSession.WorldSeed}) — re-applying terrain." );
+				_worldReady = false;
+			}
+
+			if ( !ThornsWorldSession.WorldReady
+			     && ThornsSessionBootstrap.IsJoiningRemoteLobby
+			     && !(Networking.IsActive && !Networking.IsHost) )
+			{
+				// Still offline waiting for Connect — keep holding.
+				return;
+			}
+
+			if ( !ThornsWorldSession.WorldReady && Networking.IsActive && !Networking.IsHost )
+				return;
+
+			if ( CanUseLocalHeightCache() && ThornsTerrainHeightCache.TryLoad( Config, out var cached ) )
 			{
 				_waitingForLobbyWorld = false;
 				ApplyCachedField( cached );
+				return;
+			}
+
+			if ( ShouldRunSculpt() )
+			{
+				_waitingForLobbyWorld = false;
+				BeginAsyncGenerate();
 				return;
 			}
 
@@ -159,6 +224,9 @@ public sealed class ThornsTerrainBootstrap : Component
 
 	bool ShouldRunSculpt()
 	{
+		if ( ThornsMultiplayer.IsRemoteJoinClient )
+			return false;
+
 		if ( Config.ClientsGenerateDeterministic && Networking.IsActive && !Networking.IsHost )
 			return true;
 
@@ -167,10 +235,11 @@ public sealed class ThornsTerrainBootstrap : Component
 
 	void BeginAsyncGenerate()
 	{
+		ThornsWorldBootGate.BeginLocalBoot();
 		_asyncGenerator = new ThornsTerrainAsyncGenerator();
 		_asyncGenerator.Begin( Config );
 		ThornsMenuJoinFlow.SetStage( ThornsMenuJoinStage.GeneratingTerrain );
-		LoadingScreen.Title = ThornsMenuJoinFlow.StageLabel( ThornsMenuJoinStage.GeneratingTerrain );
+		ThornsLoadingScreenUtil.Show( ThornsMenuJoinFlow.StageLabel( ThornsMenuJoinStage.GeneratingTerrain ) );
 	}
 
 	void TickAsyncGenerate()
@@ -179,7 +248,6 @@ public sealed class ThornsTerrainBootstrap : Component
 		if ( !_asyncGenerator.IsComplete )
 			return;
 
-		ThornsLoadingScreenUtil.Dismiss();
 		ThornsMenuJoinFlow.SetStage( ThornsMenuJoinStage.SyncCharacter );
 		var generator = _asyncGenerator;
 		_asyncGenerator = null;
@@ -199,21 +267,26 @@ public sealed class ThornsTerrainBootstrap : Component
 		ThornsTerrainHeightCache.Save( Config, field );
 		_cacheRpc?.HostSetSourceField( field );
 
-		if ( Networking.IsHost || !Networking.IsActive )
-			ThornsWorldSession.PublishFromHost( Config );
-
 		ApplyCachedField( field );
 	}
 
 	public void ApplyCachedField( HeightmapField field )
 	{
-		if ( field is null || _worldReady )
+		if ( field is null )
+			return;
+
+		if ( _worldReady && _lastField is not null && Config is not null
+		     && Config.WorldSeed == ThornsWorldSession.WorldSeed )
 			return;
 
 		_lastField = field;
 		ApplyToTerrain( field );
 		_worldReady = true;
+		_waitingForLobbyWorld = false;
 		ThornsNaturalWaterDrink.InvalidateBootstrapCache();
+
+		if ( Networking.IsHost || !Networking.IsActive )
+			ThornsWorldSession.PublishFromHost( Config );
 	}
 
 	void ApplyToTerrain( HeightmapField field )
@@ -390,7 +463,10 @@ public sealed class ThornsTerrainBootstrap : Component
 
 	void PopulateWorldCosmeticsCore( HeightmapField field )
 	{
-		if ( !ThornsMultiplayer.ShouldPopulateCosmetics( Config.HostAuthoritative, Config.ClientsGenerateDeterministic ) )
+		var populateStructures = ThornsMultiplayer.ShouldPopulateWorldStructures( Config.HostAuthoritative );
+		var populateVisuals = ThornsMultiplayer.ShouldPopulateVisualCosmetics( Config.HostAuthoritative, Config.ClientsGenerateDeterministic );
+
+		if ( !populateStructures && !populateVisuals )
 			return;
 
 		var foliage = Foliage ?? GameObject.Components.Get<ThornsFoliageFoundation>();
@@ -398,7 +474,7 @@ public sealed class ThornsTerrainBootstrap : Component
 		var boulders = Boulders ?? GameObject.Components.Get<ThornsBoulderFoundation>();
 		var foliageConfig = foliage?.Config ?? new ThornsFoliageConfig();
 
-		if ( !ThornsMinimalTestSceneBootstrap.IsActive )
+		if ( populateStructures && !ThornsMinimalTestSceneBootstrap.IsActive )
 		{
 			ThornsWorldScatterFootprintRegistry.Clear();
 			ThornsWorldVisualLodService.EnsureForScene( Scene );
@@ -408,6 +484,7 @@ public sealed class ThornsTerrainBootstrap : Component
 			try
 			{
 				buildings.Generate( _terrain, field, Config );
+				ThornsWorldBuildingSyncRpc.NotifyHostGenerated( buildings );
 			}
 			catch ( Exception ex )
 			{
@@ -415,10 +492,19 @@ public sealed class ThornsTerrainBootstrap : Component
 			}
 		}
 
+		if ( !populateVisuals )
+		{
+			RepairRuntimeWorldShadows( "cosmetics-populate" );
+			return;
+		}
+
 		var sharedSampler = new ThornsFoliageBiomeSampler( field, _terrain, Config, foliageConfig );
 
-		boulders ??= GameObject.Components.Create<ThornsBoulderFoundation>();
-		boulders.BeginPopulate( _terrain, field, Config, sharedSampler );
+		if ( populateStructures )
+		{
+			boulders ??= GameObject.Components.Create<ThornsBoulderFoundation>();
+			boulders.BeginPopulate( _terrain, field, Config, sharedSampler );
+		}
 
 		foliage?.BeginPopulate( _terrain, field, Config, sharedSampler );
 
@@ -450,17 +536,14 @@ public sealed class ThornsTerrainBootstrap : Component
 	{
 		try
 		{
-			LoadingScreen.Title = "Sculpting Thorns Terrain…";
+			ThornsWorldBootGate.BeginLocalBoot();
+			ThornsLoadingScreenUtil.Show( "Sculpting Thorns Terrain…" );
 			var field = ThornsTerrainGenerator.GenerateHeightField( Config );
 			FinishGeneratedField( field );
 		}
 		catch ( Exception e )
 		{
 			Log.Error( $"[Thorns Terrain] Generation failed: {e.Message}" );
-		}
-		finally
-		{
-			ThornsLoadingScreenUtil.Dismiss();
 		}
 	}
 

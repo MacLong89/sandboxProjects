@@ -28,12 +28,18 @@ public readonly struct ThornsHostLocalSaveLobbyOptions
 public static class ThornsSessionBootstrap
 {
 	static bool _hostFromLocalSaveNext;
+	static bool _hostingLocalSaveActive;
 	static bool _joinRemoteLobbyNext;
+	static bool _joiningRemoteLobbyActive;
 	static ThornsHostLocalSaveLobbyOptions _hostOptions;
+
+	/// <summary>True while loading/hosting a local save world (not a remote join client).</summary>
+	public static bool IsHostingLocalSave => _hostingLocalSaveActive;
 
 	public static void RequestHostFromLocalSaveNextGameplayLoad( ThornsHostLocalSaveLobbyOptions options )
 	{
 		_hostFromLocalSaveNext = true;
+		_hostingLocalSaveActive = true;
 		_hostOptions = options;
 	}
 
@@ -52,6 +58,7 @@ public static class ThornsSessionBootstrap
 	public static void CancelHostFromLocalSaveRequest()
 	{
 		_hostFromLocalSaveNext = false;
+		_hostingLocalSaveActive = false;
 		_hostOptions = default;
 	}
 
@@ -59,7 +66,11 @@ public static class ThornsSessionBootstrap
 	{
 		CancelHostFromLocalSaveRequest();
 		_joinRemoteLobbyNext = true;
+		_joiningRemoteLobbyActive = true;
 	}
+
+	/// <summary>True from join request until cancel/complete — survives TakeJoinRemoteLobbyRequest.</summary>
+	public static bool IsJoiningRemoteLobby => _joiningRemoteLobbyActive;
 
 	public static bool TakeJoinRemoteLobbyRequest()
 	{
@@ -70,5 +81,11 @@ public static class ThornsSessionBootstrap
 		return true;
 	}
 
-	public static void CancelJoinRemoteLobbyRequest() => _joinRemoteLobbyNext = false;
+	public static void CancelJoinRemoteLobbyRequest()
+	{
+		_joinRemoteLobbyNext = false;
+		_joiningRemoteLobbyActive = false;
+	}
+
+	public static void CompleteJoinRemoteLobby() => _joiningRemoteLobbyActive = false;
 }

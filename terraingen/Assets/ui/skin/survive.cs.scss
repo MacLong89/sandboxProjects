@@ -344,39 +344,44 @@ $sv-font: Inter, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 
 	.mainmenu-brand
 	{
-		font-family: $sv-font;
-		font-size: 28px;
+		font-family: Poppins, Roboto, Arial, sans-serif;
+		font-size: 56px;
 		font-weight: 800;
-		letter-spacing: 0.24em;
-		color: $sv-text;
+		letter-spacing: 0.14em;
+		color: #ffffff;
+		text-shadow: -2px -2px 0 #000000, 2px -2px 0 #000000, -2px 2px 0 #000000, 2px 2px 0 #000000;
 	}
 
 	.mainmenu-tagline
 	{
-		color: $sv-text-muted;
-		letter-spacing: 0.22em;
+		font-family: Poppins, Roboto, Arial, sans-serif;
+		font-size: 17px;
+		color: #ffffff;
+		letter-spacing: 0.14em;
 	}
 
 	.mainmenu-nav-btn
 	{
-		font-family: $sv-font;
-		font-size: 12px;
-		font-weight: 700;
-		letter-spacing: 0.16em;
-		color: $sv-text-muted;
-		border-left: 2px solid transparent;
+		font-family: Poppins, Roboto, Arial, sans-serif;
+		font-size: 21px;
+		font-weight: 800;
+		letter-spacing: 0.1em;
+		color: #ffffff;
+		border: 3px solid #000000;
+		background-color: rgba(6, 8, 12, 0.94);
 
 		&:hover
 		{
-			color: $sv-text;
-			border-left-color: rgba(158, 184, 86, 0.45);
-			text-shadow: none;
+			color: #ffffff;
+			border-color: #000000;
+			background-color: rgba(22, 26, 34, 0.96);
 		}
 
 		&.primary
 		{
-			color: $sv-accent;
-			border-left-color: $sv-accent;
+			color: #ffffff;
+			font-size: 24px;
+			border-color: #000000;
 		}
 	}
 

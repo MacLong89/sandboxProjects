@@ -65,11 +65,11 @@ public static class ThornsMountedFiles
 		return false;
 	}
 
-	public static bool SamplePublishAssetsPresent =>
-		Exists( "ui/iconsv8/deer.png" )
-		&& Exists( "ui/menu/menu_background.png" )
-		&& Exists( "map/co_height.png" )
-		&& ThornsModelResourceLoad.TryLoadUsable( "models/clutter/grass_common_short.vmdl", out _ );
+	/// <summary>All required publish assets are mounted on the client package.</summary>
+	public static bool SamplePublishAssetsPresent => ThornsRequiredPublishAssets.AreRequiredAssetsMounted();
+
+	public static bool IsMountReady =>
+		IsAvailable && Exists( "ui/menu/mainmenuhost.cs.scss" );
 
 	public static bool SampleModelPresent( string vmdlPath ) =>
 		ThornsModelResourceLoad.IsUsable( ThornsModelResourceLoad.TryLoad( vmdlPath ) );
@@ -93,9 +93,10 @@ public static class ThornsMountedFiles
 		};
 
 		var found = probes.Where( Exists ).ToArray();
-		if ( found.Length < probes.Length )
+		if ( found.Length < probes.Length || !SamplePublishAssetsPresent )
 		{
 			Log.Warning( $"[Thorns] Mount probe ({context}): {found.Length}/{probes.Length} sample assets present." );
+			ThornsRequiredPublishAssets.LogMissingMounted( context );
 			ThornsMountDiagnostics.LogFullReport( context );
 		}
 	}

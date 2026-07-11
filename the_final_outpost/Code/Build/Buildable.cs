@@ -7,14 +7,21 @@ public enum BuildableId
 	LongRangeTower,
 	WallPiece,
 	Barracks,
-	Lab
+	Lab,
+	Farm,
+	Factory,
+	Library,
+	School,
+	Hospital,
+	Shop
 }
 
 public enum BuildingRole
 {
 	Defense,
 	Wall,
-	Management
+	Management,
+	Civic
 }
 
 public sealed class BuildableDef
@@ -36,12 +43,19 @@ public sealed class BuildableDef
 	public Color Tint { get; init; }
 	public Vector3 VisualSize { get; init; }
 
+	/// <summary>Tighter XY footprint used for unit pathing (not placement overlap).</summary>
+	public Vector3 CollisionFootprint => new(
+		VisualSize.x * GameConstants.BuildingCollisionScale,
+		VisualSize.y * GameConstants.BuildingCollisionScale,
+		0f );
+
 	public double PlaceCost => Role switch
 	{
 		BuildingRole.Defense => CombatEconomy.TowerPlaceCost( Dps(), BaseRange ),
 		BuildingRole.Wall => CombatEconomy.WallPlaceCost( BaseHp ),
 		BuildingRole.Management when Id == BuildableId.Lab => CombatEconomy.RoundCost( BaseHp * 2.5 ),
 		BuildingRole.Management => CombatEconomy.BarracksPlaceCost( BaseHp, 0 ),
+		BuildingRole.Civic => CombatEconomy.RoundCost( BaseHp * 2.0 ),
 		_ => CombatEconomy.RoundCost( BaseHp * CombatEconomy.ScrapPerStructureHp )
 	};
 	public double UpgradeCost( int currentLevel ) => PlaceCost * Math.Pow( 1.65, currentLevel );
@@ -52,15 +66,23 @@ public sealed class BuildableDef
 	public float Dps( int level = 1 ) => CombatEconomy.Dps( Damage( level ), FireInterval );
 	public int UnlockNight => NightUnlocks.BuildingUnlockNight( this );
 
-	public string GateLabel( SaveData save ) =>
-		GameCore.Instance?.IsCure == true
-			? CureUnlocks.UnlockLabel( CureUnlocks.BuildingUnlockSeason( this ) )
-			: $"Night {UnlockNight}";
+	public string GateLabel( SaveData save )
+	{
+		if ( GameCore.Instance?.IsCure == true )
+		{
+			if ( Role == BuildingRole.Civic )
+				return TechTreeCatalog.GateLabelForBuilding( save, Key );
+			return CureUnlocks.UnlockLabel( CureUnlocks.BuildingUnlockSeason( this ) );
+		}
+
+		return $"Night {UnlockNight}";
+	}
 
 	public string Subtitle => Role switch
 	{
 		BuildingRole.Defense => "Defense tower",
 		BuildingRole.Wall => "Barricade",
+		BuildingRole.Civic => "Civic building",
 		_ => "Support building"
 	};
 
@@ -93,9 +115,34 @@ public sealed class BuildableDef
 			list.Add( new StatLine( "Dawn Heal", "Full in range" ) );
 			list.Add( new StatLine( "Heal Range", $"{GameConstants.BarracksHealRadius:0}" ) );
 		}
+		else if ( Role == BuildingRole.Civic )
+		{
+			foreach ( var line in CivicOutputStats( Id ) )
+				list.Add( line );
+		}
 
 		return list;
 	}
+
+	public static IEnumerable<StatLine> CivicOutputStats( BuildableId id ) => id switch
+	{
+		BuildableId.Farm => new[] { new StatLine( "Food", $"+{CureConstants.FarmFoodPerSec:0.0}/s" ) },
+		BuildableId.Factory => new[]
+		{
+			new StatLine( "Supplies", $"+{CureConstants.FactorySuppliesPerSec:0.0}/s" ),
+			new StatLine( "Food", $"+{CureConstants.FactoryFoodPerSec:0.0}/s" ),
+			new StatLine( "Repairs", "Speeds repair jobs" )
+		},
+		BuildableId.Library => new[] { new StatLine( "Knowledge", $"+{CureConstants.LibraryKnowledgePerSec:0.0}/s" ) },
+		BuildableId.School => new[] { new StatLine( "Knowledge", $"+{CureConstants.SchoolKnowledgePerSec:0.0}/s" ) },
+		BuildableId.Hospital => new[]
+		{
+			new StatLine( "Recruit Heal", $"+{CureConstants.HospitalRecruitHealPerSec:0.0} HP/s" ),
+			new StatLine( "Sickness", "Reduces colony sickness" )
+		},
+		BuildableId.Shop => new[] { new StatLine( "Scrap", $"+{CureConstants.ShopScrapPerSec:0.0}/s" ) },
+		_ => Array.Empty<StatLine>()
+	};
 }
 
 public static class BuildableCatalog
@@ -150,11 +197,65 @@ public static class BuildableCatalog
 		new()
 		{
 			Id = BuildableId.Lab, Key = "lab", Name = "Research Lab", Icon = "science",
-			Description = "Generates cure research. Assign craftsmen to boost output.",
+			Description = "Generates cure research. Assign scholars to boost output.",
 			Role = BuildingRole.Management, BaseHp = 180, HpPerLevel = 50,
 			BaseDamage = 0, DamagePerLevel = 0, BaseRange = 0, RangePerLevel = 0,
 			FireInterval = 0f, Tint = new Color( 0.55f, 0.75f, 0.95f ),
 			VisualSize = new Vector3( 60f, 60f, 64f )
+		},
+		new()
+		{
+			Id = BuildableId.Farm, Key = "farm", Name = "Farm", Icon = "agriculture",
+			Description = "Produces food for your colony.",
+			Role = BuildingRole.Civic, BaseHp = 120, HpPerLevel = 35,
+			BaseDamage = 0, DamagePerLevel = 0, BaseRange = 0, RangePerLevel = 0,
+			FireInterval = 0f, Tint = new Color( 0.45f, 0.82f, 0.38f ),
+			VisualSize = new Vector3( 64f, 64f, 48f )
+		},
+		new()
+		{
+			Id = BuildableId.Factory, Key = "factory", Name = "Factory", Icon = "factory",
+			Description = "Boosts supplies, food, and repair throughput.",
+			Role = BuildingRole.Civic, BaseHp = 150, HpPerLevel = 40,
+			BaseDamage = 0, DamagePerLevel = 0, BaseRange = 0, RangePerLevel = 0,
+			FireInterval = 0f, Tint = new Color( 0.72f, 0.58f, 0.42f ),
+			VisualSize = new Vector3( 68f, 68f, 56f )
+		},
+		new()
+		{
+			Id = BuildableId.Library, Key = "library", Name = "Library", Icon = "menu_book",
+			Description = "Generates knowledge for the tech tree.",
+			Role = BuildingRole.Civic, BaseHp = 140, HpPerLevel = 35,
+			BaseDamage = 0, DamagePerLevel = 0, BaseRange = 0, RangePerLevel = 0,
+			FireInterval = 0f, Tint = new Color( 0.55f, 0.72f, 0.95f ),
+			VisualSize = new Vector3( 60f, 60f, 58f )
+		},
+		new()
+		{
+			Id = BuildableId.School, Key = "school", Name = "School", Icon = "school",
+			Description = "Trains citizens — steady knowledge output.",
+			Role = BuildingRole.Civic, BaseHp = 160, HpPerLevel = 40,
+			BaseDamage = 0, DamagePerLevel = 0, BaseRange = 0, RangePerLevel = 0,
+			FireInterval = 0f, Tint = new Color( 0.62f, 0.78f, 0.55f ),
+			VisualSize = new Vector3( 64f, 64f, 60f )
+		},
+		new()
+		{
+			Id = BuildableId.Hospital, Key = "hospital", Name = "Hospital", Icon = "local_hospital",
+			Description = "Heals injured recruits and reduces colony sickness.",
+			Role = BuildingRole.Civic, BaseHp = 180, HpPerLevel = 45,
+			BaseDamage = 0, DamagePerLevel = 0, BaseRange = 0, RangePerLevel = 0,
+			FireInterval = 0f, Tint = new Color( 0.95f, 0.95f, 0.98f ),
+			VisualSize = new Vector3( 66f, 66f, 62f )
+		},
+		new()
+		{
+			Id = BuildableId.Shop, Key = "shop", Name = "Shop", Icon = "storefront",
+			Description = "Generates scrap income for your colony.",
+			Role = BuildingRole.Civic, BaseHp = 130, HpPerLevel = 30,
+			BaseDamage = 0, DamagePerLevel = 0, BaseRange = 0, RangePerLevel = 0,
+			FireInterval = 0f, Tint = new Color( 0.85f, 0.62f, 0.32f ),
+			VisualSize = new Vector3( 58f, 58f, 52f )
 		}
 	};
 
@@ -163,6 +264,8 @@ public static class BuildableCatalog
 		foreach ( var def in All )
 		{
 			if ( def.Id == BuildableId.Lab && mode != GameModeId.RoadToCure )
+				continue;
+			if ( def.Role == BuildingRole.Civic && mode != GameModeId.RoadToCure )
 				continue;
 			yield return def;
 		}

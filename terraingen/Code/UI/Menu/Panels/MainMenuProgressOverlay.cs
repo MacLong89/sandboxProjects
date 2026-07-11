@@ -26,6 +26,7 @@ public sealed class MainMenuProgressOverlay
 		_overlay.Style.AlignItems = Align.Center;
 		_overlay.Style.PointerEvents = PointerEvents.All;
 		ThornsUiLayer.ApplyModalSurface( _overlay, ThornsUiPriority.FullscreenMenu );
+		ThornsMainMenuBackdrop.ApplyToPanel( _overlay, ThornsMainMenuBackdrop.DefaultPath );
 		_overlay.Style.Display = DisplayMode.None;
 
 		var card = ThornsUiFactory.AddPanel( _overlay, "mainmenu-progress-card thorns-glass" );

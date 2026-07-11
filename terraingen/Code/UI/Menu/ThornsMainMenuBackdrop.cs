@@ -210,7 +210,7 @@ public static class ThornsMainMenuBackdrop
 		panel.Style.BackgroundImage = null;
 		panel.SetClass( "mainmenu-backdrop-fallback", true );
 		panel.Style.BackgroundColor = new Color( 217f / 255f, 197f / 255f, 163f / 255f, 1f );
-		Log.Warning( $"[Thorns Menu] Backdrop image failed ({reason}) — using parchment color fallback." );
+		Log.Error( $"[Thorns Menu] Required backdrop missing ({reason}). Add Assets/ui/menu/menu_background.png and republish." );
 	}
 
 	static string ResolveExistingPath( string preferredPath, string[] defaults )

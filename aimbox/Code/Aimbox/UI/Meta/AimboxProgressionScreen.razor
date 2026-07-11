@@ -63,7 +63,16 @@
 						<div class="post-match-recap-head">
 							<div class="post-match-recap-kicker">// MATCH PROGRESS</div>
 							<div class="post-match-recap-result">@MatchResultText()</div>
-							<div class="post-match-recap-meta">@MatchSummary.Kills kills · @MatchSummary.Deaths deaths · +@FormatScore(MatchSummary.RankXpEarned) rank XP</div>
+							<div class="post-match-recap-meta">
+								@if ( AimboxAimModeRules.IsAimMode( MatchSummary.Mode ) )
+								{
+									<text>@FormatScore(MatchSummary.AimScore) targets · best @FormatScore(MatchSummary.AimPersonalBest)@(MatchSummary.IsNewAimPersonalBest ? " · NEW RECORD" : "")</text>
+								}
+								else
+								{
+									<text>@MatchSummary.Kills kills · @MatchSummary.Deaths deaths · +@FormatScore(MatchSummary.RankXpEarned) rank XP</text>
+								}
+							</div>
 						</div>
 						<div class="post-match-recap-grid">
 							<div class="post-match-recap-card">

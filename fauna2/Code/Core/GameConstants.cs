@@ -218,8 +218,8 @@ public static class GameConstants
 	public const float GuestTickInterval = 2f;
 	public const float GuestLerpRate = 0.06f;        // fraction toward target per tick
 	public const float VarietyAppealPerSpecies = 15f;
-	/// <summary>Cosmetic guest sprites shown per simulated guest (e.g. 5 → one sprite per five guests).</summary>
-	public const int GuestsPerAmbientVisual = 5;
+	/// <summary>Cosmetic guest sprites shown per simulated guest (e.g. 10 → one sprite per ten guests).</summary>
+	public const int GuestsPerAmbientVisual = 10;
 	public const int MaxAmbientGuestVisuals = 40;
 
 	// ── Ticking / saving ────────────────────────────────────

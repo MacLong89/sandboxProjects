@@ -4,7 +4,7 @@
 
 Place a cinematic still here:
 
-- `menu_background.png` — full-screen main menu background (recommended 1920×1080, PNG or JPG)
+- `menu_background.png` — full-screen main menu **and join/load** background (recommended 1920×1080, PNG or JPG)
 
 Path on disk: `Assets/ui/menu/menu_background.png` (mounted as `/ui/menu/menu_background.png`).
 

@@ -1,9 +1,8 @@
 namespace FinalOutpost;
 
 /// <summary>
-/// Weapon world-model paths borrowed from the stock <c>facepunch.sboxweapons</c> package
-/// (same assets aimbox uses for its third-person weapons), with a safe box fallback so
-/// nothing crashes before the package finishes mounting.
+/// Recruit weapon world models. Prefer local/editor-mounted paths; fall back to
+/// <see cref="WeaponModelLoader"/> cloud fetch (five small packages, not sboxweapons).
 /// </summary>
 public static class WeaponModels
 {
@@ -13,10 +12,23 @@ public static class WeaponModels
 	public const string ShotgunWorld = "models/weapons/sbox_shotgun_spaghellim4/w_spaghellim4.vmdl";
 	public const string SniperWorld = "models/weapons/sbox_sniper_m700/w_m700.vmdl";
 
+	public static readonly string[] RequiredWorldModels =
+	{
+		PistolWorld,
+		SmgWorld,
+		RifleWorld,
+		ShotgunWorld,
+		SniperWorld
+	};
+
 	public static Model Load( string path )
 	{
 		if ( string.IsNullOrWhiteSpace( path ) )
 			return MeshPrimitives.Box;
+
+		var cached = WeaponModelLoader.Instance?.Get( path );
+		if ( cached is not null && !cached.IsError )
+			return cached;
 
 		try
 		{

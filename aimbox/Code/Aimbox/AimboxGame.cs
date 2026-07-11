@@ -43,6 +43,7 @@ public sealed class AimboxGame : Component, Component.INetworkListener
 	public AimboxMedalSystem Medals { get; } = new();
 	public AimboxRankedSystem Ranked { get; } = new();
 	public AimboxLeaderboardSystem Leaderboards { get; } = new();
+	public AimboxAimLeaderboardStore AimLeaderboards { get; private set; }
 	public AimboxKillstreakSystem Killstreaks { get; } = new();
 	public AimboxGrenadeSystem Grenades { get; } = new();
 	public AimboxKillFeedSystem KillFeed { get; } = new();
@@ -99,6 +100,7 @@ public sealed class AimboxGame : Component, Component.INetworkListener
 	readonly AimboxLocalCombatAuthority _combatAuthority = new();
 	bool _weaponPackagesReady;
 	bool _weaponPackagesMounting;
+	bool _localPlayerSpawnInFlight;
 
 	static readonly string[] WeaponPackageIdents =
 	[
@@ -120,6 +122,8 @@ public sealed class AimboxGame : Component, Component.INetworkListener
 		PlayerData = new JsonFileAimboxDatabase();
 		PlayerDataService = new AimboxPlayerDataService( PlayerData );
 		Saves = new AimboxSaveQueueSystem( PlayerData );
+		AimLeaderboards = new AimboxAimLeaderboardStore();
+		Leaderboards.Initialize( AimLeaderboards );
 		EnsureHitboxDebug();
 		AimboxCombatTracerService.EnsureForScene( Scene );
 		AimboxOpticAdsTuner.TunerEnabled = EnableOpticAdsTuners;
@@ -329,6 +333,15 @@ public sealed class AimboxGame : Component, Component.INetworkListener
 
 	public void StartMatch( AimboxGameMode mode, bool authoritative = true )
 	{
+		if ( Scene is null || !Scene.IsValid() )
+		{
+			Log.Warning( "[Aimbox] StartMatch aborted — scene unavailable." );
+			return;
+		}
+
+		SanitizeRegisteredActors();
+		TrySpawnLocalPlayer();
+
 		EnsureValidatedLobbyMap();
 		EnsureArena( forMode: mode );
 
@@ -341,8 +354,10 @@ public sealed class AimboxGame : Component, Component.INetworkListener
 
 		foreach ( var player in Scene.GetAllComponents<AimboxPlayerController>() )
 		{
-			if ( !player.IsProxy )
-				player.BeginMatch();
+			if ( !IsLivePlayer( player ) || player.IsProxy )
+				continue;
+
+			player.BeginMatch();
 		}
 
 		if ( authoritative )
@@ -351,7 +366,12 @@ public sealed class AimboxGame : Component, Component.INetworkListener
 			{
 				Respawns.BeginSpreadAssignment();
 				foreach ( var player in _players )
+				{
+					if ( !IsLivePlayer( player ) )
+						continue;
+
 					player.Respawn();
+				}
 				Respawns.EndSpreadAssignment();
 				SpawnSurvivalWave();
 			}
@@ -466,10 +486,20 @@ public sealed class AimboxGame : Component, Component.INetworkListener
 		if ( !AimboxLobbyTeamRules.UsesTeamSelect( mode ) )
 		{
 			foreach ( var player in _players )
+			{
+				if ( !IsLivePlayer( player ) )
+					continue;
+
 				player.Team = AimboxTeam.None;
+			}
 
 			foreach ( var bot in _bots )
+			{
+				if ( !IsLiveBot( bot ) )
+					continue;
+
 				bot.Team = AimboxTeam.None;
+			}
 
 			return;
 		}
@@ -481,6 +511,9 @@ public sealed class AimboxGame : Component, Component.INetworkListener
 
 		foreach ( var player in _players )
 		{
+			if ( !IsLivePlayer( player ) )
+				continue;
+
 			var pick = Lobby.GetTeamPick( player.AccountId );
 			if ( pick is AimboxTeam.Red or AimboxTeam.Blue )
 			{
@@ -499,6 +532,9 @@ public sealed class AimboxGame : Component, Component.INetworkListener
 
 		foreach ( var bot in _bots )
 		{
+			if ( !IsLiveBot( bot ) )
+				continue;
+
 			var pick = Lobby.GetTeamPick( bot.BotId );
 			if ( pick is AimboxTeam.Red or AimboxTeam.Blue )
 			{
@@ -645,6 +681,9 @@ public sealed class AimboxGame : Component, Component.INetworkListener
 		if ( Networking.IsActive && !Networking.IsHost )
 			return;
 
+		SanitizeRegisteredActors();
+		TrySpawnLocalPlayer();
+
 		StartMatch( NextMode, authoritative: true );
 
 		if ( Networking.IsActive )
@@ -671,9 +710,21 @@ public sealed class AimboxGame : Component, Component.INetworkListener
 	{
 		Respawns.BeginSpreadAssignment();
 		foreach ( var player in Scene.GetAllComponents<AimboxPlayerController>() )
+		{
+			if ( !IsLivePlayer( player ) )
+				continue;
+
 			player.Respawn();
+		}
+
 		foreach ( var bot in Scene.GetAllComponents<AimboxBotController>() )
+		{
+			if ( !IsLiveBot( bot ) )
+				continue;
+
 			bot.Respawn();
+		}
+
 		Respawns.EndSpreadAssignment();
 	}
 
@@ -695,6 +746,16 @@ public sealed class AimboxGame : Component, Component.INetworkListener
 
 	public void RegisterPlayer( AimboxPlayerController player )
 	{
+		if ( !IsLivePlayer( player ) )
+			return;
+
+		if ( !player.IsProxy && FindLocalHumanPlayer( player ) is not null )
+		{
+			Log.Warning( $"[Aimbox] Duplicate local player blocked — destroying '{player.GameObject.Name}'." );
+			player.GameObject.Destroy();
+			return;
+		}
+
 		if ( !_players.Contains( player ) )
 			_players.Add( player );
 
@@ -805,25 +866,51 @@ public sealed class AimboxGame : Component, Component.INetworkListener
 		if ( connection is null )
 			return false;
 
-		return Scene.GetAllComponents<AimboxPlayerController>()
-			.Any( p => p.IsValid() && p.GameObject.IsValid() && p.GameObject.Network.Owner == connection );
+		if ( _localPlayerSpawnInFlight && connection == Connection.Local )
+			return true;
+
+		foreach ( var player in Scene.GetAllComponents<AimboxPlayerController>() )
+		{
+			if ( !IsLivePlayer( player ) )
+				continue;
+
+			if ( player.GameObject.Network.Owner == connection )
+				return true;
+
+			// Offline/editor pawns often never get a network owner assigned.
+			if ( connection == Connection.Local && !player.IsProxy )
+				return true;
+		}
+
+		return false;
 	}
 
 	void SpawnPlayerForConnection( Connection connection )
 	{
-		var label = connection.DisplayName;
-		if ( string.IsNullOrWhiteSpace( label ) )
-			label = "Player";
+		if ( HasPlayerForConnection( connection ) )
+			return;
 
-		var go = new GameObject( true, $"Aimbox Player {label}" );
-		go.NetworkMode = NetworkMode.Object;
-		AimboxHitboxes.ConfigureCitizenCapsule( go.Components.Create<CapsuleCollider>() );
-		go.Components.Create<AimboxPlayerController>();
+		_localPlayerSpawnInFlight = true;
+		try
+		{
+			var label = connection.DisplayName;
+			if ( string.IsNullOrWhiteSpace( label ) )
+				label = "Player";
 
-		if ( Networking.IsActive )
-			go.NetworkSpawn( connection );
+			var go = new GameObject( true, $"Aimbox Player {label}" );
+			go.NetworkMode = NetworkMode.Object;
+			AimboxHitboxes.ConfigureCitizenCapsule( go.Components.Create<CapsuleCollider>() );
+			go.Components.Create<AimboxPlayerController>();
 
-		Log.Info( $"[Aimbox] Spawned player pawn for {label}." );
+			if ( Networking.IsActive )
+				go.NetworkSpawn( connection );
+
+			Log.Info( $"[Aimbox] Spawned player pawn for {label}." );
+		}
+		finally
+		{
+			_localPlayerSpawnInFlight = false;
+		}
 	}
 
 	[Rpc.Host]
@@ -921,6 +1008,9 @@ public sealed class AimboxGame : Component, Component.INetworkListener
 
 	public void UnregisterPlayer( AimboxPlayerController player )
 	{
+		if ( player is null )
+			return;
+
 		_players.Remove( player );
 	}
 
@@ -1390,6 +1480,44 @@ public sealed class AimboxGame : Component, Component.INetworkListener
 	}
 
 	static bool ShouldUseAimRoom( AimboxGameMode mode ) => AimboxAimModeRules.IsAimMode( mode );
+
+	static bool IsLivePlayer( AimboxPlayerController player ) =>
+		player?.GameObject is { IsValid: true };
+
+	static bool IsLiveBot( AimboxBotController bot ) =>
+		bot?.GameObject is { IsValid: true };
+
+	void SanitizeRegisteredActors()
+	{
+		_players.RemoveAll( player => !IsLivePlayer( player ) );
+		_bots.RemoveAll( bot => !IsLiveBot( bot ) );
+		DeduplicateLocalHumanPlayers();
+	}
+
+	AimboxPlayerController FindLocalHumanPlayer( AimboxPlayerController exclude = null ) =>
+		Scene.GetAllComponents<AimboxPlayerController>()
+			.FirstOrDefault( p => IsLivePlayer( p ) && !p.IsProxy && p != exclude );
+
+	void DeduplicateLocalHumanPlayers()
+	{
+		var locals = Scene.GetAllComponents<AimboxPlayerController>()
+			.Where( p => IsLivePlayer( p ) && !p.IsProxy )
+			.ToList();
+
+		if ( locals.Count <= 1 )
+			return;
+
+		var keeper = locals.FirstOrDefault( p => _players.Contains( p ) ) ?? locals[0];
+		foreach ( var duplicate in locals )
+		{
+			if ( duplicate == keeper )
+				continue;
+
+			Log.Warning( $"[Aimbox] Removing duplicate local player '{duplicate.GameObject.Name}'." );
+			UnregisterPlayer( duplicate );
+			duplicate.GameObject.Destroy();
+		}
+	}
 
 	AimboxGameMode ResolveArenaMode() =>
 		Phase is AimboxSessionPhase.Starting or AimboxSessionPhase.Playing

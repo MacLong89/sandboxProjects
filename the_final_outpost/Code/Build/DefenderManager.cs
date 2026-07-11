@@ -76,6 +76,12 @@ public sealed class DefenderManager : Component
 
 	public void RebuildFromSave() => RespawnAll();
 
+	public void RefreshWeaponModels()
+	{
+		foreach ( var unit in _units )
+			unit.Character?.RefreshWeaponModel();
+	}
+
 	public bool TryRecruit( RecruitWeaponType type )
 	{
 		var core = GameCore.Instance;
@@ -300,6 +306,8 @@ public sealed class DefenderManager : Component
 			var angle = slot / (float)GameConstants.RecruitsPerBarracks * MathF.PI * 2f;
 			var offset = 48f + slot * 8f;
 			pos = roamCenter + new Vector3( MathF.Cos( angle ) * offset, MathF.Sin( angle ) * offset, 0f );
+			if ( BuildingCollision.BlocksUnit( pos ) )
+				BuildingCollision.TryFindClearPoint( roamCenter, 24f, roamRadius, out pos );
 		}
 		else
 		{
@@ -381,29 +389,78 @@ public sealed class DefenderManager : Component
 		public bool HasBarracksPlot;
 
 		private float _fireTimer;
-		private Vector3 _waypoint;
-		private bool _hasWaypoint;
-		private float _repathTimer;
+		private UnitLocomotion.WanderState _wander;
+		private float _moveStuckTimer;
+		private UnitOrderKind _orderKind = UnitOrderKind.None;
+		private Vector3 _orderTarget;
+		private ZombieInstance _attackTarget;
 
 		public Vector3 WorldPos => Go.IsValid() ? Go.WorldPosition : Vector3.Zero;
+
+		public void SetMoveOrder( Vector3 ground )
+		{
+			_orderKind = UnitOrderKind.Move;
+			_orderTarget = ground.WithZ( 0f );
+			_wander.Waypoint = _orderTarget;
+			_wander.HasWaypoint = true;
+			_wander.RepathTimer = 999f;
+			_attackTarget = null;
+		}
+
+		public void SetAttackOrder( ZombieInstance target )
+		{
+			if ( target is null || target.Dead ) return;
+			_orderKind = UnitOrderKind.AttackMove;
+			_attackTarget = target;
+			_wander.RepathTimer = 0f;
+		}
+
+		public void ClearOrder() => _orderKind = UnitOrderKind.None;
 
 		public void TickDay( float dt )
 		{
 			if ( !Go.IsValid() ) return;
-			Wander( dt, GameConstants.DefenderMoveSpeed * 0.55f );
+
+			var core = GameCore.Instance;
+			var speed = GameConstants.DefenderMoveSpeed * 0.55f;
+			if ( core?.IsCure == true && TechTreeCatalog.IsUnlocked( core.Save, "tactics" ) )
+				speed *= 1.35f;
+
+			if ( _orderKind == UnitOrderKind.AttackMove && _attackTarget is not null && !_attackTarget.Dead )
+			{
+				TickDayAttack( dt, speed );
+				return;
+			}
+
+			if ( _orderKind == UnitOrderKind.Move )
+			{
+				UnitLocomotion.MoveHumanoid( Go, _orderTarget, dt, speed, ref Aim, Character, ref _moveStuckTimer );
+				if ( (_orderTarget - Go.WorldPosition).WithZ( 0f ).Length <= UnitLocomotion.ArrivalDistance )
+					_orderKind = UnitOrderKind.None;
+				return;
+			}
+
+			TickWander( dt, speed );
 		}
 
-		public void TickNight( float dt, CombatSystem combat, RecruitWeaponDef def, float perShotDamage, float range )
+		private void TickDayAttack( float dt, float speed )
 		{
-			if ( !Go.IsValid() || !IsAlive ) return;
+			var combat = GameCore.Instance?.Combat;
+			if ( combat is null ) { _orderKind = UnitOrderKind.None; return; }
+
+			var def = RecruitWeapons.Get( Type );
+			var trainLevel = DefenderManager.Instance?.TrainLevelOf( Type ) ?? 0;
+			var perShot = def.VolleyDamage( trainLevel );
+			var range = def.Range;
 
 			var pos = Go.WorldPosition;
-			var target = combat.NearestZombie( pos, range );
+			var target = _attackTarget;
+			if ( target is null || target.Dead ) { _orderKind = UnitOrderKind.None; _attackTarget = null; return; }
 
-			if ( target is not null )
+			var dist = (target.Position - pos).WithZ( 0f ).Length;
+			var muzzle = Character?.MuzzleWorld( Aim ) ?? pos + Vector3.Up * 52f;
+			if ( dist <= range && BuildingCollision.HasLineOfFire( muzzle, target.Position ) )
 			{
-				// In range: hold ground, face the target and fire.
-				var muzzle = Character?.MuzzleWorld( Aim ) ?? pos + Vector3.Up * 52f;
 				var to = (target.Position - muzzle).WithZ( 0f );
 				if ( to.Length > 1f )
 					Aim = Rotation.LookAt( to.Normal );
@@ -414,7 +471,39 @@ public sealed class DefenderManager : Component
 				_fireTimer -= dt;
 				if ( _fireTimer <= 0f )
 				{
-					FireVolley( combat, def, perShotDamage, muzzle );
+					FireVolley( combat, def, perShot, muzzle );
+					_fireTimer = def.FireInterval;
+				}
+				return;
+			}
+
+			UnitLocomotion.MoveHumanoid( Go, target.Position, dt, speed, ref Aim, Character, ref _moveStuckTimer );
+		}
+
+		public void TickNight( float dt, CombatSystem combat, RecruitWeaponDef def, float perShotDamage, float range )
+		{
+			if ( !Go.IsValid() || !IsAlive ) return;
+
+			var pos = Go.WorldPosition;
+			var losOrigin = pos + Vector3.Up * 52f;
+			var target = combat.NearestEngageableZombie( pos, range, losOrigin );
+
+			if ( target is not null )
+			{
+				var muzzle = Character?.MuzzleWorld( Aim ) ?? losOrigin;
+				var to = (target.Position - muzzle).WithZ( 0f );
+				if ( to.Length > 1f )
+					Aim = Rotation.Slerp( Aim, Rotation.LookAt( to.Normal ), MathF.Min( 1f, dt * 16f ) );
+
+				Go.WorldRotation = Aim;
+				Character?.Tick( Vector3.Zero, Aim );
+
+				_fireTimer -= dt;
+				if ( _fireTimer <= 0f )
+				{
+					muzzle = Character?.MuzzleWorld( Aim ) ?? pos + Vector3.Up * 52f;
+					if ( BuildingCollision.HasLineOfFire( muzzle, target.Position ) )
+						FireVolley( combat, def, perShotDamage, muzzle );
 					_fireTimer = def.FireInterval;
 				}
 				return;
@@ -428,11 +517,11 @@ public sealed class DefenderManager : Component
 				var tp = threat.Position.WithZ( 0f );
 				if ( tp.Length > guard )
 					tp = tp.Normal * guard;
-				MoveToward( tp, dt, GameConstants.DefenderMoveSpeed );
+				UnitLocomotion.MoveHumanoid( Go, tp, dt, GameConstants.DefenderMoveSpeed, ref Aim, Character, ref _moveStuckTimer );
 			}
 			else
 			{
-				Wander( dt, GameConstants.DefenderMoveSpeed * 0.55f );
+				TickWander( dt, GameConstants.DefenderMoveSpeed * 0.55f );
 			}
 		}
 
@@ -445,67 +534,17 @@ public sealed class DefenderManager : Component
 			}
 		}
 
-		private void Wander( float dt, float speed )
-		{
-			var pos = Go.WorldPosition;
-			_repathTimer -= dt;
-
-			if ( !_hasWaypoint || _repathTimer <= 0f
-			     || (_waypoint - pos).WithZ( 0f ).Length <= GameConstants.DefenderHomeDeadzone )
-				PickWaypoint();
-
-			MoveToward( _waypoint, dt, speed, leashToPlot: HasBarracksPlot );
-		}
-
-		private void PickWaypoint()
+		private void TickWander( float dt, float speed )
 		{
 			if ( HasBarracksPlot )
 			{
-				var angle = Game.Random.Float( 0f, MathF.PI * 2f );
-				var r = Game.Random.Float( 0f, RoamRadius );
-				_waypoint = RoamCenter + new Vector3( MathF.Cos( angle ) * r, MathF.Sin( angle ) * r, 0f );
-			}
-			else
-			{
-				var angle = Game.Random.Float( 0f, MathF.PI * 2f );
-				var r = Game.Random.Float( RoamRadius * 0.5f, RoamRadius );
-				_waypoint = RoamCenter + new Vector3( MathF.Cos( angle ) * r, MathF.Sin( angle ) * r, 0f );
-			}
-
-			_hasWaypoint = true;
-			_repathTimer = Game.Random.Float( 2.5f, 5.5f );
-		}
-
-		private void MoveToward( Vector3 targetXY, float dt, float speed, bool leashToPlot = false )
-		{
-			var pos = Go.WorldPosition;
-			var to = (targetXY - pos).WithZ( 0f );
-			var dist = to.Length;
-
-			if ( dist < 1f )
-			{
-				Character?.Tick( Vector3.Zero, Aim );
+				UnitLocomotion.TickWander(
+					ref _wander, Go, RoamCenter, 0f, RoamRadius, dt, speed, ref Aim, Character, RoamRadius );
 				return;
 			}
 
-			var dir = to / dist;
-			Aim = Rotation.LookAt( dir );
-
-			var step = MathF.Min( dist, speed * dt );
-			var next = pos + dir * step;
-
-			if ( leashToPlot && HasBarracksPlot )
-			{
-				var fromCenter = (next - RoamCenter).WithZ( 0f );
-				if ( fromCenter.Length > RoamRadius )
-					next = RoamCenter + fromCenter.Normal * RoamRadius;
-			}
-
-			next.z = OutpostTerrain.SampleHeight( next.x, next.y );
-			Go.WorldPosition = next;
-			Go.WorldRotation = Aim;
-
-			Character?.Tick( dir * speed, Aim );
+			UnitLocomotion.TickWander(
+				ref _wander, Go, RoamCenter, RoamRadius * 0.5f, RoamRadius, dt, speed, ref Aim, Character );
 		}
 	}
 }

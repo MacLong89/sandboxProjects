@@ -13,6 +13,7 @@ using Terraingen.UI.Menu;
 using Terraingen.Buildings;
 using Terraingen.Clutter;
 using Terraingen.Economy;
+using Terraingen.Multiplayer;
 using Terraingen.UI.Menu.Panels;
 
 /// <summary>Single gameplay screen UI: HUD layer + Tab menu overlay on one panel tree.</summary>
@@ -1263,10 +1264,14 @@ public sealed class ThornsMenuHost : PanelComponent
 	void TryBuildUi()
 	{
 		if ( !_panelTreeReady )
+		{
+			ThornsJoinFlowDebug.JoinInfo( "TryBuildUi waiting — panel tree not ready." );
 			return;
+		}
 
 		if ( !ThornsGameplayUiStyles.IsGameplayRootReady( Panel ) )
 		{
+			ThornsJoinFlowDebug.JoinInfo( "TryBuildUi loading gameplay root stylesheet." );
 			ThornsGameplayUiStyles.LoadGameplayRoot( Panel );
 			return;
 		}
@@ -1290,6 +1295,7 @@ public sealed class ThornsMenuHost : PanelComponent
 		{
 			BuildUi();
 			_uiBuilt = true;
+			ThornsJoinFlowDebug.LogMilestone( $"TryBuildUi complete — {ThornsJoinFlowDebug.DescribeHud()}" );
 			_buildRetryDelay = 0f;
 			if ( Instance is null || !Instance.IsValid() )
 				Instance = this;
@@ -1325,6 +1331,7 @@ public sealed class ThornsMenuHost : PanelComponent
 				Panel.DeleteChildren( true );
 
 			Log.Error( e, $"[Thorns UI] TryBuildUi failed ({e.GetType().Name}: {e.Message}) — HUD will retry on next EnsureUiReady." );
+			ThornsJoinFlowDebug.JoinWarn( $"TryBuildUi failed — {e.GetType().Name}: {e.Message}" );
 		}
 	}
 
@@ -1397,7 +1404,7 @@ public sealed class ThornsMenuHost : PanelComponent
 		if ( ThornsUiSkin.Active == ThornsUiSkinKind.Classic )
 			_hudLayer.AddClass( "hud-classic-layout" );
 
-		if ( ThornsGameplayUiDiagnostics.Enabled )
+		if ( ThornsGameplayUiDiagnostics.ShowVisibleBanner )
 		{
 			var banner = ThornsUiFactory.AddLabel( _hudLayer, "THORNS UI LIVE", "thorns-debug-banner" );
 			banner.Style.Position = PositionMode.Absolute;
@@ -1436,7 +1443,8 @@ public sealed class ThornsMenuHost : PanelComponent
 		_vitalsCritical = new ThornsVitalsCriticalHud( _hudLayer );
 		_levelUpMoment = new ThornsLevelUpMomentHud( _hudLayer );
 		_sessionRecap = new ThornsSessionRecapHud( _hudLayer );
-		_firstSessionTutorial = new ThornsFirstSessionTutorialHud( _hudLayer );
+		if ( ThornsFirstSessionTutorialHud.Enabled )
+			_firstSessionTutorial = new ThornsFirstSessionTutorialHud( _hudLayer );
 
 		_joinProgressOverlay = new MainMenuProgressOverlay( Panel );
 		_joinProgressOverlay.Refresh();

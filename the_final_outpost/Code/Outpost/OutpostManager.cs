@@ -18,12 +18,27 @@ public sealed class OutpostManager : Component
 	private readonly List<(ModelRenderer Renderer, Color Base)> _coreParts = new();
 	private GameObject _coreGo;
 	private GameObject _terrainGo;
+	private double _scrapAccum;
 
 	protected override void OnAwake() => Instance = this;
 
 	protected override void OnDestroy()
 	{
 		if ( Instance == this ) Instance = null;
+	}
+
+	protected override void OnUpdate()
+	{
+		var core = GameCore.Instance;
+		if ( core is null || CoreHealth <= 0f || !core.IsCure ) return;
+		if ( core.Phase is not GamePhase.Day and not GamePhase.Night ) return;
+
+		_scrapAccum += CureConstants.CommandPostScrapPerSec * Time.Delta;
+		if ( _scrapAccum < 0.5 ) return;
+
+		var whole = Math.Floor( _scrapAccum );
+		_scrapAccum -= whole;
+		core.Wallet.Earn( whole, applyIncomeScale: false );
 	}
 
 	public void Build( UpgradeSystem upgrades )

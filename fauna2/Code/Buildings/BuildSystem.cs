@@ -187,7 +187,7 @@ public sealed class BuildSystem : Component
 		var habitat = go.AddComponent<HabitatComponent>();
 		habitat.HabitatId = habitatId ?? Guid.NewGuid().ToString( "N" );
 		habitat.DefinitionId = Defs.IdOf( def );
-		habitat.Size = def.HabitatSize;
+		habitat.Size = HabitatSizing.EffectiveFootprint( def.HabitatSize );
 		habitat.Biome = def.HabitatBiome;
 
 		go.NetworkMode = NetworkMode.Object;

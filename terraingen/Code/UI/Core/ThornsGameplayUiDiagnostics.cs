@@ -10,15 +10,8 @@ public static class ThornsGameplayUiDiagnostics
 {
 	public static bool Enabled { get; set; } = false;
 
-	/// <summary>Turn on verbose UI logs when mount assets are missing (published builds).</summary>
-	public static void EnableForMountFailure()
-	{
-		if ( !Enabled )
-		{
-			Enabled = true;
-			Warn( "Auto-enabled — mount probe found missing UI/map assets." );
-		}
-	}
+	/// <summary>Visible HUD banner is editor-only; live players should never see debug chrome.</summary>
+	public static bool ShowVisibleBanner => Enabled && Game.IsEditor;
 
 	static TimeUntil _heartbeatIn;
 	static bool _loggedFirstHeartbeat;

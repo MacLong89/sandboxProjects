@@ -31,6 +31,12 @@ public sealed class ThornsWorldHeightCacheRpc : Component
 		if ( !Networking.IsActive || Networking.IsHost || _bootstrap is null )
 			return;
 
+		if ( ThornsMultiplayer.IsRemoteJoinClient )
+		{
+			RpcRequestHeightCache();
+			return;
+		}
+
 		if ( ThornsTerrainHeightCache.TryLoad( _bootstrap.Config, out _ ) )
 			return;
 
@@ -110,8 +116,19 @@ public sealed class ThornsWorldHeightCacheRpc : Component
 		if ( _receivedChunks < _expectedChunks )
 			return;
 
+		ThornsWorldSession.TryReadFromLobby();
+		ThornsWorldSession.ApplyConfig( _bootstrap.Config );
+
+		if ( _bootstrap.Config.WorldSeed != ThornsWorldSession.WorldSeed )
+		{
+			Log.Warning( $"[Thorns World] Ignoring height cache — seed mismatch client={_bootstrap.Config.WorldSeed} lobby={ThornsWorldSession.WorldSeed}." );
+			_receiveField = null;
+			return;
+		}
+
 		ThornsTerrainHeightCache.Save( _bootstrap.Config, _receiveField );
 		_bootstrap.ApplyCachedField( _receiveField );
+		ThornsWorldBuildingSyncRpc.RequestFromHostIfNeeded();
 		Log.Info( "[Thorns World] Client assembled height cache from host." );
 	}
 }

@@ -54,14 +54,14 @@ public static class CureResearch
 		var labs = BuildManager.Instance?.Buildings.Count( b => !b.IsDestroyed && b.Type == BuildableId.Lab ) ?? 0;
 		if ( labs <= 0 ) return 0;
 
-		var craftsmen = WorkerManager.Instance?.Units.Count( u => u.Role == WorkerRole.Craftsman ) ?? 0;
+		var craftsmen = WorkerManager.Instance?.Units.Count( u => u.Role is WorkerRole.Craftsman or WorkerRole.Scholar ) ?? 0;
 		var labLevelSum = BuildManager.Instance?.Buildings
 			.Where( b => !b.IsDestroyed && b.Type == BuildableId.Lab )
 			.Sum( b => b.Level ) ?? 0;
 
 		var rate = labs * CureConstants.LabPointsPerSeasonBase / CureConstants.RealSecondsPerDay
 			+ labLevelSum * CureConstants.LabPointsPerLevel / CureConstants.RealSecondsPerDay
-			+ craftsmen * CureConstants.LabPointsPerCraftsman / CureConstants.RealSecondsPerDay;
+			+ craftsmen * CureConstants.LabPointsPerScholar / CureConstants.RealSecondsPerDay;
 
 		var sickness = core.Save.ColonySickness / CureConstants.MaxSickness;
 		rate *= MathF.Max( 0.35f, 1f - sickness * 0.4f );

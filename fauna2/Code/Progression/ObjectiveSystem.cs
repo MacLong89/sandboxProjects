@@ -91,7 +91,7 @@ public static class ObjectiveRules
 		3 => StarterGoalGuide.HabitatProgressLabel(),
 		4 => StarterGoalGuide.AnimalProgressLabel(),
 		5 => PlaceableRegistry.RestroomCount > 0 ? "Restroom built" : "Not placed",
-		6 => PlaceableRegistry.RestaurantCount > 0 ? "Restaurant built" : "Not placed",
+		6 => PlaceableRegistry.RestaurantCount > 0 ? "Food stand built" : "Not placed",
 		7 => $"{GuestSystem.Instance?.GuestCount ?? 0}/10 guests",
 		8 => (ZooState.Instance?.TotalAnimalsCaught ?? 0) > 0 ? "Caught" : "Not yet",
 		9 => (ZooState.Instance?.TotalAnimalsBred ?? 0) > 0 ? "Bred" : "Not yet",

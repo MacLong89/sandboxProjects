@@ -416,8 +416,8 @@ public sealed class RepairManager : Component
 		{
 			Targets = targets;
 			Label = label;
-			var repairmen = WorkerManager.Instance?.CountRole( WorkerRole.Repairman ) ?? 0;
-			Duration = GameConstants.RepairDurationForCost( cost, repairmen );
+			var repairBoost = WorkerManager.Instance?.RepairSpeedContributors() ?? 0;
+			Duration = GameConstants.RepairDurationForCost( cost, repairBoost );
 		}
 
 		public static RepairJob ForBuilding( PlacedBuilding building, double cost ) =>

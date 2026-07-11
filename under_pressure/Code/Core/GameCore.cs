@@ -80,7 +80,6 @@ public sealed class GameCore : Component
 	public string MissionBriefingTag { get; private set; } = "";
 	public string MissionBriefingAct { get; private set; } = "";
 	public string MissionBriefingLocation { get; private set; } = "";
-	public string MissionBriefingRevealHook { get; private set; } = "";
 	public int MissionBriefingLevel { get; private set; }
 
 	/// <summary>Leo's inner monologue when a hidden clue is uncovered.</summary>
@@ -330,7 +329,6 @@ public sealed class GameCore : Component
 		MissionBriefingTag = job.BriefingTag ?? "";
 		MissionBriefingAct = job.ActTitle ?? "";
 		MissionBriefingLocation = job.Location ?? "";
-		MissionBriefingRevealHook = job.RevealHook ?? "";
 		MissionBriefingBody = string.IsNullOrWhiteSpace( job.Briefing ) ? job.Blurb : job.Briefing;
 		ShowMissionBriefing = true;
 		ShopOpen = false;

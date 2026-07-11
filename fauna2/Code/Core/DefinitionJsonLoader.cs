@@ -42,11 +42,14 @@ internal static class DefinitionJsonLoader
 		if ( dto is null || string.IsNullOrWhiteSpace( dto.DisplayName ) )
 			return null;
 
+		var category = ParseEnum( dto.Category, BuildCategory.Decorations );
+		var habitatSize = ParseVector2( dto.HabitatSize, new Vector2( 512, 512 ) );
+
 		var def = new PlaceableDefinition
 		{
 			DisplayName = dto.DisplayName,
 			Description = dto.Description ?? "",
-			Category = ParseEnum( dto.Category, BuildCategory.Decorations ),
+			Category = category,
 			Cost = dto.Cost,
 			UnlockLevel = dto.UnlockLevel,
 			RequiredPrestige = dto.RequiredPrestige,
@@ -63,8 +66,8 @@ internal static class DefinitionJsonLoader
 			CollectIncomePerMinute = dto.CollectIncomePerMinute,
 			GuestsServed = dto.GuestsServed,
 			MaxStoredRevenue = dto.MaxStoredRevenue,
-			HabitatSize = ParseVector2( dto.HabitatSize, new Vector2( 512, 512 ) ),
-			HabitatBiome = ParseEnum( dto.HabitatBiome, Biome.Grassland ),
+			HabitatSize = habitatSize,
+			HabitatBiome = ParseBiome( dto.HabitatBiome, Biome.Grassland ),
 			Footprint = ParseVector2( dto.Footprint, GameConstants.StandardBuildingFootprint ),
 			GridSnap = dto.GridSnap > 0f ? dto.GridSnap : 64f,
 			RotationStep = dto.RotationStep > 0f ? dto.RotationStep : 45f,
@@ -88,7 +91,7 @@ internal static class DefinitionJsonLoader
 			DisplayName = dto.DisplayName,
 			Species = string.IsNullOrWhiteSpace( dto.Species ) ? Defs.ResourceStem( sourcePath ?? "" ) : dto.Species,
 			Description = dto.Description ?? "",
-			Biome = ParseEnum( dto.Biome, Biome.Grassland ),
+			Biome = ParseBiome( dto.Biome, Biome.Grassland ),
 			MinHabitatSize = ParseEnum( dto.MinHabitatSize, HabitatSizeTier.Small ),
 			Rarity = ParseEnum( dto.Rarity, AnimalRarity.Common ),
 			Cost = dto.Cost,
@@ -145,6 +148,9 @@ internal static class DefinitionJsonLoader
 
 		return parts;
 	}
+
+	private static Biome ParseBiome( string value, Biome fallback ) =>
+		BiomeIdentity.TryParse( value, out var biome ) ? biome : fallback;
 
 	private static TEnum ParseEnum<TEnum>( string value, TEnum fallback ) where TEnum : struct, Enum
 	{

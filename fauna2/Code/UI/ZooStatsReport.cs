@@ -154,7 +154,7 @@ public static class ZooStatsReport
 				harms.Add( new GuestInsight
 				{
 					Icon = "restaurant", Title = "Not enough food service",
-					Detail = $"Restaurant coverage is {foodCov:0}% — add more dining for {guestCount} guests.",
+					Detail = $"Food stand coverage is {foodCov:0}% — add more food stands for {guestCount} guests.",
 					Priority = 68, IsPositive = false,
 				} );
 			}

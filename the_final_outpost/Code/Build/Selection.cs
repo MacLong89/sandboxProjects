@@ -148,11 +148,14 @@ public sealed class CoreSelectable : ISelectable
 		{
 			var up = GameCore.Instance?.Upgrades;
 			var frac = _o.CoreMaxHealth <= 0f ? 0f : _o.CoreHealth / _o.CoreMaxHealth;
-			return new List<StatLine>
+			var list = new List<StatLine>
 			{
 				new( "Integrity", $"{SelectHelp.Pct( frac )}%" ),
-				new( "Fortify Level", $"{up?.Level( UpgradeId.FortifyCore ) ?? 0}" ),
 			};
+			if ( GameCore.Instance?.IsCure == true )
+				list.Add( new StatLine( "Scrap", $"+{CureConstants.CommandPostScrapPerSec:0}/s" ) );
+			list.Add( new StatLine( "Fortify Level", $"{up?.Level( UpgradeId.FortifyCore ) ?? 0}" ) );
+			return list;
 		}
 	}
 
@@ -209,14 +212,52 @@ public sealed class PlotSelectable : ISelectable
 	private readonly int _y;
 	public PlotSelectable( int x, int y ) { _x = x; _y = y; }
 
-	private ResourceKind Kind => PlotGrid.ResourceAt( _x, _y );
+	private ResourceKind Kind => PlotGrid.HarvestResourceAt( _x, _y );
+	private PlotKind Feature => PlotGrid.FeatureKindAt( _x, _y );
 	private bool Owned => PlotManager.Instance?.IsOwned( _x, _y ) == true;
 	private bool Buyable => PlotManager.Instance?.IsBuyable( _x, _y ) == true;
 	private bool Cleared => PlotManager.Instance?.IsCleared( _x, _y ) == true;
+	private bool IsCiv => Feature == PlotKind.NeutralCiv;
 
-	public string Name => Cleared ? "Cleared Plot" : Owned ? $"{ResourceInfo.Name( Kind )} Plot" : "Unclaimed Plot";
-	public string Icon => Cleared ? "grid_view" : ResourceInfo.Icon( Kind );
-	public string Subtitle => Cleared ? "Buildable land" : Owned ? "Claimed territory" : $"Ring {PlotGrid.Ring( _x, _y )} · frontier";
+	public string Name
+	{
+		get
+		{
+			if ( IsCiv && Owned ) return PlotFeatureCatalog.Get( Feature ).Name;
+			if ( Cleared ) return "Cleared Plot";
+			if ( Owned ) return $"{ResourceInfo.Name( Kind )} Plot";
+			if ( Feature != PlotKind.Standard ) return PlotFeatureCatalog.Get( Feature ).Name;
+			return "Unclaimed Plot";
+		}
+	}
+
+	public string Icon
+	{
+		get
+		{
+			if ( Feature != PlotKind.Standard && !Cleared ) return PlotFeatureCatalog.Get( Feature ).Icon;
+			if ( Cleared ) return "grid_view";
+			return ResourceInfo.Icon( Kind );
+		}
+	}
+
+	public string Subtitle
+	{
+		get
+		{
+			if ( IsCiv && Owned )
+			{
+				var save = GameCore.Instance?.Save;
+				if ( PlotCivActions.IsRaided( save, _x, _y ) ) return "Raided colony";
+				if ( PlotCivActions.IsAllied( save, _x, _y ) ) return "Allied colony";
+				return "Neighboring colony";
+			}
+			if ( Cleared ) return "Buildable land";
+			if ( Owned ) return "Claimed territory";
+			if ( Feature != PlotKind.Standard ) return PlotFeatureCatalog.Get( Feature ).Description;
+			return $"Ring {PlotGrid.Ring( _x, _y )} · frontier";
+		}
+	}
 	public bool HasHealth => false;
 	public float Health => 0f;
 	public float MaxHealth => 0f;
@@ -308,6 +349,37 @@ public sealed class PlotSelectable : ISelectable
 				} );
 			}
 
+			if ( GameCore.Instance?.IsCure == true && Owned && PlotCivActions.CanInteract( GameCore.Instance.Save, _x, _y ) )
+			{
+				list.Add( new SelectAction
+				{
+					Label = "Trade (20 Food)",
+					Detail = "+Scrap",
+					Kind = SelectActionKind.Primary,
+					Enabled = GameCore.Instance.Resources.Get( ResourceKind.Food ) >= 20,
+					Invoke = () => PlotCivActions.TryTrade( GameCore.Instance, _x, _y )
+				} );
+
+				if ( !PlotCivActions.IsAllied( GameCore.Instance.Save, _x, _y ) )
+				{
+					list.Add( new SelectAction
+					{
+						Label = "Form Alliance",
+						Detail = "+Knowledge, +Food",
+						Kind = SelectActionKind.Normal,
+						Invoke = () => PlotCivActions.TryAlly( GameCore.Instance, _x, _y )
+					} );
+				}
+
+				list.Add( new SelectAction
+				{
+					Label = "Raid Colony",
+					Detail = "+Supplies, +Scrap · +Sickness",
+					Kind = SelectActionKind.Warn,
+					Invoke = () => PlotCivActions.TryRaid( GameCore.Instance, _x, _y )
+				} );
+			}
+
 			return list;
 		}
 	}
@@ -320,6 +392,8 @@ public sealed class WorkerSelectable : ISelectable
 	public WorkerSelectable( WorkerManager.WorkerUnit u ) => _u = u;
 
 	public bool Wraps( WorkerManager.WorkerUnit unit ) => ReferenceEquals( _u, unit );
+
+	public WorkerManager.WorkerUnit TryGetUnit() => IsAlive ? _u : null;
 
 	public string Name => WorkerInfo.Name( _u.Role );
 	public string Icon => WorkerInfo.Icon( _u.Role );
@@ -340,6 +414,8 @@ public sealed class WorkerSelectable : ISelectable
 			{
 				list.Add( new StatLine( "Assignment", _u.HasPlot ? $"{ResourceInfo.Name( _u.PlotResource )} Plot" : "Unassigned" ) );
 				list.Add( new StatLine( "Status", _u.IsWorking ? "Harvesting" : "Idle" ) );
+				if ( GameCore.Instance?.IsCure == true && GameCore.Instance.Phase == GamePhase.Day )
+					list.Add( new StatLine( "Orders", "Click plot to gather · click ground to move" ) );
 			}
 			else
 			{
@@ -373,6 +449,8 @@ public sealed class DefenderSelectable : ISelectable
 	/// <summary>True when this selectable wraps the given recruit (used to clear selection on dismiss).</summary>
 	public bool Wraps( DefenderManager.DefenderUnit unit ) => ReferenceEquals( _u, unit );
 
+	public DefenderManager.DefenderUnit TryGetUnit() => IsAlive ? _u : null;
+
 	private RecruitWeaponDef Def => RecruitWeapons.Get( _u.Type );
 
 	public string Name => Def.Name;
@@ -403,6 +481,9 @@ public sealed class DefenderSelectable : ISelectable
 				new( "Range", $"{def.Range:0}" ),
 				new( "DPS", $"{dps:0}" ),
 				new( "Squad", $"{mgr?.Count ?? 0} / {BuildManager.Instance?.RecruitCapacity ?? 0}" ),
+				new( "Orders", GameCore.Instance?.IsCure == true && GameCore.Instance.Phase == GamePhase.Day
+					? "Click ground to move · attack nearby threats"
+					: "—" ),
 			};
 		}
 	}

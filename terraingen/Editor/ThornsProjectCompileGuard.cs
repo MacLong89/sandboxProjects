@@ -13,7 +13,8 @@ public static class ThornsProjectCompileGuard
 		if ( project?.Config is null )
 			return;
 
-		if ( !string.Equals( project.Config.Ident, "terraingen", StringComparison.OrdinalIgnoreCase ) )
+		if ( !string.Equals( project.Config.Ident, "terraingen", StringComparison.OrdinalIgnoreCase )
+		     && !string.Equals( project.Config.Ident, "thorns", StringComparison.OrdinalIgnoreCase ) )
 			return;
 
 		var codeDir = project.GetCodePath();

@@ -46,13 +46,6 @@ public sealed class ThornsTerrainExplorer : Component
 		if ( _player.IsValid() )
 			return;
 
-		var prefab = ResolvePlayerPrefab();
-		if ( !prefab.IsValid() )
-		{
-			Log.Error( "[Thorns Terrain] Could not find player prefab. Assign PlayerPrefab or install base 'Player Controller' template." );
-			return;
-		}
-
 		if ( UseSceneCameraForPlayer && !FirstPerson )
 			AssignMainCameraToPlayer();
 		else if ( FirstPerson )
@@ -63,7 +56,15 @@ public sealed class ThornsTerrainExplorer : Component
 			spawnPos = SampleFixedSpawnPosition( terrain, terrainMaxHeight, FixedSpawnPoint, SpawnHeightOffset );
 		else if ( !ThornsPlayerSpawnLocations.TryPickRandom( Scene, out spawnPos ) )
 			spawnPos = SampleCenterSpawnPosition( terrain, terrainMaxHeight, SpawnHeightOffset );
-		_player = prefab.Clone( new Transform( spawnPos, Rotation.Identity ), name: "Terrain Explorer" );
+
+		var displayName = "Terrain Explorer";
+		var spawnTransform = new Transform( spawnPos, Rotation.Identity );
+		_player = ThornsPlayerSpawnBootstrap.SpawnPlayerRoot( PlayerPrefab, PlayerPrefabPath, spawnTransform, displayName );
+		if ( !_player.IsValid() )
+		{
+			Log.Error( "[Thorns Terrain] Could not find player prefab and code-built fallback failed." );
+			return;
+		}
 		if ( ThornsLightingTestSceneBootstrap.IsActive )
 			ConfigureLightingTestPlayer( _player );
 		else if ( ThornsSettlementTestSceneBootstrap.IsActive )
@@ -94,14 +95,6 @@ public sealed class ThornsTerrainExplorer : Component
 
 		player.Components.Get<ThornsPlayerSession>()?.HostEnsurePersistenceKey( Connection.Local );
 		player.Components.Get<Terraingen.Player.ThornsPlayerGameplay>()?.HostEnsureProgressInitialized();
-	}
-
-	GameObject ResolvePlayerPrefab()
-	{
-		if ( PlayerPrefab.IsValid() )
-			return PlayerPrefab;
-
-		return GameObject.GetPrefab( PlayerPrefabPath );
 	}
 
 	static Vector3 SampleCenterSpawnPosition( Terrain terrain, float terrainMaxHeight, float heightOffset )

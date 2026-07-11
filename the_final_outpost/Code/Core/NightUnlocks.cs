@@ -50,6 +50,11 @@ public static class NightUnlocks
 		WorkerRole.Forager => RecruitUnlockNight( 14f, 0f ),
 		WorkerRole.Craftsman => RecruitUnlockNight( 22f, 0f ),
 		WorkerRole.Repairman => RecruitUnlockNight( 28f, 0f ),
+		WorkerRole.Farmer => RecruitUnlockNight( 16f, 0f ),
+		WorkerRole.Scholar => RecruitUnlockNight( 20f, 0f ),
+		WorkerRole.Operator => RecruitUnlockNight( 24f, 0f ),
+		WorkerRole.Medic => RecruitUnlockNight( 26f, 0f ),
+		WorkerRole.Merchant => RecruitUnlockNight( 22f, 0f ),
 		_ => 1
 	};
 

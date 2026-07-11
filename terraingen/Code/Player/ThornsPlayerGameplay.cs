@@ -69,6 +69,7 @@ public sealed partial class ThornsPlayerGameplay : Component, Component.INetwork
 	bool _lastReportedSprintHeld;
 	float _sprintHoldReportTimer;
 	TimeSince _cameraReclaimCooldown;
+	int _cameraReclaimAttempts;
 
 	Connection _owner;
 	readonly ThornsPlayerVitalsNetwork _vitalsNetwork = new();
@@ -125,6 +126,9 @@ public sealed partial class ThornsPlayerGameplay : Component, Component.INetwork
 		_owner = owner ?? Connection.Find( GameObject.Network.OwnerId );
 		AccountKey = ThornsPersistenceIdentity.GetStableAccountKey( _owner );
 
+		ThornsJoinFlowDebug.JoinInfo(
+			$"OnNetworkSpawn owner={owner?.DisplayName ?? "null"} local={IsLocalPlayer()} account={AccountKey} netOwner={GameObject.Network.OwnerId}" );
+
 		if ( ThornsMultiplayer.IsHostOrOffline )
 			HostInitialize();
 
@@ -150,17 +154,15 @@ public sealed partial class ThornsPlayerGameplay : Component, Component.INetwork
 		ThornsWorldBootGate.EnsureDriver();
 
 		if ( Networking.IsActive && !Networking.IsHost )
-			ThornsWorldBootGate.BeginLocalBoot();
-
-		if ( Networking.IsActive && !Networking.IsHost )
 		{
-			if ( !ThornsLocalHostSpawnCoordinator.IsHandling( GameObject ) )
-			{
-				ThornsMenuJoinFlow.SetStage( ThornsMenuJoinStage.SyncCharacter );
-				ThornsLocalHostSpawnCoordinator.Queue( Scene, GameObject );
-			}
+			if ( _localPresentationBootstrapped || ThornsLocalHostSpawnCoordinator.HasCompletedPresentation( GameObject ) )
+				return;
 
-			_localPresentationBootstrapped = ThornsLocalHostSpawnCoordinator.IsHandling( GameObject );
+			ThornsMenuJoinFlow.SetStage( ThornsMenuJoinStage.SyncCharacter );
+			ThornsLocalHostSpawnCoordinator.Queue( Scene, GameObject );
+			_localPresentationBootstrapped = true;
+			ThornsMenuJoinDriver.NotifyLocalPawnSpawned();
+			ThornsSessionEnterController.NotifyLocalPawnSpawned();
 			return;
 		}
 
@@ -172,10 +174,13 @@ public sealed partial class ThornsPlayerGameplay : Component, Component.INetwork
 
 	void MaybeReclaimLocalCamera()
 	{
-		if ( !IsLocalPlayer() || !Networking.IsActive || Networking.IsHost || _cameraReclaimCooldown < 0.75f )
+		if ( !IsLocalPlayer() || !Networking.IsActive || Networking.IsHost || _cameraReclaimCooldown < 2f )
 			return;
 
 		if ( ThornsWorldBootGate.BlocksLocalOwnerPresentation )
+			return;
+
+		if ( _cameraReclaimAttempts >= (ThornsSessionEnterController.IsEnterComplete ? 2 : 6) )
 			return;
 
 		var scene = Scene;
@@ -199,6 +204,7 @@ public sealed partial class ThornsPlayerGameplay : Component, Component.INetwork
 			return;
 
 		_cameraReclaimCooldown = 0;
+		_cameraReclaimAttempts++;
 		Log.Info( "[Thorns Player] Reclaiming local pawn camera after join." );
 		ThornsSceneObserver.FocusLocalPlayer( scene, GameObject );
 		ThornsGameplayUiHost.RefreshScreenPanelCamera( scene );
@@ -251,11 +257,14 @@ public sealed partial class ThornsPlayerGameplay : Component, Component.INetwork
 		if ( !Networking.IsActive )
 		{
 			var bundle = HostBuildSnapshotBundle();
+			ThornsJoinFlowDebug.JoinInfo( $"PushSnapshot offline/local bundle items={bundle?.Inventory?.Slots?.Count ?? 0}" );
 			ThornsUiClientState.ApplySnapshot( bundle );
 			ScheduleMenuProfileCacheSave( bundle );
 			return;
 		}
 
+		ThornsJoinFlowDebug.JoinInfo(
+			$"PushSnapshot defer RPC owner={_owner?.DisplayName ?? "null"} local={IsLocalPlayer()} host={Networking.IsHost}" );
 		_ = DeferredPushSnapshotToOwnerAsync();
 	}
 
@@ -286,10 +295,13 @@ public sealed partial class ThornsPlayerGameplay : Component, Component.INetwork
 
 		try
 		{
-			RpcReceiveSnapshotJson( Json.Serialize( HostBuildSnapshotBundle() ) );
+			var json = Json.Serialize( HostBuildSnapshotBundle() );
+			ThornsJoinFlowDebug.JoinInfo( $"PushSnapshot RPC send bytes={json?.Length ?? 0} owner={_owner?.DisplayName ?? "null"}" );
+			RpcReceiveSnapshotJson( json );
 		}
 		catch ( Exception e )
 		{
+			ThornsJoinFlowDebug.JoinWarn( $"Deferred snapshot push failed: {e.Message}" );
 			Log.Warning( e, "[Thorns UI] Deferred snapshot push failed." );
 		}
 	}
@@ -570,20 +582,27 @@ public sealed partial class ThornsPlayerGameplay : Component, Component.INetwork
 	{
 		try
 		{
+			ThornsJoinFlowDebug.JoinInfo( $"RpcReceiveSnapshotJson bytes={json?.Length ?? 0} local={IsLocalPlayer()}" );
 			if ( !ThornsNetAuthority.TryDeserializeJson( json, ThornsNetAuthority.DefaultOwnerJsonMaxBytes, out ThornsPlayerSnapshotBundle bundle ) )
+			{
+				ThornsJoinFlowDebug.JoinWarn( "RpcReceiveSnapshotJson deserialize rejected (size/parse)." );
 				return;
+			}
 
 			ThornsUiClientState.ApplySnapshot( bundle );
 			ScheduleMenuProfileCacheSave( bundle );
+			ThornsJoinFlowDebug.LogMilestone( $"Snapshot applied HasSnapshot={ThornsUiClientState.HasSnapshot}" );
 
 			if ( IsLocalPlayer() )
 			{
 				Components.Get<ThornsFpPresentation>()?.RefreshFromActiveHotbar();
 				ThornsMenuHost.Instance?.RefreshHud();
+				ThornsSessionEnterController.TryCompleteEnter( "snapshot" );
 			}
 		}
 		catch ( Exception e )
 		{
+			ThornsJoinFlowDebug.JoinWarn( $"RpcReceiveSnapshotJson failed: {e.Message}" );
 			Log.Warning( e, "[Thorns UI] Snapshot deserialize failed." );
 		}
 	}
@@ -802,10 +821,12 @@ public sealed partial class ThornsPlayerGameplay : Component, Component.INetwork
 
 		if ( Networking.IsActive && !Networking.IsHost )
 		{
+			ThornsJoinFlowDebug.JoinInfo( "RefreshMenuSnapshot → RpcRequestMenuSnapshot (join client)" );
 			RpcRequestMenuSnapshot();
 			return;
 		}
 
+		ThornsJoinFlowDebug.JoinInfo( "RefreshMenuSnapshot → deferred host push" );
 		_ = DeferredRefreshMenuSnapshotAsync();
 	}
 
@@ -833,8 +854,12 @@ public sealed partial class ThornsPlayerGameplay : Component, Component.INetwork
 	[Rpc.Host]
 	void RpcRequestMenuSnapshot()
 	{
+		ThornsJoinFlowDebug.JoinInfo( $"RpcRequestMenuSnapshot from caller owner={Rpc.Caller?.DisplayName ?? "null"}" );
 		if ( !ValidateCaller() )
+		{
+			ThornsJoinFlowDebug.JoinWarn( "RpcRequestMenuSnapshot rejected — ValidateCaller failed." );
 			return;
+		}
 
 		PushSnapshotToOwnerClient();
 	}

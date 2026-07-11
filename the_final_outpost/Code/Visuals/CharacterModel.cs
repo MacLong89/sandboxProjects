@@ -31,6 +31,8 @@ public sealed class CharacterModel : Component
 	private float _zombieDuck;
 	private float _zombieAnimSpeed = 1f;
 	private CitizenAnimationHelper.MoveStyles _zombieMoveStyle = CitizenAnimationHelper.MoveStyles.Walk;
+	private bool _isZombie;
+	private bool _zombieEngaged;
 
 	private Vector3 _velocity;
 	private Rotation _aim;
@@ -65,40 +67,52 @@ public sealed class CharacterModel : Component
 
 		if ( !string.IsNullOrWhiteSpace( weaponModel ) )
 		{
+			_weaponPath = weaponModel;
 			_weapon = new GameObject( GameObject, true, "WeaponWorld" );
 			_weapon.LocalScale = new Vector3( _weaponScale, _weaponScale, _weaponScale );
 			_weaponRenderer = _weapon.Components.Create<SkinnedModelRenderer>();
-			_weaponRenderer.Model = WeaponModels.Load( weaponModel );
 			_weaponRenderer.UseAnimGraph = false;
 			_weaponRenderer.Tint = Color.White;
+			ApplyWeaponModel();
 		}
+	}
+
+	public void RefreshWeaponModel() => ApplyWeaponModel();
+
+	private string _weaponPath;
+
+	private void ApplyWeaponModel()
+	{
+		if ( !_weaponRenderer.IsValid() || string.IsNullOrWhiteSpace( _weaponPath ) )
+			return;
+
+		_weaponRenderer.Model = WeaponModels.Load( _weaponPath );
 	}
 
 	public void SetupZombie( ZombieTypeDef def )
 	{
+		_isZombie = true;
+		_zombieEngaged = false;
 		Setup( def.Tint, null, CitizenAnimationHelper.HoldTypes.None );
 		_zombieDuck = def.DuckLevel;
 		_zombieAnimSpeed = def.AnimSpeedMult;
 		_zombieMoveStyle = def.MoveStyle;
 	}
 
-	/// <summary>Animation tick for zombies — exaggerates gait per archetype.</summary>
+	public void SetZombieEngaged( bool engaged ) => _zombieEngaged = engaged;
+
+	public void TriggerMeleeSwing()
+	{
+		if ( _anim.IsValid() && _anim.Target.IsValid() )
+			_anim.Target.Set( "b_attack", true );
+	}
+
+	/// <summary>Animation tick for zombies — state is applied in <see cref="OnUpdate"/>.</summary>
 	public void TickZombie( Vector3 velocity, Rotation aim )
 	{
 		_velocity = velocity * _zombieAnimSpeed;
 		_aim = aim;
 		_aimInit = true;
-
-		if ( !_anim.IsValid() )
-			return;
-
-		_anim.WithVelocity( _velocity );
-		_anim.WithWishVelocity( _velocity );
-		_anim.IsGrounded = true;
-		_anim.DuckLevel = _zombieDuck;
-		_anim.MoveStyle = _zombieMoveStyle;
-		_anim.AimAngle = _aim;
-		_anim.HoldType = _hold;
 	}
 
 	public void SetTint( Color tint )
@@ -126,8 +140,39 @@ public sealed class CharacterModel : Component
 			_aimInit = true;
 		}
 
-		_anim.WithVelocity( _velocity );
 		_anim.IsGrounded = true;
+
+		if ( _isZombie )
+		{
+			_anim.DuckLevel = _zombieDuck;
+			_anim.MoveStyle = _zombieMoveStyle;
+			_anim.AimAngle = _aim;
+
+			if ( _zombieEngaged )
+			{
+				// Press-in melee pose instead of snapping to a hard idle (prevents foot shuffle jitter).
+				var press = _aim.Forward * 42f;
+				_anim.HoldType = CitizenAnimationHelper.HoldTypes.Punch;
+				_anim.IsWeaponLowered = false;
+				_anim.AimBodyWeight = 0.15f;
+				_anim.AimHeadWeight = 0.35f;
+				_anim.WithWishVelocity( press );
+				_anim.WithVelocity( press * 0.3f );
+			}
+			else
+			{
+				_anim.HoldType = CitizenAnimationHelper.HoldTypes.None;
+				_anim.AimBodyWeight = 0.45f;
+				_anim.AimHeadWeight = 0.55f;
+				_anim.WithWishVelocity( _velocity );
+				_anim.WithVelocity( _velocity );
+			}
+
+			return;
+		}
+
+		_anim.WithVelocity( _velocity );
+		_anim.WithWishVelocity( _velocity );
 		_anim.DuckLevel = 0f;
 		_anim.AimAngle = _aim;
 		_anim.HoldType = _hold;

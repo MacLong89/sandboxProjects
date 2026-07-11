@@ -21,15 +21,22 @@ public static class ThornsNetworkSessionReset
 			await System.Threading.Tasks.Task.Delay( 120 );
 		}
 
-		ResetStaticState();
+		ResetStaticState( "disconnect" );
 	}
 
-	public static void ResetStaticState()
+	public static void ResetStaticState( string reason = "unspecified" )
 	{
+		if ( ThornsMenuJoinFlow.IsProgressVisible || ThornsSessionBootstrap.IsJoiningRemoteLobby )
+		{
+			ThornsJoinFlowDebug.JoinWarn(
+				$"ResetStaticState ({reason}) during active join — progress={ThornsMenuJoinFlow.IsProgressVisible} join={ThornsSessionBootstrap.IsJoiningRemoteLobby}" );
+		}
+
 		ThornsWorldSession.Reset();
 		ThornsSceneObserver.ClearCachedLocalPlayer();
 		ThornsWorldBootGate.ResetBootState();
 		ThornsLocalHostSpawnCoordinator.ResetState();
+		ThornsSessionEnterController.ResetForSession( reason );
 		ThornsMenuJoinFlow.ResetForMainMenu();
 	}
 }

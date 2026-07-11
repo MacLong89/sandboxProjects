@@ -47,7 +47,8 @@ public sealed class ThornsNetworkGameManager : Component, Component.INetworkList
 			_lobbyCreateAttempted = true;
 
 		PreparePersistenceSavePath( joiningRemote );
-		EnsurePersistenceComponent()?.HostEnsureInitialized();
+		if ( !joiningRemote )
+			EnsurePersistenceComponent()?.HostEnsureInitialized();
 		TryCreateLobby();
 		_ = EnsureListenHostPlayerSpawnAsync();
 	}
@@ -204,7 +205,8 @@ public sealed class ThornsNetworkGameManager : Component, Component.INetworkList
 		Networking.CreateLobby( new LobbyConfig
 		{
 			Name = serverName,
-			Privacy = LobbyPrivacy.Public
+			Privacy = LobbyPrivacy.Public,
+			Hidden = ThornsProjectRuntime.IsHiddenDevBuild
 		} );
 
 		Networking.SetData( "game", Game.Ident ?? "" );
@@ -221,18 +223,14 @@ public sealed class ThornsNetworkGameManager : Component, Component.INetworkList
 		}
 
 		ThornsHostMenuPreferences.SaveLastHostedServerName( serverName );
+		ThornsWorldSession.MarkLobbyPending();
 		Log.Info( $"[Thorns Terrain] Lobby created: '{serverName}' save='{ThornsWorldPersistence.Instance?.RelativeSavePath ?? ThornsWorldPersistence.DefaultRelativePath}'." );
 		Log.Info( $"[Thorns Terrain] Server is joinable (public lobby). Friends can find '{serverName}' in the server browser while you are in-world." );
 
-		var bootstrap = Scene.GetAllComponents<ThornsTerrainBootstrap>().FirstOrDefault();
-		if ( bootstrap?.Config is not null )
-		{
-			ThornsWorldSession.PublishFromHost( bootstrap.Config );
-			var biome = ThornsLobbyMetadata.InferBiomeFromName( serverName );
-			var official = serverName.Contains( "[Official]", StringComparison.OrdinalIgnoreCase )
-			               || serverName.Contains( "(Official)", StringComparison.OrdinalIgnoreCase );
-			ThornsLobbyMetadata.PublishHostMetadata( "", biome, official );
-		}
+		var biome = ThornsLobbyMetadata.InferBiomeFromName( serverName );
+		var official = serverName.Contains( "[Official]", StringComparison.OrdinalIgnoreCase )
+		               || serverName.Contains( "(Official)", StringComparison.OrdinalIgnoreCase );
+		ThornsLobbyMetadata.PublishHostMetadata( "", biome, official );
 	}
 
 	void SpawnPlayerForConnection( Connection channel )
@@ -241,15 +239,18 @@ public sealed class ThornsNetworkGameManager : Component, Component.INetworkList
 		if ( existing is not null && existing.IsValid() )
 			return;
 
-		var prefab = ResolvePlayerPrefab();
-		if ( !prefab.IsValid() )
+		var spawn = ResolveSpawnForConnection( channel );
+		var displayName = $"Terrain Explorer ({channel.DisplayName})";
+		var player = ThornsPlayerSpawnBootstrap.SpawnPlayerRoot(
+			PlayerPrefab,
+			PlayerPrefabPath,
+			new Transform( spawn.Position, spawn.Rotation ),
+			displayName );
+		if ( !player.IsValid() )
 		{
-			Log.Error( "[Thorns Terrain] Could not spawn network player: missing player prefab." );
+			Log.Error( "[Thorns Terrain] Could not spawn network player: missing player prefab and code-built fallback failed." );
 			return;
 		}
-
-		var spawn = ResolveSpawnForConnection( channel );
-		var player = prefab.Clone( new Transform( spawn.Position, spawn.Rotation ), name: $"Terrain Explorer ({channel.DisplayName})" );
 		player.NetworkMode = NetworkMode.Object;
 		_ = player.Components.Get<ThornsPlayerSession>() ?? player.Components.Create<ThornsPlayerSession>();
 		ConfigurePlayerController( player, channel );
@@ -270,20 +271,21 @@ public sealed class ThornsNetworkGameManager : Component, Component.INetworkList
 		var local = Connection.Local;
 		if ( local is not null && channel.Id == local.Id )
 		{
+			ThornsJoinFlowDebug.LogMilestone( $"SpawnPlayerForConnection local channel={channel.DisplayName}" );
 			ThornsPawnInputIsolation.ApplyForLocalPawn( Scene, player );
 			ThornsLocalHostSpawnCoordinator.Queue( Scene, player );
 		}
+		else
+		{
+			ThornsJoinFlowDebug.JoinInfo( $"SpawnPlayerForConnection remote channel={channel.DisplayName} (no local queue)" );
+		}
+
+		ThornsSessionEnterController.Ensure( Scene );
+		ThornsMenuJoinDriver.NotifyLocalPawnSpawned();
+		ThornsSessionEnterController.NotifyLocalPawnSpawned();
 
 		if ( Networking.IsHost )
 			AnnouncePlayerJoined( channel );
-	}
-
-	GameObject ResolvePlayerPrefab()
-	{
-		if ( PlayerPrefab.IsValid() )
-			return PlayerPrefab;
-
-		return GameObject.GetPrefab( PlayerPrefabPath );
 	}
 
 	ThornsPlayerSession FindExistingSession( Connection channel )
@@ -425,6 +427,16 @@ public sealed class ThornsNetworkGameManager : Component, Component.INetworkList
 		var rpc = Components.Get<ThornsWorldHeightCacheRpc>( FindMode.EnabledInSelf );
 		if ( !rpc.IsValid() )
 			rpc = Components.Create<ThornsWorldHeightCacheRpc>();
+
+		rpc.Bind( bootstrap );
+		return rpc;
+	}
+
+	public ThornsWorldBuildingSyncRpc EnsureBuildingSyncRpc( ThornsTerrainBootstrap bootstrap )
+	{
+		var rpc = Components.Get<ThornsWorldBuildingSyncRpc>( FindMode.EnabledInSelf );
+		if ( !rpc.IsValid() )
+			rpc = Components.Create<ThornsWorldBuildingSyncRpc>();
 
 		rpc.Bind( bootstrap );
 		return rpc;

@@ -50,6 +50,13 @@ public static class PlotGrid
 		};
 	}
 
+	/// <summary>Cure mode uses special plot features; survival uses standard resources.</summary>
+	public static ResourceKind HarvestResourceAt( int x, int y ) =>
+		GameCore.Instance?.IsCure == true ? PlotFeatureGrid.ResourceAt( x, y ) : ResourceAt( x, y );
+
+	public static PlotKind FeatureKindAt( int x, int y ) =>
+		GameCore.Instance?.IsCure == true ? PlotFeatureGrid.KindAt( x, y ) : PlotKind.Standard;
+
 	public static double BuyCost( int x, int y )
 	{
 		var ring = Math.Max( 0, Ring( x, y ) - 1 );

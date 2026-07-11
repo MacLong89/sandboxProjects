@@ -6,6 +6,7 @@ public sealed class LeaderboardDisplayEntry
 	public string Name { get; set; }
 	public int Nights { get; set; }
 	public bool IsLocal { get; set; }
+	public bool IsInProgress { get; set; }
 }
 
 public static class LeaderboardService
@@ -106,7 +107,20 @@ public static class LeaderboardService
 				Rank = i + 1,
 				Name = row.Name,
 				Nights = row.Nights,
-				IsLocal = row.IsLocal
+				IsLocal = row.IsLocal,
+				IsInProgress = false
+			} );
+		}
+
+		if ( save?.HasRunInProgress == true && save.CurrentNight >= 1 )
+		{
+			result.Insert( 0, new LeaderboardDisplayEntry
+			{
+				Rank = 0,
+				Name = $"{localName} (in progress)",
+				Nights = save.CurrentNight,
+				IsLocal = true,
+				IsInProgress = true
 			} );
 		}
 

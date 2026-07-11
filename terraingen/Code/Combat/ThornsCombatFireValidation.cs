@@ -7,6 +7,7 @@ public static class ThornsCombatFireValidation
 {
 	const float MaxOriginErrorInches = 64f;
 	const float MaxDirectionErrorDegrees = 10f;
+	const float DefaultEyeHeightInches = 64f;
 
 	public static bool TryResolveAuthoritativeShot(
 		GameObject pawn,
@@ -25,17 +26,10 @@ public static class ThornsCombatFireValidation
 			return false;
 		}
 
-		if ( !ThornsSceneObserver.TryResolveLocalAimRay( pawn, out var serverOrigin, out var serverDir, useScreenCenter: true ) )
+		if ( !TryResolveHostAimRay( pawn, out var serverOrigin, out var serverDir ) )
 		{
-			var controller = pawn.Components.Get<PlayerController>( FindMode.EverythingInSelf );
-			if ( !controller.IsValid() )
-			{
-				ThornsCombatHitscanDebug.LogFireValidation( pawn, clientOrigin, clientDirection, default, default, false, "no-aim-ray" );
-				return false;
-			}
-
-			serverOrigin = pawn.WorldPosition + Vector3.Up * 64f;
-			serverDir = controller.EyeAngles.ToRotation().Forward.Normal;
+			ThornsCombatHitscanDebug.LogFireValidation( pawn, clientOrigin, clientDirection, default, default, false, "no-aim-ray" );
+			return false;
 		}
 
 		if ( Vector3.DistanceBetween( clientOrigin, serverOrigin ) > MaxOriginErrorInches )
@@ -61,5 +55,30 @@ public static class ThornsCombatFireValidation
 
 		ThornsCombatHitscanDebug.LogFireValidation( pawn, clientOrigin, clientDirection, serverOrigin, serverDir, true );
 		return true;
+	}
+
+	/// <summary>
+	/// Resolves aim on the host machine. Remote pawns never use the host's camera/mouse —
+	/// only synced <see cref="PlayerController.EyeAngles"/> and pawn eye position.
+	/// </summary>
+	static bool TryResolveHostAimRay( GameObject pawn, out Vector3 origin, out Vector3 direction )
+	{
+		origin = default;
+		direction = default;
+
+		if ( !pawn.IsValid() )
+			return false;
+
+		if ( ThornsLocalPlayer.IsLocallyControlledPawn( pawn )
+		     && ThornsSceneObserver.TryResolveLocalAimRay( pawn, out origin, out direction, useScreenCenter: true ) )
+			return true;
+
+		var controller = pawn.Components.Get<PlayerController>( FindMode.EverythingInSelf );
+		if ( !controller.IsValid() )
+			return false;
+
+		origin = pawn.WorldPosition + Vector3.Up * DefaultEyeHeightInches;
+		direction = controller.EyeAngles.ToRotation().Forward.Normal;
+		return direction.Length >= 0.95f;
 	}
 }

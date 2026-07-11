@@ -96,7 +96,7 @@ public sealed class PlotManager : Component
 		foreach ( var (x, y) in _owned )
 		{
 			if ( PlotGrid.IsHome( x, y ) || IsCleared( x, y ) ) continue;
-			if ( PlotGrid.ResourceAt( x, y ) == ResourceKind.None ) continue;
+			if ( PlotGrid.HarvestResourceAt( x, y ) == ResourceKind.None ) continue;
 
 			var foragers = wm.CountForagersOn( x, y );
 			if ( foragers <= 0 ) continue;
@@ -126,6 +126,8 @@ public sealed class PlotManager : Component
 			var key = PlotGrid.Key( x, y );
 			if ( !core.Save.ClearedPlots.Contains( key ) )
 				core.Save.ClearedPlots.Add( key );
+
+			PlotRewards.OnPlotCleared( core, x, y );
 		}
 
 		RebuildVisuals();
@@ -164,14 +166,19 @@ public sealed class PlotManager : Component
 			if ( PlotGrid.IsHome( x, y ) )
 				continue;
 
-			var kind = PlotGrid.ResourceAt( x, y );
+			var kind = PlotGrid.HarvestResourceAt( x, y );
 			var cleared = IsOwned( x, y ) && IsCleared( x, y );
+			var feature = PlotGrid.FeatureKindAt( x, y );
 
 			// Resource props render on every plot (owned or not) so the surrounding land
 			// looks alive from the very first game and players can see what each plot offers.
 			// Cleared plots are stripped bare — the trees/rocks are gone and the land is buildable.
 			if ( !cleared )
+			{
 				BuildResourceProps( x, y, kind );
+				if ( feature != PlotKind.Standard )
+					BuildFeatureMarker( x, y, feature );
+			}
 
 			// Only owned plots get the coloured boundary rail (marks your territory).
 			if ( IsOwned( x, y ) )
@@ -230,7 +237,27 @@ public sealed class PlotManager : Component
 				for ( var i = 0; i < 4; i++ )
 					BuildReed( ScatterXY( center, rng, GameConstants.PlotSize * 0.28f ), rng );
 				break;
+			case ResourceKind.Food:
+				for ( var i = 0; i < 6; i++ )
+					ScatterGrass( center, rng, spread, 1, new Color( 0.55f, 0.82f, 0.32f ) );
+				break;
+			case ResourceKind.Supplies:
+				for ( var i = 0; i < 4; i++ )
+					BuildRockCluster( ScatterXY( center, rng, spread * 0.6f ), rng );
+				break;
+			case ResourceKind.Knowledge:
+				AddProp( "Ruin", MeshPrimitives.Box, StylizedMaterials.Stone,
+					center + Vector3.Up * 28f, new Vector3( 36f, 36f, 56f ), new Color( 0.55f, 0.75f, 0.95f ) );
+				break;
 		}
+	}
+
+	private void BuildFeatureMarker( int x, int y, PlotKind feature )
+	{
+		var def = PlotFeatureCatalog.Get( feature );
+		var center = PlotGrid.CenterWorld( x, y );
+		AddProp( "Feature", MeshPrimitives.Cylinder, MeshPrimitives.Mat,
+			center + Vector3.Up * 48f, new Vector3( 18f, 18f, 96f ), def.MarkerTint.WithAlpha( 0.85f ) );
 	}
 
 	private static Vector3 ScatterXY( Vector3 center, Random rng, float spread )

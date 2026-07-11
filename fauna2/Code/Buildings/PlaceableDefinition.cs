@@ -135,7 +135,7 @@ public sealed class PlaceableDefinition : GameResource
 			if ( IsEntrance )
 				return GameConstants.EntranceFootprint;
 
-			var fp = IsHabitat ? HabitatSize : Footprint;
+			var fp = IsHabitat ? HabitatSizing.EffectiveFootprint( HabitatSize ) : Footprint;
 			return EnforceMinimumFootprint( fp, IsBuilding || IsHabitat );
 		}
 	}

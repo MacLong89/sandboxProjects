@@ -38,6 +38,7 @@ public sealed class GameCore : Component
 	public bool CatalogOpen { get; private set; }
 	public bool LegacyOpen { get; private set; }
 	public bool CureProgressOpen { get; private set; }
+	public bool TechTreeOpen { get; private set; }
 	public bool WelcomePending { get; private set; }
 	public bool DailyPending { get; private set; }
 	public OfflineSummary Welcome { get; private set; }
@@ -48,7 +49,7 @@ public sealed class GameCore : Component
 	public string PendingSeasonRecap { get; private set; }
 	public bool TutorialTipsHidden => Save?.HideTutorialTips ?? false;
 	public bool IsUiBlocking => ShopOpen || SettingsOpen || LeaderboardOpen || RecruitOpen || WorkersOpen || ExpeditionsOpen
-		|| MilestonesOpen || CatalogOpen || LegacyOpen || CureProgressOpen || WelcomePending || DailyPending
+		|| MilestonesOpen || CatalogOpen || LegacyOpen || CureProgressOpen || TechTreeOpen || WelcomePending || DailyPending
 		|| Phase == GamePhase.MainMenu || Phase == GamePhase.GameOver || Phase == GamePhase.NightRecap
 		|| Phase == GamePhase.SeasonRecap || Phase == GamePhase.Victory;
 
@@ -129,14 +130,28 @@ public sealed class GameCore : Component
 		var comboGo = new GameObject( true, "Combo" );
 		Combo = comboGo.Components.Create<ComboSystem>();
 
+		var economyGo = new GameObject( true, "ColonyEconomy" );
+		economyGo.Components.Create<ColonyEconomy>();
+
+		var ordersGo = new GameObject( true, "UnitOrders" );
+		ordersGo.Components.Create<UnitOrderController>();
+
 		var hudGo = new GameObject( true, "HUD" );
 		hudGo.Components.Create<ScreenPanel>();
 		hudGo.Components.Create<UI.Hud>();
 
 		Build.LoadFromSave( Save );
-		Defenders.RebuildFromSave();
-		Plots.RebuildFromSave();
-		Workers.RebuildFromSave();
+		try
+		{
+			Defenders.RebuildFromSave();
+			Plots.RebuildFromSave();
+			Workers.RebuildFromSave();
+		}
+		catch ( Exception e )
+		{
+			Log.Error( $"[FinalOutpost] Failed to rebuild units from save: {e.Message}" );
+		}
+
 		Outpost.ApplyUpgrades( Upgrades, healToFull: false );
 
 		if ( IsSurvival )
@@ -259,6 +274,7 @@ public sealed class GameCore : Component
 		CatalogOpen = false;
 		LegacyOpen = false;
 		CureProgressOpen = false;
+		TechTreeOpen = false;
 		Combat?.ClearAll();
 		Build?.ClearDestroyedRemnants();
 		Phase = GamePhase.Day;
@@ -313,6 +329,7 @@ public sealed class GameCore : Component
 		CatalogOpen = false;
 		LegacyOpen = false;
 		CureProgressOpen = false;
+		TechTreeOpen = false;
 		Combo?.ResetCombo();
 		Build?.CancelBuildInteraction();
 		Build?.Deselect();
@@ -518,6 +535,8 @@ public sealed class GameCore : Component
 		MilestonesOpen = false;
 		CatalogOpen = false;
 		LegacyOpen = false;
+		CureProgressOpen = false;
+		TechTreeOpen = false;
 		Combat?.ClearAll();
 		Build?.CancelBuildInteraction();
 		Build?.Deselect();
@@ -602,6 +621,10 @@ public sealed class GameCore : Component
 	public void CloseCureProgress() => CureProgressOpen = false;
 	public void ToggleCureProgress() => CureProgressOpen = !CureProgressOpen;
 
+	public void OpenTechTree() => TechTreeOpen = true;
+	public void CloseTechTree() => TechTreeOpen = false;
+	public void ToggleTechTree() => TechTreeOpen = !TechTreeOpen;
+
 	public void OpenLegacy() => LegacyOpen = true;
 	public void CloseLegacy() => LegacyOpen = false;
 
@@ -619,9 +642,11 @@ public sealed class GameCore : Component
 
 	public void RefreshTutorialTips()
 	{
-		if ( !IsSurvival || Save.HideTutorialTips || WelcomePending || DailyPending || Phase == GamePhase.NightRecap
+		if ( Save.HideTutorialTips || WelcomePending || DailyPending
+			|| Phase == GamePhase.NightRecap || Phase == GamePhase.SeasonRecap
 			|| ShopOpen || SettingsOpen || LeaderboardOpen || RecruitOpen || WorkersOpen
-			|| ExpeditionsOpen || MilestonesOpen || CatalogOpen || LegacyOpen )
+			|| ExpeditionsOpen || MilestonesOpen || CatalogOpen || LegacyOpen
+			|| CureProgressOpen || TechTreeOpen )
 		{
 			ActiveTutorialTip = null;
 			return;
@@ -639,7 +664,28 @@ public sealed class GameCore : Component
 			return;
 		}
 
-		ActiveTutorialTip = TutorialTips.PickNext( this );
+		if ( IsSurvival )
+		{
+			if ( NightUnlocks.ProgressNight( Save ) > TutorialTips.MaxNight )
+			{
+				ActiveTutorialTip = null;
+				return;
+			}
+
+			ActiveTutorialTip = TutorialTips.PickNext( this );
+			return;
+		}
+
+		if ( IsCure )
+		{
+			if ( CureConstants.ProgressSeason( Save ) > CureTutorialTips.MaxSeason )
+			{
+				ActiveTutorialTip = null;
+				return;
+			}
+
+			ActiveTutorialTip = CureTutorialTips.PickNext( this );
+		}
 	}
 
 	public void DismissTutorialTip( bool hideAll = false )

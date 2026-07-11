@@ -206,6 +206,23 @@ root {
 	white-space: nowrap;
 
 	.val { font-size: 16px; font-weight: 800; color: $text; }
+	.pill-stack {
+		flex-direction: column;
+		align-items: flex-start;
+		justify-content: center;
+		gap: 0;
+		line-height: 1.05;
+	}
+
+	.pill-rate {
+		font-size: 10px;
+		font-weight: 700;
+		color: $accent;
+		margin-top: 1px;
+
+		&.neg { color: $warn; }
+	}
+
 	.pill-tag { font-size: 10px; letter-spacing: 1.5px; font-weight: 800; color: $gold; margin-left: 2px; white-space: nowrap; text-transform: uppercase; }
 
 	&.scrap {
@@ -214,10 +231,11 @@ root {
 		padding-right: 14px;
 		.icon { color: $gold; font-size: 18px; }
 		.val { color: $gold; }
+		.pill-rate { color: #fcd34d; }
 	}
 	&.sm { padding: 6px 12px; font-size: 15px; .val { font-size: 15px; } }
 
-	&.res { padding: 6px 10px; font-size: 14px; gap: 5px; .val { font-size: 14px; font-weight: 700; } .icon { font-size: 17px; } }
+	&.res { padding: 6px 10px; font-size: 14px; gap: 5px; .val { font-size: 14px; font-weight: 700; } .icon { font-size: 17px; } .pill-rate { font-size: 9px; } }
 	&.res.wood .icon { color: #86efac; }
 	&.res.stone .icon { color: #cbd5e1; }
 	&.res.water .icon { color: #60a5fa; }
@@ -459,13 +477,14 @@ root {
 	flex-direction: row;
 	align-items: stretch;
 	gap: 10px;
-	padding: 12px 14px;
+	padding: 10px 12px;
 	background: $glass-2;
 	border: 1px solid $stroke-strong;
 	border-radius: $radius-lg;
 	backdrop-filter: blur(18px);
 	box-shadow: $panel-shadow;
 	width: auto;
+	max-width: calc(100vw - 32px);
 	overflow: hidden;
 }
 
@@ -473,22 +492,26 @@ root {
 	flex-direction: row;
 	align-items: stretch;
 	justify-content: flex-start;
-	flex-grow: 0;
-	flex-shrink: 0;
-	gap: 8px;
+	flex-grow: 1;
+	flex-shrink: 1;
+	gap: 6px;
+	overflow-x: scroll;
+	overflow-y: hidden;
+	min-width: 0;
+	padding-bottom: 2px;
 }
 
 .dock-tile {
 	pointer-events: all;
 	flex: 0 0 auto;
-	width: 96px;
-	max-width: 96px;
-	min-height: $dock-tile-h;
+	width: 84px;
+	max-width: 84px;
+	min-height: 88px;
 	flex-direction: column;
 	align-items: center;
 	justify-content: center;
-	gap: 5px;
-	padding: 10px 6px;
+	gap: 4px;
+	padding: 8px 4px;
 	border-radius: $radius-md;
 	background: rgba(255, 255, 255, 0.03);
 	border: 1px solid $stroke;
@@ -496,21 +519,21 @@ root {
 	color: $text;
 
 	.tile-icon {
-		width: 42px;
-		height: 42px;
+		width: 36px;
+		height: 36px;
 		flex-shrink: 0;
 		justify-content: center;
 		align-items: center;
 		border-radius: $radius-sm;
 		background: rgba(74, 222, 128, 0.1);
-		.icon { font-size: 26px; color: $accent; }
+		.icon { font-size: 22px; color: $accent; }
 	}
 
 	.tile-name {
-		font-size: 11px;
+		font-size: 10px;
 		font-weight: 700;
 		text-align: center;
-		line-height: 1.15;
+		line-height: 1.1;
 		color: $text;
 		width: 100%;
 		flex-direction: row;
@@ -519,26 +542,26 @@ root {
 	}
 
 	.tile-foot {
-		font-size: 10px;
+		font-size: 9px;
 		font-weight: 700;
 		text-align: center;
-		line-height: 1.15;
+		line-height: 1.1;
 		width: 100%;
 		flex-direction: row;
 		justify-content: center;
 		align-items: center;
 
 		&.cost {
-			gap: 3px;
-			font-size: 11px;
+			gap: 2px;
+			font-size: 10px;
 			font-weight: 800;
 			color: $gold;
 			white-space: nowrap;
-			.icon { color: $gold; font-size: 12px; }
+			.icon { color: $gold; font-size: 11px; }
 		}
 
-		&.sub { color: $muted; font-weight: 600; white-space: normal; flex-wrap: wrap; }
-		&.lock { color: rgba(255, 255, 255, 0.45); white-space: normal; flex-wrap: wrap; }
+		&.sub { color: $muted; font-weight: 600; white-space: normal; flex-wrap: wrap; font-size: 9px; }
+		&.lock { color: rgba(255, 255, 255, 0.45); white-space: normal; flex-wrap: wrap; font-size: 8px; line-height: 1.05; }
 
 		&.repair-foot {
 			flex-direction: column;
@@ -1244,6 +1267,11 @@ root {
 		border-color: rgba(255, 193, 7, 0.22);
 		background: rgba(255, 193, 7, 0.08);
 	}
+
+	&.in-progress {
+		border-color: rgba(100, 180, 255, 0.22);
+		background: rgba(100, 180, 255, 0.08);
+	}
 }
 
 .lb-col {
@@ -1268,7 +1296,7 @@ root {
 	}
 
 	&.nights {
-		width: 120px;
+		width: 132px;
 		text-align: right;
 		font-weight: 800;
 		color: $gold;
@@ -2269,40 +2297,107 @@ root {
 	margin-bottom: 4px;
 }
 
-.team-grid {
-	flex-direction: row;
-	flex-wrap: wrap;
+.team-list {
 	gap: 10px;
-	margin-bottom: 14px;
+	max-height: 440px;
+	margin-bottom: 4px;
 }
 
-.team-card {
-	flex: 1 1 calc(33% - 10px);
-	min-width: 140px;
-	padding: 14px;
-	border-radius: 14px;
-	background: rgba(255, 255, 255, 0.04);
-	border: 1px solid $stroke;
+.team-pick-row {
+	position: relative;
 	cursor: pointer;
+	border: 1px solid $stroke;
+	min-height: 74px;
+	align-items: center;
+	transition: background 0.12s ease-out, border-color 0.12s ease-out, box-shadow 0.12s ease-out;
 
-	.icon { font-size: 28px; color: $blue; margin-bottom: 8px; }
-	.team-name { font-size: 14px; font-weight: 800; color: $text; }
-	.team-desc { font-size: 12px; color: $muted; margin-top: 4px; }
+	.row-icon-wrap {
+		width: 44px;
+		height: 44px;
+		background: rgba(255, 255, 255, 0.05);
+		border: 1px solid transparent;
 
-	&.selected {
-		border-color: $accent;
-		background: rgba(74, 222, 128, 0.08);
+		.icon { color: $blue; }
+	}
+
+	.row-text { gap: 4px; }
+
+	&:hover:not(.picked) {
+		background: rgba(255, 255, 255, 0.06);
+		border-color: $stroke-strong;
+	}
+
+	&.picked {
+		border-color: $accent-border;
+		background: $accent-soft;
+		box-shadow: 0px 0px 14px rgba(74, 222, 128, 0.16);
+
+		.row-icon-wrap {
+			background: rgba(74, 222, 128, 0.16);
+			border-color: $accent-border;
+
+			.icon { color: $accent; }
+		}
+
+		.row-name { color: $text; }
 	}
 }
 
-.cure-wait {
-	padding: 14px 18px;
-	text-align: center;
+.team-pick-check {
+	width: 28px;
+	height: 28px;
+	flex-shrink: 0;
+	flex-direction: row;
+	justify-content: center;
+	align-items: center;
 
-	.start-title { font-size: 14px; font-weight: 800; color: $text; }
-	.start-sub { font-size: 12px; color: $muted; margin-top: 4px; }
+	.icon {
+		font-size: 22px;
+		color: rgba(255, 255, 255, 0.28);
+	}
+
+	&.on .icon { color: $accent; }
+}
+
+.team-pick-actions {
+	flex-direction: row;
+	gap: 10px;
+	margin-top: 18px;
+	width: 100%;
+
+	.btn { flex-grow: 1; flex-basis: 0; }
 }
 
 .pill.res.specimens .icon { color: #c084fc; }
+.pill.res.food .icon { color: #86efac; }
+.pill.res.supplies .icon { color: #fbbf24; }
+.pill.res.knowledge .icon { color: #93c5fd; }
 
-.cure-season .num { font-size: 12px; }
+.cure-season {
+	left: 50%;
+	margin-left: -130px;
+	width: 260px;
+	white-space: normal;
+
+	.night-text {
+		align-items: center;
+		gap: 1px;
+	}
+
+	.num {
+		font-size: 13px;
+		font-weight: 800;
+		letter-spacing: 0.2px;
+		color: $text;
+		white-space: nowrap;
+	}
+
+	.num-sub {
+		font-size: 12px;
+		font-weight: 700;
+		color: $muted;
+		margin-top: 1px;
+		text-align: center;
+		white-space: nowrap;
+	}
+}

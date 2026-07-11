@@ -29,7 +29,7 @@ public sealed class SavedRunRecord
 
 public sealed class SaveData
 {
-	public int Version { get; set; } = 16;
+	public int Version { get; set; } = 17;
 
 	public double Scrap { get; set; } = GameConstants.StartingScrap;
 	public double LifetimeEarned { get; set; }
@@ -134,6 +134,12 @@ public sealed class SaveData
 	public int CureThreatIndex { get; set; }
 	public bool EverSurvivedWinterThreat { get; set; }
 	public bool CureRunComplete { get; set; }
+
+	// v17: civ-lite colony sim (Road to a Cure).
+	public List<string> UnlockedTech { get; set; } = new();
+	public List<string> AlliedCivPlots { get; set; } = new();
+	public List<string> RaidedCivPlots { get; set; } = new();
+	public List<string> ClearedBossPlots { get; set; } = new();
 
 	/// <summary>Whether the main menu should offer Continue vs Start New Game (Survival).</summary>
 	public bool HasRunInProgress =>
@@ -268,7 +274,15 @@ public sealed class SaveData
 			CureObjectivesDone ??= new List<string>();
 		}
 
-		Version = 16;
+		if ( Version < 17 )
+		{
+			UnlockedTech ??= new List<string>();
+			AlliedCivPlots ??= new List<string>();
+			RaidedCivPlots ??= new List<string>();
+			ClearedBossPlots ??= new List<string>();
+		}
+
+		Version = 17;
 
 		while ( RecruitHealth.Count < Recruits.Count )
 			RecruitHealth.Add( GameConstants.RecruitMaxHealth );
@@ -440,6 +454,10 @@ public sealed class SaveData
 		CureThreatIndex = 0;
 		EverSurvivedWinterThreat = false;
 		CureRunComplete = false;
+		UnlockedTech = new List<string>();
+		AlliedCivPlots = new List<string>();
+		RaidedCivPlots = new List<string>();
+		ClearedBossPlots = new List<string>();
 		ObjectivesDone = new List<string>();
 		MilestonesDone = new List<string>();
 		TotalKills = 0;

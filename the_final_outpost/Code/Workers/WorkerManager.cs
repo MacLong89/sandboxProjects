@@ -3,13 +3,22 @@ namespace FinalOutpost;
 public enum WorkerRole
 {
 	Forager,   // harvests the resource of its assigned plot
-	Craftsman, // converts stored resources into scrap
-	Repairman  // slowly repairs the most-damaged base structure
+	Craftsman, // converts stored resources into scrap (Survival)
+	Repairman, // slowly repairs the most-damaged base structure (Survival)
+	Farmer,    // steady food income (Cure)
+	Scholar,   // knowledge for tech tree + lab boost (Cure)
+	Operator,  // supplies and repair queue speed (Cure)
+	Medic,     // heals injured recruits (Cure)
+	Merchant   // steady scrap income (Cure)
 }
 
 public static class WorkerInfo
 {
-	public static readonly WorkerRole[] Order = { WorkerRole.Forager, WorkerRole.Craftsman, WorkerRole.Repairman };
+	public static readonly WorkerRole[] SurvivalRoles = { WorkerRole.Craftsman, WorkerRole.Repairman };
+	public static readonly WorkerRole[] CureRoles = { WorkerRole.Farmer, WorkerRole.Scholar, WorkerRole.Operator, WorkerRole.Medic, WorkerRole.Merchant };
+	public static readonly WorkerRole[] Order = { WorkerRole.Forager, WorkerRole.Craftsman, WorkerRole.Repairman, WorkerRole.Farmer, WorkerRole.Scholar, WorkerRole.Operator, WorkerRole.Medic, WorkerRole.Merchant };
+
+	public static WorkerRole[] RolesForMode( bool isCure ) => isCure ? CureRoles : SurvivalRoles;
 
 	public static WorkerRole Parse( string s ) => Enum.TryParse<WorkerRole>( s, out var r ) ? r : WorkerRole.Forager;
 
@@ -18,6 +27,11 @@ public static class WorkerInfo
 		WorkerRole.Forager => "Forager",
 		WorkerRole.Craftsman => "Craftsman",
 		WorkerRole.Repairman => "Repairman",
+		WorkerRole.Farmer => "Farmer",
+		WorkerRole.Scholar => "Scholar",
+		WorkerRole.Operator => "Operator",
+		WorkerRole.Medic => "Medic",
+		WorkerRole.Merchant => "Merchant",
 		_ => "Worker"
 	};
 
@@ -26,6 +40,11 @@ public static class WorkerInfo
 		WorkerRole.Forager => "forest",
 		WorkerRole.Craftsman => "handyman",
 		WorkerRole.Repairman => "construction",
+		WorkerRole.Farmer => "agriculture",
+		WorkerRole.Scholar => "menu_book",
+		WorkerRole.Operator => "precision_manufacturing",
+		WorkerRole.Medic => "medical_services",
+		WorkerRole.Merchant => "storefront",
 		_ => "person"
 	};
 
@@ -34,6 +53,11 @@ public static class WorkerInfo
 		WorkerRole.Forager => "Harvests a claimed resource plot.",
 		WorkerRole.Craftsman => "Turns stored resources into scrap.",
 		WorkerRole.Repairman => "Queues and completes repairs during the day. Speeds up the repair queue.",
+		WorkerRole.Farmer => $"+{CureConstants.FarmerFoodPerSec:0.0} food/s.",
+		WorkerRole.Scholar => $"+{CureConstants.ScholarKnowledgePerSec:0.0} knowledge/s · boosts lab output.",
+		WorkerRole.Operator => $"+{CureConstants.OperatorSuppliesPerSec:0.0} supplies/s · speeds repairs.",
+		WorkerRole.Medic => $"Heals injured recruits ({CureConstants.MedicRecruitHealPerSec:0.0} HP/s nearby).",
+		WorkerRole.Merchant => $"+{CureConstants.MerchantScrapPerSec:0.0} scrap/s.",
 		_ => ""
 	};
 
@@ -42,6 +66,11 @@ public static class WorkerInfo
 		WorkerRole.Forager => new Color( 0.45f, 0.7f, 0.4f ),
 		WorkerRole.Craftsman => new Color( 0.82f, 0.68f, 0.4f ),
 		WorkerRole.Repairman => new Color( 0.5f, 0.62f, 0.85f ),
+		WorkerRole.Farmer => new Color( 0.42f, 0.78f, 0.38f ),
+		WorkerRole.Scholar => new Color( 0.55f, 0.72f, 0.95f ),
+		WorkerRole.Operator => new Color( 0.72f, 0.58f, 0.42f ),
+		WorkerRole.Medic => new Color( 0.92f, 0.95f, 0.98f ),
+		WorkerRole.Merchant => new Color( 0.85f, 0.62f, 0.32f ),
 		_ => Color.White
 	};
 
@@ -50,10 +79,18 @@ public static class WorkerInfo
 		WorkerRole.Forager => GameConstants.WorkerHireCost,
 		WorkerRole.Craftsman => GameConstants.WorkerHireCost * 1.4,
 		WorkerRole.Repairman => GameConstants.WorkerHireCost * 1.6,
+		WorkerRole.Farmer => GameConstants.WorkerHireCost * 1.1,
+		WorkerRole.Scholar => GameConstants.WorkerHireCost * 1.35,
+		WorkerRole.Operator => GameConstants.WorkerHireCost * 1.5,
+		WorkerRole.Medic => GameConstants.WorkerHireCost * 1.55,
+		WorkerRole.Merchant => GameConstants.WorkerHireCost * 1.45,
 		_ => GameConstants.WorkerHireCost
 	};
 
 	public static int UnlockNight( WorkerRole r ) => NightUnlocks.WorkerUnlockNight( r );
+
+	public static bool IsRepairSpecialist( WorkerRole role ) =>
+		role is WorkerRole.Repairman or WorkerRole.Operator;
 }
 
 /// <summary>
@@ -85,10 +122,22 @@ public sealed class WorkerManager : Component
 		return n;
 	}
 
+	public int RepairSpeedContributors()
+	{
+		var factories = 0;
+		foreach ( var b in BuildManager.Instance?.Buildings ?? Array.Empty<PlacedBuilding>() )
+			if ( !b.IsDestroyed && b.Type == BuildableId.Factory ) factories++;
+
+		var n = factories / 2;
+		foreach ( var u in _units )
+			if ( WorkerInfo.IsRepairSpecialist( u.Role ) ) n++;
+		return n;
+	}
+
 	public bool HasLivingRepairman()
 	{
 		foreach ( var u in _units )
-			if ( u.Role == WorkerRole.Repairman && u.Go.IsValid() )
+			if ( WorkerInfo.IsRepairSpecialist( u.Role ) && u.Go.IsValid() )
 				return true;
 		return false;
 	}
@@ -116,7 +165,7 @@ public sealed class WorkerManager : Component
 	{
 		var plots = PlotManager.Instance;
 		if ( plots is null || !plots.IsOwned( px, py ) ) return false;
-		if ( PlotGrid.ResourceAt( px, py ) == ResourceKind.None ) return false;
+		if ( PlotGrid.HarvestResourceAt( px, py ) == ResourceKind.None ) return false;
 		return HireInternal( WorkerRole.Forager, px, py );
 	}
 
@@ -132,7 +181,7 @@ public sealed class WorkerManager : Component
 
 		core.Save.Workers.Add( new SavedWorker { Role = role.ToString(), PlotX = px, PlotY = py } );
 		RespawnAll();
-		if ( role == WorkerRole.Repairman )
+		if ( WorkerInfo.IsRepairSpecialist( role ) )
 			TryAutoRepairOnDayStart();
 		Sfx.Play( Sfx.Purchase );
 		core.SaveManagerTouch();
@@ -166,6 +215,19 @@ public sealed class WorkerManager : Component
 		return false;
 	}
 
+	public void SyncForagerPlot( WorkerUnit unit )
+	{
+		var core = GameCore.Instance;
+		if ( core?.Save is null || unit?.Role != WorkerRole.Forager ) return;
+
+		var idx = _units.IndexOf( unit );
+		if ( idx < 0 || idx >= core.Save.Workers.Count ) return;
+
+		core.Save.Workers[idx].PlotX = unit.PlotX;
+		core.Save.Workers[idx].PlotY = unit.PlotY;
+		core.SaveManagerTouch();
+	}
+
 	public void RebuildFromSave() => RespawnAll();
 
 	protected override void OnUpdate()
@@ -197,6 +259,14 @@ public sealed class WorkerManager : Component
 
 		var go = new GameObject( true, $"Worker_{role}" );
 		go.WorldPosition = home.WithZ( OutpostTerrain.SampleHeight( home.x, home.y ) );
+		if ( BuildingCollision.BlocksUnit( go.WorldPosition ) )
+		{
+			var (center, radius) = role == WorkerRole.Forager && sw.HasPlot && PlotGrid.InGrid( sw.PlotX, sw.PlotY )
+				? (PlotGrid.CenterWorld( sw.PlotX, sw.PlotY ), GameConstants.PlotSize * 0.32f)
+				: (Vector3.Zero, GameConstants.ArenaHalf * 0.45f);
+			if ( BuildingCollision.TryFindClearPoint( center, 0f, radius, out var clear ) )
+				go.WorldPosition = clear.WithZ( OutpostTerrain.SampleHeight( clear.x, clear.y ) );
+		}
 
 		var character = go.Components.Create<CharacterModel>();
 		character.Setup( WorkerInfo.Tint( role ), null, Sandbox.Citizen.CitizenAnimationHelper.HoldTypes.None );
@@ -237,18 +307,44 @@ public sealed class WorkerManager : Component
 		public int PlotX = int.MinValue;
 		public int PlotY = int.MinValue;
 
+		private UnitLocomotion.WanderState _wander;
+		private float _moveStuckTimer;
 		private Rotation _aim = Rotation.Identity;
-		private Vector3 _waypoint;
-		private bool _hasWaypoint;
-		private float _repathTimer;
 		private double _harvestAccum;
 		private double _scrapAccum;
+		private UnitOrderKind _orderKind = UnitOrderKind.None;
+		private Vector3 _orderTarget;
+		private bool _manualMove;
 
 		public Vector3 WorldPos => Go.IsValid() ? Go.WorldPosition : Vector3.Zero;
 
+		public void SetMoveOrder( Vector3 ground )
+		{
+			_orderKind = UnitOrderKind.Move;
+			_orderTarget = ground.WithZ( 0f );
+			_manualMove = true;
+			_wander.HasWaypoint = false;
+		}
+
+		public void SetGatherOrder( int plotX, int plotY )
+		{
+			PlotX = plotX;
+			PlotY = plotY;
+			_orderKind = UnitOrderKind.Gather;
+			_manualMove = false;
+			_wander.HasWaypoint = false;
+			WorkerManager.Instance?.SyncForagerPlot( this );
+		}
+
+		public void ClearOrder()
+		{
+			_orderKind = UnitOrderKind.None;
+			_manualMove = false;
+		}
+
 		public bool HasPlot => PlotX != int.MinValue && PlotY != int.MinValue;
 
-		public ResourceKind PlotResource => HasPlot ? PlotGrid.ResourceAt( PlotX, PlotY ) : ResourceKind.None;
+		public ResourceKind PlotResource => HasPlot ? PlotGrid.HarvestResourceAt( PlotX, PlotY ) : ResourceKind.None;
 
 		public bool IsWorking
 		{
@@ -266,9 +362,24 @@ public sealed class WorkerManager : Component
 		{
 			if ( !Go.IsValid() ) return;
 
-			// Movement: forager roams its plot; others roam near the base.
-			var (center, radius) = RoamArea();
-			Wander( dt, center, radius, GameConstants.WorkerMoveSpeed );
+			var speed = GameConstants.WorkerMoveSpeed;
+			if ( core.IsCure && TechTreeCatalog.IsUnlocked( core.Save, "tactics" ) )
+				speed *= 1.2f;
+
+			if ( _orderKind == UnitOrderKind.Move && _manualMove )
+			{
+				UnitLocomotion.MoveHumanoid( Go, _orderTarget, dt, speed, ref _aim, Character, ref _moveStuckTimer );
+				if ( (_orderTarget - Go.WorldPosition).WithZ( 0f ).Length <= UnitLocomotion.ArrivalDistance )
+				{
+					_orderKind = UnitOrderKind.None;
+					_manualMove = false;
+				}
+			}
+			else
+			{
+				var (center, radius) = RoamArea();
+				UnitLocomotion.TickWander( ref _wander, Go, center, radius * 0.15f, radius, dt, speed, ref _aim, Character );
+			}
 
 			// Job.
 			switch ( Role )
@@ -279,6 +390,15 @@ public sealed class WorkerManager : Component
 					if ( core.Phase == GamePhase.Day )
 						DoRepair( dt );
 					break;
+				case WorkerRole.Farmer: DoFarm( dt, core ); break;
+				case WorkerRole.Scholar: DoStudy( dt, core ); break;
+				case WorkerRole.Operator:
+					DoOperate( dt, core );
+					if ( core.Phase == GamePhase.Day )
+						DoRepair( dt );
+					break;
+				case WorkerRole.Medic: DoMedic( dt, core ); break;
+				case WorkerRole.Merchant: DoTrade( dt, core ); break;
 			}
 		}
 
@@ -325,6 +445,45 @@ public sealed class WorkerManager : Component
 			}
 		}
 
+		private void DoFarm( float dt, GameCore core )
+		{
+			if ( !core.IsCure ) return;
+			core.Resources.Add( ResourceKind.Food, CureConstants.FarmerFoodPerSec * dt );
+		}
+
+		private void DoStudy( float dt, GameCore core )
+		{
+			if ( !core.IsCure ) return;
+			var mult = TechTreeCatalog.IsUnlocked( core.Save, "synthesis" ) ? 1.25f : 1f;
+			core.Resources.Add( ResourceKind.Knowledge, CureConstants.ScholarKnowledgePerSec * dt * mult );
+		}
+
+		private void DoOperate( float dt, GameCore core )
+		{
+			if ( !core.IsCure ) return;
+			core.Resources.Add( ResourceKind.Supplies, CureConstants.OperatorSuppliesPerSec * dt );
+		}
+
+		private void DoMedic( float dt, GameCore core )
+		{
+			if ( !core.IsCure ) return;
+			var heal = CureConstants.MedicRecruitHealPerSec * dt;
+			if ( heal <= 0f ) return;
+			DefenderManager.Instance?.HealInRadius( Go.WorldPosition, CureConstants.MedicHealRadius, heal );
+		}
+
+		private void DoTrade( float dt, GameCore core )
+		{
+			if ( !core.IsCure ) return;
+			_scrapAccum += CureConstants.MerchantScrapPerSec * dt;
+			if ( _scrapAccum >= 0.5 )
+			{
+				var whole = Math.Floor( _scrapAccum );
+				_scrapAccum -= whole;
+				core.Wallet.Earn( whole );
+			}
+		}
+
 		private void DoRepair( float dt )
 		{
 			_ = dt;
@@ -332,51 +491,6 @@ public sealed class WorkerManager : Component
 			if ( build is null || build.RepairAllCost() <= 0 ) return;
 
 			RepairManager.Instance?.TryEnqueueFreeRepairs( build.Buildings );
-		}
-
-		private void Wander( float dt, Vector3 center, float radius, float speed )
-		{
-			var pos = Go.WorldPosition;
-			_repathTimer -= dt;
-
-			if ( !_hasWaypoint || _repathTimer <= 0f
-			     || (_waypoint - pos).WithZ( 0f ).Length <= GameConstants.DefenderHomeDeadzone )
-				PickWaypoint( center, radius );
-
-			MoveToward( _waypoint, dt, speed );
-		}
-
-		private void PickWaypoint( Vector3 center, float radius )
-		{
-			var angle = Game.Random.Float( 0f, MathF.PI * 2f );
-			var r = Game.Random.Float( radius * 0.15f, radius );
-			_waypoint = new Vector3( center.x + MathF.Cos( angle ) * r, center.y + MathF.Sin( angle ) * r, 0f );
-			_hasWaypoint = true;
-			_repathTimer = Game.Random.Float( 2.5f, 5.5f );
-		}
-
-		private void MoveToward( Vector3 targetXY, float dt, float speed )
-		{
-			var pos = Go.WorldPosition;
-			var to = (targetXY - pos).WithZ( 0f );
-			var dist = to.Length;
-
-			if ( dist < 1f )
-			{
-				Character?.Tick( Vector3.Zero, _aim );
-				return;
-			}
-
-			var dir = to / dist;
-			_aim = Rotation.LookAt( dir );
-
-			var step = MathF.Min( dist, speed * dt );
-			var next = pos + dir * step;
-			next.z = OutpostTerrain.SampleHeight( next.x, next.y );
-			Go.WorldPosition = next;
-			Go.WorldRotation = _aim;
-
-			Character?.Tick( dir * speed, _aim );
 		}
 	}
 }

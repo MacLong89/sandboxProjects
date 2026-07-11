@@ -1,5 +1,7 @@
 namespace Terraingen.UI.Menu;
 
+using Terraingen.Clutter;
+using Terraingen.Multiplayer;
 using Terraingen.UI;
 using Terraingen.UI.Core;
 
@@ -40,7 +42,16 @@ public static class ThornsMenuJoinFlow
 
 	public static void SetProgressMessage( string message )
 	{
-		_customMessage = message?.Trim() ?? "";
+		var next = message?.Trim() ?? "";
+		if ( _customMessage == next )
+			return;
+
+		_customMessage = next;
+		if ( !string.IsNullOrWhiteSpace( _customMessage ) )
+			ThornsJoinFlowDebug.JoinInfo( $"Progress message: '{_customMessage}' (stage={CurrentStage})" );
+
+		if ( IsProgressVisible )
+			ThornsLoadingScreenUtil.Show( ProgressMessage );
 		StageChanged?.Invoke( CurrentStage );
 		UiRevisionBus.Publish( UiRevisionChannel.Menu );
 	}
@@ -60,12 +71,17 @@ public static class ThornsMenuJoinFlow
 		if ( CurrentStage == stage )
 			return;
 
+		var previous = CurrentStage;
 		CurrentStage = stage;
+		ThornsJoinFlowDebug.JoinInfo( $"Stage {previous} → {stage}" );
 
 		if ( stage == ThornsMenuJoinStage.Idle )
 			_customMessage = "";
 		else if ( stage != ThornsMenuJoinStage.Connecting )
 			_customMessage = "";
+
+		if ( stage != ThornsMenuJoinStage.Idle )
+			ThornsLoadingScreenUtil.Show( ProgressMessage );
 
 		StageChanged?.Invoke( stage );
 		UiRevisionBus.Publish( UiRevisionChannel.Menu );
@@ -89,6 +105,8 @@ public static class ThornsMenuJoinFlow
 	/// <summary>Clears join progress and switches UI/input to active gameplay.</summary>
 	public static void CompleteEnterWorld()
 	{
+		ThornsJoinFlowDebug.LogMilestone( $"CompleteEnterWorld (was stage={CurrentStage} msg='{_customMessage}')" );
+		ThornsNearbyCosmeticsReadiness.Cancel();
 		Reset();
 		ThornsLoadingScreenUtil.Dismiss();
 		ThornsUiManager.SetContext( ThornsUiManager.UiContext.Gameplay );

@@ -18,7 +18,8 @@ public static class ThornsProjectResourcesGuard
 		if ( project?.Config is null )
 			return;
 
-		if ( !string.Equals( project.Config.Ident, "terraingen", StringComparison.OrdinalIgnoreCase ) )
+		if ( !string.Equals( project.Config.Ident, "terraingen", StringComparison.OrdinalIgnoreCase )
+		     && !string.Equals( project.Config.Ident, "thorns", StringComparison.OrdinalIgnoreCase ) )
 			return;
 
 		if ( _loggedForSession )
@@ -47,8 +48,10 @@ public static class ThornsProjectResourcesGuard
 		if ( string.IsNullOrWhiteSpace( assetsDirectory ) )
 			return;
 
-		CheckDiskFile( assetsDirectory, "ui/menu/menu_background.png", "main menu backdrop" );
-		CheckDiskFile( assetsDirectory, "map/co_height.png", "terrain heightmap" );
+		CheckDiskFile( assetsDirectory, ThornsRequiredPublishAssets.MainMenuBackdrop, "main menu backdrop" );
+		CheckDiskFile( assetsDirectory, ThornsRequiredPublishAssets.TabMenuBackdrop, "tab menu backdrop" );
+		CheckDiskFile( assetsDirectory, ThornsRequiredPublishAssets.TerrainHeightmap, "terrain heightmap" );
+		CheckDiskFile( assetsDirectory, ThornsRequiredPublishAssets.HudIconProbe, "HUD icon probe" );
 		CheckDiskFolderPngCount( assetsDirectory, "ui/iconsv8", "HUD icons" );
 	}
 

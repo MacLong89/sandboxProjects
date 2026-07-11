@@ -153,8 +153,16 @@ public static class GameConstants
 	public const float ZombieBaseDamage = 8f;
 	public const float ZombieDamagePerNight = 0.6f;
 	public const float ZombieRadius = 32f;
+	/// <summary>XY pathing radius for humanoids (smaller than <see cref="ZombieRadius"/> hit volume).</summary>
+	public const float UnitCollisionRadius = 10f;
+	/// <summary>Movement blockers use a tighter slice of building visuals so pathing matches what you see.</summary>
+	public const float BuildingCollisionScale = 0.82f;
+	public const float CommandPostCollisionScale = 0.85f;
+	/// <summary>When pathing stalls this close to melee, start attacking anyway.</summary>
+	public const float ZombieStuckEngageSlack = 24f;
 	public const float ZombieAttackInterval = 0.9f;
 	public const float ZombieMeleeRange = 70f;
+	public const float ZombieEngageExitBuffer = 18f;
 	public const float ZombieSeekRadius = 2800f;
 	public const float ZombieSpawnRing = 80f;
 

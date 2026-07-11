@@ -162,7 +162,7 @@ public sealed class WorldInteractSystem : Component
 				ref best,
 				ref bestScore,
 				WorldInteractKind.InspectHabitat,
-				$"Inspect {habitat.Biome} habitat",
+				$"Inspect {UiFormat.BiomeLabel( habitat.Biome )} habitat",
 				"build",
 				dist,
 				3,

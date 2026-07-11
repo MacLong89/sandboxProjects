@@ -16,19 +16,25 @@ public static class ThornsGameplaySession
 		ThornsDamageFlashState.Reset();
 		ThornsUnderwaterViewState.Reset();
 		ThornsMenuHost.ForceGameplayState();
-		ThornsMenuJoinFlow.CompleteEnterWorld();
 	}
 
 	public static void EnsureLocalPlayerControl( bool skipCameraReclaim = false )
 	{
-		var scene = Game.ActiveScene;
-		if ( scene is null || !scene.IsValid )
+		Scene scene = null;
+		GameObject player = null;
+
+		if ( !ThornsJoinLocalPlayer.TryResolve( out player, out scene ) )
 		{
-			Log.Warning( "[Thorns Player] EnsureLocalPlayerControl: no active scene." );
-			return;
+			scene = Game.ActiveScene;
+			if ( scene is null || !scene.IsValid )
+			{
+				Log.Warning( "[Thorns Player] EnsureLocalPlayerControl: no active scene." );
+				return;
+			}
+
+			player = ResolveLocalPlayer( scene );
 		}
 
-		var player = ResolveLocalPlayer( scene );
 		if ( !player.IsValid() )
 		{
 			Log.Warning( "[Thorns Player] EnsureLocalPlayerControl: no local player found." );

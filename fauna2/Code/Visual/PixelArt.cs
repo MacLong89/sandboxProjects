@@ -546,10 +546,21 @@ public static class PixelArt
 		if ( !tex.IsValid() )
 			tex = renderer.Texture;
 
+		// 8px tile sprites (paths, habitat floor, owned/wilderness cells) always fill a square cell.
+		if ( MathF.Abs( sourcePixels - TileSourcePixels ) < 0.01f )
+		{
+			renderer.Size = worldSize;
+			renderer.GameObject.LocalScale = Vector3.One;
+			return;
+		}
+
 		var aspect = contentAspect
 			?? (tex.IsValid() && tex.Height > 0 ? tex.Width / (float)tex.Height : 1f);
 
-		if ( contentAspect.HasValue || MathF.Abs( aspect - 1f ) < 0.01f )
+		// Non-square world footprints (habitat floors) must not be squashed to texture aspect.
+		var explicitFootprint = MathF.Abs( worldSize.x - worldSize.y ) > 0.5f;
+
+		if ( explicitFootprint || contentAspect.HasValue || MathF.Abs( aspect - 1f ) < 0.01f )
 			renderer.Size = worldSize;
 		else
 			renderer.Size = new Vector2( worldSize.x, worldSize.x / aspect );

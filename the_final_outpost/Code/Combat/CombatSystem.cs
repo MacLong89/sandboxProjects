@@ -107,7 +107,14 @@ public sealed class CombatSystem : Component
 		return z;
 	}
 
-	public ZombieInstance NearestZombie( Vector3 from, float range )
+	public ZombieInstance NearestZombie( Vector3 from, float range ) =>
+		NearestZombieInternal( from, range, losOrigin: null );
+
+	/// <summary>Nearest live zombie in range with unobstructed line of fire from <paramref name="losOrigin"/>.</summary>
+	public ZombieInstance NearestEngageableZombie( Vector3 from, float range, Vector3 losOrigin ) =>
+		NearestZombieInternal( from, range, losOrigin );
+
+	private ZombieInstance NearestZombieInternal( Vector3 from, float range, Vector3? losOrigin )
 	{
 		ZombieInstance best = null;
 		var bestD = range * range;
@@ -116,7 +123,13 @@ public sealed class CombatSystem : Component
 		{
 			if ( z.Dead ) continue;
 			var d = (z.Position - from).LengthSquared;
-			if ( d < bestD ) { bestD = d; best = z; }
+			if ( d >= bestD ) continue;
+
+			if ( losOrigin.HasValue && !BuildingCollision.HasLineOfFire( losOrigin.Value, z.Position ) )
+				continue;
+
+			bestD = d;
+			best = z;
 		}
 
 		return best;
@@ -183,9 +196,17 @@ public sealed class CombatSystem : Component
 
 			var pos = z.Position;
 			var target = FindTarget( z, pos, corePos, outpost, build, defenders );
+			var (engagePoint, attackDist, attackRadius) = ResolveEngagement( pos, target, corePos );
 
-			var moveGoal = target.Position;
-			if ( z.TypeDef?.CanJumpWalls != true
+			UpdateEngagedState( z, attackDist, attackRadius );
+
+			var faceTarget = FaceTarget( pos, target, corePos, z.Go.WorldRotation );
+			var facing = Rotation.Slerp( z.Go.WorldRotation, faceTarget, MathF.Min( 1f, dt * 14f ) );
+			z.Go.WorldRotation = facing;
+
+			var moveGoal = engagePoint;
+			if ( !z.IsEngaged
+				&& z.TypeDef?.CanJumpWalls != true
 				&& WallApproach.SideHasBreach( outpost.Walls, z.ApproachSide )
 				&& target.Kind != TargetKind.Wall
 				&& WallApproach.IsOutsideWalls( pos, corePos ) )
@@ -196,24 +217,51 @@ public sealed class CombatSystem : Component
 					moveGoal = waypoint;
 			}
 
-			var toMove = (moveGoal - pos).WithZ( 0f );
-			var distMove = toMove.Length;
-			var distAttack = (target.Position - pos).WithZ( 0f ).Length;
-			var facing = distMove > 1f ? Rotation.LookAt( toMove.Normal ) : z.Go.WorldRotation;
-			z.Go.WorldRotation = facing;
-
-			if ( distAttack <= target.AttackRadius )
+			if ( z.IsEngaged )
 			{
-				AttackTarget( z, target, outpost, build, defenders, dt, core, night );
-				z.Character?.TickZombie( Vector3.Zero, facing );
+				CreepTowardEngagePoint( z, pos, engagePoint, attackDist, dt );
+				var didSwing = AttackTarget( z, target, outpost, build, defenders, dt, core, night );
+				z.Character?.SetZombieEngaged( true );
+				z.Character?.TickZombie( facing.Forward * 24f, facing );
+				if ( didSwing )
+					z.Character?.TriggerMeleeSwing();
+				z.MoveStuckTimer = 0f;
 				continue;
 			}
+
+			z.Character?.SetZombieEngaged( false );
+
+			var toMove = (moveGoal - pos).WithZ( 0f );
+			var distMove = toMove.Length;
 
 			if ( distMove > 1f )
 			{
 				var dir = toMove / distMove;
-				var next = pos + dir * z.Speed * dt;
-				next.z = OutpostTerrain.SampleHeight( next.x, next.y );
+				var step = z.Speed * dt;
+				var next = BuildingCollision.ResolveStep( pos, moveGoal, step );
+
+				var moved = (next - pos).WithZ( 0f ).Length;
+				if ( moved < step * 0.08f )
+				{
+					z.MoveStuckTimer += dt;
+					if ( z.MoveStuckTimer > 0.35f )
+					{
+						if ( z.StrafeSign == 0 )
+							z.StrafeSign = Game.Random.Int( 0, 1 ) == 0 ? -1 : 1;
+
+						var perp = new Vector3( -dir.y, dir.x, 0f ) * z.StrafeSign;
+						var strafeGoal = pos + perp * (BuildingCollision.UnitRadius * 2.5f);
+						next = BuildingCollision.ResolveStep( pos, strafeGoal, step );
+						z.MoveStuckTimer = 0f;
+					}
+				}
+				else
+				{
+					z.MoveStuckTimer = 0f;
+					z.StrafeSign = 0;
+				}
+
+				next.z = pos.z + (OutpostTerrain.SampleHeight( next.x, next.y ) - pos.z) * MathF.Min( 1f, dt * 10f );
 				z.Go.WorldPosition = next;
 				z.Character?.TickZombie( dir * z.Speed, facing );
 			}
@@ -225,6 +273,102 @@ public sealed class CombatSystem : Component
 
 		if ( outpost.CoreHealth <= 0f )
 			core.OnCoreDestroyed();
+	}
+
+	private static void UpdateEngagedState( ZombieInstance z, float attackDist, float attackRadius )
+	{
+		if ( z.IsEngaged )
+		{
+			if ( attackDist > attackRadius + GameConstants.ZombieEngageExitBuffer )
+				z.IsEngaged = false;
+		}
+		else if ( attackDist <= attackRadius
+		          || (z.MoveStuckTimer > 0.28f && attackDist <= attackRadius + GameConstants.ZombieStuckEngageSlack) )
+		{
+			z.IsEngaged = true;
+		}
+	}
+
+	private static Vector3 TargetAimPoint( ZombieTarget target, Vector3 corePos )
+	{
+		switch ( target.Kind )
+		{
+			case TargetKind.Building when target.Building is not null:
+				return target.Building.Center;
+			case TargetKind.Defender when target.Defender is not null:
+				return target.Defender.WorldPos;
+			case TargetKind.Wall when target.Wall is not null:
+				return target.Wall.Center;
+			default:
+				return target.Position == Vector3.Zero ? corePos : target.Position;
+		}
+	}
+
+	private static Rotation FaceTarget( Vector3 pos, ZombieTarget target, Vector3 corePos, Rotation fallback )
+	{
+		var to = (TargetAimPoint( target, corePos ) - pos).WithZ( 0f );
+		if ( to.Length < 0.5f )
+			return fallback;
+
+		return Rotation.LookAt( to.Normal );
+	}
+
+	private static void CreepTowardEngagePoint(
+		ZombieInstance z,
+		Vector3 pos,
+		Vector3 engagePoint,
+		float attackDist,
+		float dt )
+	{
+		if ( attackDist <= 10f ) return;
+
+		var to = (engagePoint - pos).WithZ( 0f );
+		if ( to.Length < 0.5f ) return;
+
+		var creep = MathF.Min( to.Length, z.Speed * dt * 0.5f );
+		var next = pos + to.Normal * creep;
+		next.z = pos.z + (OutpostTerrain.SampleHeight( next.x, next.y ) - pos.z) * MathF.Min( 1f, dt * 10f );
+		z.Go.WorldPosition = next;
+	}
+
+	private static (Vector3 engagePoint, float attackDist, float attackRadius) ResolveEngagement(
+		Vector3 pos,
+		ZombieTarget target,
+		Vector3 corePos )
+	{
+		switch ( target.Kind )
+		{
+			case TargetKind.Building when target.Building is not null:
+			{
+				var center = target.Building.Center;
+				var size = target.Building.Def.CollisionFootprint;
+				return (
+					BuildingCollision.ApproachPoint( pos, center, size ),
+					BuildingCollision.DistToFootprintSurface( pos, center, size ),
+					GameConstants.ZombieMeleeRange );
+			}
+			case TargetKind.Core:
+			{
+				var footprint = BuildGrid.CommandPostCollisionFootprint;
+				return (
+					BuildingCollision.ApproachPoint( pos, corePos, footprint ),
+					BuildingCollision.DistToFootprintSurface( pos, corePos, footprint ),
+					GameConstants.ZombieMeleeRange );
+			}
+			case TargetKind.Defender when target.Defender is not null:
+			{
+				var center = target.Defender.WorldPos;
+				return (
+					center,
+					(center - pos).WithZ( 0f ).Length,
+					GameConstants.ZombieMeleeRange + GameConstants.UnitCollisionRadius );
+			}
+			default:
+				return (
+					target.Position,
+					(target.Position - pos).WithZ( 0f ).Length,
+					target.AttackRadius );
+		}
 	}
 
 	private static ZombieTarget FindTarget(
@@ -252,9 +396,18 @@ public sealed class CombatSystem : Component
 		void Consider( TargetKind kind, Vector3 position, float attackRadius,
 			WallSegment wall = null, PlacedBuilding building = null, DefenderManager.DefenderUnit defender = null )
 		{
-			var d = (position - pos).WithZ( 0f ).LengthSquared;
-			if ( d >= bestDist ) return;
-			bestDist = d;
+			float d;
+			if ( building is not null )
+				d = BuildingCollision.DistToFootprintSurface( pos, building.Center, building.Def.CollisionFootprint );
+			else if ( defender is not null )
+				d = (defender.WorldPos - pos).WithZ( 0f ).Length;
+			else if ( kind == TargetKind.Core )
+				d = BuildingCollision.DistToFootprintSurface( pos, corePos, BuildGrid.CommandPostCollisionFootprint );
+			else
+				d = (position - pos).WithZ( 0f ).Length;
+
+			if ( d * d >= bestDist ) return;
+			bestDist = d * d;
 			best = new ZombieTarget
 			{
 				Kind = kind,
@@ -283,7 +436,8 @@ public sealed class CombatSystem : Component
 			foreach ( var b in build.Buildings )
 			{
 				if ( b.IsDestroyed ) continue;
-				if ( (b.Center - pos).Length > GameConstants.ZombieSeekRadius ) continue;
+				if ( BuildingCollision.DistToFootprintSurface( pos, b.Center, b.Def.CollisionFootprint ) > GameConstants.ZombieSeekRadius )
+					continue;
 				Consider( TargetKind.Building, b.Center, GameConstants.ZombieMeleeRange, building: b );
 			}
 		}
@@ -309,7 +463,7 @@ public sealed class CombatSystem : Component
 		};
 	}
 
-	private void AttackTarget(
+	private bool AttackTarget(
 		ZombieInstance z,
 		ZombieTarget target,
 		OutpostManager outpost,
@@ -320,7 +474,7 @@ public sealed class CombatSystem : Component
 		int night )
 	{
 		z.AttackTimer -= dt;
-		if ( z.AttackTimer > 0f ) return;
+		if ( z.AttackTimer > 0f ) return false;
 
 		z.AttackTimer = GameConstants.ZombieAttackInterval;
 
@@ -332,7 +486,7 @@ public sealed class CombatSystem : Component
 					outpost.DamageCore( z.TypeDef.CoreExplosionDamage + z.Damage );
 					z.Dead = true;
 					CombatAudio.PlayImpact( CombatAudio.ImpactKind.BomberExplode, "core", "ZombieBomberExplode" );
-					return;
+					return true;
 				}
 
 				outpost.DamageCore( z.Damage );
@@ -370,6 +524,8 @@ public sealed class CombatSystem : Component
 
 				break;
 		}
+
+		return true;
 	}
 
 	private static string DefenderKey( DefenderManager.DefenderUnit defender ) =>

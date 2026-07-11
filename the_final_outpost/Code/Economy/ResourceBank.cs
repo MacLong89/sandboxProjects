@@ -7,13 +7,16 @@ public enum ResourceKind
 	Wood,
 	Stone,
 	Water,
-	Specimens
+	Specimens,
+	Food,
+	Supplies,
+	Knowledge
 }
 
 public static class ResourceInfo
 {
-	public static readonly ResourceKind[] Harvestable = { ResourceKind.Wood, ResourceKind.Stone, ResourceKind.Water };
-	public static readonly ResourceKind[] AllStockpiled = { ResourceKind.Wood, ResourceKind.Stone, ResourceKind.Water, ResourceKind.Specimens };
+	public static readonly ResourceKind[] Harvestable = { ResourceKind.Wood, ResourceKind.Stone, ResourceKind.Water, ResourceKind.Food, ResourceKind.Supplies, ResourceKind.Knowledge };
+	public static readonly ResourceKind[] AllStockpiled = { ResourceKind.Wood, ResourceKind.Stone, ResourceKind.Water, ResourceKind.Specimens, ResourceKind.Food, ResourceKind.Supplies, ResourceKind.Knowledge };
 
 	public static string Name( ResourceKind k ) => k switch
 	{
@@ -21,6 +24,9 @@ public static class ResourceInfo
 		ResourceKind.Stone => "Stone",
 		ResourceKind.Water => "Water",
 		ResourceKind.Specimens => "Specimens",
+		ResourceKind.Food => "Food",
+		ResourceKind.Supplies => "Supplies",
+		ResourceKind.Knowledge => "Knowledge",
 		_ => "None"
 	};
 
@@ -30,6 +36,9 @@ public static class ResourceInfo
 		ResourceKind.Stone => "landscape",
 		ResourceKind.Water => "water_drop",
 		ResourceKind.Specimens => "biotech",
+		ResourceKind.Food => "restaurant",
+		ResourceKind.Supplies => "inventory_2",
+		ResourceKind.Knowledge => "school",
 		_ => "block"
 	};
 
@@ -39,6 +48,9 @@ public static class ResourceInfo
 		ResourceKind.Stone => new Color( 0.58f, 0.58f, 0.62f ),
 		ResourceKind.Water => new Color( 0.35f, 0.62f, 0.9f ),
 		ResourceKind.Specimens => new Color( 0.72f, 0.45f, 0.85f ),
+		ResourceKind.Food => new Color( 0.45f, 0.82f, 0.38f ),
+		ResourceKind.Supplies => new Color( 0.85f, 0.62f, 0.32f ),
+		ResourceKind.Knowledge => new Color( 0.45f, 0.68f, 0.95f ),
 		_ => new Color( 0.5f, 0.5f, 0.5f )
 	};
 

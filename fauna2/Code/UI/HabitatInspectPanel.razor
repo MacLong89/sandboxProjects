@@ -16,7 +16,7 @@
 				<div class="header-text">
 					<div class="name">@(habitat.Definition?.DisplayName ?? "Habitat")</div>
 					<div class="tags">
-						<span class="tag biome">@habitat.Biome</span>
+						<span class="tag biome">@UiFormat.BiomeLabel( habitat.Biome )</span>
 						<span class="tag count">@animals.Count animal@(animals.Count == 1 ? "" : "s")</span>
 					</div>
 				</div>

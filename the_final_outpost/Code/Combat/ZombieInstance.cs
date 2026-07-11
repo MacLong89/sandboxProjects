@@ -12,6 +12,9 @@ public sealed class ZombieInstance
 	public float Damage;
 	public float Speed;
 	public float AttackTimer;
+	public float MoveStuckTimer;
+	public int StrafeSign;
+	public bool IsEngaged;
 	public bool Dead;
 	/// <summary>Which perimeter edge this zombie approached from — locks breach behavior to one side.</summary>
 	public WallApproachSide ApproachSide;

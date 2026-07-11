@@ -183,7 +183,7 @@ public sealed class BuildManager : Component
 	public static bool CountsTowardPlotStructureLimit( BuildableId id )
 	{
 		var role = BuildableCatalog.Get( id ).Role;
-		return role is BuildingRole.Defense or BuildingRole.Management;
+		return role is BuildingRole.Defense or BuildingRole.Management or BuildingRole.Civic;
 	}
 
 	public bool TryGetPlotAtCell( int cellX, int cellY, out int plotX, out int plotY )
@@ -231,7 +231,33 @@ public sealed class BuildManager : Component
 		if ( id is { } buildingId && IsPlotStructureLimitReached( cellX, cellY, buildingId, ignoreOccupied ) )
 			return false;
 
+		if ( id is not { } placeId )
+			return true;
+
+		var footprint = BuildableCatalog.Get( placeId ).VisualSize;
+		if ( OverlapsAnyBuilding( cellX, cellY, footprint, ignoreOccupied ) )
+			return false;
+
+		if ( BuildGrid.FootprintsOverlap( center, footprint, Vector3.Zero, BuildGrid.CommandPostFootprint ) )
+			return false;
+
 		return true;
+	}
+
+	private bool OverlapsAnyBuilding( int cellX, int cellY, Vector3 footprint, PlacedBuilding ignore = null )
+	{
+		var center = BuildGrid.CellToWorld( cellX, cellY );
+		foreach ( var b in _cells.Values )
+		{
+			if ( b.IsDestroyed ) continue;
+			if ( ignore is not null && ReferenceEquals( b, ignore ) ) continue;
+
+			var otherCenter = BuildGrid.CellToWorld( b.CellX, b.CellY );
+			if ( BuildGrid.FootprintsOverlap( center, footprint, otherCenter, b.Def.VisualSize ) )
+				return true;
+		}
+
+		return false;
 	}
 
 	public void TickBarracksHeal( float dt )
@@ -280,7 +306,11 @@ public sealed class BuildManager : Component
 			}
 		}
 
-		if ( !CanPlaceAt( cellX, cellY, id ) ) return false;
+		if ( !CanPlaceAt( cellX, cellY, id ) )
+		{
+			core.ShowToast( "Cannot place here — overlaps another building or the command post." );
+			return false;
+		}
 
 		var def = BuildableCatalog.Get( id );
 		if ( !NightUnlocks.IsBuildingUnlocked( core.Save, id ) ) return false;
@@ -325,7 +355,11 @@ public sealed class BuildManager : Component
 			}
 		}
 
-		if ( !CanPlaceAt( cellX, cellY, building.Type, building ) ) return false;
+		if ( !CanPlaceAt( cellX, cellY, building.Type, building ) )
+		{
+			core.ShowToast( "Cannot move here — overlaps another building or the command post." );
+			return false;
+		}
 
 		_cells.Remove( (building.CellX, building.CellY) );
 		building.Relocate( cellX, cellY );
@@ -558,6 +592,10 @@ public sealed class BuildManager : Component
 			}
 			else
 			{
+				if ( Selected is not null && GameCore.Instance?.IsCure == true
+				     && UnitOrderController.Instance?.TryIssueOrder( ground, Selected ) == true )
+					return;
+
 				var hit = PickSelectable( ground );
 				if ( hit is not null ) Select( hit );
 				else Deselect();

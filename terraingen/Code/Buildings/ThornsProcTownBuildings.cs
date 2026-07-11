@@ -225,6 +225,25 @@ public readonly struct ThornsTownNode
 	}
 }
 
+/// <summary>Host-authoritative building shell — joiners spawn from this, never re-run lot layout.</summary>
+public readonly record struct HostBuildingPlacementRecord(
+	Vector3 Position,
+	Rotation Rotation,
+	ThornsProcBuildingType BuildingType,
+	int VariantIndex,
+	int Stories,
+	int BuildingIndex,
+	float FoundationDepth,
+	int WidthCells,
+	int DepthCells );
+
+public readonly record struct HostTownNodeRecord(
+	int Index,
+	Vector3 Center,
+	ThornsPoiIdentity Identity,
+	int TargetBuildingCount,
+	int PlacedBuildingCount );
+
 public sealed class ThornsProcBuildingConfig
 {
 	[Property] public bool Enabled { get; set; } = true;
@@ -283,10 +302,33 @@ public sealed class ThornsWorldBuildingGenerator : Component
 	int _lastMicroTownBuildingTarget;
 	readonly List<SettlementLayout> _settlementLayouts = new();
 	readonly HashSet<int> _streetLayoutTownIndices = new();
+	readonly List<HostBuildingPlacementRecord> _hostSyncPlacements = new();
 	SettlementLayoutMetrics _layoutMetrics;
 
 	public IReadOnlyList<Vector3> TownCenters => _townCenters;
 	public IReadOnlyList<ThornsTownNode> TownNodes => _townNodes;
+
+	public HostBuildingPlacementRecord[] ExportHostSyncPlacements() => _hostSyncPlacements.ToArray();
+
+	public HostTownNodeRecord[] ExportHostSyncTownNodes()
+	{
+		if ( _townNodes.Count == 0 )
+			return Array.Empty<HostTownNodeRecord>();
+
+		var nodes = new HostTownNodeRecord[_townNodes.Count];
+		for ( var i = 0; i < _townNodes.Count; i++ )
+		{
+			var node = _townNodes[i];
+			nodes[i] = new HostTownNodeRecord(
+				node.Index,
+				node.Center,
+				node.Identity,
+				node.TargetBuildingCount,
+				node.PlacedBuildingCount );
+		}
+
+		return nodes;
+	}
 
 	public void Generate( Terrain terrain, HeightmapField field, ThornsTerrainConfig terrainConfig )
 	{
@@ -299,6 +341,7 @@ public sealed class ThornsWorldBuildingGenerator : Component
 		EnsureConfigDefaults();
 
 		Clear();
+		_hostSyncPlacements.Clear();
 		_spawner = new ThornsProcBuildingShellSpawner(
 			Scene,
 			Config.DevBoxModel,
@@ -556,6 +599,82 @@ public sealed class ThornsWorldBuildingGenerator : Component
 			SettlementDebugOverlay.Publish( _settlementLayouts );
 		ThornsMapWorldService.Instance?.NotifyWorldMarkersChanged();
 		ThornsWorldVisualLodService.EnsureForScene( Scene )?.RegisterProcBuildingField( _root );
+	}
+
+	/// <summary>Join client: instantiate host building shells without procedural lot layout.</summary>
+	public void ApplyHostSync(
+		IReadOnlyList<HostBuildingPlacementRecord> placements,
+		IReadOnlyList<HostTownNodeRecord> townNodes,
+		Terrain terrain,
+		ThornsTerrainConfig terrainConfig )
+	{
+		if ( placements is null || placements.Count == 0 )
+		{
+			Log.Warning( "[Thorns Buildings] Host sync skipped — no placements." );
+			return;
+		}
+
+		EnsureConfigDefaults();
+		Clear();
+		_hostSyncPlacements.Clear();
+
+		_spawner = new ThornsProcBuildingShellSpawner(
+			Scene,
+			Config.DevBoxModel,
+			Config.DebugLogging,
+			Config.MaxFurnitureDebugLogs );
+		_spawner.ResetCounters();
+
+		_root = Scene.CreateObject( true );
+		_root.Name = "Thorns Town Buildings";
+		_root.Parent = GameObject;
+
+		var service = _root.Components.Create<ThornsBuildingLootWorldService>();
+		service.Clear();
+
+		var rng = new Random( HashCode.Combine( terrainConfig?.WorldSeed ?? 0, 0xF01A1 ) );
+		for ( var i = 0; i < placements.Count; i++ )
+		{
+			var record = placements[i];
+			_spawner.Spawn(
+				new ThornsProcBuildingShellSpawner.Request(
+					record.Position,
+					record.Rotation,
+					_root,
+					record.BuildingType,
+					record.VariantIndex,
+					record.Stories,
+					record.BuildingIndex,
+					record.FoundationDepth,
+					$"Thorns Building {record.BuildingIndex:00} ({record.BuildingType}, {record.Stories}F, {record.WidthCells}x{record.DepthCells})",
+					WidthCells: record.WidthCells,
+					DepthCells: record.DepthCells ),
+				service,
+				rng );
+		}
+
+		_townNodes.Clear();
+		_townCenters.Clear();
+		if ( townNodes is not null )
+		{
+			for ( var i = 0; i < townNodes.Count; i++ )
+			{
+				var node = townNodes[i];
+				_townNodes.Add( new ThornsTownNode(
+					node.Index,
+					node.Center,
+					node.Identity,
+					node.TargetBuildingCount,
+					node.PlacedBuildingCount ) );
+				_townCenters.Add( node.Center );
+			}
+		}
+
+		service.HostSyncFurnitureContainers();
+		ThornsTownNodeRegistry.Publish( _townNodes );
+		ThornsMapWorldService.Instance?.NotifyWorldMarkersChanged();
+		ThornsWorldVisualLodService.EnsureForScene( Scene )?.RegisterProcBuildingField( _root );
+		Log.Info( $"[Thorns Buildings] Applied {placements.Count} host building(s), {townNodes?.Count ?? 0} POI node(s)." );
 	}
 
 	int PaintTownPaths( Terrain terrain, HeightmapField field, ThornsTerrainConfig terrainConfig, IReadOnlyList<Lot> placedLots )
@@ -1880,6 +1999,17 @@ public sealed class ThornsWorldBuildingGenerator : Component
 				DepthCells: lot.DepthCells ),
 			service,
 			placementRng );
+
+		_hostSyncPlacements.Add( new HostBuildingPlacementRecord(
+			lot.Position,
+			lot.Rotation,
+			buildingType,
+			variantIndex,
+			stories,
+			index,
+			foundationDepth,
+			lot.WidthCells,
+			lot.DepthCells ) );
 
 		_spawnedFurniture = _spawner.SpawnedFurniture;
 		_furnitureModelFallbacks = _spawner.FurnitureModelFallbacks;

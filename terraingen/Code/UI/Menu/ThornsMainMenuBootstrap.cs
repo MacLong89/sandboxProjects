@@ -19,12 +19,13 @@ public static class ThornsMainMenuBootstrap
 			throw new System.InvalidOperationException( "Main menu scene is invalid." );
 
 		UiRevisionBus.ResetMenuListeners();
-		ThornsMenuJoinFlow.ResetForMainMenu();
+		if ( !ThornsMenuJoinFlow.IsProgressVisible && !ThornsSessionBootstrap.IsJoiningRemoteLobby )
+			ThornsMenuJoinFlow.ResetForMainMenu();
 		ThornsUiCursor.EnsureMainMenuVisible();
 		ThornsMountedFiles.LogMountProbe( "main menu bootstrap" );
 		ThornsPublishedAssetValidation.LogBootValidation( "main menu bootstrap" );
 		if ( !ThornsMountedFiles.SamplePublishAssetsPresent )
-			ThornsGameplayUiDiagnostics.EnableForMountFailure();
+			ThornsRequiredPublishAssets.LogMissingMounted( "main menu bootstrap" );
 		EnsureMainCamera( scene );
 
 		var screenPanel = hostObject.Components.Get<ScreenPanel>( FindMode.EnabledInSelf );

@@ -6,14 +6,15 @@ using Sandbox.Network;
 using Terraingen;
 using Terraingen.Multiplayer;
 using Terraingen.Player;
+using Terraingen.TerrainGen;
 using Terraingen.UI.Core;
 
 /// <summary>Lobby query, tab filtering, and join/password helpers (presentation-free).</summary>
 public static class ThornsServerBrowserService
 {
-	const int JoinConnectionTimeoutMs = 20000;
-	const int JoinWorldSeedTimeoutMs = 12000;
-	const int JoinLocalPawnTimeoutMs = 25000;
+	const int JoinConnectionTimeoutMs = 45000;
+	const int JoinWorldSeedTimeoutMs = 45000;
+	const int JoinLocalPawnTimeoutMs = 60000;
 
 	public static async Task<IReadOnlyList<LobbyInformation>> QueryLobbiesAsync( CancellationToken token = default )
 	{
@@ -79,6 +80,7 @@ public static class ThornsServerBrowserService
 
 		ThornsSessionBootstrap.CancelHostFromLocalSaveRequest();
 		ThornsSessionBootstrap.RequestJoinRemoteLobbyNextGameplayLoad();
+		ThornsJoinFlowDebug.LogMilestone( "TryJoinAsync start" );
 		ThornsMenuJoinFlow.SetStage( ThornsMenuJoinStage.Connecting );
 		ThornsMenuJoinFlow.SetProgressMessage( "Connecting..." );
 
@@ -92,117 +94,131 @@ public static class ThornsServerBrowserService
 
 		try
 		{
+			// Load the gameplay scene WHILE OFFLINE, then Connect.
+			// Game.ChangeScene is rejected for non-host clients after Networking.Connect,
+			// and disconnect alone dumps into s&box menu-main — so joiners must enter
+			// thorns_terrain first. Host still owns lobby seed / networked pawns; the
+			// join flag blocks local lobby create and premature default-seed terrain.
+			ThornsMenuAudioHandoff.ArmForGameplayTransition();
+			ThornsMainMenuAtmosphere.BeginMusicFadeOut( 1.5f );
+
 			ThornsMenuJoinFlow.SetProgressMessage( "Loading world..." );
+			ThornsMenuJoinFlow.SetStage( ThornsMenuJoinStage.LoadingWorld );
+			ThornsJoinFlowDebug.LogMilestone( "LoadGameplayAsync" );
 			await ThornsMenuSceneLoader.LoadGameplayAsync();
 
 			if ( !ThornsMenuSceneLoader.IsInGameplayScene() )
 			{
-				Log.Warning( "[Thorns Menu] Join failed — gameplay scene did not load." );
-				AbortJoinAttempt();
-				return (false, "Could not load the game world — try again or restart the game.");
+				Log.Warning( "[Thorns Menu] Join failed — gameplay scene did not load before connect." );
+				await AbortJoinAttemptAsync();
+				return (false, "Could not load the world scene — try again." );
 			}
 
+			ThornsMenuSceneLoader.DismissActiveMainMenuUi();
 			ThornsMenuJoinFlow.SetProgressMessage( "Connecting..." );
+			ThornsMenuJoinFlow.SetStage( ThornsMenuJoinStage.Connecting );
+			ThornsSessionEnterController.BeginAwaitEnter();
+			ThornsJoinFlowDebug.LogMilestone( $"Networking.Connect lobby={lobby.LobbyId}" );
 			Networking.Connect( lobby.LobbyId );
 
 			if ( !await WaitForClientConnectionAsync( JoinConnectionTimeoutMs ) )
 			{
+				ThornsJoinFlowDebug.JoinWarn( "Connect timed out" );
 				Log.Warning( "[Thorns Menu] Join failed — could not connect to the host (timed out)." );
-				AbortJoinAttempt();
+				await AbortJoinAttemptAsync();
 				return (false, "Connection timed out — the host may be offline or your network blocked the join.");
 			}
+
+			ThornsMenuJoinFlow.SetProgressMessage( "Syncing host world..." );
+			ThornsMenuJoinFlow.SetStage( ThornsMenuJoinStage.LoadingWorld );
+
+			ThornsJoinFlowDebug.LogMilestone( "Connected — waiting for host world seed" );
 
 			if ( !await WaitForLobbyWorldSeedAsync( JoinWorldSeedTimeoutMs ) )
 			{
 				Log.Warning( "[Thorns Menu] Join failed — host world is not ready yet (missing world seed)." );
-				AbortJoinAttempt();
+				await AbortJoinAttemptAsync();
 				return (false, "The host world is still starting — wait a moment and try again.");
 			}
 
-			ThornsMenuJoinFlow.SetProgressMessage( "Spawning character..." );
-			ThornsMenuJoinFlow.SetStage( ThornsMenuJoinStage.SyncCharacter );
+			ThornsMenuJoinFlow.SetProgressMessage( "Entering world..." );
+			ThornsMenuJoinFlow.SetStage( ThornsMenuJoinStage.EnteringWorld );
 
-			if ( !await WaitForLocalPawnReadyAsync( JoinLocalPawnTimeoutMs ) )
+			ThornsJoinFlowDebug.LogMilestone( "World seed ready — waiting for enter" );
+
+			if ( !await ThornsSessionEnterController.WaitUntilReadyAsync( JoinLocalPawnTimeoutMs ) )
 			{
-				Log.Warning( "[Thorns Menu] Join failed — local player pawn did not spawn in time." );
-				AbortJoinAttempt();
+				ThornsJoinFlowDebug.JoinWarn(
+					$"TryJoinAsync enter wait failed — {ThornsJoinFlowDebug.DescribeEnterGates( compact: false )}" );
+
+				if ( await TryRecoverJoinInWorldAsync() )
+				{
+					Log.Warning( "[Thorns Menu] Join enter wait timed out — recovered in loaded world." );
+					return (true, "");
+				}
+
+				Log.Warning( "[Thorns Menu] Join failed — could not enter gameplay in time." );
+				await AbortJoinAttemptAsync();
 				return (false, "Your character did not spawn in time — the server may still be loading.");
 			}
 
-			ThornsMenuJoinFlow.SetProgressMessage( "Loading HUD..." );
-			ThornsMenuJoinFlow.SetStage( ThornsMenuJoinStage.SyncInventory );
-			if ( !await WaitForLocalPresentationReadyAsync( JoinLocalPawnTimeoutMs ) )
-				Log.Warning( "[Thorns Menu] Join presentation timed out — continuing with partial readiness." );
-
-			ThornsMenuJoinFlow.SetProgressMessage( "Entering world..." );
-			ThornsMenuJoinFlow.SetStage( ThornsMenuJoinStage.EnteringWorld );
 			return (true, "");
 		}
 		catch ( Exception e )
 		{
 			Log.Warning( e, "[Thorns Menu] Join failed." );
-			AbortJoinAttempt();
+			await AbortJoinAttemptAsync();
 			return (false, "Join failed unexpectedly — check your connection and try again.");
 		}
 	}
 
-	static void AbortJoinAttempt()
+	static async Task AbortJoinAttemptAsync()
 	{
+		if ( await TryRecoverJoinInWorldAsync() )
+		{
+			Log.Warning( "[Thorns Menu] Join aborted — recovered in loaded world instead of disconnecting." );
+			return;
+		}
+
 		ThornsSessionBootstrap.CancelJoinRemoteLobbyRequest();
+
 		if ( Networking.IsActive )
+		{
 			Networking.Disconnect();
-		ThornsNetworkSessionReset.ResetStaticState();
-	}
-
-	static async Task<bool> WaitForLocalPawnReadyAsync( int timeoutMs )
-	{
-		var deadline = DateTime.UtcNow.AddMilliseconds( timeoutMs );
-		while ( DateTime.UtcNow < deadline )
-		{
-			if ( ThornsPlayerGameplay.Local.IsValid()
-			     && ThornsLocalPlayer.IsLocallyControlledPawn( ThornsPlayerGameplay.Local.GameObject ) )
-				return true;
-
-			var scene = Game.ActiveScene;
-			if ( scene is { IsValid: true } )
-			{
-				var player = ThornsSceneObserver.FindLocalPlayerObject( scene );
-				if ( player.IsValid() && ThornsLocalPlayer.IsLocallyControlledPawn( player ) )
-					return true;
-			}
-
-			await Task.Delay( 50 );
+			await Task.Delay( 300 );
 		}
 
-		return ThornsPlayerGameplay.Local.IsValid();
+		ThornsNetworkSessionReset.ResetStaticState( "join-abort" );
+		ThornsMenuJoinFlow.ResetForMainMenu();
+		ThornsLoadingScreenUtil.Dismiss();
+
+		await ThornsMenuSceneLoader.LoadMainMenuAsync();
 	}
 
-	static async Task<bool> WaitForLocalEnterWorldAsync( int timeoutMs )
+	static bool HasJoinWorldProgress()
 	{
-		var deadline = DateTime.UtcNow.AddMilliseconds( timeoutMs );
-		while ( DateTime.UtcNow < deadline )
-		{
-			if ( !ThornsMenuJoinFlow.IsProgressVisible && !ThornsLocalHostSpawnCoordinator.IsDeferredPending )
-				return true;
+		if ( Networking.IsActive && Networking.IsHost )
+			return false;
 
-			await Task.Delay( 50 );
-		}
+		if ( !ThornsJoinLocalPlayer.TryResolve( out _, out _ ) )
+			return false;
 
-		return !ThornsMenuJoinFlow.IsProgressVisible && !ThornsLocalHostSpawnCoordinator.IsDeferredPending;
+		return ThornsMenuSceneLoader.IsInGameplayScene()
+		       || ThornsTerrainBootstrap.Instance?.IsWorldApplied == true;
 	}
 
-	static async Task<bool> WaitForLocalPresentationReadyAsync( int timeoutMs )
+	static async Task<bool> TryRecoverJoinInWorldAsync()
 	{
-		var deadline = DateTime.UtcNow.AddMilliseconds( timeoutMs );
-		while ( DateTime.UtcNow < deadline )
-		{
-			if ( ThornsLocalPlayerPresentation.IsFullyReady() )
-				return true;
+		if ( !HasJoinWorldProgress() )
+			return false;
 
-			await Task.Delay( 50 );
-		}
+		ThornsMenuSceneLoader.DismissActiveMainMenuUi();
+		ThornsSessionEnterController.BeginAwaitEnter();
 
-		return ThornsLocalPlayerPresentation.IsFullyReady();
+		if ( !await ThornsSessionEnterController.WaitUntilReadyAsync( 20000 ) )
+			return false;
+
+		return true;
 	}
 
 	static async Task<bool> WaitForClientConnectionAsync( int timeoutMs )
@@ -224,13 +240,23 @@ public static class ThornsServerBrowserService
 		var deadline = DateTime.UtcNow.AddMilliseconds( timeoutMs );
 		while ( DateTime.UtcNow < deadline )
 		{
-			if ( ThornsWorldSession.TryReadFromLobby() )
+			if ( !ThornsWorldSession.TryReadFromLobby() )
+			{
+				await Task.Delay( 50 );
+				continue;
+			}
+
+			var bootstrap = ThornsTerrainBootstrap.Instance;
+			if ( bootstrap?.Config is not null )
+				ThornsWorldSession.ApplyConfig( bootstrap.Config );
+
+			if ( ThornsWorldSession.IsAuthoritativeForJoin( bootstrap?.Config ) )
 				return true;
 
 			await Task.Delay( 50 );
 		}
 
-		return ThornsWorldSession.TryReadFromLobby();
+		return ThornsWorldSession.IsAuthoritativeForJoin( ThornsTerrainBootstrap.Instance?.Config );
 	}
 
 	public static void ContinueLastWorld()
@@ -278,24 +304,20 @@ public static class ThornsServerBrowserService
 			return;
 		}
 
-		ThornsMenuJoinFlow.SetProgressMessage( "Spawning character..." );
-		ThornsMenuJoinFlow.SetStage( ThornsMenuJoinStage.SyncCharacter );
+		ThornsMenuJoinFlow.SetProgressMessage( "Entering world..." );
+		ThornsMenuJoinFlow.SetStage( ThornsMenuJoinStage.EnteringWorld );
+		ThornsSessionEnterController.BeginAwaitEnter();
 
-		if ( !await WaitForLocalPawnReadyAsync( JoinLocalPawnTimeoutMs ) )
+		if ( !await ThornsSessionEnterController.WaitUntilReadyAsync( JoinLocalPawnTimeoutMs ) )
 		{
-			Log.Warning( "[Thorns Menu] Host failed — local player pawn did not spawn in time." );
-			ThornsMenuJoinFlow.CompleteEnterWorld();
+			Log.Warning( "[Thorns Menu] Host failed — could not enter gameplay in time." );
+			if ( Networking.IsActive )
+				Networking.Disconnect();
+			ThornsNetworkSessionReset.ResetStaticState( "host-abort" );
+			ThornsMenuJoinFlow.ResetForMainMenu();
+			await ThornsMenuSceneLoader.LoadMainMenuAsync();
 			return;
 		}
-
-		if ( !await WaitForLocalEnterWorldAsync( JoinLocalPawnTimeoutMs ) )
-			Log.Warning( "[Thorns Menu] Host spawn presentation timed out — forcing gameplay handoff." );
-
-		if ( !await WaitForLocalPresentationReadyAsync( JoinLocalPawnTimeoutMs ) )
-			Log.Warning( "[Thorns Menu] Host presentation readiness timed out — continuing with partial readiness." );
-
-		ThornsMenuJoinFlow.CompleteEnterWorld();
-		ThornsGameplaySession.EnsureLocalPlayerControl();
 	}
 
 	public static void HostLocalServer( ThornsHostedServerDto server ) => _ = HostLocalServerAsync( server );

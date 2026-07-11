@@ -340,6 +340,7 @@ public static class DefinitionCatalog
 		if ( string.IsNullOrEmpty( id ) )
 			return null;
 
+		id = NormalizePlaceableId( id );
 		var stem = Defs.ResourceStem( id );
 		var found = _placeables.FirstOrDefault( p =>
 			p.ResourceName == id
@@ -347,6 +348,17 @@ public static class DefinitionCatalog
 			|| _placeableIds.GetValueOrDefault( p ) == stem );
 
 		return found ?? BuiltinPlaceables.Get( stem );
+	}
+
+	private static string NormalizePlaceableId( string id )
+	{
+		var stem = Defs.ResourceStem( id );
+		return stem switch
+		{
+			"habitat_meadow_s" => "habitat_grassland_s",
+			"habitat_meadow_l" => "habitat_grassland_l",
+			_ => id,
+		};
 	}
 
 	public static IEnumerable<PlaceableDefinition> PathBuildables()

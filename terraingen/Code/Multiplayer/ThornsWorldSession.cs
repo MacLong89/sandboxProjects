@@ -2,7 +2,10 @@ namespace Terraingen.Multiplayer;
 
 using Terraingen.TerrainGen;
 
-/// <summary>Lobby-synced world identity — single source of truth for deterministic subsystems.</summary>
+/// <summary>
+/// Lobby-synced world identity — single source of truth for deterministic subsystems.
+/// Host publishes seed/version only after terrain height data exists; clients must not apply terrain until ready.
+/// </summary>
 public static class ThornsWorldSession
 {
 	public const string DataKeySeed = "thorns_world_seed";
@@ -21,6 +24,18 @@ public static class ThornsWorldSession
 		config.WorldSeed = WorldSeed;
 	}
 
+	/// <summary>Call when creating a lobby — blocks joiners until terrain is published.</summary>
+	public static void MarkLobbyPending()
+	{
+		WorldReady = false;
+
+		if ( !Networking.IsActive || !Networking.IsHost )
+			return;
+
+		Networking.SetData( DataKeyReady, "0" );
+	}
+
+	/// <summary>Host-only: publish after height cache exists and terrain is applied.</summary>
 	public static void PublishFromHost( ThornsTerrainConfig config )
 	{
 		if ( config is null )
@@ -36,6 +51,7 @@ public static class ThornsWorldSession
 		Networking.SetData( DataKeySeed, WorldSeed.ToString() );
 		Networking.SetData( DataKeyVersion, WorldBuildVersion.ToString() );
 		Networking.SetData( DataKeyReady, "1" );
+		Log.Info( $"[Thorns World] Published lobby world seed={WorldSeed} version={WorldBuildVersion}." );
 	}
 
 	public static bool TryReadFromLobby()
@@ -57,6 +73,18 @@ public static class ThornsWorldSession
 		WorldBuildVersion = int.TryParse( versionText, out var version ) ? version : 1;
 		WorldReady = true;
 		return true;
+	}
+
+	/// <summary>True when lobby advertises a ready world and local terrain matches that seed.</summary>
+	public static bool IsAuthoritativeForJoin( ThornsTerrainConfig config )
+	{
+		if ( !WorldReady || !TryReadFromLobby() )
+			return false;
+
+		if ( config is null )
+			return true;
+
+		return config.WorldSeed == WorldSeed && config.WorldBuildVersion == WorldBuildVersion;
 	}
 
 	public static void Reset()

@@ -7,7 +7,8 @@ public static class CampaignCatalog
 	private static readonly Color Concrete = new( 0.78f, 0.64f, 0.42f );
 	private static readonly Color CleanConcrete = new( 0.84f, 0.70f, 0.46f );
 	private static readonly Color Grime = new( 0.52f, 0.36f, 0.10f );
-	private static readonly Color Moss = new( 0.28f, 0.62f, 0.06f );
+	/// <summary>Algae / bio-sludge only — normal dirt uses <see cref="Grime"/> (brown).</summary>
+	private static readonly Color Moss = new( 0.22f, 0.48f, 0.12f );
 	private static readonly Color HouseWall = new( 1f, 0.82f, 0.32f );
 	private static readonly Color Grass = new( 0.42f, 0.84f, 0.10f );
 	private static readonly Color WoodClean = new( 0.96f, 0.70f, 0.26f );
@@ -19,6 +20,8 @@ public static class CampaignCatalog
 	private static readonly Color FoamFilm = new( 0.82f, 0.88f, 0.58f );
 	private static readonly Color Blood = new( 0.58f, 0.04f, 0.04f );
 	private static readonly Color NeonBlue = new( 0.22f, 0.88f, 1f );
+	private static readonly Color GasRed = new( 0.90f, 0.20f, 0.20f );
+	private static readonly Color StoreBeige = new( 0.88f, 0.82f, 0.66f );
 
 	public static readonly IReadOnlyList<JobDef> All = Build();
 
@@ -91,7 +94,7 @@ public static class CampaignCatalog
 			SpawnYaw = 90f,
 			Panels = new List<PanelDef>
 			{
-				FlatGround( 320f, 520f, Moss, CleanConcrete, PanelShape.Driveway, GrimePattern.Organic, secrets: new List<SurfaceSecret>
+				FlatGround( 320f, 520f, Grime, CleanConcrete, PanelShape.Driveway, GrimePattern.Organic, secrets: new List<SurfaceSecret>
 				{
 					new()
 					{
@@ -101,7 +104,7 @@ public static class CampaignCatalog
 					},
 					new() { Text = "CLEANER FUTURE", X = 0.5f, Y = 0.38f, Scale = 1.8f },
 				} ),
-				FlatGround( 84f, 360f, Moss, CleanConcrete, PanelShape.Strip, GrimePattern.Speckled,
+				FlatGround( 84f, 360f, Grime, CleanConcrete, PanelShape.Strip, GrimePattern.Speckled,
 					position: new Vector3( -208f, 36f, 1f ) ),
 			},
 			Props = new List<PropDef>
@@ -152,6 +155,16 @@ public static class CampaignCatalog
 					new() { Text = "TECH", X = 0.5f, Y = 0.36f, Scale = 2.4f },
 				} ),
 			},
+			Decor = new List<DecorDef>
+			{
+				new() { Kind = DecorKind.CarWashBay, Position = new Vector3( 0f, 20f, 0f ), Size = new Vector3( 600f, 220f, 130f ) },
+				new() { Kind = DecorKind.GasCanopy, Position = new Vector3( -300f, 280f, 0f ), Size = new Vector3( 340f, 200f, 110f ), Color = GasRed },
+				new() { Kind = DecorKind.Building, Position = new Vector3( 260f, 340f, 0f ), Size = new Vector3( 260f, 180f, 100f ), Color = StoreBeige },
+			},
+			Props = new List<PropDef>
+			{
+				new() { Position = new Vector3( 200f, -140f, 1f ), Size = new Vector3( 42f, 42f, 72f ), Color = new Color( 0.18f, 0.18f, 0.20f ) },
+			},
 			Enemies = new List<EnemySpawnDef>
 			{
 				E( EnemyKind.Rat, -90f, 30f ),
@@ -192,6 +205,14 @@ public static class CampaignCatalog
 					},
 				} ),
 			},
+			Decor = new List<DecorDef>
+			{
+				new() { Kind = DecorKind.Restaurant, Position = new Vector3( 0f, 220f, 0f ), Size = new Vector3( 500f, 200f, 140f ), Color = Brick },
+			},
+			Props = new List<PropDef>
+			{
+				new() { Position = new Vector3( 80f, 100f, 1f ), Size = new Vector3( 64f, 64f, 8f ), Color = new Color( 0.34f, 0.36f, 0.38f ) },
+			},
 			Enemies = new List<EnemySpawnDef>
 			{
 				E( EnemyKind.Rat, -120f, -40f ),
@@ -231,6 +252,10 @@ public static class CampaignCatalog
 					},
 					new() { Text = "IGNORE WALLS", X = 0.5f, Y = 0.24f, Scale = 1.6f },
 				} ),
+			},
+			Decor = new List<DecorDef>
+			{
+				new() { Kind = DecorKind.Warehouse, Position = new Vector3( 0f, 300f, 0f ), Size = new Vector3( 620f, 240f, 150f ), Color = WallConcrete },
 			},
 			Enemies = new List<EnemySpawnDef>
 			{
@@ -278,6 +303,12 @@ public static class CampaignCatalog
 					},
 				},
 			},
+			Decor = new List<DecorDef>
+			{
+				new() { Kind = DecorKind.EstateGarage, Position = new Vector3( 0f, 320f, 0f ), Size = new Vector3( 540f, 260f, 160f ), Color = HouseWall },
+				new() { Kind = DecorKind.Tree, Position = new Vector3( 380f, 200f, 0f ), Size = new Vector3( 1.1f, 1f, 1f ) },
+				new() { Kind = DecorKind.Tree, Position = new Vector3( -400f, 160f, 0f ), Size = new Vector3( 1f, 1f, 1f ) },
+			},
 			Enemies = new List<EnemySpawnDef>
 			{
 				E( EnemyKind.Pigeon, -100f, 40f ),
@@ -319,6 +350,10 @@ public static class CampaignCatalog
 					new() { Text = "SVC TUNNELS", X = 0.5f, Y = 0.26f, Scale = 1.6f },
 				} ),
 			},
+			Decor = new List<DecorDef>
+			{
+				new() { Kind = DecorKind.SubwayStation, Position = new Vector3( 0f, 260f, 0f ), Size = new Vector3( 560f, 280f, 180f ) },
+			},
 			Enemies = new List<EnemySpawnDef>
 			{
 				E( EnemyKind.Rat, -110f, -50f ),
@@ -357,6 +392,10 @@ public static class CampaignCatalog
 					},
 					new() { Symbol = SecretSymbol.Interlock, X = 0.5f, Y = 0.32f, Scale = 0.9f },
 				} ),
+			},
+			Decor = new List<DecorDef>
+			{
+				new() { Kind = DecorKind.ContainerYard, Position = new Vector3( 0f, 200f, 0f ), Size = new Vector3( 220f, 1f, 1f ) },
 			},
 			Enemies = new List<EnemySpawnDef>
 			{
@@ -405,6 +444,10 @@ public static class CampaignCatalog
 					},
 				},
 			},
+			Decor = new List<DecorDef>
+			{
+				new() { Kind = DecorKind.Yacht, Position = new Vector3( 0f, 240f, 0f ), Size = new Vector3( 520f, 300f, 120f ), Color = WoodClean },
+			},
 			Enemies = new List<EnemySpawnDef>
 			{
 				E( EnemyKind.Pigeon, -90f, 50f ),
@@ -443,6 +486,10 @@ public static class CampaignCatalog
 					},
 					new() { Text = "URBAN SUPPLY", X = 0.5f, Y = 0.32f, Scale = 1.6f },
 				} ),
+			},
+			Decor = new List<DecorDef>
+			{
+				new() { Kind = DecorKind.WaterPlant, Position = new Vector3( 0f, 280f, 0f ), Size = new Vector3( 480f, 1f, 160f ), Color = WallConcrete },
 			},
 			Enemies = new List<EnemySpawnDef>
 			{
@@ -483,6 +530,12 @@ public static class CampaignCatalog
 					},
 					new() { Text = "FEDERAL", X = 0.5f, Y = 0.28f, Scale = 2f },
 				} ),
+			},
+			Decor = new List<DecorDef>
+			{
+				new() { Kind = DecorKind.Cabin, Position = new Vector3( 0f, 300f, 0f ), Size = new Vector3( 460f, 240f, 130f ) },
+				new() { Kind = DecorKind.Tree, Position = new Vector3( 320f, 180f, 0f ), Size = new Vector3( 1.15f, 1f, 1f ) },
+				new() { Kind = DecorKind.Tree, Position = new Vector3( -340f, 140f, 0f ), Size = new Vector3( 1.05f, 1f, 1f ) },
 			},
 			Enemies = new List<EnemySpawnDef>
 			{
@@ -527,6 +580,10 @@ public static class CampaignCatalog
 					new() { Text = "74.0060 W", X = 0.5f, Y = 0.36f, Scale = 2f },
 				} ),
 			},
+			Decor = new List<DecorDef>
+			{
+				new() { Kind = DecorKind.HighwayUnderpass, Position = new Vector3( 0f, 200f, 0f ), Size = new Vector3( 700f, 320f, 160f ) },
+			},
 			Enemies = new List<EnemySpawnDef>
 			{
 				E( EnemyKind.Rat, -120f, -50f ),
@@ -564,6 +621,10 @@ public static class CampaignCatalog
 						Monologue = "FREE PRESS — logo burned into the glass enclosure under charred soot. Independent journalism wiped out hours ago. I'm hosing down their tombstone.",
 					},
 				} ),
+			},
+			Decor = new List<DecorDef>
+			{
+				new() { Kind = DecorKind.DataCenter, Position = new Vector3( 0f, 260f, 0f ), Size = new Vector3( 540f, 280f, 150f ) },
 			},
 			Enemies = new List<EnemySpawnDef>
 			{
@@ -613,6 +674,10 @@ public static class CampaignCatalog
 					},
 				},
 			},
+			Decor = new List<DecorDef>
+			{
+				new() { Kind = DecorKind.Penthouse, Position = new Vector3( 0f, 320f, 0f ), Size = new Vector3( 520f, 300f, 200f ) },
+			},
 			Enemies = new List<EnemySpawnDef>
 			{
 				E( EnemyKind.RivalWasher, -90f, 40f ),
@@ -651,6 +716,10 @@ public static class CampaignCatalog
 					},
 					new() { Text = "WASHING", X = 0.5f, Y = 0.12f, Scale = 1.6f },
 				} ),
+			},
+			Decor = new List<DecorDef>
+			{
+				new() { Kind = DecorKind.MeatPlant, Position = new Vector3( 0f, 240f, 0f ), Size = new Vector3( 480f, 260f, 150f ) },
 			},
 			Enemies = new List<EnemySpawnDef>
 			{
@@ -691,6 +760,10 @@ public static class CampaignCatalog
 						Monologue = "Acid-wash across the floor and an assassin's cloaking armor melts off like wax. My rig was built to erase stains — turns out it erases people too.",
 					},
 				} ),
+			},
+			Decor = new List<DecorDef>
+			{
+				new() { Kind = DecorKind.PlayerShop, Position = new Vector3( 0f, 300f, 0f ), Size = new Vector3( 500f, 260f, 140f ) },
 			},
 			Enemies = new List<EnemySpawnDef>
 			{
@@ -737,6 +810,10 @@ public static class CampaignCatalog
 					new() { Text = "FLANK LEFT", X = 0.5f, Y = 0.26f, Scale = 1.8f },
 				} ),
 			},
+			Decor = new List<DecorDef>
+			{
+				new() { Kind = DecorKind.SubwayStation, Position = new Vector3( 0f, 280f, 0f ), Size = new Vector3( 520f, 300f, 170f ) },
+			},
 			Enemies = new List<EnemySpawnDef>
 			{
 				E( EnemyKind.RivalWasher, -90f, 50f ),
@@ -776,6 +853,10 @@ public static class CampaignCatalog
 						Monologue = "7734 — smeared in blood from inside the lab by a dying scientist. Digital logs say they picked me because my small business had no automated logging. Perfect ghost.",
 					},
 				} ),
+			},
+			Decor = new List<DecorDef>
+			{
+				new() { Kind = DecorKind.BioLab, Position = new Vector3( 0f, 260f, 0f ), Size = new Vector3( 460f, 240f, 140f ) },
 			},
 			Enemies = new List<EnemySpawnDef>
 			{
@@ -817,6 +898,10 @@ public static class CampaignCatalog
 					},
 				} ),
 			},
+			Decor = new List<DecorDef>
+			{
+				new() { Kind = DecorKind.Warehouse, Position = new Vector3( 0f, 280f, 0f ), Size = new Vector3( 580f, 260f, 160f ), Color = WallConcrete },
+			},
 			Enemies = new List<EnemySpawnDef>
 			{
 				E( EnemyKind.RivalWasher, -110f, 60f ),
@@ -857,6 +942,10 @@ public static class CampaignCatalog
 						Monologue = "Tracking frequency etched into the locomotive — 447.12 MHz. My phone intercepts black-ops chatter. I know their defensive plan for the broadcast tower.",
 					},
 				} ),
+			},
+			Decor = new List<DecorDef>
+			{
+				new() { Kind = DecorKind.Locomotive, Position = new Vector3( 0f, 260f, 0f ), Size = new Vector3( 480f, 1f, 140f ) },
 			},
 			Enemies = new List<EnemySpawnDef>
 			{
@@ -900,6 +989,10 @@ public static class CampaignCatalog
 					new() { Text = "VENT SHAFT", X = 0.5f, Y = 0.26f, Scale = 1.8f },
 				} ),
 			},
+			Decor = new List<DecorDef>
+			{
+				new() { Kind = DecorKind.BioLab, Position = new Vector3( 0f, 300f, 0f ), Size = new Vector3( 500f, 260f, 180f ) },
+			},
 			Enemies = new List<EnemySpawnDef>
 			{
 				E( EnemyKind.RivalWasher, -110f, 60f ),
@@ -940,6 +1033,11 @@ public static class CampaignCatalog
 						Monologue = "Override switch under industrial grease on the backup generator — antenna power restored. Grid's ready to broadcast the stolen files to the whole world.",
 					},
 				} ),
+			},
+			Decor = new List<DecorDef>
+			{
+				new() { Kind = DecorKind.Building, Position = new Vector3( 0f, 300f, 0f ), Size = new Vector3( 420f, 220f, 180f ), Color = WallConcrete },
+				new() { Kind = DecorKind.Sign, Position = new Vector3( 0f, 220f, 0f ), Yaw = 0f },
 			},
 			Enemies = new List<EnemySpawnDef>
 			{
@@ -982,6 +1080,10 @@ public static class CampaignCatalog
 					},
 				} ),
 			},
+			Decor = new List<DecorDef>
+			{
+				new() { Kind = DecorKind.DataCenter, Position = new Vector3( 0f, 280f, 0f ), Size = new Vector3( 560f, 300f, 160f ) },
+			},
 			Enemies = new List<EnemySpawnDef>
 			{
 				E( EnemyKind.RivalWasher, -110f, 60f ),
@@ -1023,6 +1125,10 @@ public static class CampaignCatalog
 						Monologue = "Security key card under wine and blood on the exhibition plaque — dropped by Vance on her way to the helicopter. Reservoir pumps are already running.",
 					},
 				} ),
+			},
+			Decor = new List<DecorDef>
+			{
+				new() { Kind = DecorKind.Museum, Position = new Vector3( 0f, 320f, 0f ), Size = new Vector3( 540f, 280f, 170f ) },
 			},
 			Enemies = new List<EnemySpawnDef>
 			{
@@ -1067,6 +1173,10 @@ public static class CampaignCatalog
 					new() { Text = "VALVES", X = 0.5f, Y = 0.28f, Scale = 2f },
 				} ),
 			},
+			Decor = new List<DecorDef>
+			{
+				new() { Kind = DecorKind.Dam, Position = new Vector3( 0f, 280f, 0f ), Size = new Vector3( 520f, 1f, 180f ), Color = WallConcrete },
+			},
 			Enemies = new List<EnemySpawnDef>
 			{
 				E( EnemyKind.RivalWasher, -110f, 60f ),
@@ -1110,6 +1220,11 @@ public static class CampaignCatalog
 					},
 					new() { Text = "COMMANDER", X = 0.5f, Y = 0.28f, Scale = 2.4f },
 				} ),
+			},
+			Decor = new List<DecorDef>
+			{
+				new() { Kind = DecorKind.Dam, Position = new Vector3( 0f, 300f, 0f ), Size = new Vector3( 560f, 1f, 200f ), Color = NeonBlue },
+				new() { Kind = DecorKind.WaterPlant, Position = new Vector3( -320f, 200f, 0f ), Size = new Vector3( 360f, 1f, 140f ) },
 			},
 			Enemies = new List<EnemySpawnDef>
 			{

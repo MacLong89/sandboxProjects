@@ -282,6 +282,10 @@ public sealed class AimboxRankedSystem
 
 public sealed class AimboxLeaderboardSystem
 {
+	AimboxAimLeaderboardStore _aimStore;
+
+	public void Initialize( AimboxAimLeaderboardStore store ) => _aimStore = store;
+
 	public IReadOnlyList<AimboxPlayerData> TopKills( IEnumerable<AimboxPlayerData> players, int count = 10 ) =>
 		players.OrderByDescending( x => x.Kills ).Take( count ).ToList();
 
@@ -293,4 +297,17 @@ public sealed class AimboxLeaderboardSystem
 
 	public IReadOnlyList<AimboxPlayerData> TopDuelRating( IEnumerable<AimboxPlayerData> players, int count = 10 ) =>
 		players.OrderByDescending( x => x.Ranked.DuelMmr ).Take( count ).ToList();
+
+	public int GetAimPersonalBest( AimboxPlayerData data, AimboxGameMode mode ) =>
+		data?.AimModeBestScores.GetValueOrDefault( mode ) ?? 0;
+
+	public IReadOnlyList<AimboxAimLeaderboardEntry> GetAimLeaderboard( AimboxGameMode mode, int count = 25 ) =>
+		_aimStore?.GetTop( mode, count ) ?? [];
+
+	public AimboxAimLeaderboardSubmitResult SubmitAimRun(
+		AimboxGameMode mode,
+		AimboxPlayerData data,
+		string displayName,
+		int score ) =>
+		_aimStore?.Submit( mode, data, displayName, score ) ?? new AimboxAimLeaderboardSubmitResult();
 }

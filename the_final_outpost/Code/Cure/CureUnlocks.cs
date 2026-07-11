@@ -10,14 +10,19 @@ public static class CureUnlocks
 
 	public static bool IsBuildingUnlocked( SaveData save, BuildableId id )
 	{
+		var def = BuildableCatalog.Get( id );
+		if ( def.Role == BuildingRole.Civic )
+			return TechTreeCatalog.BuildingUnlockedByTech( save, def.Key );
+
 		if ( id == BuildableId.Lab ) return ProgressSeason( save ) >= 1;
-		return IsUnlocked( save, BuildingUnlockSeason( BuildableCatalog.Get( id ) ) );
+		return IsUnlocked( save, BuildingUnlockSeason( def ) );
 	}
 
 	public static int BuildingUnlockSeason( BuildableDef def ) => def.Role switch
 	{
 		BuildingRole.Defense => TowerUnlockSeason( def.Dps(), def.BaseRange ),
 		BuildingRole.Wall => 1,
+		BuildingRole.Civic => 99,
 		BuildingRole.Management when def.Id == BuildableId.Barracks => 1,
 		BuildingRole.Management => 2,
 		_ => 1
@@ -37,14 +42,47 @@ public static class CureUnlocks
 		WorkerRole.Forager => 1,
 		WorkerRole.Craftsman => 2,
 		WorkerRole.Repairman => 3,
+		WorkerRole.Farmer => 1,
+		WorkerRole.Scholar => 2,
+		WorkerRole.Operator => 2,
+		WorkerRole.Medic => 3,
+		WorkerRole.Merchant => 3,
 		_ => 1
+	};
+
+	public static string WorkerRequiredTech( WorkerRole role ) => role switch
+	{
+		WorkerRole.Farmer => "agriculture",
+		WorkerRole.Operator => "industry",
+		WorkerRole.Scholar => "literacy",
+		WorkerRole.Medic => "medicine",
+		WorkerRole.Merchant => "commerce",
+		_ => null
 	};
 
 	public static bool IsRecruitUnlocked( SaveData save, RecruitWeaponType type ) =>
 		IsUnlocked( save, RecruitUnlockSeason( type ) );
 
-	public static bool IsWorkerUnlocked( SaveData save, WorkerRole role ) =>
-		IsUnlocked( save, WorkerUnlockSeason( role ) );
+	public static bool IsWorkerUnlocked( SaveData save, WorkerRole role )
+	{
+		var tech = WorkerRequiredTech( role );
+		if ( tech is not null )
+			return TechTreeCatalog.IsUnlocked( save, tech );
+
+		return IsUnlocked( save, WorkerUnlockSeason( role ) );
+	}
+
+	public static string WorkerUnlockLabel( SaveData save, WorkerRole role )
+	{
+		var tech = WorkerRequiredTech( role );
+		if ( tech is not null )
+		{
+			var node = TechTreeCatalog.Get( tech );
+			return node is not null ? $"Requires {node.Name}" : "Requires research";
+		}
+
+		return UnlockLabel( WorkerUnlockSeason( role ) );
+	}
 
 	public static bool IsShortExpeditionUnlocked( SaveData save ) => ProgressSeason( save ) >= 2;
 	public static bool IsLongExpeditionUnlocked( SaveData save ) => ProgressSeason( save ) >= 4;

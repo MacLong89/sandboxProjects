@@ -6,10 +6,10 @@
   "Schema": 1,
   "IncludeSourceFiles": false,
   "Resources": null,
-  "PackageReferences": [
+  "PackageReferences": [],
+  "EditorReferences": [
     "facepunch.sboxweapons"
   ],
-  "EditorReferences": null,
   "Mounts": null,
   "IsStandaloneOnly": false,
   "Metadata": {

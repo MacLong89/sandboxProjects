@@ -4,7 +4,7 @@ namespace Sandbox;
 
 public sealed class AimboxPlayerData
 {
-	public const int CurrentProgressionVersion = 12;
+	public const int CurrentProgressionVersion = 13;
 
 	public string AccountId { get; set; } = "offline";
 	public int ProgressionVersion { get; set; } = CurrentProgressionVersion;
@@ -31,6 +31,7 @@ public sealed class AimboxPlayerData
 	public HashSet<string> CompletedChallenges { get; set; } = [];
 	public HashSet<string> ClaimedRewards { get; set; } = [];
 	public HashSet<string> CosmeticUnlocks { get; set; } = [];
+	public Dictionary<AimboxGameMode, int> AimModeBestScores { get; set; } = new();
 
 	[JsonIgnore] public float Accuracy => ShotsFired <= 0 ? 0f : ShotsHit / (float)ShotsFired;
 	[JsonIgnore] public float KdRatio => Deaths <= 0 ? Kills : Kills / (float)Deaths;
@@ -68,6 +69,18 @@ public sealed class AimboxPlayerData
 
 		if ( Loadouts.Count > AimboxMw2Catalog.LoadoutCount )
 			Loadouts.RemoveRange( AimboxMw2Catalog.LoadoutCount, Loadouts.Count - AimboxMw2Catalog.LoadoutCount );
+
+		AimModeBestScores ??= new Dictionary<AimboxGameMode, int>();
+		var sanitizedAimScores = new Dictionary<AimboxGameMode, int>();
+		foreach ( var (mode, score) in AimModeBestScores )
+		{
+			if ( !AimboxAimModeRules.IsAimMode( mode ) || score <= 0 )
+				continue;
+
+			sanitizedAimScores[mode] = score;
+		}
+
+		AimModeBestScores = sanitizedAimScores;
 	}
 
 	public static AimboxPlayerData CreateFreshStart( string accountId )

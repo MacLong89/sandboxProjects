@@ -2,6 +2,16 @@ namespace Sandbox;
 
 public static class AimboxAimModeRules
 {
+	public static readonly AimboxGameMode[] AllAimModes =
+	[
+		AimboxGameMode.AimLevel1,
+		AimboxGameMode.AimLevel2,
+		AimboxGameMode.AimLevel3,
+		AimboxGameMode.AimLevel4,
+		AimboxGameMode.AimLevel5,
+		AimboxGameMode.AimLevel6
+	];
+
 	public static bool IsAimMode( AimboxGameMode mode ) => mode switch
 	{
 		AimboxGameMode.AimLevel1 or AimboxGameMode.AimLevel2 or AimboxGameMode.AimLevel3
