@@ -32,16 +32,14 @@ public static class ThornsRequiredPublishAssets
 		"craft_building", "craft_weapons", "craft_food"
 	];
 
+	/// <summary>
+	/// BOOT FIX: Full publish checklist (icons + grass). Used for diagnostics / republish quality.
+	/// Do NOT block menu boot on this — use <see cref="AreBootCriticalAssetsMounted"/> for waits.
+	/// </summary>
 	public static bool AreRequiredAssetsMounted()
 	{
-		if ( !ThornsMountedFiles.IsAvailable )
+		if ( !AreBootCriticalAssetsMounted() )
 			return false;
-
-		foreach ( var path in RequiredPaths )
-		{
-			if ( !ThornsMountedFiles.Exists( path ) )
-				return false;
-		}
 
 		foreach ( var stem in RequiredIconStems )
 		{
@@ -50,6 +48,31 @@ public static class ThornsRequiredPublishAssets
 		}
 
 		return ThornsModelResourceLoad.TryLoadUsable( "models/clutter/grass_common_short.vmdl", out _ );
+	}
+
+	/// <summary>
+	/// BOOT FIX: Minimal set so menu/HUD can render without waiting 12s for every icon stem.
+	/// Missing chrome PNGs fall back to solid colors; SCSS + heightmap are the hard kernels.
+	/// </summary>
+	public static bool AreBootCriticalAssetsMounted()
+	{
+		if ( !ThornsMountedFiles.IsAvailable )
+			return false;
+
+		// Stylesheets matter more than PNGs for "won't boot" (black screen with zero UI chrome).
+		string[] bootCritical =
+		[
+			"ui/hud/thornshudroot.cs.scss",
+			"ui/menu/mainmenuhost.cs.scss"
+		];
+
+		foreach ( var path in bootCritical )
+		{
+			if ( !ThornsMountedFiles.Exists( path ) )
+				return false;
+		}
+
+		return true;
 	}
 
 	public static void LogMissingMounted( string context )

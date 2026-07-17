@@ -1,6 +1,7 @@
 namespace Terraingen.Player;
 
 using Sandbox;
+using Terraingen.Combat;
 using Terraingen.UI.Core;
 
 /// <summary>
@@ -115,8 +116,10 @@ public sealed class ThornsPlayerLocomotion : Component, PlayerController.IEvents
 			return;
 
 		_player.ThirdPerson = false;
+		// AUDIT FIX: also honor death so configure after death doesn't re-enable look.
 		var allowInput = (!Networking.IsActive || ThornsLocalPlayer.IsLocallyControlledPawn( GameObject ))
-		                 && !ThornsUiInputGate.BlocksGameplayInput;
+		                 && !ThornsUiInputGate.BlocksGameplayInput
+		                 && !ThornsPlayerActionGate.IsDeadPawn( GameObject );
 		_player.UseInputControls = allowInput;
 		_player.UseCameraControls = allowInput;
 		_player.UseLookControls = allowInput;
@@ -152,7 +155,7 @@ public sealed class ThornsPlayerLocomotion : Component, PlayerController.IEvents
 
 		EnforceOverlayInputBlock();
 
-		if ( !IsOverlayInputBlocked() )
+		if ( !IsOverlayInputBlocked() && !IsDeathInputBlocked() )
 		{
 			ApplySprintSpeedCap();
 			IntegrateWeaponRecoil();
@@ -162,15 +165,25 @@ public sealed class ThornsPlayerLocomotion : Component, PlayerController.IEvents
 		ThornsPlayerFirstPersonRig.ApplyLocalOwnerPresentation( GameObject );
 	}
 
-	/// <summary>True while inventory/container overlays should consume mouse input instead of look.</summary>
+	/// <summary>
+	/// True while inventory/container overlays OR death presentation should block look/move.
+	/// AUDIT FIX: death was NOT part of <see cref="ThornsUiInputGate.BlocksGameplayInput"/>, so
+	/// <see cref="EnforceOverlayInputBlock"/> re-enabled UseLookControls every frame after death
+	/// presentation turned them off (controller.Enabled stayed false, but flags fought death cam).
+	/// </summary>
 	public static bool IsOverlayInputBlocked() => ThornsUiInputGate.BlocksGameplayInput;
+
+	bool IsDeathInputBlocked() => ThornsPlayerActionGate.IsDeadPawn( GameObject );
 
 	void EnforceOverlayInputBlock()
 	{
 		if ( !_player.IsValid() )
 			return;
 
-		if ( !IsOverlayInputBlocked() )
+		// Combined gate: UI overlay OR dead. Do not re-enable look while corpse camera is pinned.
+		var blocked = IsOverlayInputBlocked() || IsDeathInputBlocked();
+
+		if ( !blocked )
 		{
 			if ( ThornsLocalPlayer.IsLocallyControlledPawn( GameObject )
 			     && ( !_player.UseInputControls || !_player.UseLookControls || !_player.UseCameraControls ) )

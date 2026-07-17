@@ -51,8 +51,11 @@ public static class SaveManager
 		if ( !data.UnlockedCharacters.Contains( "runner" ) )
 			data.UnlockedCharacters.Add( "runner" );
 
-		if ( data.Version < 2 )
-			data.Version = 2;
+		if ( data.Version < 3 )
+		{
+			data.HasCompletedTutorialRun = data.TotalRuns > 0;
+			data.Version = 3;
+		}
 
 		return data;
 	}

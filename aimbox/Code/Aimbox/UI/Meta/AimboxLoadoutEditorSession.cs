@@ -201,8 +201,9 @@ public sealed class AimboxLoadoutEditorSession
 		Game.Loadouts.SaveLoadout( PlayerData, CurrentLoadout, EditingIndex );
 		Game.QueueSave( PlayerData );
 
+		// AUDIT FIX H6: do not Respawn (heal + host-only). Apply inventory only.
 		if ( Game.Phase == AimboxSessionPhase.Playing && IsEditingLoadoutEquipped() )
-			Player?.Respawn();
+			Player?.ApplyEquippedLoadoutPreservingLife();
 	}
 
 	public void EquipLoadout()
@@ -215,7 +216,7 @@ public sealed class AimboxLoadoutEditorSession
 		Game.QueueSave( PlayerData );
 
 		if ( Game.Phase == AimboxSessionPhase.Playing )
-			Player?.Respawn();
+			Player?.ApplyEquippedLoadoutPreservingLife();
 	}
 
 	public bool IsEditingLoadoutEquipped() =>

@@ -1,6 +1,14 @@
 namespace FinalOutpost;
 
-/// <summary>Serializable run snapshot for season checkpoint retry in Cure mode.</summary>
+/// <summary>
+/// Serializable run snapshot for season checkpoint retry in Cure mode.
+///
+/// AUDIT context (2026-07):
+/// Defeat in Cure restores this snapshot instead of wiping the colony.
+/// Several fields were historically omitted (tech/civ/boss), and SeasonDay
+/// could be captured as DaysPerSeason+1 — both fixed below. Keep comments
+/// if you need to bisect regressions around RetrySeason.
+/// </summary>
 public sealed class SeasonCheckpointSnapshot
 {
 	public double Scrap { get; set; }
@@ -19,6 +27,8 @@ public sealed class SeasonCheckpointSnapshot
 	public bool ExpeditionLong { get; set; }
 	public long ExpeditionEndUnix { get; set; }
 	public List<string> ExpeditionSoldiers { get; set; } = new();
+	/// <summary>AUDIT FIX H2: HP slots parallel to <see cref="ExpeditionSoldiers"/>.</summary>
+	public List<float> ExpeditionSoldierHealth { get; set; } = new();
 	public List<SavedWorker> ExpeditionWorkers { get; set; } = new();
 	public List<string> CureObjectivesDone { get; set; } = new();
 	public int CureResearchTier { get; set; }
@@ -30,6 +40,23 @@ public sealed class SeasonCheckpointSnapshot
 	public float SeasonTimeAccum { get; set; }
 	public float NextThreatTimer { get; set; }
 	public int CureThreatIndex { get; set; }
+
+	// --- AUDIT FIX H3: previously omitted Cure progress lists ---
+	// Without these, Restore left live post-death UnlockedTech / ally / raid / boss
+	// flags on the save while overwriting scrap/buildings — desync on RetrySeason.
+	public List<string> UnlockedTech { get; set; } = new();
+	public List<string> AlliedCivPlots { get; set; } = new();
+	public List<string> RaidedCivPlots { get; set; } = new();
+	public List<string> ClearedBossPlots { get; set; } = new();
+	public List<string> RivalSeeds { get; set; } = new();
+	public List<string> RivalOwnedPlots { get; set; } = new();
+	public Dictionary<string, string> ClaimedPlotBoosts { get; set; } = new();
+	public bool EverSurvivedWinterThreat { get; set; }
+	public bool EverSentScouts { get; set; }
+
+	// --- AUDIT FIX H1: perimeter / core HP (runtime was always rebuilt full) ---
+	public float SavedCoreHealth { get; set; } = -1f;
+	public Dictionary<string, float> WallHealthByKey { get; set; } = new();
 }
 
 public static class SeasonCheckpoint
@@ -37,6 +64,16 @@ public static class SeasonCheckpoint
 	public static void Save( SaveData save )
 	{
 		var snap = Capture( save );
+
+		// AUDIT FIX C1:
+		// SeasonController used to call Save() while SeasonDay was already
+		// DaysPerSeason+1 (29). Restore then wrote 29 back, and the next day
+		// tick instantly called BeginSeasonEnd again (instant season loop).
+		// Callers should now normalize before Save, but clamp here too so any
+		// future caller cannot reintroduce the bug.
+		if ( snap.SeasonDay < 1 || snap.SeasonDay > CureConstants.DaysPerSeason )
+			snap.SeasonDay = 1;
+
 		save.SeasonCheckpointJson = Json.Serialize( snap );
 		save.CheckpointYear = save.CurrentYear;
 		save.CheckpointSeason = save.CurrentSeason;
@@ -65,6 +102,14 @@ public static class SeasonCheckpoint
 			save.SeasonDay = snap.SeasonDay;
 			save.SeasonTimeAccum = snap.SeasonTimeAccum;
 			save.NextThreatTimer = snap.NextThreatTimer;
+
+			// AUDIT FIX C1 (legacy checkpoints written before this fix):
+			// Old JSON may still contain SeasonDay == 29. Force a playable day.
+			if ( save.SeasonDay < 1 || save.SeasonDay > CureConstants.DaysPerSeason )
+			{
+				Log.Warning( $"[FinalOutpost] SeasonCheckpoint restored invalid SeasonDay={save.SeasonDay}; clamping to 1." );
+				save.SeasonDay = 1;
+			}
 		}
 		catch
 		{
@@ -83,7 +128,8 @@ public static class SeasonCheckpoint
 			CellY = b.CellY,
 			Level = b.Level,
 			Health = b.Health,
-			PlaceOrder = b.PlaceOrder
+			PlaceOrder = b.PlaceOrder,
+			PaidPlaceCost = b.PaidPlaceCost
 		} ).ToList(),
 		Recruits = new List<string>( save.Recruits ),
 		RecruitHealth = new List<float>( save.RecruitHealth ),
@@ -103,6 +149,7 @@ public static class SeasonCheckpoint
 		ExpeditionLong = save.ExpeditionLong,
 		ExpeditionEndUnix = save.ExpeditionEndUnix,
 		ExpeditionSoldiers = new List<string>( save.ExpeditionSoldiers ),
+		ExpeditionSoldierHealth = new List<float>( save.ExpeditionSoldierHealth ?? new List<float>() ),
 		ExpeditionWorkers = save.ExpeditionWorkers.Select( w => new SavedWorker
 		{
 			Role = w.Role,
@@ -118,7 +165,20 @@ public static class SeasonCheckpoint
 		SeasonDay = save.SeasonDay,
 		SeasonTimeAccum = save.SeasonTimeAccum,
 		NextThreatTimer = save.NextThreatTimer,
-		CureThreatIndex = save.CureThreatIndex
+		CureThreatIndex = save.CureThreatIndex,
+		// AUDIT FIX H3
+		UnlockedTech = new List<string>( save.UnlockedTech ?? new List<string>() ),
+		AlliedCivPlots = new List<string>( save.AlliedCivPlots ?? new List<string>() ),
+		RaidedCivPlots = new List<string>( save.RaidedCivPlots ?? new List<string>() ),
+		ClearedBossPlots = new List<string>( save.ClearedBossPlots ?? new List<string>() ),
+		RivalSeeds = new List<string>( save.RivalSeeds ?? new List<string>() ),
+		RivalOwnedPlots = new List<string>( save.RivalOwnedPlots ?? new List<string>() ),
+		ClaimedPlotBoosts = new Dictionary<string, string>( save.ClaimedPlotBoosts ?? new Dictionary<string, string>() ),
+		EverSurvivedWinterThreat = save.EverSurvivedWinterThreat,
+		EverSentScouts = save.EverSentScouts,
+		// AUDIT FIX H1
+		SavedCoreHealth = save.SavedCoreHealth,
+		WallHealthByKey = new Dictionary<string, float>( save.WallHealthByKey ?? new Dictionary<string, float>() )
 	};
 
 	private static void Apply( SaveData save, SeasonCheckpointSnapshot snap )
@@ -139,6 +199,7 @@ public static class SeasonCheckpoint
 		save.ExpeditionLong = snap.ExpeditionLong;
 		save.ExpeditionEndUnix = snap.ExpeditionEndUnix;
 		save.ExpeditionSoldiers = snap.ExpeditionSoldiers ?? new List<string>();
+		save.ExpeditionSoldierHealth = snap.ExpeditionSoldierHealth ?? new List<float>();
 		save.ExpeditionWorkers = snap.ExpeditionWorkers ?? new List<SavedWorker>();
 		save.CureObjectivesDone = snap.CureObjectivesDone ?? new List<string>();
 		save.CureResearchTier = snap.CureResearchTier;
@@ -150,5 +211,20 @@ public static class SeasonCheckpoint
 		save.SeasonTimeAccum = snap.SeasonTimeAccum;
 		save.NextThreatTimer = snap.NextThreatTimer;
 		save.CureThreatIndex = snap.CureThreatIndex;
+
+		// AUDIT FIX H3 — apply omitted Cure progress (null-safe for old snapshots)
+		save.UnlockedTech = snap.UnlockedTech ?? new List<string>();
+		save.AlliedCivPlots = snap.AlliedCivPlots ?? new List<string>();
+		save.RaidedCivPlots = snap.RaidedCivPlots ?? new List<string>();
+		save.ClearedBossPlots = snap.ClearedBossPlots ?? new List<string>();
+		save.RivalSeeds = snap.RivalSeeds ?? new List<string>();
+		save.RivalOwnedPlots = snap.RivalOwnedPlots ?? new List<string>();
+		save.ClaimedPlotBoosts = snap.ClaimedPlotBoosts ?? new Dictionary<string, string>();
+		save.EverSurvivedWinterThreat = snap.EverSurvivedWinterThreat;
+		save.EverSentScouts = snap.EverSentScouts;
+
+		// AUDIT FIX H1
+		save.SavedCoreHealth = snap.SavedCoreHealth;
+		save.WallHealthByKey = snap.WallHealthByKey ?? new Dictionary<string, float>();
 	}
 }

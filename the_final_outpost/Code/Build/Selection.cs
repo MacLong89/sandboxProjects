@@ -37,7 +37,17 @@ public interface ISelectable
 public static class SelectHelp
 {
 	public static string Cost( double v ) => GameConstants.FormatScrap( v ).Replace( " scrap", "" );
-	public static bool CanAfford( double v ) => (GameCore.Instance?.Wallet.Scrap ?? 0) >= v;
+	public static bool CanAfford( double v ) => BuildPayment.CanAfford( GameCore.Instance, v );
+	/// <summary>Scrap to spend on a repair — full cost if affordable, otherwise whatever remains.</summary>
+	public static double AffordableRepairSpend( double fullCost )
+	{
+		if ( fullCost <= 0 ) return 0;
+		var scrap = GameCore.Instance?.Wallet.Scrap ?? 0;
+		if ( scrap <= 0 ) return 0;
+		return Math.Min( fullCost, scrap );
+	}
+	public static bool CanStartRepair( double fullCost ) =>
+		IsDay && AffordableRepairSpend( fullCost ) > 0;
 	public static int Pct( float frac ) => (int)MathF.Round( Math.Clamp( frac, 0f, 1f ) * 100f );
 	public static bool IsDay => GameCore.Instance?.Phase == GamePhase.Day;
 }
@@ -48,9 +58,9 @@ public sealed class WallSelectable : ISelectable
 	private readonly WallSegment _w;
 	public WallSelectable( WallSegment w ) => _w = w;
 
-	public string Name => "Perimeter Wall";
+	public string Name => "Perimeter Scaffold";
 	public string Icon => "foundation";
-	public string Subtitle => "Outer defensive ring";
+	public string Subtitle => "Open timber & iron — fire through the gaps";
 	public bool HasHealth => true;
 	public float Health => _w.Health;
 	public float MaxHealth => _w.MaxHealth;
@@ -92,11 +102,12 @@ public sealed class WallSelectable : ISelectable
 			else if ( _w.Health < _w.MaxHealth )
 			{
 				var repairCost = (_w.MaxHealth - _w.Health) * (float)GameConstants.RepairCostPerHp;
+				var spend = SelectHelp.AffordableRepairSpend( repairCost );
 				list.Add( new SelectAction
 				{
-					Label = "Repair",
-					Detail = SelectHelp.Cost( repairCost ),
-					Enabled = SelectHelp.IsDay && SelectHelp.CanAfford( repairCost ),
+					Label = spend > 0 && spend + 0.001 < repairCost ? "Partial Repair" : "Repair",
+					Detail = SelectHelp.Cost( spend > 0 ? spend : repairCost ),
+					Enabled = SelectHelp.CanStartRepair( repairCost ),
 					Invoke = () => BuildManager.Instance?.TryRepairWall( _w )
 				} );
 			}
@@ -153,7 +164,8 @@ public sealed class CoreSelectable : ISelectable
 				new( "Integrity", $"{SelectHelp.Pct( frac )}%" ),
 			};
 			if ( GameCore.Instance?.IsCure == true )
-				list.Add( new StatLine( "Scrap", $"+{CureConstants.CommandPostScrapPerSec:0}/s" ) );
+				list.Add( new StatLine( "Scrap income", $"+{CureConstants.CommandPostScrapPerSec:0.##}/s" ) );
+				list.Add( new StatLine( "Colony upkeep", $"-{ColonyEconomy.ScrapUpkeepPerSec():0.##}/s" ) );
 			list.Add( new StatLine( "Fortify Level", $"{up?.Level( UpgradeId.FortifyCore ) ?? 0}" ) );
 			return list;
 		}
@@ -180,11 +192,12 @@ public sealed class CoreSelectable : ISelectable
 			else if ( _o.CoreHealth < _o.CoreMaxHealth )
 			{
 				var repairCost = (_o.CoreMaxHealth - _o.CoreHealth) * (float)GameConstants.RepairCostPerHp;
+				var spend = SelectHelp.AffordableRepairSpend( repairCost );
 				list.Add( new SelectAction
 				{
-					Label = "Repair",
-					Detail = SelectHelp.Cost( repairCost ),
-					Enabled = SelectHelp.IsDay && SelectHelp.CanAfford( repairCost ),
+					Label = spend > 0 && spend + 0.001 < repairCost ? "Partial Repair" : "Repair",
+					Detail = SelectHelp.Cost( spend > 0 ? spend : repairCost ),
+					Enabled = SelectHelp.CanStartRepair( repairCost ),
 					Invoke = () => BuildManager.Instance?.TryRepairCore()
 				} );
 			}
@@ -218,11 +231,20 @@ public sealed class PlotSelectable : ISelectable
 	private bool Buyable => PlotManager.Instance?.IsBuyable( _x, _y ) == true;
 	private bool Cleared => PlotManager.Instance?.IsCleared( _x, _y ) == true;
 	private bool IsCiv => Feature == PlotKind.NeutralCiv;
+	private bool IsRival => RivalCivManager.IsRivalOwned( GameCore.Instance?.Save, _x, _y );
+	private BossKind Boss => PlotWorldRolls.BossAt( _x, _y );
+	private PlotBoostKind Boost => PlotWorldRolls.BoostAt( _x, _y );
 
 	public string Name
 	{
 		get
 		{
+			if ( Boss != BossKind.None && !Cleared )
+				return PlotWorldRolls.GetBoss( Boss ).Name;
+			if ( Boost != PlotBoostKind.None && !Cleared && !PlotBoosts.IsClaimed( GameCore.Instance?.Save, _x, _y ) )
+				return PlotWorldRolls.GetBoost( Boost ).Name;
+			if ( RivalCivManager.IsSeedPlot( _x, _y ) && !Owned )
+				return "Rival Command Post";
 			if ( IsCiv && Owned ) return PlotFeatureCatalog.Get( Feature ).Name;
 			if ( Cleared ) return "Cleared Plot";
 			if ( Owned ) return $"{ResourceInfo.Name( Kind )} Plot";
@@ -235,6 +257,9 @@ public sealed class PlotSelectable : ISelectable
 	{
 		get
 		{
+			if ( Boss != BossKind.None && !Cleared ) return PlotWorldRolls.GetBoss( Boss ).Icon;
+			if ( Boost != PlotBoostKind.None && !Cleared ) return PlotWorldRolls.GetBoost( Boost ).Icon;
+			if ( RivalCivManager.IsSeedPlot( _x, _y ) && !Owned ) return "flag";
 			if ( Feature != PlotKind.Standard && !Cleared ) return PlotFeatureCatalog.Get( Feature ).Icon;
 			if ( Cleared ) return "grid_view";
 			return ResourceInfo.Icon( Kind );
@@ -245,6 +270,14 @@ public sealed class PlotSelectable : ISelectable
 	{
 		get
 		{
+			if ( IsRival && !Owned )
+				return "Rival territory — claim at double cost";
+			if ( RivalCivManager.IsSeedPlot( _x, _y ) && !Owned )
+				return "Enemy colony — expands each season";
+			if ( Boss != BossKind.None && !Cleared )
+				return PlotWorldRolls.GetBoss( Boss ).Description;
+			if ( Boost != PlotBoostKind.None && !Cleared )
+				return PlotWorldRolls.GetBoost( Boost ).Description;
 			if ( IsCiv && Owned )
 			{
 				var save = GameCore.Instance?.Save;
@@ -293,7 +326,10 @@ public sealed class PlotSelectable : ISelectable
 			}
 			else
 			{
-				list.Add( new StatLine( "Claim Cost", SelectHelp.Cost( PlotGrid.BuyCostEffective( _x, _y ) ) ) );
+				var mult = RivalCivManager.InvasionCostMult( GameCore.Instance?.Save, _x, _y );
+				var cost = PlotGrid.BuyCostEffective( _x, _y ) * mult;
+				list.Add( new StatLine( "Claim Cost", SelectHelp.Cost( cost ) ) );
+				if ( mult > 1 ) list.Add( new StatLine( "Note", "Rival invasion (2×)" ) );
 			}
 
 			return list;
@@ -309,10 +345,11 @@ public sealed class PlotSelectable : ISelectable
 
 			if ( !Owned )
 			{
-				var cost = PlotGrid.BuyCostEffective( _x, _y );
+				var mult = RivalCivManager.InvasionCostMult( GameCore.Instance?.Save, _x, _y );
+				var cost = PlotGrid.BuyCostEffective( _x, _y ) * mult;
 				list.Add( new SelectAction
 				{
-					Label = Buyable ? "Claim Plot" : "Not Reachable",
+					Label = Buyable ? (mult > 1 ? "Invade Plot" : "Claim Plot") : "Not Reachable",
 					Detail = Buyable ? SelectHelp.Cost( cost ) : null,
 					Kind = SelectActionKind.Primary,
 					Enabled = Buyable && SelectHelp.CanAfford( cost ),
@@ -328,9 +365,13 @@ public sealed class PlotSelectable : ISelectable
 				var hireCost = WorkerInfo.HireCost( WorkerRole.Forager );
 				var full = (wm?.Count ?? 0) >= GameConstants.MaxWorkers;
 				var foragerUnlocked = NightUnlocks.IsWorkerUnlocked( GameCore.Instance?.Save, WorkerRole.Forager );
+				// AUDIT FIX M3: Cure used Survival "Night N" wording for locked foragers.
+				var foragerLockLabel = GameCore.Instance?.IsCure == true
+					? $"Forager ({CureUnlocks.WorkerUnlockLabel( GameCore.Instance?.Save, WorkerRole.Forager )})"
+					: $"Forager (Night {WorkerInfo.UnlockNight( WorkerRole.Forager )})";
 				list.Add( new SelectAction
 				{
-					Label = !foragerUnlocked ? $"Forager (Night {WorkerInfo.UnlockNight( WorkerRole.Forager )})" : full ? "Worker Cap Reached" : "Hire Forager",
+					Label = !foragerUnlocked ? foragerLockLabel : full ? "Worker Cap Reached" : "Hire Forager",
 					Detail = full || !foragerUnlocked ? null : SelectHelp.Cost( hireCost ),
 					Kind = SelectActionKind.Primary,
 					Enabled = foragerUnlocked && !full && SelectHelp.CanAfford( hireCost ),
@@ -481,9 +522,11 @@ public sealed class DefenderSelectable : ISelectable
 				new( "Range", $"{def.Range:0}" ),
 				new( "DPS", $"{dps:0}" ),
 				new( "Squad", $"{mgr?.Count ?? 0} / {BuildManager.Instance?.RecruitCapacity ?? 0}" ),
-				new( "Orders", GameCore.Instance?.IsCure == true && GameCore.Instance.Phase == GamePhase.Day
-					? "Click ground to move · attack nearby threats"
-					: "—" ),
+				new( "Orders", GameCore.Instance?.Phase == GamePhase.Night
+					? "Auto-defending · use Command Recruits to override"
+					: GameCore.Instance?.IsCure == true && GameCore.Instance.Phase == GamePhase.Day
+						? "Click ground to move · attack nearby threats"
+						: "Auto-defends during night threats" ),
 			};
 		}
 	}

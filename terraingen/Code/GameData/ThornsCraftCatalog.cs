@@ -62,6 +62,16 @@ public static class ThornsCraftCatalog
 		       || itemId.Contains( "ammo", StringComparison.OrdinalIgnoreCase );
 	}
 
+	/// <summary>Structure pieces placed from the build toolbar — keep them out of craft lists.</summary>
+	static readonly HashSet<string> BuildMenuStructureOutputs = new( StringComparer.OrdinalIgnoreCase )
+	{
+		"wood_foundation",
+		"wood_wall",
+		"wood_doorframe",
+		"wood_window",
+		"wood_ramp",
+	};
+
 	public static bool ShouldShowInCraftMenu( ThornsRecipeDefinition recipe )
 	{
 		if ( recipe is null || string.IsNullOrWhiteSpace( recipe.Id ) )
@@ -74,6 +84,9 @@ public static class ThornsCraftCatalog
 		var outputId = recipe.OutputItemId ?? "";
 		var canonicalOutputId = ThornsItemIdAliases.Canonicalize( outputId );
 		if ( !string.Equals( outputId, canonicalOutputId, StringComparison.OrdinalIgnoreCase ) )
+			return false;
+
+		if ( BuildMenuStructureOutputs.Contains( canonicalOutputId ) )
 			return false;
 
 		var preferredRecipeId = $"recipe_{canonicalOutputId}";

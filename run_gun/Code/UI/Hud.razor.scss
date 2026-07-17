@@ -1,8 +1,8 @@
-$accent: #ffd54a;
-$accent-deep: #ff9d2f;
+$accent: #ff6a2a;
+$accent-deep: #ff3d1f;
 $good: #4ade5a;
 $bad: #ff4d4d;
-$panel: rgba(18, 20, 28, 0.94);
+$panel: rgba(14, 12, 18, 0.96);
 $panel-soft: rgba(255, 255, 255, 0.06);
 
 root {
@@ -39,11 +39,19 @@ root {
 
 	.center-stats {
 		position: absolute;
-		top: 26px;
+		top: 18px;
 		left: 0;
 		width: 100%;
 		flex-direction: column;
 		align-items: center;
+
+		.district {
+			font-size: 14px;
+			font-weight: 800;
+			letter-spacing: 4px;
+			color: $accent;
+			opacity: 0.9;
+		}
 
 		.distance {
 			font-size: 52px;
@@ -58,9 +66,23 @@ root {
 		}
 	}
 
+	.banner {
+		position: absolute;
+		top: 168px;
+		left: 0;
+		width: 100%;
+		justify-content: center;
+		font-size: 22px;
+		font-weight: 800;
+		color: white;
+		text-shadow: 0 3px 10px rgba(0, 0, 0, 0.85);
+		padding: 0 40px;
+		text-align: center;
+	}
+
 	.build-strip {
 		position: absolute;
-		top: 110px;
+		top: 118px;
 		left: 0;
 		width: 100%;
 		justify-content: center;
@@ -86,13 +108,13 @@ root {
 
 	.combo {
 		position: absolute;
-		top: 170px;
+		top: 200px;
 		left: 0;
 		width: 100%;
 		justify-content: center;
 		font-size: 28px;
 		font-weight: 900;
-		color: #ff9d2f;
+		color: $accent;
 		text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
 	}
 
@@ -113,7 +135,7 @@ root {
 			font-weight: 700;
 			opacity: 0.85;
 
-			.icon { font-size: 20px; color: #7dd3fc; }
+			.icon { font-size: 20px; color: $accent; }
 		}
 
 		.overdrive-track {
@@ -125,12 +147,11 @@ root {
 
 			.overdrive-fill {
 				height: 100%;
-				background: linear-gradient(to right, #38bdf8, #818cf8);
+				background-color: #ff7a3a;
 				border-radius: 8px;
-				transition: width 0.1s ease-out;
 
 				&.active {
-					background: linear-gradient(to right, #fbbf24, #f97316);
+					background-color: #ffd54a;
 				}
 			}
 		}
@@ -171,7 +192,6 @@ root {
 		width: 320px;
 		flex-direction: column;
 		align-items: center;
-		transition: transform 0.08s ease-out;
 
 		.crew-count {
 			flex-direction: row;
@@ -179,10 +199,10 @@ root {
 			gap: 12px;
 			font-size: 84px;
 			font-weight: 900;
-			color: $good;
+			color: $accent;
 			text-shadow: 0px 4px 14px rgba(0, 0, 0, 0.8);
 
-			.icon { font-size: 60px; color: $good; }
+			.icon { font-size: 60px; color: $accent; }
 		}
 
 		.crew-label {
@@ -194,12 +214,10 @@ root {
 		}
 
 		&.grow {
-			transform: scale(1.22);
 			.crew-count, .crew-count .icon { color: #b6ff9e; }
 		}
 
 		&.hit {
-			transform: scale(0.9);
 			.crew-count, .crew-count .icon { color: $bad; }
 		}
 	}
@@ -224,6 +242,55 @@ root {
 	justify-content: center;
 	background: rgba(0, 0, 0, 0.55);
 	pointer-events: all;
+
+	&.pick {
+		background: rgba(0, 0, 0, 0.72);
+	}
+}
+
+.pick-panel {
+	flex-direction: column;
+	align-items: center;
+	gap: 18px;
+	padding: 28px;
+
+	.pick-title {
+		font-size: 48px;
+		font-weight: 900;
+		letter-spacing: 4px;
+		color: $accent;
+	}
+
+	.pick-sub {
+		font-size: 18px;
+		opacity: 0.8;
+		margin-bottom: 8px;
+	}
+
+	.pick-row {
+		flex-direction: row;
+		gap: 18px;
+	}
+
+	.pick-card {
+		pointer-events: all;
+		width: 220px;
+		min-height: 220px;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 10px;
+		padding: 22px 16px;
+		border-radius: 18px;
+		background: $panel;
+		border: 3px solid rgba(255, 255, 255, 0.2);
+
+		.icon { font-size: 48px; color: $accent; }
+		.pick-name { font-size: 18px; font-weight: 900; text-align: center; }
+		.pick-desc { font-size: 14px; opacity: 0.75; text-align: center; }
+
+		&:hover { background: rgba(255, 106, 42, 0.16); }
+	}
 }
 
 .panel {
@@ -233,7 +300,6 @@ root {
 	border: 2px solid rgba(255, 255, 255, 0.1);
 	border-radius: 26px;
 	padding: 48px 70px;
-	box-shadow: 0px 24px 70px rgba(0, 0, 0, 0.6);
 	min-width: 520px;
 
 	.title {
@@ -282,6 +348,38 @@ root {
 		&.done, .done { color: $good; }
 	}
 
+	.featured {
+		pointer-events: all;
+		width: 100%;
+		flex-direction: column;
+		align-items: center;
+		gap: 4px;
+		padding: 16px 20px;
+		margin-bottom: 16px;
+		border-radius: 16px;
+		background: rgba(255, 106, 42, 0.14);
+		border: 2px solid $accent;
+
+		.featured-kicker {
+			font-size: 12px;
+			font-weight: 800;
+			letter-spacing: 2px;
+			color: $accent;
+		}
+
+		.featured-name { font-size: 22px; font-weight: 900; }
+		.featured-desc { font-size: 14px; opacity: 0.75; text-align: center; }
+		.featured-cost { font-size: 18px; font-weight: 800; color: $accent; margin-top: 6px; }
+
+		&:hover { background: rgba(255, 106, 42, 0.24); }
+
+		&.locked {
+			opacity: 0.55;
+			border-color: rgba(255, 255, 255, 0.2);
+			pointer-events: none;
+		}
+	}
+
 	.meta-row, .result-row {
 		flex-direction: row;
 		gap: 40px;
@@ -312,17 +410,16 @@ root {
 	font-size: 24px;
 	font-weight: 800;
 	letter-spacing: 2px;
-	transition: all 0.1s ease-out;
 
 	&:hover { background: rgba(255, 255, 255, 0.14); }
 
 	&.primary {
-		background: linear-gradient(to bottom, $accent, $accent-deep);
+		background-color: $accent;
 		border-color: transparent;
 		color: #201400;
 	}
 
-	&.primary:hover { filter: brightness(1.08); }
+	&.primary:hover { background-color: $accent-deep; }
 
 	&.wide { min-width: 100%; margin-top: 20px; }
 	&.small { min-width: 160px; font-size: 16px; padding: 10px 0; }
@@ -338,7 +435,6 @@ root {
 	padding: 30px 34px;
 	width: 720px;
 	max-height: 82%;
-	box-shadow: 0px 24px 70px rgba(0, 0, 0, 0.6);
 
 	.shop-header {
 		flex-direction: row;
@@ -399,7 +495,6 @@ root {
 		border-radius: 14px;
 		background: $panel-soft;
 		border: 2px solid transparent;
-		transition: all 0.1s ease-out;
 
 		.up-icon { color: $accent; font-size: 34px; }
 

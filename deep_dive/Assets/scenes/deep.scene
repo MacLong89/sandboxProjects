@@ -1,0 +1,96 @@
+{
+  "__guid": "b2c3d4e5-0001-4001-8001-000000000001",
+  "GameObjects": [
+    {
+      "__guid": "b2c3d4e5-0001-4001-8001-000000000010",
+      "Flags": 0,
+      "Name": "Sun",
+      "Rotation": "-0.0729315,0.4822396,0.1305433,0.8631827",
+      "Tags": "light_directional,light",
+      "Enabled": true,
+      "Components": [
+        {
+          "__type": "Sandbox.DirectionalLight",
+          "__guid": "b2c3d4e5-0001-4001-8001-000000000011",
+          "FogMode": "Enabled",
+          "FogStrength": 1,
+          "LightColor": "0.55,0.78,0.95,1",
+          "Shadows": true,
+          "SkyColor": "0.25,0.45,0.65,1"
+        }
+      ]
+    },
+    {
+      "__guid": "b2c3d4e5-0001-4001-8001-000000000020",
+      "Flags": 0,
+      "Name": "2D Skybox",
+      "Tags": "skybox",
+      "Enabled": true,
+      "Components": [
+        {
+          "__type": "Sandbox.SkyBox2D",
+          "__guid": "b2c3d4e5-0001-4001-8001-000000000021",
+          "SkyMaterial": "materials/skybox/skybox_day_01.vmat",
+          "Tint": "0.7,0.85,1,1"
+        },
+        {
+          "__type": "Sandbox.EnvmapProbe",
+          "__guid": "b2c3d4e5-0001-4001-8001-000000000022",
+          "Texture": "textures/cubemaps/default2.vtex",
+          "Bounds": {
+            "Mins": "-512,-512,-512",
+            "Maxs": "512,512,512"
+          },
+          "DelayBetweenUpdates": 0.1,
+          "Feathering": 0.02,
+          "FrameInterval": 5,
+          "MaxDistance": 512,
+          "Projection": "Sphere",
+          "RenderDynamically": false,
+          "TintColor": "1,1,1,1",
+          "UpdateStrategy": "OnEnabled",
+          "ZFar": 4096,
+          "ZNear": 16
+        }
+      ]
+    },
+    {
+      "__guid": "b2c3d4e5-0001-4001-8001-000000000030",
+      "Flags": 0,
+      "Name": "Boot",
+      "Enabled": true,
+      "Components": [
+        {
+          "__type": "DeepDive.DeepDiveBootstrap",
+          "__guid": "b2c3d4e5-0001-4001-8001-000000000031"
+        }
+      ]
+    }
+  ],
+  "SceneProperties": {
+    "FixedUpdateFrequency": 50,
+    "MaxFixedUpdates": 5,
+    "NetworkFrequency": 60,
+    "NetworkInterpolation": true,
+    "ThreadedAnimation": true,
+    "TimeScale": 1,
+    "UseFixedUpdate": true,
+    "NavMesh": {
+      "Enabled": false,
+      "IncludeStaticBodies": true,
+      "IncludeKeyframedBodies": true,
+      "EditorAutoUpdate": true,
+      "AgentHeight": 64,
+      "AgentRadius": 16,
+      "AgentStepSize": 18,
+      "AgentMaxSlope": 40,
+      "ExcludedBodies": "",
+      "IncludedBodies": ""
+    }
+  },
+  "Title": "deep",
+  "Description": "DEEP — vertical diving MVP",
+  "ResourceVersion": 1,
+  "__references": [],
+  "__version": 1
+}

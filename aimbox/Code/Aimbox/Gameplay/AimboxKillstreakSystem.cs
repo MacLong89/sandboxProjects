@@ -139,15 +139,34 @@ public sealed class AimboxKillstreakSystem
 		var tr = scene.Trace.Ray( origin, end ).Run();
 		var impact = tr.Hit ? tr.EndPosition : end;
 
+		var damage = AimboxGame.Instance?.Damage;
 		foreach ( var actor in AimboxGame.Instance.GetAllCombatActors() )
 		{
-			if ( actor == player || !actor.IsAlive || player.IsTeammate( actor ) )
+			if ( actor == player || !actor.IsAlive )
 				continue;
 
-			if ( actor.WorldPosition.Distance( impact ) > 220f )
+			var distance = actor.WorldPosition.Distance( impact );
+			if ( distance > 220f )
 				continue;
 
-			actor.TakeDamage( player, AimboxWeaponId.HeGrenade, 180f, false, actor.WorldPosition.Distance( impact ) );
+			// AUDIT FIX M1 (2026-07-13): used to call actor.TakeDamage directly, skipping
+			// AimboxDamageSystem FF / aim-mode / human damage-mul rules. Keep HeGrenade weapon id.
+			if ( damage is not null )
+			{
+				damage.ApplyDamage(
+					player,
+					actor,
+					AimboxWeaponId.HeGrenade,
+					180f,
+					headshot: false,
+					distance,
+					allowSelfDamage: false );
+			}
+			else
+			{
+				// Fallback if game wiring is mid-teardown — prefer never taking this branch.
+				actor.TakeDamage( player, AimboxWeaponId.HeGrenade, 180f, false, distance );
+			}
 		}
 	}
 

@@ -512,7 +512,9 @@ public sealed class ThornsPlayerBuildingController : Component
 		{
 			preview.Position = snapPos;
 			preview.Rotation = snapRot * Rotation.FromYaw( _previewYaw );
-			preview.Valid = IsPlacementClear( preview.Position, def, ignoreAttached: true );
+			// AUDIT FIX: ghost preview must mirror host ownership support (no foreign-base green ghost).
+			preview.Valid = IsPlacementClear( preview.Position, def, ignoreAttached: true )
+			                && HostHasPlacementSupport( def, preview.Position, ResolveLocalPlacerAccountKey() );
 			preview.Reason = preview.Valid ? "" : "blocked";
 			return preview;
 		}
@@ -1319,11 +1321,13 @@ public sealed class ThornsPlayerBuildingController : Component
 		if ( !IsPlacementClear( position, def, ignoreAttached: true ) )
 			return false;
 
-		if ( !HostHasPlacementSupport( def, position ) )
-			return false;
-
 		var gameplay = Components.Get<ThornsPlayerGameplay>();
 		if ( !gameplay.IsValid() )
+			return false;
+
+		// AUDIT FIX: pass placer account so we cannot snap walls/ramps onto foreign foundations.
+		var placerKey = ThornsBuildingOwnership.ResolveOwnerAccountKey( owner, gameplay );
+		if ( !HostHasPlacementSupport( def, position, placerKey ) )
 			return false;
 
 		var costs = ThornsPlayerBuildingDefinitions.PlacementCostsForHotbarItem( hotbarItemId, def );
@@ -1366,6 +1370,11 @@ public sealed class ThornsPlayerBuildingController : Component
 				gameplay.HostGrantHarvestItem( cost.ItemId, cost.Count );
 			return false;
 		}
+
+		// AUDIT FIX: prefer gameplay AccountKey if connection identity was empty.
+		if ( string.IsNullOrWhiteSpace( placed.OwnerAccountKey )
+		     && !string.IsNullOrWhiteSpace( gameplay.AccountKey ) )
+			placed.OwnerAccountKey = gameplay.AccountKey.Trim();
 
 		gameplay.HostNotifyStructurePlaced( structureId );
 		if ( string.Equals( structureId, "bed", StringComparison.OrdinalIgnoreCase )
@@ -1456,9 +1465,10 @@ public sealed class ThornsPlayerBuildingController : Component
 		if ( caller is null )
 			return false;
 
+		// AUDIT FIX: blank OwnerAccountKey used to mean "anyone may demolish/upgrade".
+		// Now requires owner match or guild — see ThornsBuildingOwnership.
 		var callerKey = Terraingen.Multiplayer.ThornsPersistenceIdentity.GetStableAccountKey( caller );
-		return string.IsNullOrWhiteSpace( target.OwnerAccountKey )
-		       || string.Equals( target.OwnerAccountKey, callerKey, StringComparison.OrdinalIgnoreCase );
+		return ThornsBuildingOwnership.HostAccountMayUseStructure( target.OwnerAccountKey, callerKey );
 	}
 
 	bool HostIsWithinModifyDistance( ThornsPlacedBuildStructure target )
@@ -1515,7 +1525,24 @@ public sealed class ThornsPlayerBuildingController : Component
 		return wrapped - 180f;
 	}
 
-	static bool HostHasPlacementSupport( ThornsBuildDefinition def, Vector3 position )
+	string ResolveLocalPlacerAccountKey()
+	{
+		var gameplay = Components.Get<ThornsPlayerGameplay>();
+		if ( gameplay.IsValid() && !string.IsNullOrWhiteSpace( gameplay.AccountKey ) )
+			return gameplay.AccountKey.Trim();
+
+		if ( Networking.IsActive && Network.Owner is not null )
+			return Terraingen.Multiplayer.ThornsPersistenceIdentity.GetStableAccountKey( Network.Owner ) ?? "";
+
+		return Terraingen.Multiplayer.ThornsPersistenceIdentity.GetStableAccountKey( GameObject ) ?? "";
+	}
+
+	/// <summary>
+	/// AUDIT FIX: support geometry must be owned by the placer (or guild).
+	/// Previously any nearby foundation counted — enabling building onto rivals' bases.
+	/// Preview now also calls this so foreign snaps show red ghosts.
+	/// </summary>
+	static bool HostHasPlacementSupport( ThornsBuildDefinition def, Vector3 position, string placerAccountKey )
 	{
 		if ( def.PlacementKind == ThornsPlayerBuildPlacementKind.Free || def.SnapKind == ThornsPlayerBuildSnapKind.Foundation )
 			return true;
@@ -1523,6 +1550,10 @@ public sealed class ThornsPlayerBuildingController : Component
 		foreach ( var placed in ThornsPlacedBuildStructure.Registry )
 		{
 			if ( !placed.IsValid() || !ThornsPlayerBuildingDefinitions.TryGet( placed.StructureId, out var hostDef ) )
+				continue;
+
+			// Ownership gate before geometry — avoids "valid snap" that authorizes onto enemies.
+			if ( !ThornsBuildingOwnership.HostAccountMayUseAsPlacementSupport( placed.OwnerAccountKey, placerAccountKey ) )
 				continue;
 
 			var d = (placed.GameObject.WorldPosition - position).Length;
@@ -1851,7 +1882,10 @@ public sealed class ThornsPlacedBuildStructure : Component
 
 		var placed = go.Components.Create<ThornsPlacedBuildStructure>();
 		placed.StructureId = structureId;
-		placed.OwnerAccountKey = owner is null ? "" : Terraingen.Multiplayer.ThornsPersistenceIdentity.GetStableAccountKey( owner );
+		// AUDIT FIX: never leave OwnerAccountKey blank when we have any identity — blank used to be "public".
+		placed.OwnerAccountKey = ThornsBuildingOwnership.ResolveOwnerAccountKey( owner, gameplayFallback: null );
+		if ( string.IsNullOrWhiteSpace( placed.OwnerAccountKey ) && owner is null && Networking.IsActive )
+			Log.Warning( $"[Thorns Building] Placed '{structureId}' with blank OwnerAccountKey while networked — structure will not be publicly editable." );
 		placed.InstanceKey = string.IsNullOrWhiteSpace( instanceKey )
 			? Guid.NewGuid().ToString( "N" )
 			: instanceKey.Trim();

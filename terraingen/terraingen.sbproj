@@ -5,7 +5,7 @@
   "Ident": "thorns",
   "Schema": 1,
   "IncludeSourceFiles": false,
-  "Resources": "*.png\n*.scss\n*.json\n*.tmat\n*.scene\nmap/*\nui/**/*\nnews.json\nsounds/*\ntemplates/*\nmodels/**/*\nmaterials/**/*\nterrain_materials/**/*\nshaders/**",
+  "Resources": "*.png\n*.scss\n*.json\n*.tmat\n*.scene\n*.vmdl\n*.vmat\nmap/*\nui/**/*\nnews.json\nsounds/*\ntemplates/*\nmodels/**/*\nmaterials/**/*\nterrain_materials/**/*\nshaders/**",
   "PackageReferences": [
     "facepunch.sboxweapons",
     "facepunch.reddotrmr",
@@ -31,7 +31,7 @@
     "RankType": "None",
     "PerMapRanking": false,
     "LeaderboardType": "None",
-    "CsProjName": "Code/terraingen.csproj",
+    "CsProjName": "Code/thorns.csproj",
     "Compiler": {
       "RootNamespace": "Sandbox",
       "DefineConstants": "SANDBOX",

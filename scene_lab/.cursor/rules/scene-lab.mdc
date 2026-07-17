@@ -1,0 +1,16 @@
+---
+description: Scene Lab is the standalone look-dev project — edit workbench + modular pieces here
+globs:
+  - "scene_lab/**/*"
+alwaysApply: false
+---
+
+# Scene Lab
+
+- Do **not** put look-dev scenery into under_pressure or other full games unless the user asks to export.
+- Composition: edit `Code/Scene/WorkbenchScene.cs`
+- New reusable geometry: add `Code/Pieces/<Name>Piece.cs` with a static `Build(...)`
+- Shared tinted primitives: `Code/Kit/`
+- After changes, user opens `scene_lab.sbproj` and plays `scenes/workbench.scene` (R rebuilds)
+- Depth: ±1 on coplanar faces; ground sitting via `Depth.CenterLift`
+- Units: Source-style (same ballpark as under_pressure scenery — hundreds of units for streets)

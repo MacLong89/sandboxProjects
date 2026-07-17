@@ -86,11 +86,7 @@ public static class ThornsItemCatalog
 		Recipe( "storage_chest_kit", "Storage Chest", "storage_chest_kit", "build", 10f, 2, Ing( "wood", 45 ), Ing( "stone", 10 ) ),
 		Recipe( "workbench_kit", "Workbench", "workbench_kit", "build", 12f, 3, Ing( "wood", 60 ), Ing( "stone", 25 ), Ing( "metal_ore", 5 ) ),
 		Recipe( "research_kit", "Research Station", "research_kit", "build", 18f, 4, Ing( "wood", 55 ), Ing( "stone", 30 ), Ing( "metal_ore", 16 ) ),
-		Recipe( "wood_foundation", "Wood Foundation", "wood_foundation", "build", 8f, 3, Ing( "wood", 25 ) ),
-		Recipe( "wood_wall", "Wood Wall", "wood_wall", "build", 8f, 3, Ing( "wood", 20 ), Ing( "stone", 5 ) ),
-		Recipe( "wood_doorframe", "Wood Doorframe", "wood_doorframe", "build", 8f, 3, Ing( "wood", 15 ) ),
-		Recipe( "wood_window", "Wood Window", "wood_window", "build", 8f, 3, Ing( "wood", 18 ), Ing( "stone", 4 ) ),
-		Recipe( "wood_ramp", "Wood Ramp", "wood_ramp", "build", 10f, 3, Ing( "wood", 30 ), Ing( "stone", 8 ) ),
+		// Wood foundation/wall/door/window/ramp are place modes on the build menu (B), not craft recipes.
 		Recipe( "c4", "C4 Charge", "c4", "build", 14f, 5, Ing( "smelt_metal", 6 ), Ing( "cloth", 8 ), Ing( "stone", 12 ), station: ThornsCraftStationKind.Workbench ),
 
 		Recipe( "bandage", "Bandage", "bandage", "medical", 4f, 1, Ing( "cloth", 5 ) ),

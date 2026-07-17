@@ -43,25 +43,58 @@ public static class CureConstants
 	// Civic building output (per building, per second)
 	public const float FarmFoodPerSec = 1.5f;
 	public const float FactorySuppliesPerSec = 1.0f;
-	public const float FactoryFoodPerSec = 0.35f;
+	public const float FactoryFoodPerSec = 0.25f;
+
+	/// <summary>Food stockpile granted at the start of every Cure run.</summary>
+	public const double StartingFood = 150;
+	/// <summary>Scrap granted at the start of every Cure run.</summary>
+	public const double StartingScrap = 500;
+	/// <summary>Always drains — even with zero population (spoilage / camp fires).</summary>
+	public const float BaseFoodDrainPerSec = 0.15f;
+	/// <summary>Extra food drain per worker + recruit.</summary>
+	public const float FoodPerPersonPerSec = 0.12f;
+	/// <summary>Toast once when food drops below this (resets after recovery).</summary>
+	public const double FoodLowToastThreshold = 30;
+	/// <summary>Wood/stone lump when clearing a standard resource plot.</summary>
+	public const double PlotClearMaterialBonus = 20;
+
+	/// <summary>Baseline Knowledge drip (Cure) — like Civ science from the palace.</summary>
+	public const float BaseKnowledgePerSec = 0.2f;
 	public const float LibraryKnowledgePerSec = 0.75f;
 	public const float SchoolKnowledgePerSec = 0.45f;
+	public const double KnowledgeFromPlaceBuilding = 2;
+	public const double KnowledgeFromClaimPlot = 3;
+	public const double KnowledgeFromClearPlot = 5;
+	public const double KnowledgeFromThreatSurvived = 12;
+	public const double KnowledgeFromHire = 1;
 	public const float HospitalRecruitHealPerSec = 2.5f;
 	public const float HospitalSicknessHealPerSec = 0.02f;
 	public const float HospitalHealRadius = 220f;
-	public const float ShopScrapPerSec = 0.3f;
-	/// <summary>Baseline command-post scrap drip (Cure mode only).</summary>
-	public const float CommandPostScrapPerSec = 5f;
+
+	/// <summary>Shop income — must beat colony scrap upkeep at scale (Earn applies ScrapIncomeMult).</summary>
+	public const float ShopScrapPerSec = 2.5f;
+	/// <summary>Modest command-post drip — growth will outpace this without Commerce.</summary>
+	public const float CommandPostScrapPerSec = 3.25f;
+	/// <summary>Always some scrap burn (tools, fuel, waste).</summary>
+	public const float BaseScrapUpkeepPerSec = 0.05f;
+	/// <summary>Wages / rations cost in scrap per worker + recruit.</summary>
+	public const float ScrapPerPersonPerSec = 0.14f;
+	/// <summary>Maintenance per placed building (towers, civics, barracks, etc.).</summary>
+	public const float ScrapPerBuildingPerSec = 0.15f;
 
 	// Colony worker output (per worker, per second)
-	public const float FarmerFoodPerSec = 0.9f;
+	public const float FarmerFoodPerSec = 0.65f;
 	public const float ScholarKnowledgePerSec = 0.45f;
 	public const float OperatorSuppliesPerSec = 0.55f;
 	public const float MedicRecruitHealPerSec = 2.0f;
 	public const float MedicHealRadius = 180f;
-	public const float MerchantScrapPerSec = 0.22f;
+	public const float MerchantScrapPerSec = 1.0f;
 
 	public const int ResearchTierCount = 4;
+
+	/// <summary>Cure map is 3× Survival radius (13×13 vs 5×5).</summary>
+	public const int PlotGridRadius = 6;
+	public const float TerrainHalfExtent = 5600f;
 
 	public static string SeasonName( int season ) => ((CureSeason)(season % 4)) switch
 	{

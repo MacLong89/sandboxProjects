@@ -5,21 +5,59 @@ public enum UnitOrderKind
 	None,
 	Move,
 	Gather,
-	AttackMove
+	AttackMove,
+	/// <summary>Night / day area hunt: move to a point and engage nearby zombies.</summary>
+	AreaAttack
 }
 
-/// <summary>Northgard-style unit commands for Road to a Cure (day phase).</summary>
+/// <summary>
+/// Unit commands: Cure day orders for selected units, plus Survival/Cure night orders
+/// that send all recruits to focus a zombie or clear an area. Towers stay fully automatic.
+/// </summary>
 public sealed class UnitOrderController : Component
 {
 	public static UnitOrderController Instance { get; private set; }
+	public bool NightCommandMode { get; private set; }
+	public bool CanAcceptNightClick => NightCommandMode && _armDelayFrames <= 0;
 
 	protected override void OnAwake() => Instance = this;
+
+	private int _armDelayFrames;
+
+	protected override void OnUpdate()
+	{
+		if ( _armDelayFrames > 0 )
+			_armDelayFrames--;
+
+		if ( GameCore.Instance?.Phase != GamePhase.Night )
+			CancelNightCommandMode();
+	}
 
 	protected override void OnDestroy()
 	{
 		if ( Instance == this ) Instance = null;
 	}
 
+	public void ToggleNightCommandMode()
+	{
+		var core = GameCore.Instance;
+		if ( core?.Phase != GamePhase.Night || (DefenderManager.Instance?.Count ?? 0) <= 0 )
+		{
+			CancelNightCommandMode();
+			return;
+		}
+
+		NightCommandMode = !NightCommandMode;
+		_armDelayFrames = NightCommandMode ? 2 : 0;
+	}
+
+	public void CancelNightCommandMode()
+	{
+		NightCommandMode = false;
+		_armDelayFrames = 0;
+	}
+
+	/// <summary>Cure day: order the currently selected recruit/worker.</summary>
 	public bool TryIssueOrder( Vector3 ground, ISelectable selected )
 	{
 		var core = GameCore.Instance;
@@ -51,6 +89,35 @@ public sealed class UnitOrderController : Component
 		}
 
 		return false;
+	}
+
+	/// <summary>
+	/// Night: all living recruits focus the nearest zombie under the cursor, or area-attack
+	/// the clicked ground. Returns false only when there are no recruits to command.
+	/// </summary>
+	public bool TryIssueNightRecruitOrders( Vector3 ground )
+	{
+		var core = GameCore.Instance;
+		if ( core is null || core.Phase != GamePhase.Night || !CanAcceptNightClick ) return false;
+
+		var defenders = DefenderManager.Instance;
+		if ( defenders is null || defenders.Count == 0 )
+		{
+			CancelNightCommandMode();
+			return false;
+		}
+
+		var zombie = core.Combat?.NearestZombie( ground, GameConstants.NightFocusPickRadius );
+		if ( zombie is not null && !zombie.Dead )
+		{
+			defenders.OrderAllFocus( zombie );
+			CancelNightCommandMode();
+			return true;
+		}
+
+		defenders.OrderAllAreaAttack( ground );
+		CancelNightCommandMode();
+		return true;
 	}
 
 	private static bool TryAttackTarget( Vector3 ground, DefenderManager.DefenderUnit unit )

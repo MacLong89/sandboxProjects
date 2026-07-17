@@ -191,7 +191,7 @@ public sealed class AnimalSystem : Component
 		var go = new GameObject( true, $"Animal - {def.DisplayName}" );
 		go.Tags.Add( "animal" );
 		go.WorldPosition = habitat.ClampInside( position ).WithZ( 0f );
-		go.WorldRotation = Rotation.FromYaw( Game.Random.Float( 0, 360 ) );
+		go.WorldRotation = Rotation.Identity;
 
 		var animal = go.AddComponent<AnimalComponent>();
 		animal.AnimalId = animalId ?? Guid.NewGuid().ToString( "N" );

@@ -29,7 +29,7 @@ public static class WorldMapBuilder
 
 		var playMat = job.Theme is MapTheme.Suburban or MapTheme.Backyard
 			? GameMaterials.Grass
-			: theme.TransitionMaterial;
+			: GameMaterials.Concrete;
 		FlatQuad( root, "PlayPad", center, play, playMat, job.GroundColor, collider: true, z: DepthLayers.PlayPad );
 	}
 

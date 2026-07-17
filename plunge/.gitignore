@@ -1,0 +1,7 @@
+.sbox/
+.vs/
+Code/bin/
+Code/obj/
+Editor/bin/
+Editor/obj/
+*.user

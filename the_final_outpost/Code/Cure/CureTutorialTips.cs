@@ -28,8 +28,9 @@ public static class CureTutorialTips
 		{
 			Id = "cure_resources", MinNight = 1, MaxNight = 3, Priority = 92, Icon = "inventory_2",
 			Title = "Colony resources",
-			Body = "Scrap pays for buildings and hires. Food feeds your population. Supplies and knowledge "
-				+ "unlock the tech tree. Specimens come from expeditions and advance cure research."
+			Body = "Scrap, wood, and stone pay for buildings. Every person and building burns scrap upkeep — "
+				+ "grow too fast and you'll go into debt until Commerce (Shops/Merchants) covers it. "
+				+ "Food drains with population; Farms keep you fed. Knowledge unlocks the Tech Tree."
 		},
 		new()
 		{
@@ -57,28 +58,37 @@ public static class CureTutorialTips
 			Id = "cure_recruit", MinNight = 1, MaxNight = 4, Priority = 82, Icon = "military_tech",
 			Title = "Train recruits",
 			Body = "With a Barracks built, open Recruits in the build dock. "
-				+ "Right-click recruits to move them — useful for plugging gaps after a threat."
+				// AUDIT FIX M2: tip said Right-click; UnitOrderController is wired on Attack1 (LMB) in BuildManager.
+				+ "Left-click the ground with a recruit selected to move them — useful for plugging gaps after a threat."
+		},
+		new()
+		{
+			Id = "cure_knowledge_early", MinNight = 1, MaxNight = 4, Priority = 81, Icon = "lightbulb",
+			Title = "Earn Knowledge first",
+			Body = "Knowledge ticks up slowly on its own, and you gain more by building, claiming/clearing plots, hiring, and surviving threats. "
+				+ "Tech Ruins (+50) and allying with neighbors (+25) are big early boosts. Click Knowledge or Tech to research Agriculture."
 		},
 		new()
 		{
 			Id = "cure_lab", MinNight = 1, MaxNight = 4, Priority = 80, Icon = "science",
 			Title = "Research Lab",
-			Body = "The Research Lab generates cure lab points over time. "
-				+ "Scholars and higher lab levels boost output — build one early."
+			Body = "Labs generate cure lab points for the Cure panel — they do not unlock Farms or Factories. "
+				+ "Scholars and higher lab levels boost output. Spend those points under Cure, not Tech."
 		},
 		new()
 		{
 			Id = "cure_tech", MinNight = 1, MaxNight = 3, Priority = 78, Icon = "account_tree",
 			Title = "Tech tree",
-			Body = "Open Tech in the top bar. Spend knowledge (and sometimes scrap) to unlock civic buildings "
-				+ "and specialist workers. Start with Agriculture for food production."
+			Body = "Open Tech (or click the Knowledge counter). Spend Knowledge like Civ science to unlock civic buildings. "
+				+ "Path: Agriculture (Farm) → Industry (Factory). Literacy unlocks Libraries for faster Knowledge income."
 		},
 		new()
 		{
 			Id = "cure_farm", MinNight = 2, MaxNight = 5, Priority = 76, Icon = "agriculture",
 			Title = "Farm & Farmers",
-			Body = "Farms passively produce food. Hire Farmers from the Workers menu after researching Agriculture — "
-				+ "each Farmer adds more food per second. Starvation raises colony sickness."
+			Body = $"Each Farm produces +{CureConstants.FarmFoodPerSec:0.#} food/s. Food always drains "
+				+ $"(base + {CureConstants.FoodPerPersonPerSec:0.##}/s per worker and recruit). "
+				+ "Hire Farmers for more output. Starvation raises colony sickness."
 		},
 		new()
 		{
@@ -91,8 +101,8 @@ public static class CureTutorialTips
 		{
 			Id = "cure_knowledge", MinNight = 3, MaxNight = 7, Priority = 72, Icon = "menu_book",
 			Title = "Library & School",
-			Body = "Libraries and Schools generate knowledge for the tech tree. "
-				+ "Scholars add knowledge per second and boost Research Lab output."
+			Body = "Libraries and Schools boost Knowledge income for the tech tree. "
+				+ "Scholars add Knowledge per second and also boost Research Lab output."
 		},
 		new()
 		{
@@ -105,8 +115,8 @@ public static class CureTutorialTips
 		{
 			Id = "cure_shop", MinNight = 3, MaxNight = 7, Priority = 68, Icon = "storefront",
 			Title = "Shop & Merchants",
-			Body = "Shops generate scrap income every second. Merchants add even more scrap — "
-				+ "unlock both with Commerce tech after Industry."
+			Body = "As your colony grows, scrap upkeep climbs. Shops and Merchants (Commerce tech) are how you "
+				+ "stay in the black — unlock after Industry."
 		},
 		new()
 		{
@@ -126,8 +136,8 @@ public static class CureTutorialTips
 		{
 			Id = "cure_cure_tiers", MinNight = 2, MaxNight = 8, Priority = 62, Icon = "biotech",
 			Title = "Cure research tiers",
-			Body = "Open Research in the build dock to spend lab points and resources on cure tiers. "
-				+ "Meet season objectives and gather specimens to reach the final cure."
+			Body = "Open Cure in the top bar (or Research in the dock) to spend lab points on cure tiers. "
+				+ "Labs feed this track — civic buildings still come from the Tech Tree."
 		},
 		new()
 		{
@@ -200,6 +210,7 @@ public static class CureTutorialTips
 			"cure_barracks" => !HasBarracks(),
 			"cure_recruit" => HasBarracks() && (core.Save.Recruits.Count == 0),
 			"cure_lab" => !HasBuilding( BuildableId.Lab ),
+			"cure_knowledge_early" => !HasAnyTech() && KnowledgeAmount() < 40,
 			"cure_tech" => !HasAnyTech(),
 			"cure_farm" => HasTech( "agriculture" ) && !HasBuilding( BuildableId.Farm ),
 			"cure_factory" => HasTech( "industry" ) && !HasBuilding( BuildableId.Factory ),
@@ -231,6 +242,9 @@ public static class CureTutorialTips
 
 	private static bool HasTech( string id ) =>
 		TechTreeCatalog.IsUnlocked( GameCore.Instance?.Save, id );
+
+	private static double KnowledgeAmount() =>
+		GameCore.Instance?.Resources.Get( ResourceKind.Knowledge ) ?? 0;
 
 	private static bool AnySpecialistUnlocked( SaveData save ) =>
 		CureUnlocks.IsWorkerUnlocked( save, WorkerRole.Farmer )

@@ -42,6 +42,12 @@ public static class AimboxArenaConfig
 	public const int SurvivalWave1BotCount = SurvivalBotsPerWave;
 	public const int SurvivalHardModeStartWave = 5;
 	public const float SurvivalHardStatMultiplier = 1.5f;
+	/// <summary>
+	/// AUDIT FIX H5 (2026-07-13): SurvivalComplete was never written true — clearing waves
+	/// only incremented forever. After this many waves are cleared, Mark SurvivalComplete.
+	/// Raise/lower carefully; scoreboard + ShouldEnd depend on it.
+	/// </summary>
+	public const int SurvivalFinalWave = 10;
 
 	public static int GetSurvivalWaveBotCount( int wave ) =>
 		Math.Max( 1, wave * SurvivalBotsPerWave );

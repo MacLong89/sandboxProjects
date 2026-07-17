@@ -17,19 +17,6 @@ public static class StylizedMaterials
 	public static Material Wood => _wood ??= Load( "materials/fo_wood.vmat" );
 	public static Material Roof => _roof ??= Load( "materials/fo_roof.vmat" );
 
-	private static Material Load( string path )
-	{
-		try
-		{
-			var mat = Material.Load( path );
-			if ( mat is not null && mat.IsValid() )
-				return mat;
-		}
-		catch ( Exception e )
-		{
-			Log.Warning( $"[FinalOutpost] Material '{path}' failed to load: {e.Message}" );
-		}
-
-		return MeshPrimitives.Mat;
-	}
+	private static Material Load( string path ) =>
+		AssetSafe.Material( path, MeshPrimitives.Mat ) ?? MeshPrimitives.Mat;
 }

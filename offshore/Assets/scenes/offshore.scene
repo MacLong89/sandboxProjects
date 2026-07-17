@@ -1,0 +1,62 @@
+{
+  "__guid": "a1b2c3d4-e5f6-4701-8801-000000000001",
+  "GameObjects": [
+    {
+      "__guid": "a1b2c3d4-e5f6-4701-8801-000000000010",
+      "Flags": 0,
+      "Name": "Sun",
+      "Rotation": "-0.0729315,0.4822396,0.1305433,0.8631827",
+      "Tags": "light_directional,light",
+      "Enabled": true,
+      "Components": [
+        {
+          "__type": "Sandbox.DirectionalLight",
+          "__guid": "a1b2c3d4-e5f6-4701-8801-000000000011",
+          "FogMode": "Enabled",
+          "FogStrength": 0.35,
+          "LightColor": "0.95,0.92,0.85,1",
+          "Shadows": false,
+          "SkyColor": "0.45,0.7,0.95,1"
+        }
+      ]
+    },
+    {
+      "__guid": "a1b2c3d4-e5f6-4701-8801-000000000030",
+      "Flags": 0,
+      "Name": "Boot",
+      "Enabled": true,
+      "Components": [
+        {
+          "__type": "Offshore.GameManager",
+          "__guid": "a1b2c3d4-e5f6-4701-8801-000000000031"
+        }
+      ]
+    }
+  ],
+  "SceneProperties": {
+    "FixedUpdateFrequency": 50,
+    "MaxFixedUpdates": 5,
+    "NetworkFrequency": 60,
+    "NetworkInterpolation": true,
+    "ThreadedAnimation": true,
+    "TimeScale": 1,
+    "UseFixedUpdate": true,
+    "NavMesh": {
+      "Enabled": false,
+      "IncludeStaticBodies": true,
+      "IncludeKeyframedBodies": true,
+      "EditorAutoUpdate": true,
+      "AgentHeight": 64,
+      "AgentRadius": 16,
+      "AgentStepSize": 18,
+      "AgentMaxSlope": 40,
+      "ExcludedBodies": "",
+      "IncludedBodies": ""
+    }
+  },
+  "Title": "offshore",
+  "Description": "Offshore — MINIMAL compile (GameManager only)",
+  "ResourceVersion": 1,
+  "__references": [],
+  "__version": 1
+}

@@ -1,0 +1,201 @@
+{
+  "generated": true,
+  "assets": [
+    {
+      "id": "diver_idle",
+      "path": "textures/diver/idle.png"
+    },
+    {
+      "id": "diver_swim",
+      "path": "textures/diver/swim.png"
+    },
+    {
+      "id": "diver_swim_up",
+      "path": "textures/diver/swim_up.png"
+    },
+    {
+      "id": "diver_swim_down",
+      "path": "textures/diver/swim_down.png"
+    },
+    {
+      "id": "diver_harpoon_1",
+      "path": "textures/diver/harpoon_1.png"
+    },
+    {
+      "id": "diver_harpoon_2",
+      "path": "textures/diver/harpoon_2.png"
+    },
+    {
+      "id": "diver_harpoon_3",
+      "path": "textures/diver/harpoon_3.png"
+    },
+    {
+      "id": "world_boat",
+      "path": "textures/world/boat.png"
+    },
+    {
+      "id": "world_seaweed",
+      "path": "textures/world/seaweed.png"
+    },
+    {
+      "id": "world_rocks",
+      "path": "textures/world/rocks.png"
+    },
+    {
+      "id": "world_ruins",
+      "path": "textures/world/ruins.png"
+    },
+    {
+      "id": "world_coral_cluster",
+      "path": "textures/world/coral_cluster.png"
+    },
+    {
+      "id": "world_ocean_backdrop",
+      "path": "textures/world/ocean_backdrop.png"
+    },
+    {
+      "id": "world_seabed_chunk",
+      "path": "textures/world/seabed_chunk.png"
+    },
+    {
+      "id": "world_seabed_fill",
+      "path": "textures/world/seabed_fill.png"
+    },
+    {
+      "id": "world_seabed_ridge",
+      "path": "textures/world/seabed_ridge.png"
+    },
+    {
+      "id": "world_abyss_silhouette",
+      "path": "textures/world/abyss_silhouette.png"
+    },
+    {
+      "id": "world_cave_overhang",
+      "path": "textures/world/cave_overhang.png"
+    },
+    {
+      "id": "submarine",
+      "path": "textures/vehicles/submarine.png"
+    },
+    {
+      "id": "creature_reef_fish",
+      "path": "textures/creatures/reef_fish.png"
+    },
+    {
+      "id": "creature_jellyfish",
+      "path": "textures/creatures/jellyfish.png"
+    },
+    {
+      "id": "creature_puffer",
+      "path": "textures/creatures/puffer.png"
+    },
+    {
+      "id": "creature_mine",
+      "path": "textures/creatures/mine.png"
+    },
+    {
+      "id": "creature_angler",
+      "path": "textures/creatures/angler.png"
+    },
+    {
+      "id": "loot_seashell",
+      "path": "textures/loot/seashell.png"
+    },
+    {
+      "id": "loot_old_coin",
+      "path": "textures/loot/old_coin.png"
+    },
+    {
+      "id": "loot_scrap_metal",
+      "path": "textures/loot/scrap_metal.png"
+    },
+    {
+      "id": "loot_pearl",
+      "path": "textures/loot/pearl.png"
+    },
+    {
+      "id": "loot_lost_relic",
+      "path": "textures/loot/lost_relic.png"
+    },
+    {
+      "id": "loot_silver_locket",
+      "path": "textures/loot/silver_locket.png"
+    },
+    {
+      "id": "loot_ancient_statue",
+      "path": "textures/loot/ancient_statue.png"
+    },
+    {
+      "id": "loot_sunken_crown",
+      "path": "textures/loot/sunken_crown.png"
+    },
+    {
+      "id": "loot_wreck_crate",
+      "path": "textures/loot/wreck_crate.png"
+    },
+    {
+      "id": "loot_locked_vault",
+      "path": "textures/loot/locked_vault.png"
+    },
+    {
+      "id": "loot_hadal_pearl",
+      "path": "textures/loot/hadal_pearl.png"
+    },
+    {
+      "id": "fx_harpoon_spear",
+      "path": "textures/effects/harpoon_spear.png"
+    },
+    {
+      "id": "tool_fins",
+      "path": "ui/icons/tool_fins.png"
+    },
+    {
+      "id": "tool_harpoon",
+      "path": "ui/icons/tool_harpoon.png"
+    },
+    {
+      "id": "tool_scanner",
+      "path": "ui/icons/tool_scanner.png"
+    },
+    {
+      "id": "tool_camera",
+      "path": "ui/icons/tool_camera.png"
+    },
+    {
+      "id": "tool_oxygen",
+      "path": "ui/icons/tool_oxygen.png"
+    },
+    {
+      "id": "tool_drone",
+      "path": "ui/icons/tool_drone.png"
+    },
+    {
+      "id": "tool_lure",
+      "path": "ui/icons/tool_lure.png"
+    },
+    {
+      "id": "tool_sub",
+      "path": "ui/icons/tool_sub.png"
+    },
+    {
+      "id": "map_loot",
+      "path": "ui/icons/map_loot.png"
+    },
+    {
+      "id": "icon_shell",
+      "path": "ui/icons/icon_shell.png"
+    },
+    {
+      "id": "icon_heart",
+      "path": "ui/icons/icon_heart.png"
+    },
+    {
+      "id": "icon_o2",
+      "path": "ui/icons/icon_o2.png"
+    },
+    {
+      "id": "icon_bolt",
+      "path": "ui/icons/icon_bolt.png"
+    }
+  ]
+}

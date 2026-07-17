@@ -34,6 +34,14 @@ public static class AimboxBotSpawner
 		var bot = go.Components.Create<AimboxBotController>();
 		bot.BotId = $"bot_{index:D3}";
 		bot.Gamertag = gamertag;
+
+		// AUDIT FIX C5 (2026-07-13): players call NetworkSpawn; bots only set NetworkMode.Object
+		// so joiners never received bot objects. Host spawns into the net session; AI still
+		// runs host-only (see AimboxBotController.OnUpdate). If bots vanish on joiners after
+		// this, check NetworkSpawn ownership / scene hierarchy before reverting.
+		if ( Networking.IsActive && Networking.IsHost )
+			go.NetworkSpawn();
+
 		return bot;
 	}
 }

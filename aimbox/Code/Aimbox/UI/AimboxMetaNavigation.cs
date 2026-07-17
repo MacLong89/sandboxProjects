@@ -62,9 +62,25 @@ public static class AimboxMetaNavigation
 		}
 	}
 
-	/// <summary>True when a meta overlay needs a visible mouse cursor.</summary>
-	public static bool RequiresMouseCursor() =>
-		CurrentScreen != AimboxMetaScreen.None;
+	/// <summary>
+	/// True when a meta overlay needs a visible mouse cursor.
+	/// AUDIT FIX C6 (2026-07-13): Scoreboard must NOT unlock the cursor.
+	/// BlocksGameplay intentionally keeps scoreboard combat-enabled (hold-tab HUD),
+	/// but the old check treated any CurrentScreen != None as cursor-needed —
+	/// that left mouse free while look/fire still ran. If you regress aim during
+	/// scoreboard, verify this exclusion before changing BlocksGameplay.
+	/// </summary>
+	public static bool RequiresMouseCursor()
+	{
+		if ( CurrentScreen == AimboxMetaScreen.None )
+			return false;
+
+		// Hold-tab / post-match scoreboard: combat+look stay active, so keep cursor locked.
+		if ( CurrentScreen == AimboxMetaScreen.Scoreboard )
+			return false;
+
+		return true;
+	}
 
 	public static void OpenMainMenu()
 	{

@@ -24,6 +24,10 @@ public sealed class ThornsPlayerTreeChopUse : Component
 		if ( !IsLocallyControlled() )
 			return;
 
+		// AUDIT FIX: chop shares Attack1 — gate dead/UI like other combat.
+		if ( ThornsPlayerActionGate.BlocksLocalWorldActions( GameObject ) )
+			return;
+
 		if ( ThornsPlayerWeaponCombat.IsRangedWeaponEquipped( GameObject )
 		     || ThornsPlayerBowCombat.IsBowEquipped( GameObject ) )
 			return;
@@ -91,6 +95,9 @@ public sealed class ThornsPlayerTreeChopUse : Component
 	void HostTryChop( Vector3 origin, Vector3 direction )
 	{
 		if ( !ThornsMultiplayer.IsHostOrOffline )
+			return;
+
+		if ( ThornsPlayerActionGate.BlocksHostWorldActions( GameObject ) )
 			return;
 
 		if ( !ThornsCombatFireValidation.TryResolveAuthoritativeShot(

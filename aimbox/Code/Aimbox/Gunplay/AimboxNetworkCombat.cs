@@ -34,6 +34,11 @@ public static class AimboxNetworkCombat
 			meleeHeavy );
 	}
 
+	/// <summary>
+	/// Broadcast a player victim death. Attacker may be a human AccountId OR a bot CombatId
+	/// (bot_XXX). AUDIT FIX C4: previously RpcBroadcastPlayerKill always FindPlayerByAccountId
+	/// on the attacker, which fails for bots and aborted the whole kill feed / score path.
+	/// </summary>
 	public static void DispatchPlayerKill(
 		IAimboxCombatActor attacker,
 		AimboxPlayerController victim,

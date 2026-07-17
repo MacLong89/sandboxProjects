@@ -7,12 +7,17 @@ public sealed class PlayerInventory : Component
 
 	public const int MaxCarry = 2;
 
-	[Sync] public int CarriedCount { get; set; }
-	[Sync] public string CarriedSpecies0 { get; set; } = "";
-	[Sync] public string CarriedSpecies1 { get; set; } = "";
-	[Sync] public bool HasNet { get; set; } = true;
-	[Sync] public int BaitCount { get; set; } = 3;
-	[Sync] public int TranquilizerCount { get; set; }
+	// AUDIT FIX: inventory is mutated on the host (catch / shop RPCs). FromHost
+	// prevents a connection-owner client from forging bait/carry via bare Sync.
+	// Revert hint: if catch rewards stop appearing on the owner HUD, confirm the
+	// host writes these fields (ResolveCatchHost / shop hosts) and that the
+	// inventory component lives on the zoo-owner player object.
+	[Sync( SyncFlags.FromHost )] public int CarriedCount { get; set; }
+	[Sync( SyncFlags.FromHost )] public string CarriedSpecies0 { get; set; } = "";
+	[Sync( SyncFlags.FromHost )] public string CarriedSpecies1 { get; set; } = "";
+	[Sync( SyncFlags.FromHost )] public bool HasNet { get; set; } = true;
+	[Sync( SyncFlags.FromHost )] public int BaitCount { get; set; } = 3;
+	[Sync( SyncFlags.FromHost )] public int TranquilizerCount { get; set; }
 
 	protected override void OnStart()
 	{
@@ -57,6 +62,10 @@ public sealed class PlayerInventory : Component
 			CarriedSpecies1 = speciesId;
 
 		CarriedCount++;
+
+		// AUDIT: catch path previously skipped NormalizeCarried (place/load call it).
+		// Keeps count ↔ species strings consistent if Sync arrived partially ordered.
+		NormalizeCarried();
 		return true;
 	}
 

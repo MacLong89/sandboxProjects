@@ -97,7 +97,8 @@ public static class WorldSprites
 		bool pathFloorSort = false,
 		Vector2? drawSize = null,
 		GameObject movementRoot = null,
-		bool walkAnimator = false )
+		bool walkAnimator = false,
+		bool flipFacingHorizontal = false )
 	{
 		var texture = sprite?.Animations?.FirstOrDefault()?.Frames?.FirstOrDefault()?.Texture;
 		var go = new GameObject( parent, true, name );
@@ -151,6 +152,7 @@ public static class WorldSprites
 		{
 			var animator = go.AddComponent<SpriteWalkAnimator>();
 			animator.MovementRoot = movementRoot.IsValid() ? movementRoot : parent;
+			animator.FlipFacingHorizontal = flipFacingHorizontal;
 		}
 
 		return renderer;
@@ -233,7 +235,18 @@ public static class WorldSprites
 		return root;
 	}
 
-	/// <summary>Habitat interior floor tile — same sorted billboard layout as owned/wilderness grass.</summary>
+	/// <summary>
+	/// Habitat interior floor tile.
+	/// HABITAT GROUND FIX: flat XY quad (not Always-billboard). Billboard habitat
+	/// tiles read as thin horizontal strips under the pitched camera and left
+	/// OwnedTile grass visible between bands.
+	///
+	/// LAYER / PRIORITY (2026-07): Keep the pad in the HabitatGroundLayer depth band
+	/// (~GrassLayer+2), NOT at a near-camera Z like 1.5. A flat opaque plane at Z≈1.5
+	/// sits between grass (~−199) and enrichment (~10) and depth-clips trees/nature
+	/// billboards in parts of the pen under the pitched ortho camera. Floor must stay
+	/// behind EnrichmentLayer / FenceBackLayer / animals.
+	/// </summary>
 	public static GameObject SpawnHabitatGroundTile(
 		GameObject parent,
 		Texture texture,
@@ -243,24 +256,27 @@ public static class WorldSprites
 		float layer = HabitatGroundLayer )
 	{
 		var root = new GameObject( parent, true, name );
+		// XY only — HabitatFloorDepthSorter pushes this into the ground band.
 		root.LocalPosition = localPosition.WithZ( 0f );
 
 		var spriteGo = new GameObject( root, true, "Sprite" );
+		spriteGo.LocalRotation = FloorTileRotation;
 		var renderer = spriteGo.AddComponent<SpriteRenderer>();
 		AssignSprite( renderer, texture );
 		PixelArt.ApplyWorldScale( renderer, drawSize, PixelArt.TileSourcePixels, texture );
-		ConfigureRenderer( renderer, depthSort: true );
+		ConfigureWorldFloorSprite( renderer );
 		renderer.Opaque = true;
 		renderer.AlphaCutoff = 0.08f;
 
-		var sorter = spriteGo.AddComponent<HabitatFloorDepthSorter>();
+		var sorter = root.AddComponent<HabitatFloorDepthSorter>();
 		sorter.SortOrigin = root;
+		_ = layer; // depth comes from HabitatGroundLayer via HabitatFloorDepthSorter
 
 		root.Tags.Add( "habitat_ground" );
 		return root;
 	}
 
-	/// <summary>Habitat interior floor tile — local position under a shared sort origin.</summary>
+	/// <summary>Habitat interior floor tile — sortOrigin anchors one enclosure-wide depth.</summary>
 	public static GameObject SpawnHabitatGroundTile(
 		GameObject parent,
 		Texture texture,
@@ -271,13 +287,9 @@ public static class WorldSprites
 		float layer = HabitatGroundLayer )
 	{
 		var root = SpawnHabitatGroundTile( parent, texture, drawSize, localPosition, name, layer );
-		foreach ( var sorter in root.GetComponentsInChildren<HabitatFloorDepthSorter>( true ) )
-		{
-			if ( !sorter.IsValid() ) continue;
-			sorter.SortOrigin = sortOrigin.IsValid() ? sortOrigin : parent;
-			sorter.ForceApplyDepth();
-		}
-
+		var sorter = root.Components.Get<HabitatFloorDepthSorter>();
+		if ( sorter.IsValid() && sortOrigin.IsValid() )
+			sorter.SortOrigin = sortOrigin;
 		return root;
 	}
 

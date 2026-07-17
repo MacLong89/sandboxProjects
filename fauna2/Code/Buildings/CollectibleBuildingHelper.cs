@@ -98,6 +98,10 @@ public static class CollectibleBuildingHelper
 
 	public static bool TryCollect( PlaceableComponent placeable )
 	{
+		// AUDIT: visitors used to fire RequestCollect and get a silent host reject.
+		if ( PlayerState.Local?.IsZooOwner != true )
+			return false;
+
 		var restaurant = placeable?.Components.Get<RestaurantComponent>();
 		if ( restaurant is null || restaurant.Uncollected < 1f )
 			return false;
@@ -108,6 +112,9 @@ public static class CollectibleBuildingHelper
 
 	public static bool TryCollectAtMouse( Scene scene )
 	{
+		if ( PlayerState.Local?.IsZooOwner != true )
+			return false;
+
 		var restaurant = PlaceableRegistry.PickCollectibleAtMouse( scene );
 		if ( restaurant is null || restaurant.Uncollected < 1f )
 			return false;

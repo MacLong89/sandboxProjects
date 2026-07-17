@@ -55,6 +55,13 @@ public sealed class WildernessSpawner : Component
 		{
 			if ( !wild.IsValid() ) continue;
 
+			// AUDIT FIX B8: Fled wilds are host-local "invisible until respawn".
+			// Including them in snapshots made clients spawn catchable ghosts of
+			// animals the host had already driven off. Skip fled entries entirely.
+			// Revert hint: if clients never see animals after a failed catch, ensure
+			// Flee() still calls ScheduleWildSync so the exclusion propagates.
+			if ( wild.Fled ) continue;
+
 			list.Add( new WildAnimalSave
 			{
 				WildId = wild.WildId,
@@ -398,12 +405,13 @@ public sealed class WildernessSpawner : Component
 	{
 		_spawned.Clear();
 
-		if ( !Networking.IsHost )
-		{
-			WildAnimalRegistry.Clear();
-			return;
-		}
-
+		// AUDIT FIX B3: Clients previously only cleared the registry and left the
+		// GameObjects alive. ApplyClientSnapshot → Clear → respawn then LEAKED
+		// every prior wild GO (stacked FixedUpdates + sprites). Host and client
+		// now both destroy registered wilds before clearing the registry.
+		// Revert hint: if client wilds vanish and never come back, check that
+		// ApplyClientSnapshot still SpawnSavedWild after Clear, and that client
+		// Destroy does not also wipe host-networked objects (wilds are host-local).
 		foreach ( var wild in WildAnimalRegistry.All.ToList() )
 		{
 			if ( wild.IsValid() )

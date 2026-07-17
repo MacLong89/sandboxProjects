@@ -1,6 +1,7 @@
 namespace Terraingen.UI.Core;
 
 using Sandbox.UI;
+using Terraingen.Core;
 
 /// <summary>
 /// Central UI manager — registers active windows, enforces layering hierarchy,
@@ -50,6 +51,13 @@ public static class ThornsUiManager
 
 	public static bool SuppressesHud =>
 		Windows.Values.Any( w => w.Context == UiContext.Gameplay && ThornsUiCompatibility.SuppressesHud( w.Kind ) );
+
+	/// <summary>Client toggle — hide all gameplay HUD chrome (hotkey <c>0</c> or console <c>thorns_hide_hud 1</c>). Menu overlays stay usable.</summary>
+	public static bool ManualHudHidden
+	{
+		get => ThornsPerfSettings.HideHud;
+		set => ThornsPerfSettings.HideHud = value;
+	}
 
 	public static ThornsUiPriority TopPriority
 	{
@@ -246,12 +254,32 @@ public static class ThornsUiManager
 		if ( hudLayer is null || !hudLayer.IsValid )
 			return;
 
-		var suppress = SuppressesHud || TopPriority >= ThornsUiPriority.FullscreenMenu;
+		var suppressChrome = SuppressesHud || TopPriority >= ThornsUiPriority.FullscreenMenu;
+		var suppress = ManualHudHidden || suppressChrome;
 		var dim = !suppress && IsModalOpen;
 
 		hudLayer.SetClass( "thorns-ui-suppressed", suppress );
 		hudLayer.SetClass( "thorns-ui-dimmed", dim );
+
+		// Container / shop / campfire overlays are parented under the HUD root.
+		// Hard Display=None must not run while those are open, or E-to-open dies with the layer.
+		var hardHide = ManualHudHidden && !HudLayerHostsGameplayOverlay();
+		hudLayer.Style.Display = hardHide ? DisplayMode.None : DisplayMode.Flex;
+		hudLayer.Style.Opacity = hardHide ? 0f : (dim ? 0.15f : 1f);
 	}
+
+	/// <summary>Overlays that live on <c>ThornsHudRoot</c> (not the tab-menu sibling).</summary>
+	static bool HudLayerHostsGameplayOverlay() =>
+		Windows.Values.Any( w =>
+			w.Context == UiContext.Gameplay
+			&& w.Kind is ThornsUiWindowKind.WorldContainer
+				or ThornsUiWindowKind.RadioShop
+				or ThornsUiWindowKind.ResearchStation
+				or ThornsUiWindowKind.Campfire
+				or ThornsUiWindowKind.Workbench
+				or ThornsUiWindowKind.BuildMenu
+				or ThornsUiWindowKind.VictoryIntro
+				or ThornsUiWindowKind.SessionRecap );
 
 	static void CloseIncompatible( ThornsUiWindowKind incoming )
 	{

@@ -1,0 +1,9 @@
+MOVED
+
+This nested copy is obsolete and was locked by another process during cleanup.
+
+Use the standalone project instead:
+
+  C:\Users\Macra\Projects\sandboxProjects\plunge\plunge.sbproj
+
+Safe to delete this `plunge_sbox` folder once Cursor/s&box are not locking it.

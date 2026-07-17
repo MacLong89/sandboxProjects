@@ -165,11 +165,7 @@ public sealed class HabitatComponent : Component
 
 		var footprint = HabitatSizing.EffectiveFootprint( Size );
 		var center = Vector3.Zero;
-		HabitatGroundOverlay.Attach(
-			_visualRoot,
-			footprint,
-			Biome,
-			context: $"habitat id={HabitatId} def={DefinitionId} world=({GameObject.WorldPosition.x:0.##},{GameObject.WorldPosition.y:0.##})" );
+		HabitatGround.Attach( _visualRoot, footprint, Biome );
 		_fenceTiles = HabitatFenceGenerator.CreateHabitatFence( center, footprint );
 		HabitatFenceRenderer.Build( _visualRoot, _fenceTiles, center, collision: true );
 

@@ -66,10 +66,8 @@ public sealed class JobSiteManager
 
 		_root = new GameObject( true, $"Job_{Current.Name}" );
 
-		BuildWorld();
-		BuildProps();
-		BuildDecor();
-		BuildPanels();
+		JobWorldBuilder.BuildEnvironment( _root, Current, Index );
+		WirePanels( JobWorldBuilder.BuildPanels( _root, Current ) );
 
 		SpawnPosition = Current.SpawnPosition;
 		SpawnYaw = Current.SpawnYaw;
@@ -108,48 +106,10 @@ public sealed class JobSiteManager
 		return bonus;
 	}
 
-	private void BuildWorld() => WorldMapBuilder.Build( _root, Current, Index );
-
-	private void BuildProps()
+	private void WirePanels( List<CleanableSurface> surfaces )
 	{
-		foreach ( var prop in Current.Props )
+		foreach ( var surface in surfaces )
 		{
-			var go = new GameObject( _root, true, "Prop" );
-			go.WorldPosition = DepthLayers.LiftProp( prop.Position, prop.Rotation, prop.Size );
-			go.WorldRotation = prop.Rotation.ToRotation();
-			go.LocalScale = MeshPrimitives.BoxScale( prop.Size );
-			var mr = go.Components.Create<ModelRenderer>();
-			mr.Model = MeshPrimitives.Box;
-			mr.MaterialOverride = GameMaterials.Concrete;
-			mr.Tint = prop.Color;
-		}
-	}
-
-	private void BuildDecor()
-	{
-		foreach ( var decor in Current.Decor )
-			Scenery.Build( _root, decor );
-	}
-
-	private void BuildPanels()
-	{
-		foreach ( var panel in Current.Panels )
-		{
-			var go = new GameObject( _root, true, "Panel" );
-			go.WorldPosition = DepthLayers.LiftPanel( panel.Position, panel.Rotation );
-			go.WorldRotation = panel.Rotation.ToRotation();
-
-			var cleanMat = panel.Surface switch
-			{
-				CleanSurface.Wood => GameMaterials.Wood,
-				CleanSurface.Glass => GameMaterials.Metal,
-				_ => GameMaterials.Concrete,
-			};
-
-			var surface = go.Components.Create<CleanableSurface>();
-			surface.Setup( panel.Width, panel.Height, panel.CellSize, panel.Clean, cleanMat, panel.Stages(),
-				panel.Graffiti, panel.Secrets, panel.Shape, panel.GrimePattern );
-
 			// Price each cell by its area so smaller tiles pay proportionally less per cell,
 			// keeping a job's total payout the same regardless of tile size.
 			var areaFactor = surface.CellArea / GameConstants.ReferenceCellArea;

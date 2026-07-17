@@ -488,12 +488,11 @@ public sealed class BuildController : Component
 		{
 			var footprint = HabitatSizing.EffectiveFootprint( def.HabitatSize );
 			var visuals = new GameObject( _ghost, true, "Visuals" );
-			HabitatGroundOverlay.Attach(
+			HabitatGround.Attach(
 				visuals,
 				footprint,
 				def.HabitatBiome,
-				alpha: 0.65f,
-				context: $"ghost def={def.ResourceName} world=({_ghost?.WorldPosition.x:0.##},{_ghost?.WorldPosition.y:0.##})" );
+				alpha: 0.65f );
 			HabitatFenceRenderer.Attach( visuals, Vector3.Zero, footprint, alpha: 0.85f, collision: false );
 		}
 		else if ( def.IsPathTile )

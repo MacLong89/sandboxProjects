@@ -1,0 +1,110 @@
+{
+  "__guid": "b2c3d4e5-0001-4001-8001-100000000001",
+  "GameObjects": [
+    {
+      "__guid": "b2c3d4e5-0001-4001-8001-100000000010",
+      "Flags": 0,
+      "Name": "Sun",
+      "Rotation": "-0.0729315,0.4822396,0.1305433,0.8631827",
+      "Tags": "light_directional,light",
+      "Enabled": true,
+      "Components": [
+        {
+          "__type": "Sandbox.DirectionalLight",
+          "__guid": "b2c3d4e5-0001-4001-8001-100000000011",
+          "FogMode": "Enabled",
+          "FogStrength": 0.12,
+          "LightColor": "1,0.78,0.48,1",
+          "Shadows": true,
+          "SkyColor": "0.88,0.68,0.38,1"
+        }
+      ]
+    },
+    {
+      "__guid": "b2c3d4e5-0001-4001-8001-100000000020",
+      "Flags": 0,
+      "Name": "2D Skybox",
+      "Tags": "skybox",
+      "Enabled": true,
+      "Components": [
+        {
+          "__type": "Sandbox.SkyBox2D",
+          "__guid": "b2c3d4e5-0001-4001-8001-100000000021",
+          "SkyMaterial": "materials/skybox/up_vibrant_sky.vmat",
+          "Tint": "1.08,1.02,0.88,1"
+        },
+        {
+          "__type": "Sandbox.EnvmapProbe",
+          "__guid": "b2c3d4e5-0001-4001-8001-100000000022",
+          "Texture": "textures/cubemaps/default2.vtex",
+          "Bounds": {
+            "Mins": "-2048,-2048,-512",
+            "Maxs": "2048,2048,1024"
+          },
+          "DelayBetweenUpdates": 0.1,
+          "Feathering": 0.02,
+          "FrameInterval": 5,
+          "MaxDistance": 2048,
+          "Projection": "Sphere",
+          "RenderDynamically": true,
+          "TintColor": "1.06,1,0.92,1",
+          "UpdateStrategy": "OnEnabled",
+          "ZFar": 4096,
+          "ZNear": 16
+        }
+      ]
+    },
+    {
+      "__guid": "b2c3d4e5-0001-4001-8001-100000000030",
+      "Flags": 0,
+      "Name": "Boot",
+      "Enabled": true,
+      "Components": [
+        {
+          "__type": "UnderPressure.LevelViewer",
+          "__guid": "b2c3d4e5-0001-4001-8001-100000000031"
+        }
+      ]
+    },
+    {
+      "__guid": "b2c3d4e5-0001-4001-8001-100000000040",
+      "Flags": 0,
+      "Name": "Visual Grade",
+      "Enabled": true,
+      "Components": [
+        {
+          "__type": "UnderPressure.VisualGrade",
+          "__guid": "b2c3d4e5-0001-4001-8001-100000000041",
+          "ApplyGrade": true,
+          "MasterBlend": 1,
+          "Saturation": 1.015,
+          "Contrast": 1,
+          "Brightness": 1.462,
+          "HueRotate": 2.308,
+          "ColorTempK": 6715.38,
+          "WarmthBlend": 1,
+          "ExposureCompensation": 0.223,
+          "BloomStrength": 0.18,
+          "BloomThreshold": 1
+        }
+      ]
+    }
+  ],
+  "SceneProperties": {
+    "FixedUpdateFrequency": 50,
+    "MaxFixedUpdates": 5,
+    "NetworkFrequency": 60,
+    "NetworkInterpolation": true,
+    "ThreadedAnimation": true,
+    "TimeScale": 1,
+    "UseFixedUpdate": true,
+    "NavMesh": {
+      "Enabled": false
+    }
+  },
+  "Title": "level_viewer",
+  "Description": "Walk job sites with no gameplay — cycle levels with [ ] or arrow keys.",
+  "ResourceVersion": 1,
+  "__references": [],
+  "__version": 1
+}

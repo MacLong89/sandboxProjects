@@ -15,6 +15,7 @@ public sealed class OutpostManager : Component
 	public IReadOnlyList<WallSegment> Walls => _walls;
 
 	private readonly List<WallSegment> _walls = new();
+	private readonly List<GameObject> _wallCorners = new();
 	private readonly List<(ModelRenderer Renderer, Color Base)> _coreParts = new();
 	private GameObject _coreGo;
 	private GameObject _terrainGo;
@@ -41,6 +42,49 @@ public sealed class OutpostManager : Component
 		core.Wallet.Earn( whole, applyIncomeScale: false );
 	}
 
+	/// <summary>
+	/// Writes live core/wall HP into the save blob.
+	/// Call from GameCore.SaveManagerTouch so autosave/continue keeps damage.
+	/// AUDIT FIX H1 — pair with <see cref="LoadPersistedHealth"/>.
+	/// </summary>
+	public void SavePersistedHealth( SaveData save )
+	{
+		if ( save is null ) return;
+
+		save.SavedCoreHealth = CoreHealth;
+		save.WallHealthByKey ??= new Dictionary<string, float>();
+		save.WallHealthByKey.Clear();
+		foreach ( var w in _walls )
+		{
+			if ( string.IsNullOrEmpty( w.Key ) ) continue;
+			save.WallHealthByKey[w.Key] = w.Health;
+		}
+	}
+
+	/// <summary>
+	/// Applies saved core/wall HP after <see cref="Build"/> (which always spawns full HP).
+	/// Legacy saves with SavedCoreHealth &lt; 0 keep the full heal (one-time migration behavior).
+	/// AUDIT FIX H1.
+	/// </summary>
+	public void LoadPersistedHealth( SaveData save )
+	{
+		if ( save is null ) return;
+
+		// Legacy / wipe / new run: negative sentinel means "leave at full".
+		if ( save.SavedCoreHealth >= 0f )
+			SetCoreHealth( save.SavedCoreHealth );
+
+		if ( save.WallHealthByKey is null || save.WallHealthByKey.Count == 0 )
+			return;
+
+		foreach ( var w in _walls )
+		{
+			if ( string.IsNullOrEmpty( w.Key ) ) continue;
+			if ( !save.WallHealthByKey.TryGetValue( w.Key, out var hp ) ) continue;
+			w.SetHealth( hp );
+		}
+	}
+
 	public void Build( UpgradeSystem upgrades )
 	{
 		Clear();
@@ -64,7 +108,12 @@ public sealed class OutpostManager : Component
 
 	public void DamageCore( float amount )
 	{
+		if ( CoreHealth <= 0f || amount <= 0f ) return;
+
 		CoreHealth = MathF.Max( 0f, CoreHealth - amount );
+		if ( CoreHealth <= 0f )
+			DestructionFx.Burst( CorePosition, 1.6f );
+
 		RefreshCoreVisual();
 	}
 
@@ -92,6 +141,10 @@ public sealed class OutpostManager : Component
 		return missing * GameConstants.RepairCostPerHp;
 	}
 
+	/// <summary>
+	/// Dead API — instant free full heal. Prefer <see cref="RepairManager"/> (paid, timed).
+	/// AUDIT note: left in place but do NOT wire to UI; conflicting with paid repairs.
+	/// </summary>
 	public void RepairAll()
 	{
 		CoreHealth = CoreMaxHealth;
@@ -132,8 +185,11 @@ public sealed class OutpostManager : Component
 
 	private void Clear()
 	{
+		TileOccupancy.ClearWalls();
 		foreach ( var w in _walls ) w.Go?.Destroy();
 		_walls.Clear();
+		foreach ( var corner in _wallCorners ) corner?.Destroy();
+		_wallCorners.Clear();
 		_coreGo?.Destroy();
 	}
 
@@ -208,6 +264,25 @@ public sealed class OutpostManager : Component
 			var cy = -half + segLen * 0.5f + i * segLen;
 			SpawnWall( new Vector3( -half, cy, h * 0.5f ), new Vector3( t, segLen, h ), upgrades );
 		}
+
+		// Visual-only corner piers — seal the ring joins (no extra HP / collision segments).
+		SpawnCornerVisual( half, half, 1f, 1f );
+		SpawnCornerVisual( -half, half, -1f, 1f );
+		SpawnCornerVisual( half, -half, 1f, -1f );
+		SpawnCornerVisual( -half, -half, -1f, -1f );
+	}
+
+	private void SpawnCornerVisual( float x, float y, float outwardX, float outwardY )
+	{
+		var h = GameConstants.WallHeight;
+		var t = GameConstants.WallThickness;
+		var center = new Vector3( x, y, h * 0.5f );
+		center.z += OutpostTerrain.SampleHeight( center.x, center.y );
+
+		var go = new GameObject( true, "WallCorner" );
+		go.WorldPosition = center;
+		WallScaffoldVisual.BuildCorner( go, t, h, outwardX, outwardY, null );
+		_wallCorners.Add( go );
 	}
 
 	private void SpawnWall( Vector3 center, Vector3 size, UpgradeSystem upgrades )
@@ -221,26 +296,24 @@ public sealed class OutpostManager : Component
 
 		center.z += OutpostTerrain.SampleHeight( center.x, center.y );
 
-		var stone = StylizedMaterials.Stone;
-		var useTexture = stone is not null && stone.IsValid() && stone != MeshPrimitives.Mat;
-
 		var go = new GameObject( true, "Wall" );
 		go.WorldPosition = center;
-		go.LocalScale = MeshPrimitives.BoxScale( size );
-		var mr = go.Components.Create<ModelRenderer>();
-		mr.Model = MeshPrimitives.Box;
-		mr.MaterialOverride = stone;
 
 		var seg = new WallSegment
 		{
 			Go = go,
-			Renderer = mr,
 			Center = center,
+			FootprintSize = new Vector3( size.x, size.y, 0f ),
 			Key = key,
-			IntactColor = useTexture ? Color.White : new Color( 0.55f, 0.58f, 0.62f ),
 			MaxHealth = upgrades.WallMaxHp,
 			Health = upgrades.WallMaxHp
 		};
+
+		WallScaffoldVisual.Build(
+			go,
+			size,
+			( mr, tint ) => seg.VisualParts.Add( (mr, tint) ),
+			center );
 		seg.RefreshVisual();
 		_walls.Add( seg );
 	}
@@ -254,6 +327,8 @@ public sealed class OutpostManager : Component
 		if ( save is not null && !string.IsNullOrEmpty( wall.Key ) && !save.RemovedWalls.Contains( wall.Key ) )
 			save.RemovedWalls.Add( wall.Key );
 
+		DestructionFx.Burst( wall.Center.WithZ( 0f ), 1.15f );
+		TileOccupancy.UnmarkWall( wall );
 		wall.Go?.Destroy();
 		_walls.Remove( wall );
 		Sfx.Play( Sfx.Purchase );

@@ -1,4 +1,4 @@
-namespace Terraingen.UI.Menu;
+﻿namespace Terraingen.UI.Menu;
 
 using System.Linq;
 using Sandbox.UI;
@@ -10,13 +10,24 @@ using Terraingen.UI.Core;
 /// <summary>Shared main-menu UI setup used by scene bootstrap and launcher fallback.</summary>
 public static class ThornsMainMenuBootstrap
 {
+	/// <summary>
+	/// BOOT FIX (2026-07): Prefer returning over throwing after partial setup.
+	/// Thrown exceptions were caught by callers but left players on a blank "game won't boot" screen.
+	/// Revert: restore throws if you need hard-fail during development.
+	/// </summary>
 	public static async System.Threading.Tasks.Task EnsureMenuUiAsync( GameObject hostObject, Scene scene )
 	{
 		if ( hostObject is null || !hostObject.IsValid )
-			throw new System.InvalidOperationException( "Main menu host GameObject is invalid." );
+		{
+			Log.Error( "[Thorns Menu] BOOT: Main menu host GameObject is invalid." );
+			return;
+		}
 
 		if ( scene is null || !scene.IsValid )
-			throw new System.InvalidOperationException( "Main menu scene is invalid." );
+		{
+			Log.Error( "[Thorns Menu] BOOT: Main menu scene is invalid." );
+			return;
+		}
 
 		UiRevisionBus.ResetMenuListeners();
 		if ( !ThornsMenuJoinFlow.IsProgressVisible && !ThornsSessionBootstrap.IsJoiningRemoteLobby )
@@ -33,7 +44,10 @@ public static class ThornsMainMenuBootstrap
 			screenPanel = hostObject.Components.Create<ScreenPanel>();
 
 		if ( screenPanel is null || !screenPanel.IsValid )
-			throw new System.InvalidOperationException( "Failed to create main menu ScreenPanel." );
+		{
+			Log.Error( "[Thorns Menu] BOOT: Failed to create main menu ScreenPanel." );
+			return;
+		}
 
 		ConfigureScreenPanel( screenPanel, scene );
 
@@ -45,9 +59,13 @@ public static class ThornsMainMenuBootstrap
 			host = hostObject.Components.Create<MainMenuHost>();
 
 		if ( host is null || !host.IsValid )
-			throw new System.InvalidOperationException( "Failed to create MainMenuHost." );
+		{
+			Log.Error( "[Thorns Menu] BOOT: Failed to create MainMenuHost." );
+			TryInstallEmergencyMenuText( screenPanel, "Could not create MainMenuHost component." );
+			return;
+		}
 
-		for ( var attempt = 0; attempt < 60; attempt++ )
+		for ( var attempt = 0; attempt < 90; attempt++ )
 		{
 			if ( host.IsValid && host.IsPanelReady )
 				break;
@@ -56,7 +74,11 @@ public static class ThornsMainMenuBootstrap
 		}
 
 		if ( !host.IsValid || !host.IsPanelReady )
-			throw new System.InvalidOperationException( "MainMenuHost panel did not become ready." );
+		{
+			Log.Error( "[Thorns Menu] BOOT: MainMenuHost panel did not become ready — see emergency checklist." );
+			TryInstallEmergencyMenuText( screenPanel, "Menu panel failed to bind. Check console / republish." );
+			return;
+		}
 
 		ThornsLocalSettings.Load();
 		ThornsMenuServerPrefs.Load();
@@ -65,10 +87,33 @@ public static class ThornsMainMenuBootstrap
 
 		host.EnsureBuilt();
 		if ( !host.IsUiBuilt )
-			throw new System.InvalidOperationException( "MainMenuHost UI build failed." );
+		{
+			Log.Error( "[Thorns Menu] BOOT: MainMenuHost UI build failed — see emergency checklist." );
+			TryInstallEmergencyMenuText( screenPanel, "Menu UI build failed. See console for details." );
+			return;
+		}
 
 		host.ShowRootView();
 		ThornsUiCursor.EnsureMainMenuVisible();
+		Log.Info( "[Thorns Menu] BOOT: Main menu UI ready." );
+	}
+
+	/// <summary>Last-resort logging so "won't boot" is never silent — print recovery checklist.</summary>
+	static void TryInstallEmergencyMenuText( ScreenPanel screenPanel, string message )
+	{
+		try
+		{
+			_ = screenPanel;
+			Log.Error( $"[Thorns Menu] BOOT emergency: {message}" );
+			Log.Error(
+				"[Thorns Menu] BOOT emergency checklist: (1) terraingen.sbproj CsProjName=Code/thorns.csproj " +
+				"(2) run Scripts/EnsureRequiredAssets.ps1 (3) Publish with Assets/*.png under Resources " +
+				"(4) confirm scenes/thorns_main_menu.scene has ThornsMenuSceneBootstrap on MainMenuUi." );
+		}
+		catch ( System.Exception e )
+		{
+			Log.Error( e, "[Thorns Menu] BOOT: emergency UI install failed." );
+		}
 	}
 
 	static void ConfigureScreenPanel( ScreenPanel screenPanel, Scene scene )

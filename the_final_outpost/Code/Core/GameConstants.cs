@@ -61,15 +61,37 @@ public static class GameConstants
 	/// <summary>Legacy alias — use <see cref="DefaultAmbienceVolume"/> for new code.</summary>
 	public const float AmbienceVolume = DefaultAmbienceVolume;
 
+	// --- Build grid (source of truth for 1×1 placeable footprint) ---
+	public const float CellSize = 60f;
+	public const int GridCellsPerSide = 12;
+	public const float GridOrigin = -(GridCellsPerSide * CellSize) * 0.5f;
+
 	// --- Outpost layout (XY ground, Z up) ---
-	public const float ArenaHalf = 420f;
-	public const float WallThickness = 28f;
+	// Perimeter is a ring of 1×1 cell wall segments. ArenaHalf = half the ring edge.
+	public const int SegmentsPerSide = 14;
+	public const float ArenaHalf = SegmentsPerSide * CellSize * 0.5f; // 420
+	/// <summary>Perimeter walls are one cell deep so they match placeable WallPiece / tower tiles.</summary>
+	public const float WallThickness = CellSize;
+	/// <summary>
+	/// Pathing / melee depth of a wall segment (matches scaffold frame ~0.22×thickness, not the full placement cell).
+	/// Full <see cref="WallThickness"/> left empty outside this strip so zombies don't stop in open air.
+	/// </summary>
+	public const float WallPathDepth = 20f;
 	public const float WallHeight = 110f;
-	public const int SegmentsPerSide = 5;
+	/// <summary>Extra Z so wall-mounted defenses clear the wall top (no z-fighting / clipping).</summary>
+	public const float WallMountDeckClearance = 0f;
+	/// <summary>When false, defenses cannot be placed on perimeter wall tiles.</summary>
+	public const bool AllowWallMountPlacement = false;
+	/// <summary>Legacy segment count used to keep total wall HP budget stable after grid-aligning segments.</summary>
+	public const int LegacySegmentsPerSide = 5;
 
 	// --- World / terrain (much larger than the base so plots can surround it) ---
 	// Half-extent 3250 ≈ √2 × 2300 → twice the land surface area of the old map.
 	public const float TerrainHalfExtent = 3250f;
+
+	/// <summary>Active terrain bounds — wider in Road to a Cure.</summary>
+	public static float ActiveTerrainHalfExtent =>
+		GameCore.Instance?.IsCure == true ? CureConstants.TerrainHalfExtent : TerrainHalfExtent;
 	public const float TerrainCellSize = 80f;
 	public const float TerrainAmplitude = 26f;
 	/// <summary>Flat ocean plane sits at this world Z; terrain dips toward it only at the far rim.</summary>
@@ -99,11 +121,6 @@ public static class GameConstants
 	public const float CraftsmanConvertPerSec = 0.45f;    // resource units consumed / sec
 	public const double CraftsmanScrapPerResource = 3.5;    // scrap produced per resource unit
 
-	// --- Build grid ---
-	public const float CellSize = 60f;
-	public const int GridCellsPerSide = 12;
-	public const float GridOrigin = -(GridCellsPerSide * CellSize) * 0.5f;
-
 	// --- Command post ---
 	public const float CoreBaseHp = 500f;
 	public const float CoreHpPerFortify = 120f;
@@ -128,6 +145,10 @@ public static class GameConstants
 	public const float DefenderMoveSpeed = 130f;
 	public const float DefenderAcquireRange = 2200f;
 	public const float DefenderHomeDeadzone = 14f;
+	/// <summary>Click within this radius of a zombie to focus-fire it with all recruits.</summary>
+	public const float NightFocusPickRadius = 150f;
+	/// <summary>Area orders engage zombies within this radius of the click point.</summary>
+	public const float NightAreaEngageRadius = 340f;
 
 	// --- Camera ---
 	public const float CameraFov = 55f;
@@ -155,16 +176,37 @@ public static class GameConstants
 	public const float ZombieRadius = 32f;
 	/// <summary>XY pathing radius for humanoids (smaller than <see cref="ZombieRadius"/> hit volume).</summary>
 	public const float UnitCollisionRadius = 10f;
-	/// <summary>Movement blockers use a tighter slice of building visuals so pathing matches what you see.</summary>
-	public const float BuildingCollisionScale = 0.82f;
-	public const float CommandPostCollisionScale = 0.85f;
+	/// <summary>Soft spacing between zombies so hordes don't fully stack.</summary>
+	public const float ZombieSeparationRadius = UnitCollisionRadius * 2.4f;
+	/// <summary>Placement overlap probe for buildings (workers/defenders use tile occupancy for path).</summary>
+	public const float BuildingCollisionScale = 1f;
+	/// <summary>Path probe radius for zombies — hug faces of 1-cell blockers.</summary>
+	public const float ZombiePathRadius = 6f;
+	/// <summary>Stand-off beyond a zombie footprint when picking move goals.</summary>
+	public const float ZombieApproachStandoff = 12f;
+	public const float CommandPostCollisionScale = 1f;
 	/// <summary>When pathing stalls this close to melee, start attacking anyway.</summary>
-	public const float ZombieStuckEngageSlack = 24f;
+	public const float ZombieStuckEngageSlack = 14f;
+	public const float ZombieAttackRangeSlack = 8f;
+	public const float ZombieStuckFailsafeDelay = 6f;
+	/// <summary>After spawns finish, kill any remaining live zombies if none have died for this long.</summary>
+	public const float NightRoundFailsafeDelay = 10f;
+	public const float ZombieStuckMoveThreshold = 0.08f;
 	public const float ZombieAttackInterval = 0.9f;
-	public const float ZombieMeleeRange = 70f;
+	public const float ZombieMeleeRange = 55f;
 	public const float ZombieEngageExitBuffer = 18f;
 	public const float ZombieSeekRadius = 2800f;
 	public const float ZombieSpawnRing = 80f;
+
+	/// <summary>
+	/// Wall vault (CanJumpWalls): duration of the climb-over arc in seconds.
+	/// Scaled up for larger zombies in CombatSystem.
+	/// </summary>
+	public const float ZombieWallJumpDuration = 0.9f;
+	/// <summary>Extra height above WallHeight at vault apex (clears the timber visually).</summary>
+	public const float ZombieWallJumpApexExtra = 55f;
+	/// <summary>Landing inset past ArenaHalf into the courtyard, in CellSize multiples.</summary>
+	public const float ZombieWallJumpLandInset = 1.6f;
 
 	// --- Recruits ---
 	public const float RecruitMaxHealth = 120f;
@@ -273,8 +315,10 @@ public static class GameConstants
 
 	public static string FormatScrap( double amount )
 	{
-		if ( amount >= 1_000_000 ) return $"{amount / 1_000_000:0.##}M scrap";
-		if ( amount >= 10_000 ) return $"{amount / 1_000:0.#}k scrap";
-		return $"{amount:N0} scrap";
+		var abs = Math.Abs( amount );
+		var sign = amount < 0 ? "-" : "";
+		if ( abs >= 1_000_000 ) return $"{sign}{abs / 1_000_000:0.##}M scrap";
+		if ( abs >= 10_000 ) return $"{sign}{abs / 1_000:0.#}k scrap";
+		return $"{sign}{abs:N0} scrap";
 	}
 }

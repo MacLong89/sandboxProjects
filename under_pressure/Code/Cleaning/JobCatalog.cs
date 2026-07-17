@@ -106,7 +106,14 @@ public sealed class JobDef
 /// <summary>The 25-level story campaign jobs.</summary>
 public static class JobCatalog
 {
-	public static readonly IReadOnlyList<JobDef> Jobs = CampaignCatalog.All;
+	public static IReadOnlyList<JobDef> Jobs => CampaignCatalog.All;
 
-	public static JobDef Get( int index ) => Jobs[((index % Jobs.Count) + Jobs.Count) % Jobs.Count];
+	/// <summary>Force catalog rebuild (call when entering / cycling the level viewer).</summary>
+	public static void Reload() => CampaignCatalog.Rebuild();
+
+	public static JobDef Get( int index )
+	{
+		var jobs = Jobs;
+		return jobs[((index % jobs.Count) + jobs.Count) % jobs.Count];
+	}
 }

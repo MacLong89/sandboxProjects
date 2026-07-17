@@ -293,10 +293,8 @@ public sealed class AnimalComponent : Component
 		if ( habitat.IsValid() )
 			next = habitat.ClampInside( next );
 		GameObject.WorldPosition = next.WithZ( 0f );
-		GameObject.WorldRotation = Rotation.Lerp(
-			GameObject.WorldRotation,
-			Rotation.LookAt( dir.WithZ( 0f ) ),
-			Time.Delta * 6f );
+		// Billboard sprites face the camera — yaw LookAt twists them. Facing is the
+		// sprite's LocalScale.X flip in SpriteWalkAnimator instead.
 	}
 
 	private static float MovementSpeedMultiplier( AnimalLocomotion locomotion ) => locomotion switch

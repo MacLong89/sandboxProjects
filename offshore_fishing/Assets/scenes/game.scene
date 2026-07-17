@@ -1,0 +1,135 @@
+{
+  "__guid": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "GameObjects": [
+    {
+      "__guid": "11111111-1111-1111-1111-111111111111",
+      "Flags": 0,
+      "Name": "Bootstrap",
+      "Enabled": true,
+      "Components": [
+        {
+          "__type": "Sandbox.GameBootstrap",
+          "__guid": "22222222-2222-2222-2222-222222222222"
+        }
+      ]
+    },
+    {
+      "__guid": "33333333-3333-3333-3333-333333333333",
+      "Flags": 0,
+      "Name": "Game",
+      "Enabled": true,
+      "Components": [
+        {
+          "__type": "Sandbox.FishingGameController",
+          "__guid": "44444444-4444-4444-4444-444444444444",
+          "LoadSaveOnStart": false
+        },
+        {
+          "__type": "Sandbox.WorldPresenter",
+          "__guid": "55555555-5555-5555-5555-555555555555"
+        },
+        {
+          "__type": "Sandbox.AudioDirector",
+          "__guid": "66666666-6666-6666-6666-666666666666"
+        }
+      ]
+    },
+    {
+      "__guid": "77777777-7777-7777-7777-777777777777",
+      "Flags": 0,
+      "Name": "PixelCamera",
+      "Position": "0,-500,0",
+      "Enabled": true,
+      "Components": [
+        {
+          "__type": "Sandbox.CameraComponent",
+          "__guid": "88888888-8888-8888-8888-888888888888",
+          "BackgroundColor": "0.12,0.28,0.36,1",
+          "ClearFlags": "All",
+          "FieldOfView": 60,
+          "IsMainCamera": true,
+          "Orthographic": true,
+          "OrthographicHeight": 360,
+          "Priority": 1,
+          "RenderExcludeTags": "",
+          "RenderTags": "",
+          "TargetEye": "None",
+          "Viewport": "0,0,1,1",
+          "ZFar": 5000,
+          "ZNear": 1
+        },
+        {
+          "__type": "Sandbox.PixelCamera",
+          "__guid": "99999999-9999-9999-9999-999999999999",
+          "OrthoHeight": 360,
+          "CameraDistance": 500,
+          "FocusPoint": "0,0,0"
+        }
+      ]
+    },
+    {
+      "__guid": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+      "Flags": 0,
+      "Name": "ScreenUI",
+      "Enabled": true,
+      "Components": [
+        {
+          "__type": "Sandbox.ScreenPanel",
+          "__guid": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+          "Opacity": 1,
+          "TargetCamera": null,
+          "ZIndex": 100
+        },
+        {
+          "__type": "Sandbox.FishingHudRoot",
+          "__guid": "cccccccc-cccc-cccc-cccc-cccccccccccc"
+        }
+      ]
+    },
+    {
+      "__guid": "dddddddd-dddd-dddd-dddd-dddddddddddd",
+      "Flags": 0,
+      "Name": "FillLight",
+      "Rotation": "0.4226183,0,0,0.9063078",
+      "Tags": "light_directional,light",
+      "Enabled": true,
+      "Components": [
+        {
+          "__type": "Sandbox.DirectionalLight",
+          "__guid": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+          "FogMode": "Enabled",
+          "FogStrength": 0.2,
+          "LightColor": "1,0.98,0.94,1",
+          "Shadows": false,
+          "SkyColor": "0.35,0.45,0.55,1"
+        }
+      ]
+    }
+  ],
+  "SceneProperties": {
+    "FixedUpdateFrequency": 50,
+    "MaxFixedUpdates": 5,
+    "NetworkFrequency": 60,
+    "NetworkInterpolation": true,
+    "ThreadedAnimation": true,
+    "TimeScale": 1,
+    "UseFixedUpdate": true,
+    "NavMesh": {
+      "Enabled": false,
+      "IncludeStaticBodies": true,
+      "IncludeKeyframedBodies": true,
+      "EditorAutoUpdate": true,
+      "AgentHeight": 64,
+      "AgentRadius": 16,
+      "AgentStepSize": 18,
+      "AgentMaxSlope": 40,
+      "ExcludedBodies": "",
+      "IncludedBodies": ""
+    }
+  },
+  "Title": "game",
+  "Description": "Offshore Fishing main scene",
+  "ResourceVersion": 1,
+  "__references": [],
+  "__version": 1
+}

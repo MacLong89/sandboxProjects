@@ -1,0 +1,35 @@
+@using Sandbox
+@using Sandbox.UI
+@using UnderPressure
+@inherits PanelComponent
+@namespace UnderPressure.UI
+
+<root>
+	@if ( Viewer is not null && Viewer.Current is not null )
+	{
+		<div class="viewer-panel">
+			<div class="viewer-badge">LEVEL VIEWER</div>
+			<div class="viewer-level">LEVEL @Viewer.LevelNumber / @Viewer.LevelCount</div>
+			<div class="viewer-name">@Viewer.Current.Name</div>
+			<div class="viewer-location">@Viewer.Current.Location</div>
+			<div class="viewer-theme">Theme: @Viewer.Current.Theme · Decor: @Viewer.Current.Decor.Count · Panels: @Viewer.Current.Panels.Count</div>
+			<div class="viewer-hints">
+				<span>[ / ← previous</span>
+				<span>] / → next</span>
+				<span>Home / End</span>
+				<span>R respawn</span>
+			</div>
+			<div class="viewer-hints">Level 2 = Late Night at the Car Wash — look north (+Y) toward the cream station</div>
+		</div>
+	}
+</root>
+
+@code
+{
+	LevelViewer Viewer => LevelViewer.Instance;
+
+	protected override int BuildHash() => System.HashCode.Combine(
+		Viewer?.Index,
+		Viewer?.LoadGeneration,
+		Viewer?.Current?.Name );
+}

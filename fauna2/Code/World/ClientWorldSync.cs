@@ -8,6 +8,18 @@ public sealed class ClientWorldSync : Component
 {
 	public static ClientWorldSync Instance { get; private set; }
 
+	// ── AUDIT FIX B2 (2026-07): wild sync debounce ────────────────────────────
+	// BUG: TimeUntil defaults to "already elapsed". The old OnFixedUpdate did:
+	//   if (!_wildSyncDebounce) return;
+	//   _wildSyncDebounce = 0f;   // still elapsed!
+	//   PushWildToClients();
+	// so the host blasted a full wild snapshot EVERY FixedUpdate forever.
+	//
+	// FIX: explicit pending flag. ScheduleWildSync arms the flag + debounce;
+	// OnFixedUpdate fires once when debounce elapses, then clears pending and
+	// does NOT re-arm. Revert hint: if wilds stop updating on clients after
+	// catch/top-up, check that ScheduleWildSync still sets _wildSyncPending=true.
+	private bool _wildSyncPending;
 	private TimeUntil _wildSyncDebounce;
 
 	protected override void OnAwake() => Instance = this;
@@ -19,8 +31,14 @@ public sealed class ClientWorldSync : Component
 
 	protected override void OnFixedUpdate()
 	{
-		if ( !Networking.IsHost || !_wildSyncDebounce ) return;
-		_wildSyncDebounce = 0f;
+		if ( !Networking.IsHost || !_wildSyncPending )
+			return;
+
+		// Still inside the 0.35s coalesce window after the last schedule.
+		if ( !_wildSyncDebounce )
+			return;
+
+		_wildSyncPending = false;
 		PushWildToClients();
 	}
 
@@ -28,6 +46,8 @@ public sealed class ClientWorldSync : Component
 	{
 		if ( !Networking.IsHost ) return;
 		PushTerrainToClients();
+		// Immediate full push for joins — bypass debounce so late joiners aren't empty.
+		_wildSyncPending = false;
 		PushWildToClients();
 	}
 
@@ -47,9 +67,16 @@ public sealed class ClientWorldSync : Component
 		BroadcastTerrainClear( cellKey );
 	}
 
+	/// <summary>
+	/// Coalesce wild changes (catch, flee, top-up, plot buy) into one snapshot ~0.35s later.
+	/// Calling this repeatedly only extends the window; it does not queue multiple pushes.
+	/// </summary>
 	public void ScheduleWildSync()
 	{
 		if ( !Networking.IsHost ) return;
+
+		// AUDIT FIX B2: arm pending; debounce countdown starts / resets here.
+		_wildSyncPending = true;
 		_wildSyncDebounce = 0.35f;
 	}
 

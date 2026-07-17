@@ -17,7 +17,8 @@ public static class ThornsKeybindService
 		( "Use", "Interact (E)" ),
 		( "Run", "Sprint (Shift)" ),
 		( "Jump", "Jump (Space)" ),
-		( "Duck", "Crouch (Ctrl)" )
+		( "Duck", "Crouch (Ctrl)" ),
+		( "ToggleHud", "Toggle HUD (0)" )
 	};
 
 	static string _listeningAction;
@@ -80,6 +81,7 @@ public static class ThornsKeybindService
 			"Run" => "SHIFT",
 			"Jump" => "SPACE",
 			"Duck" => "CTRL",
+			"ToggleHud" => "0",
 			_ => action.ToUpperInvariant()
 		};
 	}

@@ -17,14 +17,14 @@ public static class EnemyTypePresentation
 {
 	public static Color TintFor( EnemyType type, bool elite ) => type switch
 	{
-		EnemyType.Rusher => new Color( 1f, 0.55f, 0.2f ),
-		EnemyType.Tank => new Color( 0.55f, 0.35f, 0.3f ),
-		EnemyType.Splitter => new Color( 0.85f, 0.4f, 0.9f ),
-		EnemyType.Shielded => new Color( 0.35f, 0.55f, 0.95f ),
-		EnemyType.Swarm => new Color( 1f, 0.7f, 0.7f ),
-		EnemyType.Spitter => new Color( 0.45f, 0.9f, 0.45f ),
-		EnemyType.Boss => new Color( 0.95f, 0.15f, 0.15f ),
-		_ => elite ? new Color( 1f, 0.75f, 0.2f ) : new Color( 0.9f, 0.24f, 0.22f ),
+		EnemyType.Rusher => new Color( 0.45f, 0.7f, 1f ),
+		EnemyType.Tank => new Color( 0.25f, 0.35f, 0.55f ),
+		EnemyType.Splitter => new Color( 0.55f, 0.35f, 0.95f ),
+		EnemyType.Shielded => new Color( 0.25f, 0.55f, 0.95f ),
+		EnemyType.Swarm => new Color( 0.55f, 0.65f, 0.85f ),
+		EnemyType.Spitter => new Color( 0.35f, 0.85f, 0.75f ),
+		EnemyType.Boss => new Color( 0.15f, 0.25f, 0.75f ),
+		_ => elite ? new Color( 0.7f, 0.85f, 1f ) : DistrictTheme.SecurityTint,
 	};
 
 	public static float BaseScaleFor( EnemyType type ) => type switch

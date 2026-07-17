@@ -4,11 +4,28 @@ namespace FinalOutpost;
 public sealed class WallSegment
 {
 	public GameObject Go;
-	public ModelRenderer Renderer;
+	/// <summary>Tintable visual pieces (posts, rails, pickets). Damage feedback lerps each base tint.</summary>
+	public List<(ModelRenderer Renderer, Color Base)> VisualParts { get; } = new();
 	public Vector3 Center;
+	/// <summary>Placement / visual box (full cell thickness × segment length).</summary>
+	public Vector3 FootprintSize;
+	/// <summary>Thin pathing / melee box — scaffold depth, not empty ground outside the bars.</summary>
+	public Vector3 PathFootprintSize
+	{
+		get
+		{
+			var alongX = WallScaffoldVisual.RunsAlongX( Center, FootprintSize );
+			var length = alongX ? FootprintSize.x : FootprintSize.y;
+			var depth = GameConstants.WallPathDepth;
+			return alongX
+				? new Vector3( length, depth, 0f )
+				: new Vector3( depth, length, 0f );
+		}
+	}
+	/// <summary>Melee approach footprint — matches path occupancy / bar depth.</summary>
+	public Vector3 ZombieCollisionFootprint => PathFootprintSize;
 	public float Health;
 	public float MaxHealth;
-	public Color IntactColor = new( 0.55f, 0.58f, 0.62f );
 	/// <summary>Stable id ("x,y" of the segment centre) for persisting player-removed walls.</summary>
 	public string Key;
 
@@ -34,7 +51,12 @@ public sealed class WallSegment
 
 	public void Damage( float amount )
 	{
+		if ( IsBroken || amount <= 0f ) return;
+
 		Health = MathF.Max( 0f, Health - amount );
+		if ( IsBroken )
+			DestructionFx.Burst( Center.WithZ( 0f ), 1.15f );
+
 		RefreshVisual();
 	}
 
@@ -58,16 +80,41 @@ public sealed class WallSegment
 
 	public void RefreshVisual()
 	{
-		if ( Renderer is null ) return;
+		if ( Go is null ) return;
 
 		if ( IsBroken )
 		{
 			Go.Enabled = false;
+			SyncTileOccupancy();
 			return;
 		}
 
 		Go.Enabled = true;
 		var t = HealthFraction;
-		Renderer.Tint = Color.Lerp( new Color( 0.5f, 0.15f, 0.12f ), IntactColor, t );
+		var damaged = new Color( 0.5f, 0.15f, 0.12f );
+		foreach ( var (mr, baseTint) in VisualParts )
+		{
+			if ( mr is null || !mr.IsValid() ) continue;
+			mr.Tint = Color.Lerp( damaged, baseTint, t );
+		}
+
+		SyncTileOccupancy();
 	}
+
+	void SyncTileOccupancy()
+	{
+		var shouldBlock = !IsBroken && FootprintSize.Length > 0f;
+		if ( shouldBlock == _blocksTiles )
+			return;
+
+		if ( shouldBlock )
+			TileOccupancy.MarkWall( this );
+		else
+			TileOccupancy.UnmarkWall( this );
+
+		_blocksTiles = shouldBlock;
+		BuildManager.Instance?.RefreshWallMountHeights();
+	}
+
+	bool _blocksTiles;
 }

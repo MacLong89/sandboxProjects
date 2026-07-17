@@ -110,7 +110,15 @@ public sealed class SaveSystem : Component
 
 	// ── Save ────────────────────────────────────────────────
 
-	public void Save( bool preserveWorldOnEmptyCapture = false, bool verifyWrite = false, bool shutdown = false )
+	/// <param name="allowEmptyBuiltOverwrite">
+	/// True only for intentional wipes (new game over a slot). Hotload/teardown must
+	/// never pass this — otherwise empty habitat/placeable lists overwrite good saves.
+	/// </param>
+	public void Save(
+		bool preserveWorldOnEmptyCapture = false,
+		bool verifyWrite = false,
+		bool shutdown = false,
+		bool allowEmptyBuiltOverwrite = false )
 	{
 		if ( _isApplying )
 			return;
@@ -138,6 +146,13 @@ public sealed class SaveSystem : Component
 			if ( shutdown )
 				data = MergeWithCachedSnapshot( data, _lastGoodSnapshot );
 
+			// CONTINUE/SAVE FIX: Hotload tears down habitats/placeables before SaveSystem
+			// while terrain obstacles + ZooState money are still alive. Capture then looks
+			// "non-empty" (HasWorldContent true via TerrainObstacles) and wiped layouts.
+			// Revert hint: set allowEmptyBuiltOverwrite on intentional slot resets only.
+			if ( !allowEmptyBuiltOverwrite )
+				ProtectBuiltWorldFromEmptyCapture( data, path );
+
 			WriteSaveFile( path, data, preserveWorldOnEmptyCapture, verifyWrite );
 
 			RememberSnapshot( data );
@@ -152,6 +167,30 @@ public sealed class SaveSystem : Component
 		}
 
 		DebugStats.StopTimer( "Saving", clock );
+	}
+
+	/// <summary>
+	/// If live capture lost all player-built objects but a prior snapshot/disk save
+	/// still has them, merge that layout back before writing.
+	/// </summary>
+	private void ProtectBuiltWorldFromEmptyCapture( SaveData data, string path )
+	{
+		if ( data is null || HasBuiltWorldContent( data ) )
+			return;
+
+		SaveData source = null;
+		if ( HasBuiltWorldContent( _lastGoodSnapshot ) )
+			source = _lastGoodSnapshot;
+		else if ( TryReadSaveFile( path, out var disk ) && HasBuiltWorldContent( disk ) )
+			source = disk;
+
+		if ( source is null )
+			return;
+
+		Log.Warning(
+			"Fauna: live capture lost habitats/placeables/animals while a prior save still has them — " +
+			"keeping the previous built world (hotload/teardown race)." );
+		MergeWorldLayoutFrom( data, source );
 	}
 
 	private bool TryCaptureForSave( out SaveData data )
@@ -193,6 +232,17 @@ public sealed class SaveSystem : Component
 	private void RememberSnapshot( SaveData data )
 	{
 		if ( data is null ) return;
+
+		// Never let a gutted hotload capture become "last good" — shutdown merge
+		// and ProtectBuiltWorldFromEmptyCapture both depend on it.
+		if ( _lastGoodSnapshot is not null
+			&& HasBuiltWorldContent( _lastGoodSnapshot )
+			&& !HasBuiltWorldContent( data ) )
+		{
+			Log.Warning( "Fauna: refused to replace last-good snapshot with an empty-built capture." );
+			return;
+		}
+
 		// Capture() allocates a fresh graph each time — no need to JSON-clone ~1000+ terrain cells every autosave.
 		_lastGoodSnapshot = data;
 	}
@@ -205,28 +255,22 @@ public sealed class SaveSystem : Component
 		if ( cached is null )
 			return live;
 
+		// AUDIT FIX B4 + CONTINUE/SAVE FIX (2026-07): Shutdown merge used to restore
+		// ANY empty category from the previous snapshot (sell-all animals undid).
+		// Then emptiness used HasWorldContent which stayed TRUE when only terrain
+		// obstacles remained — hotload wiped habitats/placeables while "preserving".
+		//
+		// New rule: merge when LIVE lost all player-built content while the cache
+		// still has habitats/placeables/animals. Obstacle-only captures count as empty.
 		var merged = CloneSaveData( live );
 
-		if ( (merged.Habitats?.Count ?? 0) == 0 && (cached.Habitats?.Count ?? 0) > 0 )
-			merged.Habitats = cached.Habitats;
-
-		if ( (merged.Placeables?.Count ?? 0) == 0 && (cached.Placeables?.Count ?? 0) > 0 )
-			merged.Placeables = cached.Placeables;
-
-		if ( (merged.Animals?.Count ?? 0) == 0 && (cached.Animals?.Count ?? 0) > 0 )
-			merged.Animals = cached.Animals;
-
-		if ( (merged.TerrainObstacles?.Count ?? 0) == 0 && (cached.TerrainObstacles?.Count ?? 0) > 0 )
+		var liveLostBuilt = !HasBuiltWorldContent( merged );
+		var cacheHasBuilt = HasBuiltWorldContent( cached );
+		if ( liveLostBuilt && cacheHasBuilt )
 		{
-			merged.TerrainObstacles = cached.TerrainObstacles;
-			merged.TerrainObstaclesCleared = cached.TerrainObstaclesCleared;
+			Log.Warning( "Fauna: shutdown live capture lost player-built world — merging layout from last good snapshot." );
+			MergeWorldLayoutFrom( merged, cached );
 		}
-
-		if ( (merged.WildAnimals?.Count ?? 0) == 0 && (cached.WildAnimals?.Count ?? 0) > 0 )
-			merged.WildAnimals = cached.WildAnimals;
-
-		if ( (merged.Plots?.Count ?? 0) == 0 && (cached.Plots?.Count ?? 0) > 0 )
-			merged.Plots = cached.Plots;
 
 		if ( !merged.HasOwnerPlayerPosition && cached.HasOwnerPlayerPosition )
 		{
@@ -253,15 +297,26 @@ public sealed class SaveSystem : Component
 
 	private static void WriteSaveFile( string path, SaveData data, bool preserveWorldOnEmptyCapture, bool verifyWrite )
 	{
-		if ( preserveWorldOnEmptyCapture && !HasWorldContent( data ) && TryReadSaveFile( path, out var existing ) && HasWorldContent( existing ) )
+		// AUDIT FIX B4 + CONTINUE/SAVE FIX: Shutdown/preserve resurrects layout when
+		// player-built content is gone (not merely when TerrainObstacles are empty).
+		// Revert hint: use HasWorldContent again only if obstacle-only empties should
+		// also trigger disk restore.
+		if ( preserveWorldOnEmptyCapture
+			&& !HasBuiltWorldContent( data )
+			&& TryReadSaveFile( path, out var existing )
+			&& HasBuiltWorldContent( existing ) )
 		{
-			Log.Warning( "Fauna: save capture returned an empty zoo layout at shutdown — keeping previous layout on disk." );
+			Log.Warning( "Fauna: save capture lost habitats/placeables/animals at shutdown — keeping previous layout on disk." );
 			MergeWorldLayoutFrom( data, existing );
 		}
 
-		PreserveWorldLayoutFromDisk( path, data );
-
 		EnsureDirectoryForFile( path );
+
+		// Keep one previous good build on disk so a future wipe can be recovered.
+		// Only refresh .bak when the new payload still has a built world — otherwise
+		// New Game would snapshot the old zoo into .bak and Continue would resurrect it.
+		TryWriteBuiltWorldBackup( path, data );
+
 		FileSystem.Data.WriteJson( path, data );
 
 		if ( !FileSystem.Data.FileExists( path ) )
@@ -277,12 +332,17 @@ public sealed class SaveSystem : Component
 			throw new InvalidOperationException( "save verification failed (slot mismatch)" );
 	}
 
+	/// <summary>Player-built / placed content — NOT terrain obstacles or wilds.</summary>
+	private static bool HasBuiltWorldContent( SaveData data ) =>
+		data is not null && (
+			(data.Habitats?.Count ?? 0) > 0 ||
+			(data.Placeables?.Count ?? 0) > 0 ||
+			(data.Animals?.Count ?? 0) > 0 );
+
 	private static bool HasWorldContent( SaveData data ) =>
-		(data.Habitats?.Count ?? 0) > 0 ||
-		(data.Placeables?.Count ?? 0) > 0 ||
-		(data.Animals?.Count ?? 0) > 0 ||
-		(data.TerrainObstacles?.Count ?? 0) > 0 ||
-		(data.WildAnimals?.Count ?? 0) > 0;
+		HasBuiltWorldContent( data ) ||
+		(data?.TerrainObstacles?.Count ?? 0) > 0 ||
+		(data?.WildAnimals?.Count ?? 0) > 0;
 
 	private static void MergeWorldLayoutFrom( SaveData target, SaveData source )
 	{
@@ -295,6 +355,9 @@ public sealed class SaveSystem : Component
 		target.Plots = source.Plots?.Count > 0 ? source.Plots : target.Plots;
 	}
 
+	// AUDIT FIX B4: Kept for reference / emergency restore tooling. No longer called
+	// from WriteSaveFile — per-category empty→disk restore undid intentional wipes.
+	// If you re-enable it, pair with an explicit "capture failed" flag, not count==0.
 	private static void PreserveWorldLayoutFromDisk( string path, SaveData data )
 	{
 		if ( !TryReadSaveFile( path, out var existing ) )
@@ -344,6 +407,61 @@ public sealed class SaveSystem : Component
 
 		if ( !FileSystem.Data.DirectoryExists( dir ) )
 			FileSystem.Data.CreateDirectory( dir );
+	}
+
+	private static string GetBackupPath( string path ) => $"{path}.bak";
+
+	private static void TryWriteBuiltWorldBackup( string path, SaveData outgoing )
+	{
+		if ( !HasBuiltWorldContent( outgoing ) )
+			return;
+
+		if ( !TryReadSaveFile( path, out var existing ) || !HasBuiltWorldContent( existing ) )
+			return;
+
+		try
+		{
+			var bak = GetBackupPath( path );
+			EnsureDirectoryForFile( bak );
+			FileSystem.Data.WriteJson( bak, existing );
+		}
+		catch ( Exception e )
+		{
+			Log.Warning( $"Fauna: could not write save backup for '{path}' — {e.Message}" );
+		}
+	}
+
+	private static void TryDeleteBackup( string path )
+	{
+		var bak = GetBackupPath( path );
+		try
+		{
+			if ( FileSystem.Data.FileExists( bak ) )
+				FileSystem.Data.DeleteFile( bak );
+		}
+		catch ( Exception e )
+		{
+			Log.Warning( $"Fauna: could not delete save backup '{bak}' — {e.Message}" );
+		}
+	}
+
+	/// <summary>
+	/// If the slot looks gutted but a .bak still has habitats/placeables/animals, prefer the backup.
+	/// Helps recover from older hotspot wipes that already hit disk.
+	/// </summary>
+	private static bool TryRecoverBuiltWorldFromBackup( string path, ref SaveData data )
+	{
+		if ( data is null || HasBuiltWorldContent( data ) )
+			return false;
+
+		var bak = GetBackupPath( path );
+		if ( !TryReadSaveFile( bak, out var backup ) || !HasBuiltWorldContent( backup ) )
+			return false;
+
+		Log.Warning( $"Fauna: slot '{path}' has no player-built world but backup does — restoring layout from '{bak}'." );
+		// Keep money/meta from the primary file (those usually survive teardown); restore layout only.
+		MergeWorldLayoutFrom( data, backup );
+		return true;
 	}
 
 	private static bool TryReadSaveFile( string path, out SaveData data )
@@ -793,7 +911,9 @@ public sealed class SaveSystem : Component
 			guests.Satisfaction = 75f;
 		}
 
-		Save( verifyWrite: true );
+		// Intentional empty built world for this slot — must not resurrect the old zoo.
+		TryDeleteBackup( GetSlotPath( slotId ) );
+		Save( verifyWrite: true, allowEmptyBuiltOverwrite: true );
 		Log.Info( $"Fauna: new zoo '{profile.DisplayName}' in slot {slotId}." );
 	}
 
@@ -822,6 +942,20 @@ public sealed class SaveSystem : Component
 			}
 
 			Migrate( data );
+
+			if ( TryRecoverBuiltWorldFromBackup( path, ref data ) )
+			{
+				// Persist the recovered layout so the next Continue doesn't depend on .bak.
+				try
+				{
+					WriteSaveFile( path, data, preserveWorldOnEmptyCapture: false, verifyWrite: true );
+				}
+				catch ( Exception e )
+				{
+					Log.Warning( $"Fauna: recovered layout but could not rewrite '{path}' — {e.Message}" );
+				}
+			}
+
 			Apply( data );
 
 			if ( data.SaveSlotId > 0 )

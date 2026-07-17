@@ -15,10 +15,12 @@ public sealed class AimboxBotController : Component, IAimboxCombatActor
 
 	[Property] public string BotId { get; set; } = "bot_001";
 	[Property] public string Gamertag { get; set; } = "";
-	[Property] public AimboxTeam Team { get; set; }
-	[Property] public int Health { get; set; } = 100;
-	[Property] public bool IsAlive { get; set; } = true;
-	[Property] public AimboxWeaponId ActiveWeapon { get; set; }
+	[Property, Sync] public AimboxTeam Team { get; set; }
+	// AUDIT FIX C5 (2026-07-13): replicate life state so NetworkSpawn'd bots aren't
+	// "always alive" ghosts on joiners. Host still owns writes via FromHost.
+	[Property, Sync( SyncFlags.FromHost )] public int Health { get; set; } = 100;
+	[Property, Sync( SyncFlags.FromHost )] public bool IsAlive { get; set; } = true;
+	[Property, Sync] public AimboxWeaponId ActiveWeapon { get; set; }
 	[Property] public float StatMultiplier { get; set; } = 1f;
 
 	public string DisplayName =>
@@ -114,12 +116,22 @@ public sealed class AimboxBotController : Component, IAimboxCombatActor
 
 	protected override void OnUpdate()
 	{
+		// AUDIT FIX C5: bots are host-authoritative. Joiners receive Sync'd life/team
+		// for presentation, but must NOT run AI or local damage paths.
+		if ( Networking.IsActive && !Networking.IsHost )
+		{
+			SyncEyeRotation();
+			return;
+		}
+
 		if ( AimboxGame.Instance?.Phase != AimboxSessionPhase.Playing )
 			return;
 
 		if ( AimboxGame.Instance.IsCombatLocked )
 		{
 			WantsFire = false;
+			// Clear residual wish so FixedUpdate cannot keep skating after freeze / intermission.
+			ClearMovementWish();
 			if ( IsAlive )
 				SyncEyeRotation();
 			return;
@@ -127,6 +139,7 @@ public sealed class AimboxBotController : Component, IAimboxCombatActor
 
 		if ( !IsAlive )
 		{
+			ClearMovementWish();
 			if ( AimboxGame.Instance.Match.Mode == AimboxGameMode.Duel )
 				return;
 
@@ -147,10 +160,30 @@ public sealed class AimboxBotController : Component, IAimboxCombatActor
 
 	protected override void OnFixedUpdate()
 	{
+		// AUDIT FIX H8 (2026-07-13): FixedUpdate used to ignore Phase — leftover wish
+		// from the last Playing frame could slide bots during Intermission/Starting.
+		// Keep this gate in lockstep with OnUpdate. Revert both together if locomotion
+		// feels stuck at round boundaries.
+		if ( Networking.IsActive && !Networking.IsHost )
+			return;
+
+		if ( AimboxGame.Instance?.Phase != AimboxSessionPhase.Playing )
+			return;
+
 		if ( !IsAlive || AimboxGame.Instance?.IsCombatLocked == true )
 			return;
 
 		TickMovement();
+	}
+
+	/// <summary>Zeros wish vectors so FixedUpdate cannot integrate stale brain intent.</summary>
+	void ClearMovementWish()
+	{
+		_wishDirection = Vector3.Zero;
+		_wishDirectionTarget = Vector3.Zero;
+		_wishDirectionSmoothed = Vector3.Zero;
+		_sprinting = false;
+		WantsFire = false;
 	}
 
 	public void RollRandomWeapon()
@@ -302,8 +335,19 @@ public sealed class AimboxBotController : Component, IAimboxCombatActor
 		var damageOrigin = attacker?.EyePosition ?? EyePosition + AimForward * -128f;
 		AimboxCombatRagdoll.SpawnFromCitizenBody( GameObject, damageOrigin );
 
-		if ( attacker is not null && attacker != this )
-			attacker.ConfirmKill( this, weapon, headshot, distance );
+		if ( attacker is null || attacker == this )
+			return;
+
+		// AUDIT FIX: MP bot victims previously only called ConfirmKill on the host pawn — joiners
+		// are IsProxy there so XP/killfeed never landed. Mirror the player-kill broadcast path.
+		if ( AimboxNetworkCombat.UseHostAuthority )
+		{
+			if ( Networking.IsHost )
+				AimboxGame.Instance?.RpcBroadcastBotVictimKill( attacker.CombatId, BotId, weapon, headshot, distance );
+			return;
+		}
+
+		attacker.ConfirmKill( this, weapon, headshot, distance );
 	}
 
 	public void Respawn()

@@ -1,0 +1,1035 @@
+{
+  "backdrop_sky": {
+    "path": "backdrop_sky.png",
+    "frameW": 640,
+    "frameH": 360,
+    "frames": 1,
+    "fps": 1,
+    "loop": true,
+    "pivot": [
+      320,
+      360
+    ],
+    "opaque": true
+  },
+  "ui_logo": {
+    "path": "ui_logo.png",
+    "frameW": 236,
+    "frameH": 172,
+    "frames": 1,
+    "fps": 1,
+    "loop": true,
+    "pivot": [
+      118,
+      86
+    ]
+  },
+  "room_lobby": {
+    "path": "room_lobby.png",
+    "frameW": 96,
+    "frameH": 64,
+    "frames": 1,
+    "fps": 1,
+    "loop": true,
+    "pivot": [
+      48,
+      64
+    ]
+  },
+  "structure_floor": {
+    "path": "structure_floor.png",
+    "frameW": 96,
+    "frameH": 64,
+    "frames": 1,
+    "fps": 1,
+    "loop": true,
+    "pivot": [
+      48,
+      64
+    ]
+  },
+  "structure_wall": {
+    "path": "structure_wall.png",
+    "frameW": 96,
+    "frameH": 64,
+    "frames": 1,
+    "fps": 1,
+    "loop": true,
+    "pivot": [
+      48,
+      64
+    ]
+  },
+  "structure_roof": {
+    "path": "structure_roof.png",
+    "frameW": 96,
+    "frameH": 64,
+    "frames": 1,
+    "fps": 1,
+    "loop": true,
+    "pivot": [
+      48,
+      64
+    ]
+  },
+  "structure_elevator": {
+    "path": "structure_elevator.png",
+    "frameW": 96,
+    "frameH": 64,
+    "frames": 1,
+    "fps": 1,
+    "loop": true,
+    "pivot": [
+      48,
+      64
+    ]
+  },
+  "structure_preview": {
+    "path": "structure_preview.png",
+    "frameW": 96,
+    "frameH": 64,
+    "frames": 1,
+    "fps": 1,
+    "loop": true,
+    "pivot": [
+      48,
+      64
+    ]
+  },
+  "structure_elevator_segment": {
+    "path": "structure_elevator_segment.png",
+    "frameW": 24,
+    "frameH": 64,
+    "frames": 1,
+    "fps": 1,
+    "loop": true,
+    "pivot": [
+      12,
+      64
+    ]
+  },
+  "structure_rooftop_deck": {
+    "path": "structure_rooftop_deck.png",
+    "frameW": 192,
+    "frameH": 44,
+    "frames": 1,
+    "fps": 1,
+    "loop": true,
+    "pivot": [
+      96,
+      44
+    ]
+  },
+  "overlay_level_2": {
+    "path": "overlay_level_2.png",
+    "frameW": 96,
+    "frameH": 64,
+    "frames": 1,
+    "fps": 1,
+    "loop": true,
+    "pivot": [
+      48,
+      64
+    ]
+  },
+  "overlay_level_3": {
+    "path": "overlay_level_3.png",
+    "frameW": 96,
+    "frameH": 64,
+    "frames": 1,
+    "fps": 1,
+    "loop": true,
+    "pivot": [
+      48,
+      64
+    ]
+  },
+  "overlay_level_4": {
+    "path": "overlay_level_4.png",
+    "frameW": 96,
+    "frameH": 64,
+    "frames": 1,
+    "fps": 1,
+    "loop": true,
+    "pivot": [
+      48,
+      64
+    ]
+  },
+  "overlay_level_5": {
+    "path": "overlay_level_5.png",
+    "frameW": 96,
+    "frameH": 64,
+    "frames": 1,
+    "fps": 1,
+    "loop": true,
+    "pivot": [
+      48,
+      64
+    ]
+  },
+  "room_standard": {
+    "path": "room_standard.png",
+    "frameW": 96,
+    "frameH": 64,
+    "frames": 1,
+    "fps": 1,
+    "loop": true,
+    "pivot": [
+      48,
+      64
+    ]
+  },
+  "room_deluxe": {
+    "path": "room_deluxe.png",
+    "frameW": 96,
+    "frameH": 64,
+    "frames": 1,
+    "fps": 1,
+    "loop": true,
+    "pivot": [
+      48,
+      64
+    ]
+  },
+  "room_suite": {
+    "path": "room_suite.png",
+    "frameW": 96,
+    "frameH": 64,
+    "frames": 1,
+    "fps": 1,
+    "loop": true,
+    "pivot": [
+      48,
+      64
+    ]
+  },
+  "room_cafe": {
+    "path": "room_cafe.png",
+    "frameW": 96,
+    "frameH": 64,
+    "frames": 1,
+    "fps": 1,
+    "loop": true,
+    "pivot": [
+      48,
+      64
+    ]
+  },
+  "room_restaurant": {
+    "path": "room_restaurant.png",
+    "frameW": 96,
+    "frameH": 64,
+    "frames": 1,
+    "fps": 1,
+    "loop": true,
+    "pivot": [
+      48,
+      64
+    ]
+  },
+  "room_spa": {
+    "path": "room_spa.png",
+    "frameW": 96,
+    "frameH": 64,
+    "frames": 1,
+    "fps": 1,
+    "loop": true,
+    "pivot": [
+      48,
+      64
+    ]
+  },
+  "room_giftshop": {
+    "path": "room_giftshop.png",
+    "frameW": 96,
+    "frameH": 64,
+    "frames": 1,
+    "fps": 1,
+    "loop": true,
+    "pivot": [
+      48,
+      64
+    ]
+  },
+  "room_laundry": {
+    "path": "room_laundry.png",
+    "frameW": 96,
+    "frameH": 64,
+    "frames": 1,
+    "fps": 1,
+    "loop": true,
+    "pivot": [
+      48,
+      64
+    ]
+  },
+  "room_workshop": {
+    "path": "room_workshop.png",
+    "frameW": 96,
+    "frameH": 64,
+    "frames": 1,
+    "fps": 1,
+    "loop": true,
+    "pivot": [
+      48,
+      64
+    ]
+  },
+  "room_staff": {
+    "path": "room_staff.png",
+    "frameW": 96,
+    "frameH": 64,
+    "frames": 1,
+    "fps": 1,
+    "loop": true,
+    "pivot": [
+      48,
+      64
+    ]
+  },
+  "overlay_dirty": {
+    "path": "overlay_dirty.png",
+    "frameW": 96,
+    "frameH": 64,
+    "frames": 1,
+    "fps": 1,
+    "loop": true,
+    "pivot": [
+      48,
+      64
+    ]
+  },
+  "overlay_broken": {
+    "path": "overlay_broken.png",
+    "frameW": 96,
+    "frameH": 64,
+    "frames": 1,
+    "fps": 1,
+    "loop": true,
+    "pivot": [
+      48,
+      64
+    ]
+  },
+  "overlay_construction": {
+    "path": "overlay_construction.png",
+    "frameW": 96,
+    "frameH": 64,
+    "frames": 1,
+    "fps": 1,
+    "loop": true,
+    "pivot": [
+      48,
+      64
+    ]
+  },
+  "overlay_locked": {
+    "path": "overlay_locked.png",
+    "frameW": 96,
+    "frameH": 64,
+    "frames": 1,
+    "fps": 1,
+    "loop": true,
+    "pivot": [
+      48,
+      64
+    ]
+  },
+  "guest_a_idle": {
+    "path": "guest_a_idle.png",
+    "frameW": 16,
+    "frameH": 24,
+    "frames": 4,
+    "fps": 4,
+    "loop": true,
+    "pivot": [
+      8,
+      24
+    ]
+  },
+  "guest_a_walk": {
+    "path": "guest_a_walk.png",
+    "frameW": 16,
+    "frameH": 24,
+    "frames": 6,
+    "fps": 8,
+    "loop": true,
+    "pivot": [
+      8,
+      24
+    ]
+  },
+  "guest_a_sleep": {
+    "path": "guest_a_sleep.png",
+    "frameW": 16,
+    "frameH": 24,
+    "frames": 2,
+    "fps": 2,
+    "loop": true,
+    "pivot": [
+      8,
+      24
+    ]
+  },
+  "guest_b_idle": {
+    "path": "guest_b_idle.png",
+    "frameW": 16,
+    "frameH": 24,
+    "frames": 4,
+    "fps": 4,
+    "loop": true,
+    "pivot": [
+      8,
+      24
+    ]
+  },
+  "guest_b_walk": {
+    "path": "guest_b_walk.png",
+    "frameW": 16,
+    "frameH": 24,
+    "frames": 6,
+    "fps": 8,
+    "loop": true,
+    "pivot": [
+      8,
+      24
+    ]
+  },
+  "guest_b_sleep": {
+    "path": "guest_b_sleep.png",
+    "frameW": 16,
+    "frameH": 24,
+    "frames": 2,
+    "fps": 2,
+    "loop": true,
+    "pivot": [
+      8,
+      24
+    ]
+  },
+  "guest_c_idle": {
+    "path": "guest_c_idle.png",
+    "frameW": 16,
+    "frameH": 24,
+    "frames": 4,
+    "fps": 4,
+    "loop": true,
+    "pivot": [
+      8,
+      24
+    ]
+  },
+  "guest_c_walk": {
+    "path": "guest_c_walk.png",
+    "frameW": 16,
+    "frameH": 24,
+    "frames": 6,
+    "fps": 8,
+    "loop": true,
+    "pivot": [
+      8,
+      24
+    ]
+  },
+  "guest_c_sleep": {
+    "path": "guest_c_sleep.png",
+    "frameW": 16,
+    "frameH": 24,
+    "frames": 2,
+    "fps": 2,
+    "loop": true,
+    "pivot": [
+      8,
+      24
+    ]
+  },
+  "staff_receptionist_idle": {
+    "path": "staff_receptionist_idle.png",
+    "frameW": 16,
+    "frameH": 24,
+    "frames": 4,
+    "fps": 4,
+    "loop": true,
+    "pivot": [
+      8,
+      24
+    ]
+  },
+  "staff_receptionist_walk": {
+    "path": "staff_receptionist_walk.png",
+    "frameW": 16,
+    "frameH": 24,
+    "frames": 6,
+    "fps": 8,
+    "loop": true,
+    "pivot": [
+      8,
+      24
+    ]
+  },
+  "staff_receptionist_desk": {
+    "path": "staff_receptionist_desk.png",
+    "frameW": 16,
+    "frameH": 24,
+    "frames": 4,
+    "fps": 6,
+    "loop": true,
+    "pivot": [
+      8,
+      24
+    ]
+  },
+  "staff_housekeeper_idle": {
+    "path": "staff_housekeeper_idle.png",
+    "frameW": 16,
+    "frameH": 24,
+    "frames": 4,
+    "fps": 4,
+    "loop": true,
+    "pivot": [
+      8,
+      24
+    ]
+  },
+  "staff_housekeeper_walk": {
+    "path": "staff_housekeeper_walk.png",
+    "frameW": 16,
+    "frameH": 24,
+    "frames": 6,
+    "fps": 8,
+    "loop": true,
+    "pivot": [
+      8,
+      24
+    ]
+  },
+  "staff_housekeeper_clean": {
+    "path": "staff_housekeeper_clean.png",
+    "frameW": 16,
+    "frameH": 24,
+    "frames": 4,
+    "fps": 6,
+    "loop": true,
+    "pivot": [
+      8,
+      24
+    ]
+  },
+  "staff_cook_idle": {
+    "path": "staff_cook_idle.png",
+    "frameW": 16,
+    "frameH": 24,
+    "frames": 4,
+    "fps": 4,
+    "loop": true,
+    "pivot": [
+      8,
+      24
+    ]
+  },
+  "staff_cook_walk": {
+    "path": "staff_cook_walk.png",
+    "frameW": 16,
+    "frameH": 24,
+    "frames": 6,
+    "fps": 8,
+    "loop": true,
+    "pivot": [
+      8,
+      24
+    ]
+  },
+  "staff_cook_cook": {
+    "path": "staff_cook_cook.png",
+    "frameW": 16,
+    "frameH": 24,
+    "frames": 4,
+    "fps": 6,
+    "loop": true,
+    "pivot": [
+      8,
+      24
+    ]
+  },
+  "staff_maintenance_idle": {
+    "path": "staff_maintenance_idle.png",
+    "frameW": 16,
+    "frameH": 24,
+    "frames": 4,
+    "fps": 4,
+    "loop": true,
+    "pivot": [
+      8,
+      24
+    ]
+  },
+  "staff_maintenance_walk": {
+    "path": "staff_maintenance_walk.png",
+    "frameW": 16,
+    "frameH": 24,
+    "frames": 6,
+    "fps": 8,
+    "loop": true,
+    "pivot": [
+      8,
+      24
+    ]
+  },
+  "staff_maintenance_repair": {
+    "path": "staff_maintenance_repair.png",
+    "frameW": 16,
+    "frameH": 24,
+    "frames": 4,
+    "fps": 6,
+    "loop": true,
+    "pivot": [
+      8,
+      24
+    ]
+  },
+  "ambient_steam": {
+    "path": "ambient_steam.png",
+    "frameW": 16,
+    "frameH": 16,
+    "frames": 4,
+    "fps": 6,
+    "loop": true,
+    "pivot": [
+      8,
+      16
+    ]
+  },
+  "ambient_elevator": {
+    "path": "ambient_elevator.png",
+    "frameW": 24,
+    "frameH": 40,
+    "frames": 4,
+    "fps": 4,
+    "loop": true,
+    "pivot": [
+      12,
+      40
+    ]
+  },
+  "fx_coin": {
+    "path": "fx_coin.png",
+    "frameW": 12,
+    "frameH": 12,
+    "frames": 4,
+    "fps": 10,
+    "loop": false,
+    "pivot": [
+      6,
+      12
+    ]
+  },
+  "fx_heart": {
+    "path": "fx_heart.png",
+    "frameW": 12,
+    "frameH": 12,
+    "frames": 3,
+    "fps": 6,
+    "loop": false,
+    "pivot": [
+      6,
+      12
+    ]
+  },
+  "fx_dust": {
+    "path": "fx_dust.png",
+    "frameW": 16,
+    "frameH": 16,
+    "frames": 4,
+    "fps": 8,
+    "loop": false,
+    "pivot": [
+      8,
+      16
+    ]
+  },
+  "fx_spark": {
+    "path": "fx_spark.png",
+    "frameW": 16,
+    "frameH": 16,
+    "frames": 4,
+    "fps": 10,
+    "loop": false,
+    "pivot": [
+      8,
+      16
+    ]
+  },
+  "ui_cash": {
+    "path": "ui_cash.png",
+    "frameW": 32,
+    "frameH": 24,
+    "frames": 1,
+    "fps": 1,
+    "loop": true,
+    "pivot": [
+      16,
+      24
+    ]
+  },
+  "ui_rating": {
+    "path": "ui_rating.png",
+    "frameW": 32,
+    "frameH": 24,
+    "frames": 1,
+    "fps": 1,
+    "loop": true,
+    "pivot": [
+      16,
+      24
+    ]
+  },
+  "ui_guests": {
+    "path": "ui_guests.png",
+    "frameW": 32,
+    "frameH": 24,
+    "frames": 1,
+    "fps": 1,
+    "loop": true,
+    "pivot": [
+      16,
+      24
+    ]
+  },
+  "ui_rooms": {
+    "path": "ui_rooms.png",
+    "frameW": 32,
+    "frameH": 24,
+    "frames": 1,
+    "fps": 1,
+    "loop": true,
+    "pivot": [
+      16,
+      24
+    ]
+  },
+  "ui_build": {
+    "path": "ui_build.png",
+    "frameW": 32,
+    "frameH": 24,
+    "frames": 1,
+    "fps": 1,
+    "loop": true,
+    "pivot": [
+      16,
+      24
+    ]
+  },
+  "ui_goals": {
+    "path": "ui_goals.png",
+    "frameW": 32,
+    "frameH": 24,
+    "frames": 1,
+    "fps": 1,
+    "loop": true,
+    "pivot": [
+      16,
+      24
+    ]
+  },
+  "ui_stats": {
+    "path": "ui_stats.png",
+    "frameW": 32,
+    "frameH": 24,
+    "frames": 1,
+    "fps": 1,
+    "loop": true,
+    "pivot": [
+      16,
+      24
+    ]
+  },
+  "ui_menu": {
+    "path": "ui_menu.png",
+    "frameW": 32,
+    "frameH": 24,
+    "frames": 1,
+    "fps": 1,
+    "loop": true,
+    "pivot": [
+      16,
+      24
+    ]
+  },
+  "ui_weather": {
+    "path": "ui_weather.png",
+    "frameW": 32,
+    "frameH": 24,
+    "frames": 1,
+    "fps": 1,
+    "loop": true,
+    "pivot": [
+      16,
+      24
+    ]
+  },
+  "ui_lock": {
+    "path": "ui_lock.png",
+    "frameW": 32,
+    "frameH": 24,
+    "frames": 1,
+    "fps": 1,
+    "loop": true,
+    "pivot": [
+      16,
+      24
+    ]
+  },
+  "ui_speed": {
+    "path": "ui_speed.png",
+    "frameW": 32,
+    "frameH": 24,
+    "frames": 1,
+    "fps": 1,
+    "loop": true,
+    "pivot": [
+      16,
+      24
+    ]
+  },
+  "ui_pause": {
+    "path": "ui_pause.png",
+    "frameW": 32,
+    "frameH": 24,
+    "frames": 1,
+    "fps": 1,
+    "loop": true,
+    "pivot": [
+      16,
+      24
+    ]
+  },
+  "ui_hire": {
+    "path": "ui_hire.png",
+    "frameW": 32,
+    "frameH": 24,
+    "frames": 1,
+    "fps": 1,
+    "loop": true,
+    "pivot": [
+      16,
+      24
+    ]
+  },
+  "ui_badge": {
+    "path": "ui_badge.png",
+    "frameW": 32,
+    "frameH": 24,
+    "frames": 1,
+    "fps": 1,
+    "loop": true,
+    "pivot": [
+      16,
+      24
+    ]
+  },
+  "ui_button": {
+    "path": "ui_button.png",
+    "frameW": 32,
+    "frameH": 24,
+    "frames": 1,
+    "fps": 1,
+    "loop": true,
+    "pivot": [
+      16,
+      24
+    ]
+  },
+  "ui_cursor": {
+    "path": "ui_cursor.png",
+    "frameW": 32,
+    "frameH": 24,
+    "frames": 1,
+    "fps": 1,
+    "loop": true,
+    "pivot": [
+      16,
+      24
+    ]
+  },
+  "bubble_clean": {
+    "path": "bubble_clean.png",
+    "frameW": 20,
+    "frameH": 20,
+    "frames": 1,
+    "fps": 1,
+    "loop": true,
+    "pivot": [
+      10,
+      19
+    ]
+  },
+  "bubble_dirty": {
+    "path": "bubble_dirty.png",
+    "frameW": 20,
+    "frameH": 20,
+    "frames": 1,
+    "fps": 1,
+    "loop": true,
+    "pivot": [
+      10,
+      19
+    ]
+  },
+  "bubble_broken": {
+    "path": "bubble_broken.png",
+    "frameW": 20,
+    "frameH": 20,
+    "frames": 1,
+    "fps": 1,
+    "loop": true,
+    "pivot": [
+      10,
+      19
+    ]
+  },
+  "bubble_happy": {
+    "path": "bubble_happy.png",
+    "frameW": 20,
+    "frameH": 20,
+    "frames": 1,
+    "fps": 1,
+    "loop": true,
+    "pivot": [
+      10,
+      19
+    ]
+  },
+  "bubble_queue": {
+    "path": "bubble_queue.png",
+    "frameW": 20,
+    "frameH": 20,
+    "frames": 1,
+    "fps": 1,
+    "loop": true,
+    "pivot": [
+      10,
+      19
+    ]
+  },
+  "icon_standard": {
+    "path": "icon_standard.png",
+    "frameW": 32,
+    "frameH": 32,
+    "frames": 1,
+    "fps": 1,
+    "loop": true,
+    "pivot": [
+      16,
+      32
+    ]
+  },
+  "icon_deluxe": {
+    "path": "icon_deluxe.png",
+    "frameW": 32,
+    "frameH": 32,
+    "frames": 1,
+    "fps": 1,
+    "loop": true,
+    "pivot": [
+      16,
+      32
+    ]
+  },
+  "icon_suite": {
+    "path": "icon_suite.png",
+    "frameW": 32,
+    "frameH": 32,
+    "frames": 1,
+    "fps": 1,
+    "loop": true,
+    "pivot": [
+      16,
+      32
+    ]
+  },
+  "icon_cafe": {
+    "path": "icon_cafe.png",
+    "frameW": 32,
+    "frameH": 32,
+    "frames": 1,
+    "fps": 1,
+    "loop": true,
+    "pivot": [
+      16,
+      32
+    ]
+  },
+  "icon_restaurant": {
+    "path": "icon_restaurant.png",
+    "frameW": 32,
+    "frameH": 32,
+    "frames": 1,
+    "fps": 1,
+    "loop": true,
+    "pivot": [
+      16,
+      32
+    ]
+  },
+  "icon_spa": {
+    "path": "icon_spa.png",
+    "frameW": 32,
+    "frameH": 32,
+    "frames": 1,
+    "fps": 1,
+    "loop": true,
+    "pivot": [
+      16,
+      32
+    ]
+  },
+  "icon_giftshop": {
+    "path": "icon_giftshop.png",
+    "frameW": 32,
+    "frameH": 32,
+    "frames": 1,
+    "fps": 1,
+    "loop": true,
+    "pivot": [
+      16,
+      32
+    ]
+  },
+  "icon_laundry": {
+    "path": "icon_laundry.png",
+    "frameW": 32,
+    "frameH": 32,
+    "frames": 1,
+    "fps": 1,
+    "loop": true,
+    "pivot": [
+      16,
+      32
+    ]
+  },
+  "icon_workshop": {
+    "path": "icon_workshop.png",
+    "frameW": 32,
+    "frameH": 32,
+    "frames": 1,
+    "fps": 1,
+    "loop": true,
+    "pivot": [
+      16,
+      32
+    ]
+  },
+  "icon_staff": {
+    "path": "icon_staff.png",
+    "frameW": 32,
+    "frameH": 32,
+    "frames": 1,
+    "fps": 1,
+    "loop": true,
+    "pivot": [
+      16,
+      32
+    ]
+  }
+}

@@ -521,6 +521,13 @@ public sealed class ThornsMenuHost : PanelComponent
 
 		ThornsKeybindService.TickCapture();
 
+		if ( !ThornsKeybindService.IsListening && ThornsKeybindService.Pressed( "ToggleHud" ) )
+		{
+			ThornsUiManager.ManualHudHidden = !ThornsUiManager.ManualHudHidden;
+			ThornsUiManager.ApplyFocusDimming( _hudLayer );
+			return;
+		}
+
 		// Escape stack — topmost window closes first.
 		if ( Input.Pressed( "Menu" ) || Input.Pressed( "Cancel" ) )
 		{

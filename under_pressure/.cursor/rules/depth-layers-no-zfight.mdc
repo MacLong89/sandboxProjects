@@ -1,0 +1,20 @@
+---
+description: Avoid z-fighting with small ±1 offsets — never huge floating bands
+alwaysApply: true
+---
+
+# Depth / z-fighting (Under Pressure)
+
+When two meshes share a face (or sit within a fraction of a unit), they flicker.
+
+## Fix
+
+Nudge one piece by about **±1 unit** along the axis of the shared face (usually Z for floors, −Y for wall façade stacking via `DepthLayers.NextFaceDepth`).
+
+Use [`Code/World/DepthLayers.cs`](Code/World/DepthLayers.cs) for shared pad/panel/prop lifts. Keep bands mild (`PanelAbovePad ≈ 2`, markings ≈ 1–2.5).
+
+## Do not
+
+- Invent large world-Z bands that float curbs, islands, or panels high above the lot
+- Stack a thicker “fascia” box through the same volume as a canopy/roof at the same center Z — offset the rim **+1 above** or **−1 below** and nudge it outward
+- Put HVAC / rooftop props intersecting the roof slab — sit them **+1 above the roof top**

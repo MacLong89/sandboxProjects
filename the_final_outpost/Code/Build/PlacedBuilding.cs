@@ -14,6 +14,13 @@ public sealed class PlacedBuilding : Component, ISelectable
 	public bool IsDestroyed => Health <= 0f;
 	public bool IsDefense => Def.Role == BuildingRole.Defense;
 
+	/// <summary>
+	/// AUDIT FIX M1: scrap paid at place time. Barracks cost escalates with owned count;
+	/// SellRefund must use this or 2nd+ barracks under-refund.
+	/// 0 = loaded from pre-v18 save → fall back to Def.PlaceCost.
+	/// </summary>
+	public double PaidPlaceCost { get; private set; }
+
 	private readonly List<(ModelRenderer Renderer, Color Base)> _parts = new();
 	private ModelRenderer _rubble;
 	private GameObject _headRoot;
@@ -24,15 +31,19 @@ public sealed class PlacedBuilding : Component, ISelectable
 	public Vector3 Center => WorldPosition;
 	public float HealthFraction => MaxHealth <= 0f ? 0f : Health / MaxHealth;
 
-	public void Setup( BuildableId type, int cellX, int cellY, int level, float health, int placeOrder = 0 )
+	float _wallMountZ;
+
+	public void Setup( BuildableId type, int cellX, int cellY, int level, float health, int placeOrder = 0, double paidPlaceCost = 0 )
 	{
 		Type = type;
 		CellX = cellX;
 		CellY = cellY;
 		PlaceOrder = placeOrder;
+		PaidPlaceCost = paidPlaceCost;
 		Level = Math.Clamp( level, 1, Def.MaxLevel );
 
-		var pos = BuildGrid.CellToWorld( cellX, cellY );
+		var pos = TileOccupancy.WallMountWorldPosition( cellX, cellY );
+		_wallMountZ = TileOccupancy.WallMountHeight( cellX, cellY );
 		WorldPosition = pos;
 
 		BuildVisual();
@@ -44,7 +55,27 @@ public sealed class PlacedBuilding : Component, ISelectable
 	{
 		CellX = cellX;
 		CellY = cellY;
-		WorldPosition = BuildGrid.CellToWorld( cellX, cellY );
+		RefreshMountHeight( force: true );
+	}
+
+	/// <summary>Sit on the wall when the cell has an intact perimeter segment; drop if the wall falls.</summary>
+	public void RefreshMountHeight( bool force = false )
+	{
+		var target = TileOccupancy.WallMountWorldPosition( CellX, CellY );
+		var mount = TileOccupancy.WallMountHeight( CellX, CellY );
+		if ( !force
+		     && MathF.Abs( mount - _wallMountZ ) < 0.5f
+		     && (target.WithZ( 0f ) - WorldPosition.WithZ( 0f )).Length < 0.5f )
+			return;
+
+		_wallMountZ = mount;
+		WorldPosition = target;
+	}
+
+	protected override void OnUpdate()
+	{
+		if ( IsDefense && !IsDestroyed )
+			RefreshMountHeight();
 	}
 
 	public void SetHiddenForMove( bool hidden )
@@ -68,9 +99,10 @@ public sealed class PlacedBuilding : Component, ISelectable
 		if ( HasNightOneGunTowerProtection() && Health <= 0f )
 			Health = 1f;
 
-		if ( IsDestroyed && IsDefense )
+		if ( IsDestroyed )
 		{
-			BuildManager.Instance?.HandleTowerDestroyed( this );
+			DestructionFx.Burst( Center, IsDefense ? 1.25f : 1.1f );
+			BuildManager.Instance?.HandleStructureDestroyed( this );
 			return;
 		}
 
@@ -102,6 +134,13 @@ public sealed class PlacedBuilding : Component, ISelectable
 	{
 		if ( IsDestroyed ) return;
 		Health = MathF.Min( MaxHealth, MathF.Max( 0f, hp ) );
+		if ( IsDestroyed )
+		{
+			DestructionFx.Burst( Center, IsDefense ? 1.25f : 1.1f );
+			BuildManager.Instance?.HandleStructureDestroyed( this );
+			return;
+		}
+
 		RefreshVisual();
 	}
 
@@ -174,12 +213,15 @@ public sealed class PlacedBuilding : Component, ISelectable
 		CellY = CellY,
 		Level = Level,
 		Health = Health,
-		PlaceOrder = PlaceOrder
+		PlaceOrder = PlaceOrder,
+		PaidPlaceCost = PaidPlaceCost
 	};
 
 	public double SellRefund()
 	{
-		var refund = Def.PlaceCost * GameConstants.SellRefundFraction;
+		// AUDIT FIX M1: use recorded spend when present (escalating barracks).
+		var placeCost = PaidPlaceCost > 0 ? PaidPlaceCost : Def.PlaceCost;
+		var refund = placeCost * GameConstants.SellRefundFraction;
 		for ( var i = 1; i < Level; i++ )
 			refund += Def.UpgradeCost( i ) * GameConstants.SellRefundFraction;
 		return refund;
@@ -196,7 +238,9 @@ public sealed class PlacedBuilding : Component, ISelectable
 	};
 	public bool HasHealth => true;
 	public Vector3 WorldPos => WorldPosition;
-	public float SelectRadius => MathF.Max( Def.VisualSize.x, Def.VisualSize.y ) * 0.6f;
+	public float SelectRadius =>
+		MathF.Max( Def.VisualSize.x, Def.VisualSize.y )
+		* (TileOccupancy.IsWallCell( CellX, CellY ) ? 0.85f : 0.6f);
 	public bool IsAlive => !IsDestroyed && GameObject.IsValid();
 
 	public IReadOnlyList<StatLine> Stats
@@ -249,9 +293,10 @@ public sealed class PlacedBuilding : Component, ISelectable
 				list.Add( new SelectAction
 				{
 					Label = "Upgrade",
-					Detail = SelectHelp.Cost( upCost ),
+					Detail = SelectHelp.IsDay ? SelectHelp.Cost( upCost ) : "Day only",
 					Kind = SelectActionKind.Primary,
-					Enabled = SelectHelp.CanAfford( upCost ),
+					// AUDIT FIX H5: was afford-only — could upgrade mid-night.
+					Enabled = SelectHelp.IsDay && SelectHelp.CanAfford( upCost ),
 					Invoke = () => BuildManager.Instance?.TryUpgradeBuilding( this )
 				} );
 			}
@@ -284,11 +329,12 @@ public sealed class PlacedBuilding : Component, ISelectable
 				else
 				{
 					var repairCost = MissingRepairCost();
+					var spend = SelectHelp.AffordableRepairSpend( repairCost );
 					list.Add( new SelectAction
 					{
-						Label = "Repair",
-						Detail = SelectHelp.Cost( repairCost ),
-						Enabled = SelectHelp.IsDay && SelectHelp.CanAfford( repairCost ),
+						Label = spend > 0 && spend + 0.001 < repairCost ? "Partial Repair" : "Repair",
+						Detail = SelectHelp.Cost( spend > 0 ? spend : repairCost ),
+						Enabled = SelectHelp.CanStartRepair( repairCost ),
 						Invoke = () => BuildManager.Instance?.TryRepairBuilding( this )
 					} );
 				}
@@ -305,8 +351,10 @@ public sealed class PlacedBuilding : Component, ISelectable
 			list.Add( new SelectAction
 			{
 				Label = "Sell",
-				Detail = $"+{SelectHelp.Cost( SellRefund() )}",
+				Detail = SelectHelp.IsDay ? $"+{SelectHelp.Cost( SellRefund() )}" : "Day only",
 				Kind = SelectActionKind.Warn,
+				// AUDIT FIX H5: Sell had no day gate (Move already did).
+				Enabled = SelectHelp.IsDay,
 				Invoke = () => BuildManager.Instance?.TrySellBuilding( this )
 			} );
 
@@ -315,6 +363,15 @@ public sealed class PlacedBuilding : Component, ISelectable
 	}
 
 	// --- Visuals ---
+
+	/// <summary>Orient placeable wall pieces like perimeter segments (long along the ring, thin through it).</summary>
+	Vector3 WallPieceFootprint( float cell, float wallH )
+	{
+		var side = WallApproach.FromWorldPosition( WorldPosition, Vector3.Zero );
+		return side is WallApproachSide.North or WallApproachSide.South
+			? new Vector3( cell, cell * 0.55f, wallH )
+			: new Vector3( cell * 0.55f, cell, wallH );
+	}
 
 	private ModelRenderer Part( Model model, Material mat, Vector3 localPos, Vector3 size, Color textured, Color fallback, GameObject parent = null, bool track = true )
 	{
@@ -362,100 +419,109 @@ public sealed class PlacedBuilding : Component, ISelectable
 		var roof = StylizedMaterials.Roof;
 
 		var white = Color.White;
+		// Every placeable is 1×1 — primary XY footprint always fills the cell.
+		var c = GameConstants.CellSize;
 
 		switch ( Type )
 		{
 			case BuildableId.GunTower:
-				Part( cyl, stone, new Vector3( 0, 0, 10 ), new Vector3( 48, 48, 20 ), white, StoneFallback );
-				Part( cyl, stone, new Vector3( 0, 0, 40 ), new Vector3( 38, 38, 40 ), new Color( 0.82f, 0.88f, 1f ), new Color( 0.5f, 0.58f, 0.72f ) );
-				EnsureHeadRoot( 55f );
-				HeadPart( box, stone, new Vector3( 0, 0, 62 ), 55f, new Vector3( 44, 44, 8 ), white, StoneFallback );
-				HeadPart( box, wood, new Vector3( 20, 0, 60 ), 55f, new Vector3( 30, 10, 10 ), new Color( 0.35f, 0.37f, 0.4f ), new Color( 0.3f, 0.3f, 0.32f ) );
-				_muzzleLocal = new Vector3( 35f, 0f, 5f );
+				Part( cyl, stone, new Vector3( 0, 0, c * 0.17f ), new Vector3( c, c, c * 0.33f ), white, StoneFallback );
+				Part( cyl, stone, new Vector3( 0, 0, c * 0.67f ), new Vector3( c * 0.79f, c * 0.79f, c * 0.67f ), new Color( 0.82f, 0.88f, 1f ), new Color( 0.5f, 0.58f, 0.72f ) );
+				EnsureHeadRoot( c * 0.92f );
+				HeadPart( box, stone, new Vector3( 0, 0, c * 1.03f ), c * 0.92f, new Vector3( c * 0.92f, c * 0.92f, c * 0.13f ), white, StoneFallback );
+				HeadPart( box, wood, new Vector3( c * 0.33f, 0, c ), c * 0.92f, new Vector3( c * 0.5f, c * 0.17f, c * 0.17f ), new Color( 0.35f, 0.37f, 0.4f ), new Color( 0.3f, 0.3f, 0.32f ) );
+				_muzzleLocal = new Vector3( c * 0.58f, 0f, c * 0.08f );
 				break;
 
 			case BuildableId.CannonTower:
-				Part( cyl, stone, new Vector3( 0, 0, 11 ), new Vector3( 56, 56, 22 ), white, StoneFallback );
-				Part( box, wood, new Vector3( 0, 0, 31 ), new Vector3( 34, 34, 18 ), white, WoodFallback );
-				EnsureHeadRoot( 31f );
-				HeadPart( box, stone, new Vector3( 14, 0, 38 ), 31f, new Vector3( 44, 18, 18 ), new Color( 0.3f, 0.32f, 0.35f ), new Color( 0.28f, 0.3f, 0.33f ) );
-				_muzzleLocal = new Vector3( 36f, 0f, 7f );
+				Part( cyl, stone, new Vector3( 0, 0, c * 0.18f ), new Vector3( c, c, c * 0.37f ), white, StoneFallback );
+				Part( box, wood, new Vector3( 0, 0, c * 0.52f ), new Vector3( c * 0.57f, c * 0.57f, c * 0.3f ), white, WoodFallback );
+				EnsureHeadRoot( c * 0.52f );
+				HeadPart( box, stone, new Vector3( c * 0.23f, 0, c * 0.63f ), c * 0.52f, new Vector3( c * 0.73f, c * 0.3f, c * 0.3f ), new Color( 0.3f, 0.32f, 0.35f ), new Color( 0.28f, 0.3f, 0.33f ) );
+				_muzzleLocal = new Vector3( c * 0.6f, 0f, c * 0.12f );
 				break;
 
 			case BuildableId.LongRangeTower:
-				Part( cyl, stone, new Vector3( 0, 0, 12 ), new Vector3( 40, 40, 24 ), white, StoneFallback );
-				EnsureHeadRoot( 24f );
-				HeadPart( cyl, stone, new Vector3( 0, 0, 46 ), 24f, new Vector3( 28, 28, 44 ), new Color( 0.85f, 1f, 0.8f ), new Color( 0.5f, 0.7f, 0.45f ) );
-				HeadPart( box, wood, new Vector3( 0, 0, 72 ), 24f, new Vector3( 40, 40, 8 ), white, WoodFallback );
-				HeadPart( pyr, roof, new Vector3( 0, 0, 86 ), 24f, new Vector3( 46, 46, 20 ), white, RoofFallback );
-				HeadPart( box, wood, new Vector3( 16, 0, 78 ), 24f, new Vector3( 28, 8, 8 ), new Color( 0.45f, 0.38f, 0.28f ), new Color( 0.38f, 0.32f, 0.24f ) );
-				_muzzleLocal = new Vector3( 30f, 0f, 78f );
+				Part( cyl, stone, new Vector3( 0, 0, c * 0.2f ), new Vector3( c, c, c * 0.4f ), white, StoneFallback );
+				EnsureHeadRoot( c * 0.4f );
+				HeadPart( cyl, stone, new Vector3( 0, 0, c * 0.77f ), c * 0.4f, new Vector3( c * 0.7f, c * 0.7f, c * 0.73f ), new Color( 0.85f, 1f, 0.8f ), new Color( 0.5f, 0.7f, 0.45f ) );
+				HeadPart( box, wood, new Vector3( 0, 0, c * 1.2f ), c * 0.4f, new Vector3( c, c, c * 0.13f ), white, WoodFallback );
+				HeadPart( pyr, roof, new Vector3( 0, 0, c * 1.43f ), c * 0.4f, new Vector3( c * 1.08f, c * 1.08f, c * 0.33f ), white, RoofFallback );
+				HeadPart( box, wood, new Vector3( c * 0.27f, 0, c * 1.3f ), c * 0.4f, new Vector3( c * 0.47f, c * 0.13f, c * 0.13f ), new Color( 0.45f, 0.38f, 0.28f ), new Color( 0.38f, 0.32f, 0.24f ) );
+				_muzzleLocal = new Vector3( c * 0.5f, 0f, c * 1.3f );
 				break;
 
 			case BuildableId.WallPiece:
 			{
-				// Match the starter perimeter walls: a single stone slab filling the cell so
-				// adjacent placed walls tile into a seamless barrier. Same material + tint as WallSegment.
 				var wallH = GameConstants.WallHeight;
-				var wallTint = new Color( 0.55f, 0.58f, 0.62f );
-				Part( box, stone, new Vector3( 0, 0, wallH * 0.5f ), new Vector3( 60, 60, wallH ), white, wallTint );
+				var frame = new GameObject( GameObject, true, "WallFrame" );
+				frame.LocalPosition = new Vector3( 0f, 0f, wallH * 0.5f );
+				var footprint = WallPieceFootprint( c, wallH );
+				WallScaffoldVisual.Build(
+					frame,
+					footprint,
+					( mr, tint ) => _parts.Add( (mr, tint) ),
+					WorldPosition );
 				break;
 			}
 
 			case BuildableId.Barracks:
-				Part( box, wood, new Vector3( 0, 0, 20 ), new Vector3( 64, 64, 40 ), white, WoodFallback );
-				Part( pyr, roof, new Vector3( 0, 0, 53 ), new Vector3( 74, 74, 26 ), white, RoofFallback );
-				Part( box, stone, new Vector3( 32, 0, 14 ), new Vector3( 4, 26, 28 ), new Color( 0.5f, 0.4f, 0.3f ), new Color( 0.45f, 0.35f, 0.25f ) );
+				Part( box, wood, new Vector3( 0, 0, c * 0.33f ), new Vector3( c, c, c * 0.67f ), white, WoodFallback );
+				Part( pyr, roof, new Vector3( 0, 0, c * 0.88f ), new Vector3( c * 1.12f, c * 1.12f, c * 0.43f ), white, RoofFallback );
+				Part( box, stone, new Vector3( c * 0.5f, 0, c * 0.23f ), new Vector3( c * 0.07f, c * 0.43f, c * 0.47f ), new Color( 0.5f, 0.4f, 0.3f ), new Color( 0.45f, 0.35f, 0.25f ) );
 				break;
 
 			case BuildableId.Lab:
-				Part( box, stone, new Vector3( 0, 0, 24 ), new Vector3( 56, 56, 48 ), white, new Color( 0.65f, 0.72f, 0.82f ) );
-				Part( box, stone, new Vector3( 0, 0, 58 ), new Vector3( 20, 20, 36 ), white, new Color( 0.45f, 0.85f, 0.95f ) );
+				Part( box, stone, new Vector3( 0, 0, c * 0.4f ), new Vector3( c, c, c * 0.8f ), white, new Color( 0.65f, 0.72f, 0.82f ) );
+				Part( box, stone, new Vector3( 0, 0, c * 0.97f ), new Vector3( c * 0.33f, c * 0.33f, c * 0.6f ), white, new Color( 0.45f, 0.85f, 0.95f ) );
 				break;
 
 			case BuildableId.Farm:
-				Part( box, wood, new Vector3( 0, 0, 16 ), new Vector3( 58, 58, 32 ), white, new Color( 0.55f, 0.42f, 0.28f ) );
-				Part( pyr, MeshPrimitives.Mat, new Vector3( -18, 12, 6 ), new Vector3( 28, 28, 16 ), white, new Color( 0.45f, 0.82f, 0.38f ) );
-				Part( pyr, MeshPrimitives.Mat, new Vector3( 16, -14, 6 ), new Vector3( 24, 24, 14 ), white, new Color( 0.42f, 0.78f, 0.35f ) );
+				Part( box, wood, new Vector3( 0, 0, c * 0.27f ), new Vector3( c, c, c * 0.53f ), white, new Color( 0.55f, 0.42f, 0.28f ) );
+				Part( pyr, MeshPrimitives.Mat, new Vector3( -c * 0.3f, c * 0.2f, c * 0.1f ), new Vector3( c * 0.47f, c * 0.47f, c * 0.27f ), white, new Color( 0.45f, 0.82f, 0.38f ) );
+				Part( pyr, MeshPrimitives.Mat, new Vector3( c * 0.27f, -c * 0.23f, c * 0.1f ), new Vector3( c * 0.4f, c * 0.4f, c * 0.23f ), white, new Color( 0.42f, 0.78f, 0.35f ) );
 				break;
 
 			case BuildableId.Factory:
-				Part( box, stone, new Vector3( 0, 0, 22 ), new Vector3( 64, 64, 44 ), white, new Color( 0.62f, 0.62f, 0.66f ) );
-				Part( cyl, stone, new Vector3( 24, 0, 52 ), new Vector3( 16, 16, 28 ), white, new Color( 0.45f, 0.45f, 0.48f ) );
+				Part( box, stone, new Vector3( 0, 0, c * 0.37f ), new Vector3( c, c, c * 0.73f ), white, new Color( 0.62f, 0.62f, 0.66f ) );
+				Part( cyl, stone, new Vector3( c * 0.4f, 0, c * 0.87f ), new Vector3( c * 0.27f, c * 0.27f, c * 0.47f ), white, new Color( 0.45f, 0.45f, 0.48f ) );
 				break;
 
 			case BuildableId.Library:
-				Part( box, wood, new Vector3( 0, 0, 24 ), new Vector3( 56, 56, 48 ), white, new Color( 0.55f, 0.72f, 0.95f ) );
-				Part( pyr, roof, new Vector3( 0, 0, 56 ), new Vector3( 64, 64, 22 ), white, RoofFallback );
+				Part( box, wood, new Vector3( 0, 0, c * 0.4f ), new Vector3( c, c, c * 0.8f ), white, new Color( 0.55f, 0.72f, 0.95f ) );
+				Part( pyr, roof, new Vector3( 0, 0, c * 0.93f ), new Vector3( c * 1.08f, c * 1.08f, c * 0.37f ), white, RoofFallback );
 				break;
 
 			case BuildableId.School:
-				Part( box, wood, new Vector3( 0, 0, 26 ), new Vector3( 60, 60, 52 ), white, new Color( 0.62f, 0.78f, 0.55f ) );
-				Part( pyr, roof, new Vector3( 0, 0, 60 ), new Vector3( 68, 68, 24 ), white, RoofFallback );
+				Part( box, wood, new Vector3( 0, 0, c * 0.43f ), new Vector3( c, c, c * 0.87f ), white, new Color( 0.62f, 0.78f, 0.55f ) );
+				Part( pyr, roof, new Vector3( 0, 0, c ), new Vector3( c * 1.13f, c * 1.13f, c * 0.4f ), white, RoofFallback );
 				break;
 
 			case BuildableId.Hospital:
-				Part( box, stone, new Vector3( 0, 0, 26 ), new Vector3( 62, 62, 52 ), white, new Color( 0.92f, 0.92f, 0.95f ) );
-				Part( box, stone, new Vector3( 0, 0, 58 ), new Vector3( 18, 18, 32 ), white, new Color( 0.75f, 0.85f, 0.95f ) );
+				Part( box, stone, new Vector3( 0, 0, c * 0.43f ), new Vector3( c, c, c * 0.87f ), white, new Color( 0.92f, 0.92f, 0.95f ) );
+				Part( box, stone, new Vector3( 0, 0, c * 0.97f ), new Vector3( c * 0.3f, c * 0.3f, c * 0.53f ), white, new Color( 0.75f, 0.85f, 0.95f ) );
 				break;
 
 			case BuildableId.Shop:
-				Part( box, wood, new Vector3( 0, 0, 20 ), new Vector3( 54, 54, 40 ), white, new Color( 0.85f, 0.62f, 0.32f ) );
-				Part( pyr, roof, new Vector3( 0, 0, 48 ), new Vector3( 60, 60, 18 ), white, RoofFallback );
+				Part( box, wood, new Vector3( 0, 0, c * 0.33f ), new Vector3( c, c, c * 0.67f ), white, new Color( 0.85f, 0.62f, 0.32f ) );
+				Part( pyr, roof, new Vector3( 0, 0, c * 0.8f ), new Vector3( c * 1.08f, c * 1.08f, c * 0.3f ), white, RoofFallback );
 				break;
 		}
 
-		_rubble = Part( box, stone, new Vector3( 0, 0, 8 ), new Vector3( Def.VisualSize.x, Def.VisualSize.y, 16 ), new Color( 0.32f, 0.28f, 0.24f ), new Color( 0.25f, 0.2f, 0.18f ), track: false );
+		_rubble = Part( box, stone, new Vector3( 0, 0, 8 ), new Vector3( c, c, 16 ), new Color( 0.32f, 0.28f, 0.24f ), new Color( 0.25f, 0.2f, 0.18f ), track: false );
 		_rubble.GameObject.Enabled = false;
 	}
 
 	private void RefreshVisual()
 	{
+		// Destroyed structures are removed immediately — never show rubble foundations.
 		if ( IsDestroyed )
 		{
 			foreach ( var (mr, _) in _parts )
 				if ( mr.IsValid() ) mr.GameObject.Enabled = false;
-			if ( _rubble.IsValid() ) _rubble.GameObject.Enabled = true;
+			if ( _rubble.IsValid() ) _rubble.GameObject.Enabled = false;
+			if ( GameObject.IsValid() )
+				GameObject.Enabled = false;
 			return;
 		}
 

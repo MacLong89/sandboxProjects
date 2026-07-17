@@ -47,6 +47,14 @@ public sealed class ThornsPlayerBowCombat : Component
 		if ( !IsLocallyControlled() )
 			return;
 
+		// AUDIT FIX: charging while dead/UI-open still released fire through WeaponCombat — gate charge too.
+		if ( ThornsPlayerActionGate.BlocksLocalWorldActions( GameObject ) )
+		{
+			ResetCharge();
+			_attackWasDown = false;
+			return;
+		}
+
 		if ( !IsBowEquipped( GameObject ) )
 		{
 			ResetCharge();

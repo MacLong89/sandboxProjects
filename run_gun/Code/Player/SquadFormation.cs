@@ -17,8 +17,8 @@ public sealed class SquadFormation : Component
 	}
 
 	private readonly List<Trooper> _troopers = new();
-	private static readonly Color TeamBody = new( 0.28f, 0.6f, 1f );
-	private static readonly Color TeamHead = new( 0.85f, 0.7f, 0.55f );
+	private static readonly Color TeamBody = DistrictTheme.CrowdTint;
+	private static readonly Color TeamHead = new( 0.95f, 0.75f, 0.55f );
 
 	public void Reset()
 	{

@@ -19,6 +19,10 @@ public struct ExpeditionReward
 /// timer so it resolves while the player is away. Short trips are safe with modest loot; long trips pay
 /// far more but risk losing people (soldiers lower the odds, civilians boost the haul) — a clean
 /// risk/reward decision.
+///
+/// AUDIT FIX H2 (2026-07): TryStart used to pull Recruits from the list end WITHOUT moving the
+/// matching RecruitHealth slot. Returnees then inherited leftover HP indices → wrong health on rebuild.
+/// ExpeditionSoldierHealth is now kept parallel to ExpeditionSoldiers.
 /// </summary>
 public sealed class ExpeditionManager : Component
 {
@@ -85,12 +89,27 @@ public sealed class ExpeditionManager : Component
 
 		// Commit real units: pull them out of the base rosters and stash them on the expedition.
 		Save.ExpeditionSoldiers.Clear();
+		Save.ExpeditionSoldierHealth ??= new List<float>();
+		Save.ExpeditionSoldierHealth.Clear();
 		Save.ExpeditionWorkers.Clear();
 
 		for ( var i = 0; i < soldiers && Save.Recruits.Count > 0; i++ )
 		{
 			var last = Save.Recruits.Count - 1;
 			Save.ExpeditionSoldiers.Add( Save.Recruits[last] );
+
+			// AUDIT FIX H2: move HP with the recruit so return/RespawnAll stay index-aligned.
+			if ( last < Save.RecruitHealth.Count )
+			{
+				Save.ExpeditionSoldierHealth.Add( Save.RecruitHealth[last] );
+				Save.RecruitHealth.RemoveAt( last );
+			}
+			else
+			{
+				// Defensive fallback — should not happen after Migrate alignment.
+				Save.ExpeditionSoldierHealth.Add( DefenderManager.MaxRecruitHealth() );
+			}
+
 			Save.Recruits.RemoveAt( last );
 		}
 
@@ -134,12 +153,27 @@ public sealed class ExpeditionManager : Component
 		if ( Save.ExpeditionLong )
 			lossChance = Math.Max( 0.02, GameConstants.ExpeditionLongLossChance - soldiers * GameConstants.ExpeditionSafetyPerSoldier );
 
+		Save.ExpeditionSoldierHealth ??= new List<float>();
+
 		var lost = 0;
-		foreach ( var type in Save.ExpeditionSoldiers )
+		for ( var i = 0; i < Save.ExpeditionSoldiers.Count; i++ )
 		{
-			if ( lossChance > 0 && Game.Random.Float( 0f, 1f ) < lossChance ) { lost++; continue; }
+			var type = Save.ExpeditionSoldiers[i];
+			var hp = i < Save.ExpeditionSoldierHealth.Count
+				? Save.ExpeditionSoldierHealth[i]
+				: DefenderManager.MaxRecruitHealth();
+
+			if ( lossChance > 0 && Game.Random.Float( 0f, 1f ) < lossChance )
+			{
+				lost++;
+				continue;
+			}
+
+			// AUDIT FIX H2: restore type + HP together (same order as Recruits list).
 			Save.Recruits.Add( type );
+			Save.RecruitHealth.Add( hp );
 		}
+
 		foreach ( var w in Save.ExpeditionWorkers )
 		{
 			if ( lossChance > 0 && Game.Random.Float( 0f, 1f ) < lossChance ) { lost++; continue; }
@@ -169,6 +203,7 @@ public sealed class ExpeditionManager : Component
 		Save.ExpeditionLong = false;
 		Save.ExpeditionEndUnix = 0;
 		Save.ExpeditionSoldiers.Clear();
+		Save.ExpeditionSoldierHealth.Clear();
 		Save.ExpeditionWorkers.Clear();
 
 		DefenderManager.Instance?.RebuildFromSave();
@@ -193,21 +228,25 @@ public sealed class ExpeditionManager : Component
 		{
 			var lootBoost = 1.0 + civilians * GameConstants.ExpeditionLootBoostPerCivilian;
 			var res = party * GameConstants.ExpeditionResourcePerScoutLong * lootBoost * Game.Random.Float( 0.8f, 1.2f );
-			reward.Wood = Math.Round( res * 0.4 );
-			reward.Stone = Math.Round( res * 0.35 );
-			reward.Water = Math.Round( res * 0.25 );
-		}
-
-		if ( Game.Random.Float( 0f, 1f ) < GameConstants.ExpeditionRareBonusChance )
-		{
-			scrap *= GameConstants.ExpeditionRareBonusMult;
-			reward.RareFind = true;
+			reward.Wood = Math.Round( res * 0.55 );
+			reward.Stone = Math.Round( res * 0.45 );
+			reward.Water = 0;
 		}
 
 		reward.Scrap = Math.Round( scrap );
+		reward.RareFind = isLong && Game.Random.Float( 0f, 1f ) < 0.12f;
+		if ( reward.RareFind )
+			reward.Scrap += Math.Round( scrap * 0.5 );
+
 		var core = GameCore.Instance;
 		if ( core?.IsCure == true )
-			reward.Scrap = Math.Round( reward.Scrap * TeamBonuses.ExpeditionRewardMult( core ) );
+		{
+			var mult = TeamBonuses.ExpeditionRewardMult( core );
+			reward.Scrap = Math.Round( reward.Scrap * mult );
+			reward.Wood = Math.Round( reward.Wood * mult );
+			reward.Stone = Math.Round( reward.Stone * mult );
+		}
+
 		return reward;
 	}
 }

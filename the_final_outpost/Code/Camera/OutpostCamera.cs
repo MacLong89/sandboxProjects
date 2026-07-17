@@ -16,7 +16,16 @@ public sealed class OutpostCamera : Component
 	private float _distance = 950f;
 	private Vector3 _focus = Vector3.Zero;
 
-	protected override void OnAwake() => Instance = this;
+	protected override void OnAwake()
+	{
+		Instance = this;
+		_camera = Components.GetOrCreate<CameraComponent>();
+		_camera.FieldOfView = GameConstants.CameraFov;
+		_camera.ZNear = 10f;
+		_camera.ZFar = 20000f;
+		_camera.BackgroundColor = new Color( 0.55f, 0.78f, 0.95f );
+		_camera.IsMainCamera = true;
+	}
 
 	protected override void OnDestroy()
 	{
@@ -26,29 +35,43 @@ public sealed class OutpostCamera : Component
 
 	protected override void OnStart()
 	{
-		_camera = Components.GetOrCreate<CameraComponent>();
-		_camera.FieldOfView = GameConstants.CameraFov;
-		_camera.ZNear = 10f;
-		_camera.ZFar = 20000f;
-		_camera.BackgroundColor = new Color( 0.55f, 0.78f, 0.95f );
-		_camera.IsMainCamera = true;
-
-		foreach ( var cam in Scene.GetAllComponents<CameraComponent>() )
-			if ( cam != _camera ) cam.IsMainCamera = false;
+		Log.Info( "[FinalOutpost] OutpostCamera OnStart" );
+		foreach ( var sceneCam in Scene.GetAllComponents<CameraComponent>() )
+		{
+			if ( sceneCam == _camera ) continue;
+			sceneCam.IsMainCamera = false;
+			if ( sceneCam.GameObject.Name is "StartupCamera" or "FallbackCamera" )
+				sceneCam.GameObject.Destroy();
+		}
 
 		_focus = Vector3.Zero;
 		ApplyTransform();
 		Mouse.Visibility = MouseVisibility.Visible;
+		BindHudCamera();
+		Log.Info( $"[FinalOutpost] OutpostCamera ready pos={WorldPosition} rot={WorldRotation}" );
 	}
 
 	protected override void OnUpdate()
 	{
 		var core = GameCore.Instance;
-		if ( core?.IsUiBlocking == true ) return;
+		if ( core?.IsUiBlocking != true )
+		{
+			TickPan();
+			TickZoom();
+		}
 
-		TickPan();
-		TickZoom();
 		ApplyTransform();
+		BindHudCamera();
+	}
+
+	private void BindHudCamera()
+	{
+		if ( _camera is null || !_camera.IsMainCamera )
+			return;
+
+		// Always follow the active main camera — boot HUD may have bound to FallbackCamera first.
+		foreach ( var screen in Scene.GetAllComponents<ScreenPanel>() )
+			screen.TargetCamera = _camera;
 	}
 
 	public bool ScreenToGround( Vector2 screen, out Vector3 ground )
@@ -91,7 +114,7 @@ public sealed class OutpostCamera : Component
 			var move = rot * pan.WithZ( 0f ).Normal * GameConstants.CameraPanSpeed * Time.Delta;
 			_focus += move;
 
-			var limit = GameConstants.TerrainHalfExtent - 150f;
+			var limit = GameConstants.ActiveTerrainHalfExtent - 150f;
 			_focus = _focus.WithX( Math.Clamp( _focus.x, -limit, limit ) )
 				.WithY( Math.Clamp( _focus.y, -limit, limit ) );
 		}

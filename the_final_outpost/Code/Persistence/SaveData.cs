@@ -9,6 +9,12 @@ public sealed class SavedBuilding
 	public float Health { get; set; }
 	/// <summary>Stable placement order — used to assign recruits to barracks in build order.</summary>
 	public int PlaceOrder { get; set; }
+
+	/// <summary>
+	/// AUDIT FIX M1: scrap actually spent at place time (barracks escalates by owned count).
+	/// 0 = legacy save → SellRefund falls back to Def.PlaceCost.
+	/// </summary>
+	public double PaidPlaceCost { get; set; }
 }
 
 public sealed class SavedWorker
@@ -29,7 +35,8 @@ public sealed class SavedRunRecord
 
 public sealed class SaveData
 {
-	public int Version { get; set; } = 17;
+	/// <summary>Bump when adding persisted fields. Current: 19 = world map rivals + plot boosts.</summary>
+	public int Version { get; set; } = 19;
 
 	public double Scrap { get; set; } = GameConstants.StartingScrap;
 	public double LifetimeEarned { get; set; }
@@ -62,6 +69,21 @@ public sealed class SaveData
 	public List<string> ClearedPlots { get; set; } = new();
 	// v6: perimeter wall segment keys the player has torn down ("x,y" of the segment centre).
 	public List<string> RemovedWalls { get; set; } = new();
+
+	// -------------------------------------------------------------------------
+	// AUDIT FIX H1 (v18): perimeter / command-post HP persistence
+	//
+	// Before v18, OutpostManager.Build always spawned walls/core at full HP.
+	// Quit/continue after a fight was a free full repair (buildings kept damage).
+	// SavedCoreHealth < 0 means "unset / legacy — treat as full on load".
+	// WallHealthByKey uses the same "x,y" keys as RemovedWalls / WallSegment.Key.
+	// -------------------------------------------------------------------------
+	public float SavedCoreHealth { get; set; } = -1f;
+	public Dictionary<string, float> WallHealthByKey { get; set; } = new();
+
+	// AUDIT FIX M7 (v18): mid-clear forager progress ("x,y" → 0..1). ClearedPlots still means done.
+	public Dictionary<string, float> PlotClearProgress { get; set; } = new();
+
 	// Harvested resource stockpiles (ResourceKind name -> amount).
 	public Dictionary<string, double> Resources { get; set; } = new();
 	// Hired non-combat workers.
@@ -75,6 +97,8 @@ public sealed class SaveData
 	public bool EverSentScouts { get; set; }
 	// Units actually committed to the active expedition (restored on return, minus losses).
 	public List<string> ExpeditionSoldiers { get; set; } = new();
+	/// <summary>AUDIT FIX H2 (v18): HP parallel to ExpeditionSoldiers (same index order).</summary>
+	public List<float> ExpeditionSoldierHealth { get; set; } = new();
 	public List<SavedWorker> ExpeditionWorkers { get; set; } = new();
 
 	// v4: completed onboarding objective ids.
@@ -140,6 +164,10 @@ public sealed class SaveData
 	public List<string> AlliedCivPlots { get; set; } = new();
 	public List<string> RaidedCivPlots { get; set; } = new();
 	public List<string> ClearedBossPlots { get; set; } = new();
+	public List<string> RivalSeeds { get; set; } = new();
+	public List<string> RivalOwnedPlots { get; set; } = new();
+	/// <summary>Plot key → PlotBoostKind name for cleared rare-boost tiles.</summary>
+	public Dictionary<string, string> ClaimedPlotBoosts { get; set; } = new();
 
 	/// <summary>Whether the main menu should offer Continue vs Start New Game (Survival).</summary>
 	public bool HasRunInProgress =>
@@ -189,10 +217,13 @@ public sealed class SaveData
 		OwnedPlots ??= new List<string>();
 		ClearedPlots ??= new List<string>();
 		RemovedWalls ??= new List<string>();
+		WallHealthByKey ??= new Dictionary<string, float>();
+		PlotClearProgress ??= new Dictionary<string, float>();
 		Resources ??= new Dictionary<string, double>();
 		Workers ??= new List<SavedWorker>();
 		ObjectivesDone ??= new List<string>();
 		ExpeditionSoldiers ??= new List<string>();
+		ExpeditionSoldierHealth ??= new List<float>();
 		ExpeditionWorkers ??= new List<SavedWorker>();
 		MilestonesDone ??= new List<string>();
 		TutorialTipsShown ??= new List<string>();
@@ -282,12 +313,36 @@ public sealed class SaveData
 			ClearedBossPlots ??= new List<string>();
 		}
 
-		Version = 17;
+		// AUDIT FIX H1/H2/M7 — v18 fields. Legacy saves keep SavedCoreHealth < 0 → full heal once.
+		if ( Version < 18 )
+		{
+			WallHealthByKey ??= new Dictionary<string, float>();
+			PlotClearProgress ??= new Dictionary<string, float>();
+			ExpeditionSoldierHealth ??= new List<float>();
+			if ( SavedCoreHealth < 0f )
+				SavedCoreHealth = -1f;
+		}
+
+		if ( Version < 19 )
+		{
+			RivalSeeds ??= new List<string>();
+			RivalOwnedPlots ??= new List<string>();
+			ClaimedPlotBoosts ??= new Dictionary<string, string>();
+		}
+
+		Version = 19;
 
 		while ( RecruitHealth.Count < Recruits.Count )
 			RecruitHealth.Add( GameConstants.RecruitMaxHealth );
 		while ( RecruitHealth.Count > Recruits.Count && RecruitHealth.Count > 0 )
 			RecruitHealth.RemoveAt( RecruitHealth.Count - 1 );
+
+		// Keep expedition HP list aligned with committed soldiers (pad/trunc).
+		ExpeditionSoldierHealth ??= new List<float>();
+		while ( ExpeditionSoldierHealth.Count < ExpeditionSoldiers.Count )
+			ExpeditionSoldierHealth.Add( GameConstants.RecruitMaxHealth );
+		while ( ExpeditionSoldierHealth.Count > ExpeditionSoldiers.Count && ExpeditionSoldierHealth.Count > 0 )
+			ExpeditionSoldierHealth.RemoveAt( ExpeditionSoldierHealth.Count - 1 );
 
 		// v2 recruits were all rifle-equipped; migrate them to Assault Rifle recruits.
 		if ( Recruits.Count == 0 && DefenderCount > 0 )
@@ -340,6 +395,9 @@ public sealed class SaveData
 		OwnedPlots = new List<string> { "0,0" };
 		ClearedPlots = new List<string>();
 		RemovedWalls = new List<string>();
+		SavedCoreHealth = -1f;
+		WallHealthByKey = new Dictionary<string, float>();
+		PlotClearProgress = new Dictionary<string, float>();
 		Resources = new Dictionary<string, double>();
 		Workers = new List<SavedWorker>();
 		ExpeditionActive = false;
@@ -348,6 +406,7 @@ public sealed class SaveData
 		ExpeditionEndUnix = 0;
 		EverSentScouts = false;
 		ExpeditionSoldiers = new List<string>();
+		ExpeditionSoldierHealth = new List<float>();
 		ExpeditionWorkers = new List<SavedWorker>();
 		ObjectivesDone = new List<string>();
 		TotalKills = 0;
@@ -383,6 +442,9 @@ public sealed class SaveData
 		OwnedPlots = new List<string> { "0,0" };
 		ClearedPlots = new List<string>();
 		RemovedWalls = new List<string>();
+		SavedCoreHealth = -1f;
+		WallHealthByKey = new Dictionary<string, float>();
+		PlotClearProgress = new Dictionary<string, float>();
 		Resources = new Dictionary<string, double>();
 		Workers = new List<SavedWorker>();
 		ExpeditionActive = false;
@@ -390,6 +452,7 @@ public sealed class SaveData
 		ExpeditionLong = false;
 		ExpeditionEndUnix = 0;
 		ExpeditionSoldiers = new List<string>();
+		ExpeditionSoldierHealth = new List<float>();
 		ExpeditionWorkers = new List<SavedWorker>();
 		TutorialTipsShown = new List<string>();
 		FirstNightBonusClaimed = false;
@@ -417,6 +480,9 @@ public sealed class SaveData
 		OwnedPlots = new List<string> { "0,0" };
 		ClearedPlots = new List<string>();
 		RemovedWalls = new List<string>();
+		SavedCoreHealth = -1f;
+		WallHealthByKey = new Dictionary<string, float>();
+		PlotClearProgress = new Dictionary<string, float>();
 		Resources = new Dictionary<string, double>();
 		Workers = new List<SavedWorker>();
 		ExpeditionActive = false;
@@ -424,6 +490,7 @@ public sealed class SaveData
 		ExpeditionLong = false;
 		ExpeditionEndUnix = 0;
 		ExpeditionSoldiers = new List<string>();
+		ExpeditionSoldierHealth = new List<float>();
 		ExpeditionWorkers = new List<SavedWorker>();
 		TutorialTipsShown = new List<string>();
 		FirstNightBonusClaimed = false;
@@ -436,6 +503,7 @@ public sealed class SaveData
 	public void ResetCureRun( CureTeamId team )
 	{
 		ResetToNew();
+		Scrap = CureConstants.StartingScrap;
 		CurrentSeason = 0;
 		CurrentYear = 1;
 		SeasonDay = 1;
@@ -458,6 +526,9 @@ public sealed class SaveData
 		AlliedCivPlots = new List<string>();
 		RaidedCivPlots = new List<string>();
 		ClearedBossPlots = new List<string>();
+		RivalSeeds = new List<string>();
+		RivalOwnedPlots = new List<string>();
+		ClaimedPlotBoosts = new Dictionary<string, string>();
 		ObjectivesDone = new List<string>();
 		MilestonesDone = new List<string>();
 		TotalKills = 0;

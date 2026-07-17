@@ -33,7 +33,10 @@ public sealed class AimboxBotBrain
 	TimeSince _reactionDelay;
 	TimeSince _strafeFlipTimer;
 	TimeSince _stationaryTimer;
-	TimeSince _burstPauseTimer;
+	// AUDIT FIX H9 (2026-07-13): was TimeSince compared to a FRESH Game.Random.Float every tick,
+	// which made burst pauses non-deterministic / sometimes near-zero. Sample once into TimeUntil.
+	TimeUntil _burstPauseRemaining;
+	bool _inBurstPause;
 	TimeUntil _wanderResumeTime;
 	TimeSince _stateEntered;
 	int _burstShotsRemaining;
@@ -535,15 +538,24 @@ public sealed class AimboxBotBrain
 
 		if ( _burstShotsRemaining <= 0 )
 		{
-			if ( _burstPauseTimer < Game.Random.Float( AimboxBotTuning.BurstPauseMinSeconds, AimboxBotTuning.BurstPauseMaxSeconds ) )
+			// AUDIT FIX H9: enter pause once, hold until the sampled TimeUntil elapses.
+			if ( !_inBurstPause )
+			{
+				_inBurstPause = true;
+				_burstPauseRemaining = Game.Random.Float(
+					AimboxBotTuning.BurstPauseMinSeconds,
+					AimboxBotTuning.BurstPauseMaxSeconds );
+			}
+
+			if ( _burstPauseRemaining > 0f )
 			{
 				bot.WantsFire = false;
 				return;
 			}
 
+			_inBurstPause = false;
 			RefreshAimError( wantsAds, flatDistance );
 			_burstShotsRemaining = Game.Random.Int( AimboxBotTuning.BurstMinRounds, AimboxBotTuning.BurstMaxRounds );
-			_burstPauseTimer = 0;
 		}
 
 		bot.WantsFire = _perception.TargetHasLineOfSight( bot );
@@ -901,6 +913,7 @@ public sealed class AimboxBotBrain
 		_hasReactionTarget = false;
 		_reactionDelay = 0;
 		_burstShotsRemaining = 0;
-		_burstPauseTimer = 0;
+		_inBurstPause = false;
+		_burstPauseRemaining = 0f;
 	}
 }

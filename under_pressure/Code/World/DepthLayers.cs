@@ -1,55 +1,54 @@
 namespace UnderPressure;
 
 /// <summary>
-/// World-space and local Z offsets so coplanar geometry never shares the same depth.
-/// Every stacked surface should use the next band — minimum <see cref="Step"/> apart.
+/// Mild world / local Z offsets so coplanar meshes don't flicker.
+/// Prefer a ±1 unit nudge — do not invent large "floating" bands.
 /// </summary>
 public static class DepthLayers
 {
-	/// <summary>Minimum gap between surfaces that would otherwise be coplanar.</summary>
-	public const float Step = 2f;
+	/// <summary>Small nudge between stacked flat faces (also used for façade −Y steps).</summary>
+	public const float Step = 1f;
 
 	// --- Terrain (world Z) ---
 	public const float MapField = -8f;
 	public const float MapTransition = -4f;
 	public const float PlayPad = 0f;
 
-	// --- Job content (world Z bumps on flat content) ---
+	// --- Job content (world Z) ---
 	public const float PanelAbovePad = 2f;
 	public const float PropAbovePad = 1f;
 	public const float RoadAbovePad = 1.5f;
-	public const float RoadMarking = 3.5f;
+	public const float RoadMarking = 2.5f;
 	public const float PerimeterDecal = 1f;
 	public const float DecorSitOnPad = 0.05f;
 
 	// --- CleanableSurface (local Z on the panel root) ---
-	// Top face should sit on the play pad but stay below grime layers (GrimeTop = 2).
 	public const float CleanBase = -1f;
-	/// <summary>Etched secrets, graffiti, and symbols — always below every cleanable grime/film layer.</summary>
 	public const float UnderlayLayer = 0.25f;
 	public const float GrimeTop = 2f;
 	public const float GrimeStep = 1.5f;
 
-	// --- Scenery face depth (local -Y toward the viewer on houses/buildings) ---
+	// --- Scenery face depth (local −Y) ---
 	public const float FaceBase = 3f;
 
-	/// <summary>Lift a flat (ground) panel that was authored sitting on the pad.</summary>
 	public static Vector3 LiftPanel( Vector3 authored, Angles rotation )
 	{
 		if ( !IsFlat( rotation ) )
 			return authored;
 
-		// Catalog positions use z≈1 for driveways; normalize to a consistent pad clearance.
 		var z = MathF.Max( authored.z, PanelAbovePad );
 		return authored.WithZ( z );
 	}
 
-	/// <summary>Nudge props off the ground plane and away from coplanar panel backs.</summary>
 	public static Vector3 LiftProp( Vector3 authored, Angles rotation, Vector3 size = default )
 	{
 		var pos = IsFlat( rotation )
 			? authored.WithZ( MathF.Max( authored.z, PropAbovePad ) )
 			: authored;
+
+		// Thin floor decals sit +1 above the wash panel band.
+		if ( IsFlat( rotation ) && size.z > 0f && size.z <= 4f )
+			pos = pos.WithZ( MathF.Max( pos.z, PanelAbovePad + Step ) );
 
 		if ( !IsFlat( rotation ) && size.y > 0f && size.y <= 48f )
 			pos += rotation.ToRotation().Backward * Step;
@@ -57,10 +56,8 @@ public static class DepthLayers
 		return pos;
 	}
 
-	/// <summary>Step along a building's front-facing local -Y axis.</summary>
 	public static float NextFaceDepth( ref int slot ) => FaceBase + Step * slot++;
 
-	/// <summary>Local Z for the n'th grime layer (0 = top / cleaned first).</summary>
 	public static float GrimeLayerZ( int layerFromTop, int layerCount ) =>
 		GrimeTop + (layerCount - 1 - layerFromTop) * GrimeStep;
 

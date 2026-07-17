@@ -132,7 +132,6 @@ public sealed class WorldEnvironment : Component
 		}
 
 		SyncOwnedGrass( state.StarterBiome, plots );
-		RefreshGrassUnderHabitats();
 
 		if ( rebuilt )
 		{
@@ -142,6 +141,7 @@ public sealed class WorldEnvironment : Component
 				UI.UiState.NotifyWorldReady();
 			}
 
+			_grassRefreshPending = false;
 			RefreshVisibilityTargets();
 		}
 		else if ( _grassRefreshPending )
@@ -195,58 +195,6 @@ public sealed class WorldEnvironment : Component
 		}
 	}
 
-	/// <summary>Hide owned grass under a habitat interior so biome floor can replace it.</summary>
-	public int HideOwnedGrassInRect( Vector3 center, Vector2 size )
-	{
-		if ( size.x <= 0f || size.y <= 0f )
-			return 0;
-
-		var habitatHalf = size * 0.5f;
-		var grassHalf = GroundGrid.BaseDrawSize * 0.5f;
-		var hidden = 0;
-		var overlapping = 0;
-
-		foreach ( var go in _ownedGrass )
-		{
-			if ( !go.IsValid() || !go.Name.StartsWith( "Owned", StringComparison.Ordinal ) )
-				continue;
-
-			var pos = go.WorldPosition;
-			if ( MathF.Abs( pos.x - center.x ) >= habitatHalf.x + grassHalf
-			     || MathF.Abs( pos.y - center.y ) >= habitatHalf.y + grassHalf )
-				continue;
-
-			overlapping++;
-			if ( !go.Enabled )
-				continue;
-
-			go.Enabled = false;
-			hidden++;
-		}
-
-		if ( Fauna2Debug.Enabled )
-			Fauna2Debug.Info( "World", $"hid owned grass under habitat at ({center.x:0.##},{center.y:0.##}): {hidden}/{overlapping} overlapping tiles" );
-
-		return hidden;
-	}
-
-	/// <summary>Re-hide owned grass under every habitat after plot grass is rebuilt.</summary>
-	public void RefreshGrassUnderHabitats()
-	{
-		var total = 0;
-		foreach ( var habitat in HabitatRegistry.All )
-		{
-			if ( habitat is null || !habitat.GameObject.IsValid() )
-				continue;
-
-			var footprint = HabitatSizing.EffectiveFootprint( habitat.Size );
-			total += HideOwnedGrassInRect( habitat.GameObject.WorldPosition, footprint );
-		}
-
-		if ( total > 0 && Fauna2Debug.Enabled )
-			Fauna2Debug.Info( "World", $"refreshed habitat grass hide: {total} tiles across {HabitatRegistry.Count} habitats" );
-	}
-
 	private void ClearWorld()
 	{
 		foreach ( var go in _baseSpawned ) go?.Destroy();
@@ -281,8 +229,6 @@ public sealed class WorldEnvironment : Component
 				_grassRefreshPending = true;
 		}
 	}
-
-
 
 	private void ScheduleRenderDump()
 	{

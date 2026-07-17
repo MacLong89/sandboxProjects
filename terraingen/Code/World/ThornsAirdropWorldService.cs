@@ -382,6 +382,11 @@ public sealed class ThornsAirdropWorldService : Component
 		}
 	}
 
+	/// <summary>
+	/// AUDIT NOTE: unused legacy bulk-loot API. Live path is container UI.
+	/// See death-crate notes — do not reintroduce without syncing WorldLootContainerService.
+	/// </summary>
+	[Obsolete( "Use world container UI / ThornsWorldLootContainerService moves instead of bulk HostTryLoot." )]
 	public bool HostTryLoot( GameObject playerRoot, int airdropId )
 	{
 		if ( !ThornsMultiplayer.IsHostOrOffline || !_airdrops.TryGetValue( airdropId, out var entry ) )

@@ -6,7 +6,8 @@ namespace FinalOutpost;
 /// </summary>
 public static class PlotGrid
 {
-	public static int Radius => GameConstants.PlotGridRadius;
+	public static int Radius =>
+		GameCore.Instance?.IsCure == true ? CureConstants.PlotGridRadius : GameConstants.PlotGridRadius;
 
 	public static bool InGrid( int x, int y ) => Math.Abs( x ) <= Radius && Math.Abs( y ) <= Radius;
 
@@ -38,16 +39,11 @@ public static class PlotGrid
 		return InGrid( x, y );
 	}
 
-	/// <summary>Deterministic resource assigned to a plot (home plot has none).</summary>
+	/// <summary>Deterministic resource assigned to a plot (home plot has none). Wood or stone only.</summary>
 	public static ResourceKind ResourceAt( int x, int y )
 	{
 		if ( IsHome( x, y ) ) return ResourceKind.None;
-		return (Hash( x, y ) % 3) switch
-		{
-			0 => ResourceKind.Wood,
-			1 => ResourceKind.Stone,
-			_ => ResourceKind.Water
-		};
+		return (Hash( x, y ) % 2) == 0 ? ResourceKind.Wood : ResourceKind.Stone;
 	}
 
 	/// <summary>Cure mode uses special plot features; survival uses standard resources.</summary>

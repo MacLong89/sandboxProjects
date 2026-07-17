@@ -26,4 +26,12 @@ public sealed class PlayerWallet
 		Changed?.Invoke();
 		return true;
 	}
+
+	/// <summary>Continuous upkeep drain — scrap may go negative (debt).</summary>
+	public void Drain( double amount )
+	{
+		if ( amount <= 0 ) return;
+		_save.Scrap -= amount;
+		Changed?.Invoke();
+	}
 }

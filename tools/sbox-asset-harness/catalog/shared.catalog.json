@@ -1,0 +1,109 @@
+{
+  "$schema": "./catalog.schema.json",
+  "version": 1,
+  "entries": [
+    {
+      "id": "tree_pine_01",
+      "games": ["*"],
+      "lane": "kit",
+      "kind": "tree",
+      "title": "Low poly pine",
+      "status": "ready",
+      "vmdl": null,
+      "vmat": null,
+      "kit": {
+        "recipe": "tree",
+        "targetHeight": 220,
+        "colors": {
+          "trunk": "#9E6124",
+          "leafA": "#61DB14",
+          "leafB": "#47C70F"
+        }
+      },
+      "tags": ["outdoor", "vegetation"],
+      "notes": "Default kit tree. Scale targetHeight to each game’s unit system when placing."
+    },
+    {
+      "id": "bush_round_01",
+      "games": ["*"],
+      "lane": "kit",
+      "kind": "bush",
+      "title": "Round bush",
+      "status": "ready",
+      "vmdl": null,
+      "vmat": null,
+      "kit": {
+        "recipe": "bush",
+        "targetHeight": 48,
+        "colors": {
+          "leafA": "#3FAF2A",
+          "leafB": "#2F8F1E"
+        }
+      },
+      "tags": ["outdoor", "vegetation"],
+      "notes": ""
+    },
+    {
+      "id": "crate_wood_01",
+      "games": ["*"],
+      "lane": "kit",
+      "kind": "furniture",
+      "title": "Wood crate",
+      "status": "ready",
+      "vmdl": null,
+      "vmat": null,
+      "kit": {
+        "recipe": "crate",
+        "targetHeight": 36,
+        "colors": {
+          "body": "#C49A6C",
+          "lid": "#A67C52"
+        }
+      },
+      "tags": ["prop", "furniture"],
+      "notes": ""
+    },
+    {
+      "id": "house_simple_01",
+      "games": ["*"],
+      "lane": "kit",
+      "kind": "house",
+      "title": "Simple house",
+      "status": "ready",
+      "vmdl": null,
+      "vmat": null,
+      "kit": {
+        "recipe": "house",
+        "targetHeight": 160,
+        "colors": {
+          "walls": "#E8D2A8",
+          "roof": "#8F471A",
+          "door": "#9E5720",
+          "foundation": "#ADA080"
+        }
+      },
+      "tags": ["building"],
+      "notes": "Blockout house; façade pieces need ±1 face nudge."
+    },
+    {
+      "id": "creature_quad_placeholder_01",
+      "games": ["*"],
+      "lane": "kit",
+      "kind": "creature",
+      "title": "Quadruped placeholder",
+      "status": "placeholder",
+      "vmdl": null,
+      "vmat": null,
+      "kit": {
+        "recipe": "creature",
+        "targetHeight": 60,
+        "colors": {
+          "body": "#C4A882",
+          "accent": "#6B4E32"
+        }
+      },
+      "tags": ["creature", "placeholder"],
+      "notes": "Kit stand-in until mesh lane import."
+    }
+  ]
+}

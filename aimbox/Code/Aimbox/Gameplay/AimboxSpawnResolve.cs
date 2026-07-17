@@ -76,7 +76,7 @@ public static class AimboxSpawnResolve
 		AimboxGameMode mode,
 		IAimboxCombatActor actor )
 	{
-	 IEnumerable<AimboxSpawnCandidate> Query() => mode switch
+		IEnumerable<AimboxSpawnCandidate> Query() => mode switch
 		{
 			AimboxGameMode.FreeForAll => candidates.Where( c => c.Team == AimboxTeam.None && c.Name.StartsWith( "FFA", StringComparison.OrdinalIgnoreCase ) ),
 			AimboxGameMode.TeamDeathmatch => candidates.Where( c =>
@@ -96,7 +96,22 @@ public static class AimboxSpawnResolve
 		};
 
 		var list = Query().ToList();
-		return list.Count > 0 ? list : candidates;
+		if ( list.Count > 0 )
+			return list;
+
+		// AUDIT FIX M3 (2026-07-13): empty mode filter used to fall back to ALL candidates,
+		// which could spawn someone on the enemy side in TDM/Duel. Prefer logging + staying
+		// on filtered-empty (caller must handle) only for team-sensitive modes; keep safe
+		// fallback for FFA/training where any spawn is acceptable.
+		var teamSensitive = mode is AimboxGameMode.TeamDeathmatch or AimboxGameMode.Duel or AimboxGameMode.Survival;
+		if ( teamSensitive )
+		{
+			Log.Warning( $"[Aimbox] Spawn FilterForMode empty for {mode} team={actor?.Team}. Refusing unfiltered fallback." );
+			return list;
+		}
+
+		Log.Warning( $"[Aimbox] Spawn FilterForMode empty for {mode}; falling back to all candidates." );
+		return candidates;
 	}
 
 	public static IReadOnlyList<AimboxSpawnCandidate> OrderForMaxSpread( IReadOnlyList<AimboxSpawnCandidate> candidates )

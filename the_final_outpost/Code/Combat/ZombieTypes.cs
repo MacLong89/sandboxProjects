@@ -29,7 +29,7 @@ public sealed class ZombieTypeDef
 	public float DuckLevel { get; init; }
 	public float AnimSpeedMult { get; init; } = 1f;
 	public CitizenAnimationHelper.MoveStyles MoveStyle { get; init; } = CitizenAnimationHelper.MoveStyles.Walk;
-	/// <summary>Ignores walls as obstacles (vaults over them).</summary>
+	/// <summary>Ignores walls as path blockers only while vaulting — see CombatSystem.TickWallVault.</summary>
 	public bool CanJumpWalls { get; init; }
 	/// <summary>Ignores everything except the command post.</summary>
 	public bool BeeLinesCore { get; init; }
@@ -91,7 +91,7 @@ public static class ZombieCatalog
 			Description = "Ignores walls and defenses, beelines the command post, then detonates.",
 			HpMult = 0.55f, SpeedMult = 1.25f, DamageMult = 0f, Scale = 0.88f,
 			Tint = new Color( 0.98f, 0.48f, 0.12f ),
-			BeeLinesCore = true, CoreExplosionDamage = 85f, SpawnWeight = 10,
+			BeeLinesCore = true, CanJumpWalls = true, CoreExplosionDamage = 85f, SpawnWeight = 10,
 			MoveStyle = CitizenAnimationHelper.MoveStyles.Run,
 			AnimSpeedMult = 1.15f
 		},

@@ -1,0 +1,31 @@
+{
+  "sheets": [
+    {
+      "id": "player_walk",
+      "path": "textures/art/anims/player_walk.png",
+      "frameWidth": 16,
+      "frameHeight": 24,
+      "frameCount": 4,
+      "fps": 8,
+      "loop": true
+    },
+    {
+      "id": "fish_swim",
+      "path": "textures/art/anims/fish_swim.png",
+      "frameWidth": 32,
+      "frameHeight": 16,
+      "frameCount": 4,
+      "fps": 6,
+      "loop": true
+    },
+    {
+      "id": "splash",
+      "path": "textures/art/anims/splash.png",
+      "frameWidth": 16,
+      "frameHeight": 16,
+      "frameCount": 4,
+      "fps": 12,
+      "loop": false
+    }
+  ]
+}

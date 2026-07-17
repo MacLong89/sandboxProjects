@@ -1,0 +1,87 @@
+{
+  "__guid": "c1a2b3d4-0001-4001-8001-200000000001",
+  "GameObjects": [
+    {
+      "__guid": "c1a2b3d4-0001-4001-8001-200000000010",
+      "Flags": 0,
+      "Name": "Sun",
+      "Rotation": "-0.0729315,0.4822396,0.1305433,0.8631827",
+      "Tags": "light_directional,light",
+      "Enabled": true,
+      "Components": [
+        {
+          "__type": "Sandbox.DirectionalLight",
+          "__guid": "c1a2b3d4-0001-4001-8001-200000000011",
+          "FogMode": "Enabled",
+          "FogStrength": 0.1,
+          "LightColor": "1,0.85,0.65,1",
+          "Shadows": true,
+          "SkyColor": "0.55,0.72,0.95,1"
+        }
+      ]
+    },
+    {
+      "__guid": "c1a2b3d4-0001-4001-8001-200000000020",
+      "Flags": 0,
+      "Name": "2D Skybox",
+      "Tags": "skybox",
+      "Enabled": true,
+      "Components": [
+        {
+          "__type": "Sandbox.SkyBox2D",
+          "__guid": "c1a2b3d4-0001-4001-8001-200000000021",
+          "SkyMaterial": "materials/skybox/skybox_day_01.vmat",
+          "Tint": "1,1,1,1"
+        },
+        {
+          "__type": "Sandbox.EnvmapProbe",
+          "__guid": "c1a2b3d4-0001-4001-8001-200000000022",
+          "Texture": "textures/cubemaps/default2.vtex",
+          "Bounds": {
+            "Mins": "-4096,-4096,-512",
+            "Maxs": "4096,4096,2048"
+          },
+          "DelayBetweenUpdates": 0.1,
+          "Feathering": 0.02,
+          "FrameInterval": 5,
+          "MaxDistance": 4096,
+          "Projection": "Sphere",
+          "RenderDynamically": true,
+          "TintColor": "1,1,1,1",
+          "UpdateStrategy": "OnEnabled",
+          "ZFar": 8192,
+          "ZNear": 16
+        }
+      ]
+    },
+    {
+      "__guid": "c1a2b3d4-0001-4001-8001-200000000030",
+      "Flags": 0,
+      "Name": "Boot",
+      "Enabled": true,
+      "Components": [
+        {
+          "__type": "SceneLab.SceneLabBoot",
+          "__guid": "c1a2b3d4-0001-4001-8001-200000000031"
+        }
+      ]
+    }
+  ],
+  "SceneProperties": {
+    "FixedUpdateFrequency": 50,
+    "MaxFixedUpdates": 5,
+    "NetworkFrequency": 60,
+    "NetworkInterpolation": true,
+    "ThreadedAnimation": true,
+    "TimeScale": 1,
+    "UseFixedUpdate": true,
+    "NavMesh": {
+      "Enabled": false
+    }
+  },
+  "Title": "workbench",
+  "Description": "Scene Lab look-dev workbench — walk modular pieces, rebuild with R.",
+  "ResourceVersion": 1,
+  "__references": [],
+  "__version": 1
+}

@@ -41,13 +41,17 @@ public sealed class BuildableDef
 	public float FireInterval { get; init; }
 	public int MaxLevel { get; init; } = 5;
 	public Color Tint { get; init; }
+	/// <summary>Mesh/ghost size. XY should match <see cref="GameConstants.CellSize"/> for 1×1 placeables.</summary>
 	public Vector3 VisualSize { get; init; }
 
-	/// <summary>Tighter XY footprint used for unit pathing (not placement overlap).</summary>
-	public Vector3 CollisionFootprint => new(
-		VisualSize.x * GameConstants.BuildingCollisionScale,
-		VisualSize.y * GameConstants.BuildingCollisionScale,
-		0f );
+	/// <summary>Placement overlap — same XY as the visual / occupied cell.</summary>
+	public Vector3 CollisionFootprint => new( VisualSize.x, VisualSize.y, 0f );
+
+	/// <summary>
+	/// Melee approach volume — matches the 1×1 placement cell / visual XY so zombies stop
+	/// on the face of what they path around (same idea as wall segment footprints).
+	/// </summary>
+	public Vector3 ZombieCollisionFootprint => new( VisualSize.x, VisualSize.y, 0f );
 
 	public double PlaceCost => Role switch
 	{
@@ -156,7 +160,7 @@ public static class BuildableCatalog
 			Role = BuildingRole.Defense, BaseHp = 120, HpPerLevel = 40,
 			BaseDamage = 10, DamagePerLevel = 4, BaseRange = 340, RangePerLevel = 25,
 			FireInterval = 0.32f, Tint = new Color( 0.55f, 0.7f, 0.9f ),
-			VisualSize = new Vector3( 48f, 48f, 72f )
+			VisualSize = new Vector3( GameConstants.CellSize, GameConstants.CellSize, 72f )
 		},
 		new()
 		{
@@ -165,7 +169,7 @@ public static class BuildableCatalog
 			Role = BuildingRole.Defense, BaseHp = 160, HpPerLevel = 50,
 			BaseDamage = 28, DamagePerLevel = 8, BaseRange = 280, RangePerLevel = 15,
 			FireInterval = 0.9f, Tint = new Color( 0.85f, 0.5f, 0.35f ),
-			VisualSize = new Vector3( 56f, 56f, 64f )
+			VisualSize = new Vector3( GameConstants.CellSize, GameConstants.CellSize, 64f )
 		},
 		new()
 		{
@@ -174,16 +178,16 @@ public static class BuildableCatalog
 			Role = BuildingRole.Defense, BaseHp = 90, HpPerLevel = 30,
 			BaseDamage = 18, DamagePerLevel = 5, BaseRange = 520, RangePerLevel = 35,
 			FireInterval = 0.55f, Tint = new Color( 0.65f, 0.85f, 0.55f ),
-			VisualSize = new Vector3( 40f, 40f, 90f )
+			VisualSize = new Vector3( GameConstants.CellSize, GameConstants.CellSize, 90f )
 		},
 		new()
 		{
 			Id = BuildableId.WallPiece, Key = "wall", Name = "Wall Segment", Icon = "foundation",
-			Description = "Matches your perimeter wall. Blocks the horde.",
+			Description = "Timber scaffolding and iron rails — blocks the horde, open enough to fire through.",
 			Role = BuildingRole.Wall, BaseHp = 100, HpPerLevel = 35,
 			BaseDamage = 0, DamagePerLevel = 0, BaseRange = 0, RangePerLevel = 0,
-			FireInterval = 0f, Tint = new Color( 0.55f, 0.58f, 0.62f ),
-			VisualSize = new Vector3( 60f, 60f, GameConstants.WallHeight )
+			FireInterval = 0f, Tint = new Color( 0.55f, 0.42f, 0.28f ),
+			VisualSize = new Vector3( GameConstants.CellSize, GameConstants.CellSize, GameConstants.WallHeight )
 		},
 		new()
 		{
@@ -192,70 +196,70 @@ public static class BuildableCatalog
 			Role = BuildingRole.Management, BaseHp = 200, HpPerLevel = 60,
 			BaseDamage = 0, DamagePerLevel = 0, BaseRange = 0, RangePerLevel = 0,
 			FireInterval = 0f, Tint = new Color( 0.7f, 0.6f, 0.45f ),
-			VisualSize = new Vector3( 64f, 64f, 56f )
+			VisualSize = new Vector3( GameConstants.CellSize, GameConstants.CellSize, 56f )
 		},
 		new()
 		{
 			Id = BuildableId.Lab, Key = "lab", Name = "Research Lab", Icon = "science",
-			Description = "Generates cure research. Assign scholars to boost output.",
+			Description = "Produces cure lab points (not Knowledge). Unlock Farms and Factories via Tech.",
 			Role = BuildingRole.Management, BaseHp = 180, HpPerLevel = 50,
 			BaseDamage = 0, DamagePerLevel = 0, BaseRange = 0, RangePerLevel = 0,
 			FireInterval = 0f, Tint = new Color( 0.55f, 0.75f, 0.95f ),
-			VisualSize = new Vector3( 60f, 60f, 64f )
+			VisualSize = new Vector3( GameConstants.CellSize, GameConstants.CellSize, 64f )
 		},
 		new()
 		{
 			Id = BuildableId.Farm, Key = "farm", Name = "Farm", Icon = "agriculture",
-			Description = "Produces food for your colony.",
+			Description = $"Produces +{CureConstants.FarmFoodPerSec:0.#} food/s. Keep food above zero — unlock with Agriculture.",
 			Role = BuildingRole.Civic, BaseHp = 120, HpPerLevel = 35,
 			BaseDamage = 0, DamagePerLevel = 0, BaseRange = 0, RangePerLevel = 0,
 			FireInterval = 0f, Tint = new Color( 0.45f, 0.82f, 0.38f ),
-			VisualSize = new Vector3( 64f, 64f, 48f )
+			VisualSize = new Vector3( GameConstants.CellSize, GameConstants.CellSize, 48f )
 		},
 		new()
 		{
 			Id = BuildableId.Factory, Key = "factory", Name = "Factory", Icon = "factory",
-			Description = "Boosts supplies, food, and repair throughput.",
+			Description = "Boosts supplies, food, and repair throughput. Unlock with Industry in the Tech Tree.",
 			Role = BuildingRole.Civic, BaseHp = 150, HpPerLevel = 40,
 			BaseDamage = 0, DamagePerLevel = 0, BaseRange = 0, RangePerLevel = 0,
 			FireInterval = 0f, Tint = new Color( 0.72f, 0.58f, 0.42f ),
-			VisualSize = new Vector3( 68f, 68f, 56f )
+			VisualSize = new Vector3( GameConstants.CellSize, GameConstants.CellSize, 56f )
 		},
 		new()
 		{
 			Id = BuildableId.Library, Key = "library", Name = "Library", Icon = "menu_book",
-			Description = "Generates knowledge for the tech tree.",
+			Description = "Generates knowledge for the tech tree. Unlock with Literacy.",
 			Role = BuildingRole.Civic, BaseHp = 140, HpPerLevel = 35,
 			BaseDamage = 0, DamagePerLevel = 0, BaseRange = 0, RangePerLevel = 0,
 			FireInterval = 0f, Tint = new Color( 0.55f, 0.72f, 0.95f ),
-			VisualSize = new Vector3( 60f, 60f, 58f )
+			VisualSize = new Vector3( GameConstants.CellSize, GameConstants.CellSize, 58f )
 		},
 		new()
 		{
 			Id = BuildableId.School, Key = "school", Name = "School", Icon = "school",
-			Description = "Trains citizens — steady knowledge output.",
+			Description = "Trains citizens — steady knowledge output. Unlock with Literacy.",
 			Role = BuildingRole.Civic, BaseHp = 160, HpPerLevel = 40,
 			BaseDamage = 0, DamagePerLevel = 0, BaseRange = 0, RangePerLevel = 0,
 			FireInterval = 0f, Tint = new Color( 0.62f, 0.78f, 0.55f ),
-			VisualSize = new Vector3( 64f, 64f, 60f )
+			VisualSize = new Vector3( GameConstants.CellSize, GameConstants.CellSize, 60f )
 		},
 		new()
 		{
 			Id = BuildableId.Hospital, Key = "hospital", Name = "Hospital", Icon = "local_hospital",
-			Description = "Heals injured recruits and reduces colony sickness.",
+			Description = "Heals injured recruits and reduces colony sickness. Unlock with Medicine.",
 			Role = BuildingRole.Civic, BaseHp = 180, HpPerLevel = 45,
 			BaseDamage = 0, DamagePerLevel = 0, BaseRange = 0, RangePerLevel = 0,
 			FireInterval = 0f, Tint = new Color( 0.95f, 0.95f, 0.98f ),
-			VisualSize = new Vector3( 66f, 66f, 62f )
+			VisualSize = new Vector3( GameConstants.CellSize, GameConstants.CellSize, 62f )
 		},
 		new()
 		{
 			Id = BuildableId.Shop, Key = "shop", Name = "Shop", Icon = "storefront",
-			Description = "Generates scrap income for your colony.",
+			Description = $"Earns +{CureConstants.ShopScrapPerSec:0.#} scrap/s. Needed once upkeep outpaces the Command Post.",
 			Role = BuildingRole.Civic, BaseHp = 130, HpPerLevel = 30,
 			BaseDamage = 0, DamagePerLevel = 0, BaseRange = 0, RangePerLevel = 0,
 			FireInterval = 0f, Tint = new Color( 0.85f, 0.62f, 0.32f ),
-			VisualSize = new Vector3( 58f, 58f, 52f )
+			VisualSize = new Vector3( GameConstants.CellSize, GameConstants.CellSize, 52f )
 		}
 	};
 

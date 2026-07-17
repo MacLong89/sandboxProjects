@@ -210,7 +210,10 @@ public static class ThornsMainMenuBackdrop
 		panel.Style.BackgroundImage = null;
 		panel.SetClass( "mainmenu-backdrop-fallback", true );
 		panel.Style.BackgroundColor = new Color( 217f / 255f, 197f / 255f, 163f / 255f, 1f );
-		Log.Error( $"[Thorns Menu] Required backdrop missing ({reason}). Add Assets/ui/menu/menu_background.png and republish." );
+		// BOOT FIX: solid fallback is expected when art is missing — warn once, don't spam Error every panel.
+		Log.Warning(
+			$"[Thorns Menu] Backdrop missing ({reason}); using solid fallback. " +
+			"Run Scripts/EnsureRequiredAssets.ps1 then republish if this is a published build." );
 	}
 
 	static string ResolveExistingPath( string preferredPath, string[] defaults )

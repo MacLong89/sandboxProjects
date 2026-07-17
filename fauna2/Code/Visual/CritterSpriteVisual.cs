@@ -21,7 +21,8 @@ public static class CritterSpriteVisual
 			dynamicDepthSort: true,
 			sourcePixels: PixelArt.IsSuppliedCritter( key ) ? PixelArt.SuppliedSpriteSourcePixels : PixelArt.SpriteSourcePixels,
 			movementRoot: parent,
-			walkAnimator: true );
+			walkAnimator: true,
+			flipFacingHorizontal: true );
 		Log.Info( $"[Fauna2 Scale] Animal sprite '{key}' size={tiles:0.##} tiles for definition='{def?.ResourceName ?? "unknown"}'." );
 
 		return root;

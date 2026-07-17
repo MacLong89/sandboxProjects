@@ -13,11 +13,40 @@ public sealed class ZombieInstance
 	public float Speed;
 	public float AttackTimer;
 	public float MoveStuckTimer;
+	/// <summary>Accumulated time with little or no movement progress.</summary>
+	public float TotalStuckTimer;
+	/// <summary>Time without getting meaningfully closer to the current target.</summary>
+	public float ApproachStallTimer;
+	public float LastAttackDist = float.MaxValue;
 	public int StrafeSign;
+	public bool HasDetour;
+	public Vector3 DetourGoal;
+	/// <summary>Smoothed move goal — stops approach points snapping at building corners.</summary>
+	public Vector3 EngagePointSmooth;
+	public bool EngagePointInit;
 	public bool IsEngaged;
 	public bool Dead;
+	/// <summary>
+	/// AUDIT FIX M6: when true, CleanupDead must NOT SpawnSplitters.
+	/// Set by round failsafe kills so a stalled Splitter cannot re-seed the wave
+	/// if CleanupDead runs before ClearAll (defense-in-depth; same-tick clear usually wins).
+	/// </summary>
+	public bool SuppressSplitOnDeath;
 	/// <summary>Which perimeter edge this zombie approached from — locks breach behavior to one side.</summary>
 	public WallApproachSide ApproachSide;
+
+	// --- Wall vault (CanJumpWalls) — real arc over timber instead of ignoreWalls phasing ---
+	public enum WallVaultPhase { None, Approach, Airborne }
+	public WallVaultPhase VaultPhase;
+	/// <summary>0..1 progress through the airborne vault arc.</summary>
+	public float VaultT;
+	public Vector3 VaultFrom;
+	public Vector3 VaultTo;
+	public float VaultDuration;
+	public bool VaultJumpTriggered;
+
+	/// <summary>True while vaulting — ONLY then may pathing ignore perimeter wall cells.</summary>
+	public bool IsVaulting => VaultPhase == WallVaultPhase.Airborne;
 
 	public Vector3 Position => Go.IsValid() ? Go.WorldPosition : Vector3.Zero;
 

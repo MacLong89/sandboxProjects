@@ -3,6 +3,10 @@ namespace FinalOutpost;
 public sealed class GameCore : Component
 {
 	public static GameCore Instance { get; private set; }
+	/// <summary>Set when startup fails — surfaced on the boot fallback screen.</summary>
+	public static string BootError { get; private set; }
+
+	internal static void SetBootError( string message ) => BootError = message;
 
 	public PlayerProfile Profile { get; private set; }
 	public GameModeId ActiveMode { get; private set; } = GameModeId.Survival;
@@ -81,6 +85,7 @@ public sealed class GameCore : Component
 	protected override void OnAwake()
 	{
 		Instance = this;
+		Log.Info( "[FinalOutpost] GameCore OnAwake" );
 		Profile = SaveManager.Profile;
 		ActiveMode = Profile.LastMode;
 		Save = SaveManager.Load( ActiveMode );
@@ -95,75 +100,102 @@ public sealed class GameCore : Component
 
 	protected override void OnStart()
 	{
-		var outpostGo = new GameObject( true, "Outpost" );
-		Outpost = outpostGo.Components.Create<OutpostManager>();
-		Outpost.Build( Upgrades );
-
-		var combatGo = new GameObject( true, "Combat" );
-		Combat = combatGo.Components.Create<CombatSystem>();
-
-		var nightGo = new GameObject( true, "Nights" );
-		Nights = nightGo.Components.Create<NightController>();
-
-		var seasonGo = new GameObject( true, "Seasons" );
-		Seasons = seasonGo.Components.Create<SeasonController>();
-
-		var camGo = new GameObject( true, "Camera" );
-		Camera = camGo.Components.Create<OutpostCamera>();
-
-		var buildGo = new GameObject( true, "Build" );
-		Build = buildGo.Components.Create<BuildManager>();
-		Repairs = buildGo.Components.Create<RepairManager>();
-
-		var defenderGo = new GameObject( true, "Defenders" );
-		Defenders = defenderGo.Components.Create<DefenderManager>();
-
-		var plotGo = new GameObject( true, "PlotManager" );
-		Plots = plotGo.Components.Create<PlotManager>();
-
-		var workerGo = new GameObject( true, "Workers" );
-		Workers = workerGo.Components.Create<WorkerManager>();
-
-		var expeditionGo = new GameObject( true, "Expeditions" );
-		Expeditions = expeditionGo.Components.Create<ExpeditionManager>();
-
-		var comboGo = new GameObject( true, "Combo" );
-		Combo = comboGo.Components.Create<ComboSystem>();
-
-		var economyGo = new GameObject( true, "ColonyEconomy" );
-		economyGo.Components.Create<ColonyEconomy>();
-
-		var ordersGo = new GameObject( true, "UnitOrders" );
-		ordersGo.Components.Create<UnitOrderController>();
-
-		var hudGo = new GameObject( true, "HUD" );
-		hudGo.Components.Create<ScreenPanel>();
-		hudGo.Components.Create<UI.Hud>();
-
-		Build.LoadFromSave( Save );
 		try
 		{
-			Defenders.RebuildFromSave();
-			Plots.RebuildFromSave();
-			Workers.RebuildFromSave();
+			BootError = null;
+
+			// Camera and HUD first — if world build fails, the player still gets a view and menu.
+			if ( !Scene.GetAllComponents<OutpostCamera>().Any() )
+			{
+				var camGo = new GameObject( true, "Camera" );
+				Camera = camGo.Components.Create<OutpostCamera>();
+			}
+			else
+			{
+				Camera = Scene.GetAllComponents<OutpostCamera>().FirstOrDefault();
+			}
+
+			if ( !Scene.GetAllComponents<HudHost>().Any() )
+			{
+				var hudGo = new GameObject( true, "HUD" );
+				hudGo.Components.Create<HudHost>();
+			}
+
+			GameBoot.DedupeHudHosts( Scene );
+
+			var outpostGo = new GameObject( true, "Outpost" );
+			Outpost = outpostGo.Components.Create<OutpostManager>();
+			Outpost.Build( Upgrades );
+
+			var combatGo = new GameObject( true, "Combat" );
+			Combat = combatGo.Components.Create<CombatSystem>();
+
+			var nightGo = new GameObject( true, "Nights" );
+			Nights = nightGo.Components.Create<NightController>();
+
+			var seasonGo = new GameObject( true, "Seasons" );
+			Seasons = seasonGo.Components.Create<SeasonController>();
+
+			var buildGo = new GameObject( true, "Build" );
+			Build = buildGo.Components.Create<BuildManager>();
+			Repairs = buildGo.Components.Create<RepairManager>();
+
+			var defenderGo = new GameObject( true, "Defenders" );
+			Defenders = defenderGo.Components.Create<DefenderManager>();
+
+			var plotGo = new GameObject( true, "PlotManager" );
+			Plots = plotGo.Components.Create<PlotManager>();
+
+			var workerGo = new GameObject( true, "Workers" );
+			Workers = workerGo.Components.Create<WorkerManager>();
+
+			var expeditionGo = new GameObject( true, "Expeditions" );
+			Expeditions = expeditionGo.Components.Create<ExpeditionManager>();
+
+			var comboGo = new GameObject( true, "Combo" );
+			Combo = comboGo.Components.Create<ComboSystem>();
+
+			var economyGo = new GameObject( true, "ColonyEconomy" );
+			economyGo.Components.Create<ColonyEconomy>();
+
+			var ordersGo = new GameObject( true, "UnitOrders" );
+			ordersGo.Components.Create<UnitOrderController>();
+
+			Build.LoadFromSave( Save );
+			TileOccupancy.RebuildAll();
+			try
+			{
+				Defenders.RebuildFromSave();
+				Plots.RebuildFromSave();
+				Workers.RebuildFromSave();
+			}
+			catch ( Exception e )
+			{
+				Log.Error( $"[FinalOutpost] Failed to rebuild units from save: {e.Message}" );
+			}
+
+			Outpost.ApplyUpgrades( Upgrades, healToFull: false );
+			// AUDIT FIX H1: Build() always spawned full HP. Re-apply damage from save after load.
+			Outpost.LoadPersistedHealth( Save );
+
+			if ( IsSurvival )
+			{
+				Welcome = IdleProgress.Apply( this );
+				WelcomePending = Welcome.Any;
+				Daily = DailyReward.Evaluate( Save );
+				DailyPending = Daily.Available;
+			}
+
+			Phase = GamePhase.MainMenu;
+			_nextAutosave = GameConstants.AutosaveInterval;
+			Log.Info( "[FinalOutpost] GameCore started." );
+			BootDiagnostics.LogSceneState( "GameCoreStart", Scene );
 		}
 		catch ( Exception e )
 		{
-			Log.Error( $"[FinalOutpost] Failed to rebuild units from save: {e.Message}" );
+			SetBootError( e.Message );
+			Log.Error( $"[FinalOutpost] GameCore startup failed: {e}" );
 		}
-
-		Outpost.ApplyUpgrades( Upgrades, healToFull: false );
-
-		if ( IsSurvival )
-		{
-			Welcome = IdleProgress.Apply( this );
-			WelcomePending = Welcome.Any;
-			Daily = DailyReward.Evaluate( Save );
-			DailyPending = Daily.Available;
-		}
-
-		Phase = GamePhase.MainMenu;
-		_nextAutosave = GameConstants.AutosaveInterval;
 	}
 
 	protected override void OnUpdate()
@@ -212,6 +244,9 @@ public sealed class GameCore : Component
 	public void SaveManagerTouch()
 	{
 		Build?.SaveTo( Save );
+		// AUDIT FIX H1: persist perimeter/core HP alongside buildings (was missing entirely).
+		Outpost?.SavePersistedHealth( Save );
+		Plots?.SaveClearProgress( Save );
 		Profile.PullAudioFrom( Save );
 		SaveManager.Save( Save, ActiveMode );
 		SaveManager.SaveProfile( Profile );
@@ -311,15 +346,21 @@ public sealed class GameCore : Component
 		Build?.Deselect();
 		_nightStartRecruits = Save.Recruits.Count;
 		_nightStartKills = Save.TotalKills;
+		Defenders?.ClearAllOrders();
 		Nights?.BeginNight( Save.CurrentNight );
+
+		if ( Save.Recruits.Count > 0 )
+			ShowToast( "Recruits auto-defend · use Command Recruits to focus a zombie or area", 4.5f );
 	}
 
-	public void TriggerThreat()
+	public void TriggerThreat( float threatMult = 1f, string bossLabel = null )
 	{
 		if ( !IsCure || Phase != GamePhase.Day ) return;
 
 		Phase = GamePhase.Night;
 		DayNightLighting.Instance?.SetNight( true );
+		AmbiencePlayer.Instance?.RefreshVolumes();
+		NightCombatMusicPlayer.Instance?.RefreshVolumes();
 		ShopOpen = false;
 		SettingsOpen = false;
 		RecruitOpen = false;
@@ -333,10 +374,16 @@ public sealed class GameCore : Component
 		Combo?.ResetCombo();
 		Build?.CancelBuildInteraction();
 		Build?.Deselect();
+		Defenders?.ClearAllOrders();
 
 		Save.CureThreatIndex++;
-		var count = CureConstants.ZombiesForThreat( Save );
+		var count = Math.Max( 6, (int)(CureConstants.ZombiesForThreat( Save ) * Math.Max( 1f, threatMult )) );
 		Nights?.BeginThreat( count, Save.CureThreatIndex );
+
+		if ( !string.IsNullOrEmpty( bossLabel ) )
+			ShowToast( $"{bossLabel} — defend the outpost!" );
+		else if ( Save.Recruits.Count > 0 )
+			ShowToast( "Recruits auto-defend · use Command Recruits to focus a zombie or area", 4.5f );
 	}
 
 	public void OnThreatSurvived()
@@ -353,13 +400,14 @@ public sealed class GameCore : Component
 
 		var bonus = 8.0 + Save.CurrentYear * 2.0;
 		Wallet.Earn( bonus * ScrapMultiplier );
+		KnowledgeGain.OnThreatSurvived( this );
 
 		Sfx.Play( Sfx.WaveClear );
 		Combat?.ClearAll();
 		DayNightLighting.Instance?.SetNight( false );
 		Phase = GamePhase.Day;
 
-		ShowToast( "Threat repelled!" );
+		ShowToast( $"Threat repelled! +{CureConstants.KnowledgeFromThreatSurvived:0} Knowledge" );
 		Build?.BarracksHealAfterNight();
 		Defenders?.RebuildFromSave();
 		Build?.ClearDestroyedRemnants();
@@ -554,13 +602,20 @@ public sealed class GameCore : Component
 	private void ApplyFreshRunWorld()
 	{
 		Combat?.ClearAll();
+		DestructionFx.Clear();
 		Build?.ClearAll();
 		Repairs?.Clear();
 		Defenders?.RebuildFromSave();
 		Plots?.RebuildFromSave();
+		if ( IsCure )
+			RivalCivManager.EnsureSeeded( Save );
 		Workers?.RebuildFromSave();
 		Outpost?.Build( Upgrades );
 		Outpost?.ApplyUpgrades( Upgrades, healToFull: true );
+		// AUDIT FIX H1: wipes/prestiges clear SavedCoreHealth; continue/retry restore damage here.
+		Outpost?.LoadPersistedHealth( Save );
+		Build?.LoadFromSave( Save );
+		TileOccupancy.RebuildAll();
 
 		ShopOpen = false;
 		SettingsOpen = false;
@@ -753,6 +808,9 @@ public sealed class GameCore : Component
 
 	public bool BuyUpgrade( UpgradeId id )
 	{
+		// AUDIT FIX H5: shop upgrades raised wall/core max HP mid-night. Day-only like place/repair.
+		if ( Phase != GamePhase.Day ) return false;
+
 		var ok = Upgrades.TryPurchase( id, Wallet );
 		if ( ok )
 		{

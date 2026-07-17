@@ -183,6 +183,7 @@ public sealed class WorkerManager : Component
 		RespawnAll();
 		if ( WorkerInfo.IsRepairSpecialist( role ) )
 			TryAutoRepairOnDayStart();
+		KnowledgeGain.OnWorkerHired( core );
 		Sfx.Play( Sfx.Purchase );
 		core.SaveManagerTouch();
 		return true;
@@ -195,6 +196,8 @@ public sealed class WorkerManager : Component
 
 		var idx = _units.IndexOf( unit );
 		if ( idx < 0 || idx >= core.Save.Workers.Count ) return false;
+
+		DestructionFx.Burst( unit.WorldPos, 0.33f );
 
 		core.Save.Workers.RemoveAt( idx );
 		core.Wallet.Earn( WorkerInfo.HireCost( unit.Role ) * GameConstants.SellRefundFraction, applyIncomeScale: false );
@@ -264,7 +267,8 @@ public sealed class WorkerManager : Component
 			var (center, radius) = role == WorkerRole.Forager && sw.HasPlot && PlotGrid.InGrid( sw.PlotX, sw.PlotY )
 				? (PlotGrid.CenterWorld( sw.PlotX, sw.PlotY ), GameConstants.PlotSize * 0.32f)
 				: (Vector3.Zero, GameConstants.ArenaHalf * 0.45f);
-			if ( BuildingCollision.TryFindClearPoint( center, 0f, radius, out var clear ) )
+			if ( BuildingCollision.TryFindClearPoint( center, 0f, radius, out var clear )
+			     || BuildingCollision.TryEscape( center, out clear ) )
 				go.WorldPosition = clear.WithZ( OutpostTerrain.SampleHeight( clear.x, clear.y ) );
 		}
 
@@ -308,6 +312,7 @@ public sealed class WorkerManager : Component
 		public int PlotY = int.MinValue;
 
 		private UnitLocomotion.WanderState _wander;
+		private UnitLocomotion.SteerState _steer;
 		private float _moveStuckTimer;
 		private Rotation _aim = Rotation.Identity;
 		private double _harvestAccum;
@@ -368,7 +373,7 @@ public sealed class WorkerManager : Component
 
 			if ( _orderKind == UnitOrderKind.Move && _manualMove )
 			{
-				UnitLocomotion.MoveHumanoid( Go, _orderTarget, dt, speed, ref _aim, Character, ref _moveStuckTimer );
+				UnitLocomotion.MoveHumanoid( Go, _orderTarget, dt, speed, ref _aim, Character, ref _moveStuckTimer, ref _steer );
 				if ( (_orderTarget - Go.WorldPosition).WithZ( 0f ).Length <= UnitLocomotion.ArrivalDistance )
 				{
 					_orderKind = UnitOrderKind.None;
@@ -418,6 +423,7 @@ public sealed class WorkerManager : Component
 			if ( core.IsCure )
 			{
 				rate *= TeamBonuses.ForagerYieldMult( core );
+				rate *= PlotBoosts.ForagerMult( core.Save );
 				var sickness = core.Save.ColonySickness / CureConstants.MaxSickness;
 				rate *= MathF.Max( 0.4f, 1f - sickness * CureConstants.SicknessWorkerPenalty * 100f );
 			}
@@ -448,6 +454,7 @@ public sealed class WorkerManager : Component
 		private void DoFarm( float dt, GameCore core )
 		{
 			if ( !core.IsCure ) return;
+			if ( !TechTreeCatalog.IsUnlocked( core.Save, "agriculture" ) ) return;
 			core.Resources.Add( ResourceKind.Food, CureConstants.FarmerFoodPerSec * dt );
 		}
 

@@ -64,9 +64,14 @@ public sealed class ZooCameraController : Component
 
 		var wheel = Input.MouseWheel.y;
 		var zoomingIn = wheel > 0.001f;
-		if ( MathF.Abs( wheel ) > 0.001f )
+
+		// AUDIT FIX B11: scroll-zoom respects the same world-input gate as walking
+		// (intro / catch / loading). Camera still follows the player while blocked.
+		// Apply CameraPanSpeed when zooming so the settings slider actually does something.
+		if ( MathF.Abs( wheel ) > 0.001f && Fauna2.UI.UiState.CanWorldInput )
 		{
-			var zoomFactor = 1f - wheel * ZoomSpeed;
+			var panMul = GameSettings.Current?.CameraPanSpeed ?? 1.1f;
+			var zoomFactor = 1f - wheel * ZoomSpeed * panMul.Clamp( 0.4f, 2.5f );
 			_targetOrthoHeight = (_targetOrthoHeight * zoomFactor).Clamp( MinOrthoHeight, MaxOrthoHeight );
 		}
 
@@ -82,7 +87,7 @@ public sealed class ZooCameraController : Component
 		// shifts the screen center when the camera is pitched (Stardew-style oblique view).
 		GameObject.WorldPosition = FocusPoint - rot.Forward * FollowDistance;
 
-		if ( player.IsValid() && gameStarted && MathF.Abs( wheel ) > 0.001f )
+		if ( player.IsValid() && gameStarted && MathF.Abs( wheel ) > 0.001f && Fauna2.UI.UiState.CanWorldInput )
 		{
 			CorrectFocusToPlayer( playerFocus );
 			GameObject.WorldPosition = FocusPoint - rot.Forward * FollowDistance;

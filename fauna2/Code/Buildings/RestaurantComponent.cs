@@ -33,6 +33,17 @@ public sealed class RestaurantComponent : Component
 	{
 		if ( !RpcAuthorization.IsOwnerCaller() ) return;
 
+		_placeable ??= Components.Get<PlaceableComponent>();
+
+		// AUDIT FIX B7: Host proximity — client WorldInteract already ranges, but
+		// the RPC previously collected from any building on the map.
+		if ( _placeable is not null
+			&& RpcAuthorization.TryGetCallerFeet( out var feet )
+			&& !CollectibleBuildingHelper.IsWithinCollectRange( feet, _placeable ) )
+		{
+			return;
+		}
+
 		var state = ZooState.Instance;
 
 		var amount = (int)Uncollected;
@@ -48,7 +59,13 @@ public sealed class RestaurantComponent : Component
 			return;
 
 		var name = _placeable?.Definition?.DisplayName ?? "building";
-		state.AddMoney( amount );
+
+		// AUDIT FIX B9: Pass isIncome:true so amenity collections count toward
+		// TotalEarned / daily EarnIncome goals (ticket revenue already did).
+		// Revert: state.AddMoney( amount ); if restaurant should stay "bonus pocket".
+		state.AddMoney( amount, isIncome: true );
 		state.Notify( $"Collected ${amount:n0} from {name}", "storefront" );
+		// wasEconomyGain path used to RequestSave via GameEvents; isIncome skips that.
+		SaveSystem.Instance?.RequestSave();
 	}
 }

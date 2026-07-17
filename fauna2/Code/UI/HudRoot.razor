@@ -510,12 +510,14 @@
 		UiState.RefreshPointerState( Scene );
 
 		if ( IsZooOwner && Input.Pressed( "Backpack" ) ) UiState.ToggleBackpack();
-		if ( Input.Pressed( "BuildMenu" ) ) UiState.Toggle( UiPage.Build );
-		if ( Input.Pressed( "Market" ) ) UiState.Toggle( UiPage.Market );
-		if ( Input.Pressed( "Codex" ) ) UiState.Toggle( UiPage.Codex );
-		if ( Input.Pressed( "Progression" ) ) UiState.Toggle( UiPage.Progression );
-		if ( Input.Pressed( "ZooPanel" ) ) UiState.Toggle( UiPage.Zoo );
-		if ( Input.Pressed( "StatsMenu" ) ) UiState.Toggle( UiPage.Stats );
+		// AUDIT FIX B11: route hotkeys through TogglePage so visitors cannot open
+		// Build/Market via keybind while the toolbar already blocks those pages.
+		if ( Input.Pressed( "BuildMenu" ) ) TogglePage( UiPage.Build );
+		if ( Input.Pressed( "Market" ) ) TogglePage( UiPage.Market );
+		if ( Input.Pressed( "Codex" ) ) TogglePage( UiPage.Codex );
+		if ( Input.Pressed( "Progression" ) ) TogglePage( UiPage.Progression );
+		if ( Input.Pressed( "ZooPanel" ) ) TogglePage( UiPage.Zoo );
+		if ( Input.Pressed( "StatsMenu" ) ) TogglePage( UiPage.Stats );
 		if ( Input.Pressed( "ExpandLand" ) ) BeginExpand();
 		if ( Input.Pressed( "Demolish" ) ) BeginDemolish();
 		if ( Input.Pressed( "Cancel" ) ) HandleCancelInput();

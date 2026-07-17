@@ -201,12 +201,14 @@ public sealed class ThornsPlayerDoor : Component
 		if ( !_frame.IsValid() || pawnRoot is null || !pawnRoot.IsValid() )
 			return false;
 
+		// AUDIT FIX: blank owner no longer means "anyone may open" — see ThornsBuildingOwnership.
 		var ownerKey = _frame.OwnerAccountKey ?? "";
-		if ( string.IsNullOrWhiteSpace( ownerKey ) )
-			return true;
-
 		var pawnKey = ThornsPersistenceIdentity.GetStableAccountKey( pawnRoot );
-		return string.Equals( ownerKey, pawnKey, StringComparison.OrdinalIgnoreCase );
+		var gameplay = pawnRoot.Components.Get<ThornsPlayerGameplay>( FindMode.EnabledInSelf );
+		if ( gameplay.IsValid() && !string.IsNullOrWhiteSpace( gameplay.AccountKey ) )
+			pawnKey = gameplay.AccountKey;
+
+		return ThornsBuildingOwnership.HostAccountMayUseStructure( ownerKey, pawnKey );
 	}
 
 	bool HostCallerIsOwner( Connection caller )
@@ -214,12 +216,10 @@ public sealed class ThornsPlayerDoor : Component
 		if ( caller is null || !_frame.IsValid() )
 			return false;
 
+		// AUDIT FIX: same ownership rule as HostCanModify / storage.
 		var ownerKey = _frame.OwnerAccountKey ?? "";
-		if ( string.IsNullOrWhiteSpace( ownerKey ) )
-			return true;
-
 		var callerKey = ThornsPersistenceIdentity.GetStableAccountKey( caller );
-		return string.Equals( ownerKey, callerKey, StringComparison.OrdinalIgnoreCase );
+		return ThornsBuildingOwnership.HostAccountMayUseStructure( ownerKey, callerKey );
 	}
 
 	bool HostValidateCallerInRange( Connection caller )

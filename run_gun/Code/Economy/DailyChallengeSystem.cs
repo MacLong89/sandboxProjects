@@ -27,21 +27,21 @@ public sealed class DailyChallengeSystem
 
 	public string ModifierName => ActiveModifier switch
 	{
-		DailyModifier.DoubleEnemyHp => "Iron Brutes",
-		DailyModifier.CritGatesOnly => "Sharpshooter Gates",
-		DailyModifier.FastEnemies => "Rush Hour",
-		DailyModifier.BonusCoins => "Payday",
-		DailyModifier.HardMode => "Nightmare",
+		DailyModifier.DoubleEnemyHp => "Armored Patrol",
+		DailyModifier.CritGatesOnly => "Deadeye Night",
+		DailyModifier.FastEnemies => "Riot Response",
+		DailyModifier.BonusCoins => "Loot Spree",
+		DailyModifier.HardMode => "Crackdown",
 		_ => "Standard",
 	};
 
 	public string ModifierDescription => ActiveModifier switch
 	{
-		DailyModifier.DoubleEnemyHp => "Enemies have double HP.",
-		DailyModifier.CritGatesOnly => "Gates only offer crit and damage.",
-		DailyModifier.FastEnemies => "Enemies move 50% faster.",
-		DailyModifier.BonusCoins => "Earn 2x coins this run.",
-		DailyModifier.HardMode => "Enemies tougher and faster.",
+		DailyModifier.DoubleEnemyHp => "Security has double HP.",
+		DailyModifier.CritGatesOnly => "Gates favor crit and damage.",
+		DailyModifier.FastEnemies => "Security rushes 50% faster.",
+		DailyModifier.BonusCoins => "Double cash this riot.",
+		DailyModifier.HardMode => "Tougher, faster security.",
 		_ => "No modifier today.",
 	};
 

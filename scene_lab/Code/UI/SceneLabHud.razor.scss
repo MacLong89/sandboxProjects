@@ -1,0 +1,112 @@
+SceneLabHud
+{
+	position: absolute;
+	left: 0;
+	top: 0;
+	width: 100%;
+	height: 100%;
+	pointer-events: none;
+	font-family: Poppins, sans-serif;
+
+	.panel
+	{
+		position: absolute;
+		left: 24px;
+		bottom: 28px;
+		padding: 14px 18px;
+		background-color: rgba( 8, 12, 18, 0.55 );
+		border-left: 3px solid #7ad4ff;
+		color: #f2f6fa;
+		max-width: 420px;
+	}
+
+	.badge
+	{
+		font-size: 11px;
+		letter-spacing: 2px;
+		color: #7ad4ff;
+		margin-bottom: 4px;
+	}
+
+	.title
+	{
+		font-size: 22px;
+		font-weight: 600;
+		margin-bottom: 4px;
+	}
+
+	.notes
+	{
+		font-size: 13px;
+		color: #c5d0da;
+		margin-bottom: 10px;
+	}
+
+	.hints
+	{
+		display: flex;
+		flex-wrap: wrap;
+		gap: 10px;
+		font-size: 12px;
+		color: #9eb0c0;
+		margin-bottom: 10px;
+	}
+
+	.legend-title
+	{
+		font-size: 12px;
+		letter-spacing: 1px;
+		color: #7ad4ff;
+		margin-bottom: 6px;
+	}
+
+	.legend
+	{
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+		margin-bottom: 10px;
+	}
+
+	.legend-row
+	{
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		gap: 8px;
+		font-size: 12px;
+	}
+
+	.swatch
+	{
+		width: 14px;
+		height: 14px;
+		border: 1px solid rgba( 255, 255, 255, 0.35 );
+		flex-shrink: 0;
+
+		&.skyscraper { background-color: #DB33E6; }
+		&.office { background-color: #2673F2; }
+		&.apartment { background-color: #FA7A1A; }
+		&.factory { background-color: #F2D91F; }
+		&.warehouse { background-color: #1AC7B8; }
+		&.house { background-color: #E6D6B8; }
+	}
+
+	.legend-label
+	{
+		color: #e8eef4;
+		min-width: 120px;
+	}
+
+	.legend-hex
+	{
+		color: #8a9aab;
+		font-size: 11px;
+	}
+
+	.export
+	{
+		font-size: 11px;
+		color: #7a8a98;
+	}
+}

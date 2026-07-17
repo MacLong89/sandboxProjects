@@ -34,7 +34,7 @@ public sealed class RunnerPlayer : Component
 		var blocking = core.IsUiBlocking;
 		Mouse.Visibility = blocking ? MouseVisibility.Visible : MouseVisibility.Hidden;
 
-		if ( core.Run.Active )
+		if ( core.Run.Active && !core.IsUiBlocking )
 		{
 			if ( Input.Pressed( "Jump" ) && core.Run.TryActivateOverdrive() )
 				Sfx.Play( Sfx.Overdrive );
@@ -81,7 +81,7 @@ public sealed class RunnerPlayer : Component
 	private void BuildBody()
 	{
 		var visual = Components.Create<CitizenVisual>();
-		visual.BodyTint = new Color( 0.3f, 0.62f, 1f );
+		visual.BodyTint = DistrictTheme.CrowdTint;
 		visual.BodyScale = 1f;
 	}
 

@@ -9,5 +9,9 @@ public static class ThornsPerfSettings
 	[ConVar( "thorns_perf_trace" )]
 	public static bool PerfTrace { get; set; }
 
+	/// <summary>Hide gameplay HUD chrome — console <c>thorns_hide_hud 1</c> or hotkey 0.</summary>
+	[ConVar( "thorns_hide_hud" )]
+	public static bool HideHud { get; set; }
+
 	public static bool ShouldShowDebugHud => DebugHud;
 }

@@ -1,22 +1,28 @@
 namespace FinalOutpost;
 
 /// <summary>
-/// Fetches the five recruit world models from individual cloud packages at runtime
-/// (without mounting the full facepunch.sboxweapons collection).
+/// Loads recruit weapon world models from the mounted <c>facepunch.sboxweapons</c> package
+/// (or individual cloud weapon packages as fallback). Pulls packages onto disk when missing
+/// so players without the Library content pre-installed still get weapon meshes.
 /// </summary>
 public sealed class WeaponModelLoader : Component
 {
 	public static WeaponModelLoader Instance { get; private set; }
 
+	/// <summary>True after the mount pass finished (success or box-fallback).</summary>
+	public static bool IsReady { get; private set; }
+
+	const string SboxWeaponsPackage = "facepunch.sboxweapons";
+
 	private readonly Dictionary<string, Model> _models = new();
 
 	private static readonly (string CloudIdent, string Path)[] Weapons =
 	{
-		("facepunch.w_usp", WeaponModels.PistolWorld),
-		("facepunch.w_mp5", WeaponModels.SmgWorld),
-		("facepunch.w_m4a1", WeaponModels.RifleWorld),
-		("facepunch.w_spaghellim4", WeaponModels.ShotgunWorld),
-		("facepunch.w_m700", WeaponModels.SniperWorld)
+		( "facepunch.w_usp", WeaponModels.PistolWorld ),
+		( "facepunch.w_mp5", WeaponModels.SmgWorld ),
+		( "facepunch.w_m4a1", WeaponModels.RifleWorld ),
+		( "facepunch.w_spaghellim4", WeaponModels.ShotgunWorld ),
+		( "facepunch.w_m700", WeaponModels.SniperWorld )
 	};
 
 	protected override void OnAwake() => Instance = this;
@@ -28,42 +34,79 @@ public sealed class WeaponModelLoader : Component
 
 	protected override async void OnStart()
 	{
-		foreach ( var (ident, path) in Weapons )
+		IsReady = false;
+
+		var mounted = await TryMountPackage( SboxWeaponsPackage );
+
+		foreach ( var (cloudIdent, path) in Weapons )
 		{
-			if ( TryLoadLocal( path ) )
+			if ( mounted && TryCacheModel( path ) )
 				continue;
 
-			await FetchCloudWeapon( ident, path );
+			await FetchCloudWeapon( cloudIdent, path );
+
+			if ( !_models.ContainsKey( path ) )
+				Log.Warning( $"[FinalOutpost] Weapon '{path}' unavailable — recruits use box placeholder until remount." );
 		}
 
+		IsReady = true;
 		DefenderManager.Instance?.RefreshWeaponModels();
+		Log.Info( $"[FinalOutpost] Weapon models ready ({_models.Count}/{Weapons.Length} loaded)." );
 	}
 
 	public Model Get( string path ) =>
 		!string.IsNullOrWhiteSpace( path ) && _models.TryGetValue( path, out var model ) ? model : null;
 
-	private bool TryLoadLocal( string path )
+	/// <summary>
+	/// Fetch + MountAsync. Second arg <c>true</c> lets the client download the package when
+	/// it is not already on disk (same pattern as Thorns / YA bootstraps).
+	/// </summary>
+	private static async Task<bool> TryMountPackage( string ident )
 	{
 		try
 		{
-			var model = Model.Load( path );
-			if ( model is null || model.IsError )
+			var package = await Package.Fetch( ident, true );
+			if ( package?.Revision is null )
+			{
+				Log.Warning( $"[FinalOutpost] {ident} not found on cloud — weapon meshes may use placeholders." );
 				return false;
+			}
 
-			_models[path] = model;
+			if ( package.IsMounted() )
+			{
+				Log.Info( $"[FinalOutpost] Package already mounted: {ident}" );
+				return true;
+			}
+
+			await package.MountAsync();
+			Log.Info( $"[FinalOutpost] Mounted {ident}." );
 			return true;
 		}
-		catch
+		catch ( Exception e )
 		{
+			Log.Warning( $"[FinalOutpost] Failed to mount {ident}: {e.Message}" );
 			return false;
 		}
 	}
 
+	private bool TryCacheModel( string path )
+	{
+		var model = AssetSafe.Model( path );
+		if ( model is null )
+			return false;
+
+		_models[path] = model;
+		return true;
+	}
+
 	private async Task FetchCloudWeapon( string cloudIdent, string path )
 	{
+		if ( _models.ContainsKey( path ) )
+			return;
+
 		try
 		{
-			var package = await Package.Fetch( cloudIdent, false );
+			var package = await Package.Fetch( cloudIdent, true );
 			if ( package?.Revision is null )
 			{
 				Log.Warning( $"[FinalOutpost] Weapon cloud package not found: {cloudIdent}" );
@@ -79,14 +122,15 @@ public sealed class WeaponModelLoader : Component
 				return;
 			}
 
-			var model = Model.Load( primary );
-			if ( model is null || model.IsError )
+			var model = AssetSafe.Model( primary );
+			if ( model is null )
 			{
 				Log.Warning( $"[FinalOutpost] Weapon model failed to load: {cloudIdent} ({primary})" );
 				return;
 			}
 
 			_models[path] = model;
+			Log.Info( $"[FinalOutpost] Loaded weapon from cloud: {cloudIdent}" );
 		}
 		catch ( Exception e )
 		{

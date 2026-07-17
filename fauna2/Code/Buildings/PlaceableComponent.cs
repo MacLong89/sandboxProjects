@@ -178,12 +178,11 @@ public sealed class PlaceableComponent : Component
 
 		if ( propKey == "habitat_ground" )
 		{
-			HabitatGroundOverlay.Attach(
+			HabitatGround.Attach(
 				root,
 				HabitatSizing.EffectiveFootprint( def.HabitatSize ),
 				def.HabitatBiome,
-				alpha,
-				context: $"placeable def={Defs.IdOf( def )}" );
+				alpha );
 			return root;
 		}
 

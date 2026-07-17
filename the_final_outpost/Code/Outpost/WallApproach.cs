@@ -16,6 +16,14 @@ public static class WallApproach
 		return d.x >= 0f ? WallApproachSide.East : WallApproachSide.West;
 	}
 
+	public static Vector3 OutwardNormal( WallApproachSide side ) => side switch
+	{
+		WallApproachSide.North => new Vector3( 0f, 1f, 0f ),
+		WallApproachSide.South => new Vector3( 0f, -1f, 0f ),
+		WallApproachSide.East => new Vector3( 1f, 0f, 0f ),
+		_ => new Vector3( -1f, 0f, 0f )
+	};
+
 	public static Vector3 SideAnchor( WallApproachSide side ) => side switch
 	{
 		WallApproachSide.North => new Vector3( 0f, Half, 0f ),
@@ -75,16 +83,28 @@ public static class WallApproach
 		return best;
 	}
 
-	/// <summary>World point just inside the perimeter through the gap on this side.</summary>
-	public static Vector3 InwardWaypoint( IReadOnlyList<WallSegment> walls, WallApproachSide side, Vector3 corePos )
+	/// <summary>
+	/// World point just inside the perimeter through the gap on this side.
+	/// Prefer the nearest broken segment to <paramref name="near"/> so zombies aim for the
+	/// actual hole instead of always the first broken wall in list order.
+	/// </summary>
+	public static Vector3 InwardWaypoint( IReadOnlyList<WallSegment> walls, WallApproachSide side, Vector3 corePos, Vector3 near = default )
 	{
 		Vector3 breachPoint = SideAnchor( side );
+		var bestDist = float.MaxValue;
+		var found = false;
 
 		foreach ( var w in walls )
 		{
 			if ( !IsOnSide( w, side ) || !w.IsBroken ) continue;
+			var d = near == default
+				? 0f
+				: (w.Center - near).WithZ( 0f ).LengthSquared;
+			if ( found && d >= bestDist ) continue;
+			bestDist = d;
 			breachPoint = w.Center;
-			break;
+			found = true;
+			if ( near == default ) break;
 		}
 
 		var inward = (corePos - breachPoint).WithZ( 0f );
@@ -92,9 +112,111 @@ public static class WallApproach
 			inward = -SideAnchor( side );
 		inward = inward.Normal;
 
-		return breachPoint + inward * 140f;
+		return breachPoint + inward * (GameConstants.CellSize * 2f);
 	}
 
-	public static bool IsOutsideWalls( Vector3 pos, Vector3 corePos ) =>
-		(pos - corePos).WithZ( 0f ).Length > GameConstants.ArenaHalf * 0.78f;
+	/// <summary>
+	/// Landing spot just inside the ring for a wall vault — keeps lateral position near <paramref name="from"/>.
+	/// </summary>
+	public static Vector3 VaultLanding( Vector3 from, Vector3 corePos, WallApproachSide side )
+	{
+		var inward = -OutwardNormal( side );
+		var inset = GameConstants.CellSize * GameConstants.ZombieWallJumpLandInset;
+		var land = SideAnchor( side ) + inward * inset;
+
+		// Preserve approach lateral so runners don't funnel to the side midpoint.
+		switch ( side )
+		{
+			case WallApproachSide.North:
+			case WallApproachSide.South:
+				land.x = Math.Clamp( from.x, -Half + GameConstants.CellSize, Half - GameConstants.CellSize );
+				break;
+			default:
+				land.y = Math.Clamp( from.y, -Half + GameConstants.CellSize, Half - GameConstants.CellSize );
+				break;
+		}
+
+		return ClampInsideCourtyard( land, corePos );
+	}
+
+	/// <summary>Outside takeoff just before the perimeter face for a vault.</summary>
+	public static Vector3 VaultTakeoff( Vector3 from, WallApproachSide side )
+	{
+		var outward = OutwardNormal( side );
+		var face = SideAnchor( side ) + outward * (GameConstants.WallThickness * 0.5f + GameConstants.ZombiePathRadius + 4f );
+		switch ( side )
+		{
+			case WallApproachSide.North:
+			case WallApproachSide.South:
+				face.x = Math.Clamp( from.x, -Half + GameConstants.CellSize, Half - GameConstants.CellSize );
+				break;
+			default:
+				face.y = Math.Clamp( from.y, -Half + GameConstants.CellSize, Half - GameConstants.CellSize );
+				break;
+		}
+
+		return face.WithZ( 0f );
+	}
+
+	public static bool IsOutsideWalls( Vector3 pos, Vector3 corePos )
+	{
+		var p = (pos - corePos).WithZ( 0f );
+		// Square ring — outside once past the outer face of the perimeter cells.
+		var outer = GameConstants.ArenaHalf + GameConstants.WallThickness * 0.5f;
+		return MathF.Abs( p.x ) >= outer || MathF.Abs( p.y ) >= outer;
+	}
+
+	/// <summary>
+	/// True only while outside or still in the thin wall-thickness band.
+	/// Once past that into the courtyard, normal pathing + HQ detours take over
+	/// (wide "inner = ArenaHalf - CellSize" kept agents skating the interior wall face).
+	/// </summary>
+	public static bool NeedsBreachEntry( Vector3 pos, Vector3 corePos )
+	{
+		if ( IsOutsideWalls( pos, corePos ) )
+			return true;
+
+		var p = (pos - corePos).WithZ( 0f );
+		var ring = GameConstants.ArenaHalf;
+		var band = GameConstants.WallPathDepth + GameConstants.ZombiePathRadius + 10f;
+		var ax = MathF.Abs( p.x );
+		var ay = MathF.Abs( p.y );
+		return ax >= ring - band || ay >= ring - band;
+	}
+
+	/// <summary>
+	/// Max |coord| where a zombie probe no longer overlaps the outer wall ring cell
+	/// (wall cell spans [ArenaHalf-CellSize, ArenaHalf)).
+	/// </summary>
+	public static float CourtyardClearHalf( float agentRadius = -1f )
+	{
+		if ( agentRadius < 0.01f )
+			agentRadius = GameConstants.ZombiePathRadius;
+		return GameConstants.ArenaHalf - GameConstants.CellSize - agentRadius - 4f;
+	}
+
+	/// <summary>True while still close enough that path radius overlaps a perimeter wall cell.</summary>
+	public static bool OverlapsPerimeterPath( Vector3 pos, Vector3 corePos, float agentRadius = -1f )
+	{
+		var clear = CourtyardClearHalf( agentRadius );
+		var p = (pos - corePos).WithZ( 0f );
+		return MathF.Abs( p.x ) > clear || MathF.Abs( p.y ) > clear;
+	}
+
+	/// <summary>Pull a point into open courtyard so goals never sit on the interior wall face.</summary>
+	public static Vector3 ClampInsideCourtyard( Vector3 pos, Vector3 corePos, float agentRadius = -1f )
+	{
+		var clear = CourtyardClearHalf( agentRadius );
+		var p = (pos - corePos).WithZ( 0f );
+		p.x = Math.Clamp( p.x, -clear, clear );
+		p.y = Math.Clamp( p.y, -clear, clear );
+		return (corePos + p).WithZ( 0f );
+	}
+
+	/// <summary>True once the agent has crossed the inward breach waypoint toward the core.</summary>
+	public static bool PastBreachWaypoint( Vector3 pos, WallApproachSide side, Vector3 waypoint )
+	{
+		var inward = -OutwardNormal( side );
+		return Vector3.Dot( (pos - waypoint).WithZ( 0f ), inward ) > GameConstants.CellSize * 0.25f;
+	}
 }

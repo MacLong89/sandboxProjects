@@ -54,7 +54,39 @@
       "NetworkOrphaned": 0,
       "NetworkTransmit": false,
       "OwnerTransfer": 1,
-      "Components": [],
+      "Components": [
+        {
+          "__type": "Sandbox.ScreenPanel",
+          "__guid": "1d77d60c-7d5b-48d5-a7da-1d1fd0f9a010",
+          "__enabled": true,
+          "Flags": 0,
+          "AutoScreenScale": true,
+          "OnComponentDestroy": null,
+          "OnComponentDisabled": null,
+          "OnComponentEnabled": null,
+          "OnComponentFixedUpdate": null,
+          "OnComponentStart": null,
+          "OnComponentUpdate": null,
+          "Opacity": 1,
+          "Scale": 1,
+          "TargetCamera": null,
+          "ZIndex": 10000
+        },
+        {
+          "__type": "Terraingen.UI.Menu.ThornsMenuSceneBootstrap",
+          "__guid": "1d77d60c-7d5b-48d5-a7da-1d1fd0f9a011",
+          "__enabled": true,
+          "Flags": 0,
+          "CreateMenuUi": true,
+          "MenuCameraObject": null,
+          "OnComponentDestroy": null,
+          "OnComponentDisabled": null,
+          "OnComponentEnabled": null,
+          "OnComponentFixedUpdate": null,
+          "OnComponentStart": null,
+          "OnComponentUpdate": null
+        }
+      ],
       "Children": []
     },
     {

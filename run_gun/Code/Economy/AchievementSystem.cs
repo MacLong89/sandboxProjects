@@ -38,13 +38,13 @@ public sealed class AchievementSystem
 
 	public static readonly IReadOnlyList<AchievementDef> All = new List<AchievementDef>
 	{
-		new() { Id = AchievementId.FirstBlood, Key = "first_blood", Name = "First Blood", Description = "Kill your first brute.", Icon = "whatshot", CashReward = 100 },
-		new() { Id = AchievementId.Distance500, Key = "dist_500", Name = "Half K", Description = "Reach 500m in one run.", Icon = "flag", CashReward = 500 },
-		new() { Id = AchievementId.Distance1000, Key = "dist_1000", Name = "Kilometer Club", Description = "Reach 1000m in one run.", Icon = "emoji_events", CashReward = 1500 },
+		new() { Id = AchievementId.FirstBlood, Key = "first_blood", Name = "First Clash", Description = "Drop your first security unit.", Icon = "whatshot", CashReward = 100 },
+		new() { Id = AchievementId.Distance500, Key = "dist_500", Name = "City Block", Description = "Reach 500m in one riot.", Icon = "flag", CashReward = 500 },
+		new() { Id = AchievementId.Distance1000, Key = "dist_1000", Name = "District Sweep", Description = "Reach 1000m in one riot.", Icon = "emoji_events", CashReward = 1500 },
 		new() { Id = AchievementId.Combo25, Key = "combo_25", Name = "On Fire", Description = "Hit a 25 kill combo.", Icon = "local_fire_department", CashReward = 800 },
-		new() { Id = AchievementId.BossSlayer, Key = "boss_slayer", Name = "Boss Slayer", Description = "Defeat a boss.", Icon = "skull", CashReward = 1000 },
+		new() { Id = AchievementId.BossSlayer, Key = "boss_slayer", Name = "Boss Breaker", Description = "Defeat a riot boss.", Icon = "skull", CashReward = 1000 },
 		new() { Id = AchievementId.EliteHunter, Key = "elite_10", Name = "Elite Hunter", Description = "Kill 10 elites in one run.", Icon = "military_tech", CashReward = 1200 },
-		new() { Id = AchievementId.Prestige1, Key = "prestige_1", Name = "Ascended", Description = "Prestige once.", Icon = "auto_awesome", CashReward = 2000 },
+		new() { Id = AchievementId.Prestige1, Key = "prestige_1", Name = "Escalated", Description = "Escalate once.", Icon = "auto_awesome", CashReward = 2000 },
 		new() { Id = AchievementId.Rich, Key = "rich", Name = "Loaded", Description = "Bank $50,000 total.", Icon = "savings", CashReward = 3000 },
 	};
 

@@ -149,8 +149,12 @@ public sealed class RunState
 		switch ( stat )
 		{
 			case BuildStat.Squad:
-				if ( op == GateOp.Add ) AddSquad( (int)MathF.Round( value ) );
-				else MultSquad( value );
+				if ( op == GateOp.Mult )
+					MultSquad( value );
+				else if ( value >= 0f )
+					AddSquad( (int)MathF.Round( value ) );
+				else
+					LoseSquadUnavoidable( (int)MathF.Round( -value ) );
 				break;
 			case BuildStat.Damage:
 				Damage = op == GateOp.Add ? Damage + value : Damage * value;
@@ -171,7 +175,6 @@ public sealed class RunState
 				Shield += value;
 				break;
 			case BuildStat.Heal:
-				// Legacy "heal" now reinforces the crew directly.
 				AddSquad( (int)MathF.Round( value * 0.4f ) );
 				break;
 			case BuildStat.CoinMult:
@@ -182,6 +185,13 @@ public sealed class RunState
 
 	public float PumpGateValue( BuildStat stat, GateOp op, float value )
 	{
+		// Trap gates stay fixed — shooting them shouldn't "fix" a -8 into -2.
+		if ( stat == BuildStat.Squad && op == GateOp.Add && value < 0f )
+			return value;
+
+		if ( stat == BuildStat.Squad && op == GateOp.Mult )
+			return MathF.Min( GameConstants.GateSquadMultCap, value + GameConstants.GateSquadMultPump );
+
 		if ( stat == BuildStat.Squad )
 			return MathF.Min( GameConstants.GateSquadAddCap, value + GameConstants.GateSquadAddPump );
 
@@ -201,6 +211,10 @@ public sealed class RunState
 			_ => value + GameConstants.GateAddPumpPerHit,
 		};
 	}
+
+	/// <summary>How much wider the mob is for hazard/enemy collisions — fat crowds clip more.</summary>
+	public float CrowdFat =>
+		MathF.Min( GameConstants.CrowdFatCap, Squad * GameConstants.CrowdFatPerRunner );
 
 	public bool RollCrit() => Game.Random.Float( 0f, 1f ) < CritChance;
 
@@ -280,7 +294,21 @@ public sealed class RunState
 		ComboDecayTimer = 0f;
 	}
 
-	/// <summary>Runners lost to a hazard scale with crowd size so a hit always stings.</summary>
+	/// <summary>Hazards and red gates bypass shield and Surge. Bad movement must always cost crew.</summary>
+	public void LoseSquadUnavoidable( int count )
+	{
+		if ( count <= 0 ) return;
+
+		var before = SquadInt;
+		Squad = MathF.Max( 0f, Squad - count );
+		LastSquadDelta = SquadInt - before;
+		SquadFlashTimer = 0.45f;
+		ComboCount = 0;
+		NoHitStreak = 0;
+		ComboDecayTimer = 0f;
+	}
+
+	/// <summary>Hazards remove most of the current mob and can wipe a small group outright.</summary>
 	public int HazardSquadCost() =>
 		Math.Max( GameConstants.HazardSquadLossMin, (int)MathF.Ceiling( Squad * GameConstants.HazardSquadLossFraction ) );
 

@@ -23,7 +23,11 @@ public static class Sfx
 	public const string UiClick = "sounds/fo_button.sound";
 
 	/// <summary>When true, every <see cref="Play"/> call writes a line to the console.</summary>
-	public static bool LogPlays { get; set; } = true;
+	/// <summary>
+	/// AUDIT FIX M4 (2026-07): defaulted true and spammed every Sfx.Play in production.
+	/// Flip true only when diagnosing missing/duplicate audio.
+	/// </summary>
+	public static bool LogPlays { get; set; } = false;
 
 	private static readonly HashSet<string> _missing = new();
 	private static string _lastDupKey;

@@ -53,6 +53,14 @@ public sealed class ZooPlayerController : Component
 			return;
 		}
 
+		// AUDIT FIX B11: block WASD while intro / catch / loading overlays own focus.
+		if ( !Fauna2.UI.UiState.CanWorldInput )
+		{
+			NetPosition = GameObject.WorldPosition;
+			NetAnimFrame = 0;
+			return;
+		}
+
 		var move = Input.AnalogMove;
 		var wish = Vector3.Zero;
 

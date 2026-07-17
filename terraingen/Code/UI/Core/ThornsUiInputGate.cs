@@ -3,7 +3,12 @@ namespace Terraingen.UI.Core;
 using Terraingen.Buildings;
 using Terraingen.Player;
 
-/// <summary>Single source of truth for whether gameplay input should reach the world.</summary>
+/// <summary>
+/// Single source of truth for whether gameplay UI overlays should consume world input.
+/// AUDIT NOTE: death is intentionally NOT listed here — see <see cref="Terraingen.Combat.ThornsPlayerActionGate"/>
+/// and <see cref="ThornsPlayerLocomotion.EnforceOverlayInputBlock"/> which combine overlay + death.
+/// Revert caution: adding IsDead here can break death-camera look if other systems assume look stays on.
+/// </summary>
 public static class ThornsUiInputGate
 {
 	public static bool BlocksGameplayInput =>

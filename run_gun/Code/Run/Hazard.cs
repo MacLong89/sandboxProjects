@@ -33,5 +33,5 @@ public sealed class Hazard : Component
 		_slab.Tint = new Color( 1f, 0.16f, 0.12f, 0.8f );
 	}
 
-	public bool Contains( float y ) => y >= MinY && y <= MaxY;
+	public bool Contains( float y, float pad = 0f ) => y >= MinY - pad && y <= MaxY + pad;
 }

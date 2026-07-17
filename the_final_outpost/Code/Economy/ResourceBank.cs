@@ -1,6 +1,6 @@
 namespace FinalOutpost;
 
-/// <summary>Raw resources harvested from plots. Scrap remains the main currency (see PlayerWallet).</summary>
+/// <summary>Stockpiled resources. In Cure, wood/stone can pay building costs like scrap.</summary>
 public enum ResourceKind
 {
 	None,

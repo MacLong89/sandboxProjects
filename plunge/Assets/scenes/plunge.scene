@@ -1,0 +1,61 @@
+{
+  "__guid": "821f3559-a68c-4e54-9fe2-1f4f7129ca14",
+  "GameObjects": [
+    {
+      "__guid": "4a68d9a8-bd45-46f5-a11b-a32c1fd5fb14",
+      "Flags": 0,
+      "Name": "PLUNGE Game",
+      "Position": "0,-1000,0",
+      "Rotation": "0,0,0.7071068,0.7071068",
+      "Scale": "1,1,1",
+      "Tags": "maincamera",
+      "Enabled": true,
+      "Components": [
+        {
+          "__type": "Sandbox.CameraComponent",
+          "__guid": "a5b814a7-27da-4c40-b7f2-8b7bfc3fb3c2",
+          "BackgroundColor": "0.08,0.35,0.48,1",
+          "ClearFlags": "All",
+          "IsMainCamera": true,
+          "Orthographic": true,
+          "OrthographicHeight": 540,
+          "Priority": 1,
+          "RenderExcludeTags": "",
+          "RenderTags": "",
+          "TargetEye": "None",
+          "Viewport": "0,0,1,1",
+          "ZFar": 10000,
+          "ZNear": 1
+        },
+        {
+          "__type": "Sandbox.ScreenPanel",
+          "__guid": "a6dfb885-4eb0-49cf-8d98-2a163a4ccb60",
+          "AutoScreenScale": true,
+          "Opacity": 1,
+          "Scale": 1,
+          "ZIndex": 10
+        },
+        {
+          "__type": "Plunge.PlungeHud",
+          "__guid": "697109bf-7201-4a25-9725-c22c9093835c"
+        },
+        {
+          "__type": "Plunge.PlungeGame",
+          "__guid": "e0c72b4f-baa8-44b3-8989-441a3d7bf920"
+        }
+      ]
+    }
+  ],
+  "SceneProperties": {
+    "FixedUpdateFrequency": 50,
+    "MaxFixedUpdates": 5,
+    "NavMesh": {
+      "Enabled": false,
+      "IncludeStaticBodies": true,
+      "IncludeKeyframedBodies": true,
+      "EditorAutoUpdate": true
+    }
+  },
+  "Title": "PLUNGE",
+  "Description": "A cozy incremental diving adventure."
+}

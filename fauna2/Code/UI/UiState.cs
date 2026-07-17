@@ -102,6 +102,15 @@ public static class UiState
 	/// <summary>Inspect panels or debug — not toolbar page menus (Build, Market, etc.).</summary>
 	public static bool HasBlockingModal => DebugVisible || CatchMinigameOpen || WelcomeIntroVisible;
 
+	// AUDIT FIX B11: Single gate for walk / zoom / world interact.
+	// Previously ZooPlayerController only checked GameStarted, so players walked
+	// during welcome intro, catch overlay, and session loading. Revert: delete
+	// this property and remove CanWorldInput checks from controllers/interact.
+	public static bool CanWorldInput =>
+		GameManager.Instance?.GameStarted == true
+		&& !SessionLoading
+		&& !HasBlockingModal;
+
 	/// <summary>Hide toolbar, objectives, alerts, hints, and toasts under the debug overlay or session boot.</summary>
 	public static bool HideSecondaryHud => DebugVisible || SessionLoading || WelcomeIntroVisible;
 
@@ -230,6 +239,8 @@ public static class UiState
 	private static float _obstacleClearProgress;
 	private static int _obstacleClearSoundsPlayed;
 	private static TimeUntil _obstacleClearUiTick;
+	private static TimeUntil _obstacleClearRetryTick;
+	private const float ObstacleClearCompleteGrace = 1.75f;
 
 	public static void SelectObstacle( string cellKey )
 	{
@@ -262,12 +273,25 @@ public static class UiState
 		if ( obstacle is null || !obstacle.IsValid() )
 			return;
 
+		// Gate locally — host also checks, but previously the UI always ran to 100%
+		// then host soft-failed silently when click-selected trees were outside range.
+		if ( !IsLocalPlayerNearObstacle( obstacle, GameConstants.ObstacleClearRadius ) )
+		{
+			ZooState.Instance?.Notify( "Move closer to clear this.", "warning" );
+			return;
+		}
+
 		_obstacleClearCellKey = SelectedObstacleCellKey;
 		ObstacleClearActive = true;
 		_obstacleClearProgress = 0f;
 		_obstacleClearSoundsPlayed = 0;
 		_obstacleClearUiTick = 0f;
+		_obstacleClearRetryTick = 0f;
 		Revision++;
+
+		// AUDIT FIX B7: Arm host clear session when the local UI timer starts.
+		// RequestClear alone used to complete with no host duration/proximity check.
+		TerrainObstacleSystem.Instance?.RequestBeginClear( _obstacleClearCellKey );
 	}
 
 	public static void CancelObstacleClear()
@@ -301,6 +325,29 @@ public static class UiState
 		}
 	}
 
+	private static bool IsLocalPlayerNearObstacle( TerrainObstacleComponent obstacle, float radius )
+	{
+		if ( obstacle is null || !obstacle.IsValid() )
+			return false;
+
+		var local = PlayerState.Local;
+		if ( local is null || !local.IsValid() )
+			return false;
+
+		var feet = local.FeetPosition;
+		var dx = feet.x - obstacle.WorldPosition.x;
+		var dy = feet.y - obstacle.WorldPosition.y;
+		return (dx * dx + dy * dy) <= radius * radius;
+	}
+
+	private static void FinishObstacleClearUi( string cellKey )
+	{
+		CancelObstacleClear();
+		if ( SelectedObstacleCellKey == cellKey )
+			SelectedObstacleCellKey = null;
+		Revision++;
+	}
+
 	private static void TickObstacleClear()
 	{
 		if ( !ObstacleClearActive )
@@ -309,10 +356,8 @@ public static class UiState
 		var obstacle = ClearingObstacle;
 		if ( obstacle is null || !obstacle.IsValid() )
 		{
-			var cellKey = _obstacleClearCellKey;
-			CancelObstacleClear();
-			if ( SelectedObstacleCellKey == cellKey )
-				SelectedObstacleCellKey = null;
+			// Host destroy succeeded (or object vanished) — treat as success.
+			FinishObstacleClearUi( _obstacleClearCellKey );
 			return;
 		}
 
@@ -324,15 +369,37 @@ public static class UiState
 			Revision++;
 		}
 
-		if ( _obstacleClearProgress < GameConstants.ObstacleClearDuration )
+		var duration = GameConstants.ObstacleClearDuration;
+		if ( _obstacleClearProgress < duration )
+		{
+			// Walked away mid-clear — abort early instead of failing silently at 100%.
+			if ( !IsLocalPlayerNearObstacle( obstacle, GameConstants.ObstacleClearRadius ) )
+			{
+				ZooState.Instance?.Notify( "Moved too far — clear cancelled.", "warning" );
+				CancelObstacleClear();
+				return;
+			}
+
 			return;
+		}
 
 		var clearedKey = obstacle.CellKey;
-		TerrainObstacleSystem.Instance?.RequestClear( clearedKey );
-		CancelObstacleClear();
-		if ( SelectedObstacleCellKey == clearedKey )
-			SelectedObstacleCellKey = null;
-		Revision++;
+
+		// Retry clear (and re-arm begin without resetting host timer) until the
+		// obstacle is destroyed. One-shot RequestClear was racing RPC lag / begin arm.
+		if ( _obstacleClearRetryTick )
+		{
+			_obstacleClearRetryTick = 0.12f;
+			TerrainObstacleSystem.Instance?.RequestBeginClear( clearedKey );
+			TerrainObstacleSystem.Instance?.RequestClear( clearedKey );
+			Revision++;
+		}
+
+		if ( _obstacleClearProgress < duration + ObstacleClearCompleteGrace )
+			return;
+
+		ZooState.Instance?.Notify( "Couldn't clear that — stand closer and try again.", "warning" );
+		FinishObstacleClearUi( clearedKey );
 	}
 
 	public static void OpenBuild( BuildCategory category )

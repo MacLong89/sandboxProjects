@@ -1,0 +1,56 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "id": "road_corridor",
+      "games": ["scene_lab"],
+      "lane": "kit",
+      "kind": "road",
+      "title": "Road corridor (sidewalks + embankments)",
+      "status": "ready",
+      "vmdl": null,
+      "vmat": null,
+      "kit": {
+        "recipe": "road_corridor",
+        "piece": "SceneLab.RoadCorridorPiece",
+        "targetHeight": 10
+      },
+      "tags": ["street", "modular"],
+      "notes": "Code/Pieces/RoadCorridorPiece.cs"
+    },
+    {
+      "id": "tree_pine",
+      "games": ["scene_lab"],
+      "lane": "kit",
+      "kind": "tree",
+      "title": "Kit pine tree",
+      "status": "ready",
+      "vmdl": null,
+      "vmat": null,
+      "kit": {
+        "recipe": "tree",
+        "piece": "SceneLab.TreePinePiece",
+        "targetHeight": 220
+      },
+      "tags": ["vegetation", "modular"],
+      "notes": "Built; place via WorkbenchScene when requested"
+    },
+    {
+      "id": "fire_hydrant",
+      "games": ["scene_lab"],
+      "lane": "kit",
+      "kind": "prop",
+      "title": "Fire hydrant",
+      "status": "ready",
+      "vmdl": null,
+      "vmat": null,
+      "kit": {
+        "recipe": "hydrant",
+        "piece": "SceneLab.FireHydrantPiece",
+        "targetHeight": 38
+      },
+      "tags": ["street", "modular"],
+      "notes": "Built; place via WorkbenchScene when requested"
+    }
+  ]
+}

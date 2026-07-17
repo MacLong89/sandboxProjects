@@ -16,12 +16,20 @@ public sealed class ThornsPlayerHealth : Component
 
 	[Property] public float RespawnDelaySeconds { get; set; } = 3f;
 
+	/// <summary>
+	/// AUDIT FIX: brief host-side damage immunity after respawn (camp prevention).
+	/// Set to 0 to disable. Revert: leave property at 0 or skip HostHasSpawnDamageProtection checks.
+	/// </summary>
+	[Property] public float SpawnDamageProtectSeconds { get; set; } = 3f;
+
 	[Sync( SyncFlags.FromHost )] public float CurrentHealth { get; set; } = 100f;
 
 	[Sync( SyncFlags.FromHost )] public bool IsDeadState { get; set; }
 
 	bool _respawnPending;
 	TimeUntil _respawnIn;
+	/// <summary>Host remaining seconds of post-respawn damage immunity (Relative &gt; 0 = active).</summary>
+	TimeUntil _spawnDamageProtectUntil;
 	bool _wasDeadState;
 	Vector3? _frozenDeathPosition;
 	Vector3? _frozenDeathEyePosition;
@@ -31,16 +39,22 @@ public sealed class ThornsPlayerHealth : Component
 
 	public bool IsAlive => CurrentHealth > 0.001f && !IsDeadState;
 
+	/// <summary>Host: true while post-respawn damage shield has time remaining.</summary>
+	public bool HostHasSpawnDamageProtection =>
+		ThornsMultiplayer.IsHostOrOffline
+		&& SpawnDamageProtectSeconds > 0.001f
+		&& (float)_spawnDamageProtectUntil > 0f;
+
 	protected override void OnStart()
 	{
 		if ( !ThornsLocalPlayer.IsPlayerPawnRoot( GameObject ) )
 			return;
 
 		if ( ThornsMultiplayer.IsHostOrOffline )
-			HostReset();
+			HostReset( applySpawnProtection: false );
 	}
 
-	public void HostReset()
+	public void HostReset( bool applySpawnProtection = false )
 	{
 		if ( !ThornsMultiplayer.IsHostOrOffline )
 			return;
@@ -51,6 +65,12 @@ public sealed class ThornsPlayerHealth : Component
 		_frozenDeathPosition = null;
 		_frozenDeathEyePosition = null;
 		_frozenDeathEyeRotation = null;
+
+		// Initial OnStart spawn should not grant a protect window; only death→respawn should.
+		if ( applySpawnProtection && SpawnDamageProtectSeconds > 0.001f )
+			_spawnDamageProtectUntil = SpawnDamageProtectSeconds;
+		else
+			_spawnDamageProtectUntil = 0f;
 	}
 
 	/// <summary>Host-only heal (capped at max health).</summary>
@@ -85,6 +105,11 @@ public sealed class ThornsPlayerHealth : Component
 	internal bool HostApplyDamageFromPipeline( float amount, GameObject attackerRoot, in ThornsCombatDamage.DamageInfo info )
 	{
 		if ( !ThornsMultiplayer.IsHostOrOffline || amount <= 0f || !IsAlive )
+			return false;
+
+		// AUDIT FIX: spawn protect blocks combat damage but NOT world/starvation (camp vs hunger).
+		if ( HostHasSpawnDamageProtection
+		     && info.DamageTypeId is not ("starvation" or "environment" or "world") )
 			return false;
 
 		CurrentHealth = Math.Max( 0f, CurrentHealth - amount );
@@ -170,7 +195,8 @@ public sealed class ThornsPlayerHealth : Component
 		if ( !GameObject.IsValid() || !ThornsMultiplayer.IsHostOrOffline )
 			return;
 
-		HostReset();
+		// AUDIT FIX: grant spawn damage protection only on death→respawn, not first join.
+		HostReset( applySpawnProtection: true );
 		Components.Get<ThornsPlayerGameplay>()?.HostRefillHungerAndThirstOnRespawn();
 
 		var mount = Components.Get<ThornsPlayerMountController>();
@@ -251,7 +277,11 @@ public sealed class ThornsPlayerHealth : Component
 		if ( !_frozenDeathPosition.HasValue )
 			return;
 
-		GameObject.WorldPosition = _frozenDeathPosition.Value;
+		// AUDIT FIX: only the host (authoritative transform) should freeze WorldPosition.
+		// Clients previously wrote WorldPosition every frame while dead, fighting net sync /
+		// host respawn teleports (jitter / rubber-band). Clients still pin the local death camera.
+		if ( ThornsMultiplayer.IsHostOrOffline )
+			GameObject.WorldPosition = _frozenDeathPosition.Value;
 
 		if ( ThornsLocalPlayer.IsLocallyControlledPawn( GameObject ) )
 			PinDeathCameraPose();

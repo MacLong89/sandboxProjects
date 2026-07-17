@@ -10,6 +10,11 @@ public static class GameConstants
 	public const string SaveFile = "run_gun/save.json";
 	public const float AutosaveInterval = 20f;
 
+	// --- First-session (tiny floor only — stakes stay real) ---
+	public const double FirstRunBonusPayout = 45;      // first wreck only: enough for one cheap upgrade
+	public const int TutorialGateRows = 3;             // teach pick → multiply → trap
+	public const float EarlyHazardDelayMeters = 70f;   // red walls arrive while you're still learning
+
 	// --- World layout ---
 	public const float LaneHalf = 170f;
 	public const float TrackLength = 200_000f;
@@ -17,8 +22,8 @@ public static class GameConstants
 	public const float UnitsPerMeter = 40f;
 
 	// --- Player / run ---
-	public const float RunSpeed = 330f;
-	public const float StrafeSpeedBase = 360f;
+	public const float RunSpeed = 500f;
+	public const float StrafeSpeedBase = 500f;
 	public const float StrafeSpeedPerLevel = 45f;
 	public const float PlayerRadius = 26f;
 	public const float BodyHeight = 74f;
@@ -46,7 +51,7 @@ public static class GameConstants
 	public const float CritChanceCap = 0.65f;
 
 	// --- Squad (the crowd) — your runners ARE your firepower and your life ---
-	public const int StartSquad = 5;               // base crew at run start
+	public const int StartSquad = 4;               // lean start — gates are how you grow
 	public const int SquadPerRecruitLevel = 1;     // "Recruits" meta upgrade (was MaxHealth)
 	public const int MaxSquad = 500;
 	public const int MaxVisibleSquad = 28;         // perf cap on drawn bodies
@@ -60,23 +65,33 @@ public static class GameConstants
 	public const float SquadPopSpeed = 6f;         // how fast a body scales in/out
 	public const float SquadBob = 5f;
 
-	// squad gates — crew is ADD-ONLY now (no xN) so growth stays linear and beatable.
-	public const float GateSquadAddMin = 2f;
-	public const float GateSquadAddMax = 6f;
-	public const float GateSquadAddCap = 30f;      // a single gate can never hand out more than this
-	public const float GateSquadAddPump = 0.2f;    // bullets nudge the gate up only slightly
-	public const float GateSquadDistanceScale = 0.008f;
+	// Big mobs clip hazards/enemies more — growth is power AND liability.
+	public const float CrowdFatPerRunner = 0.55f;
+	public const float CrowdFatCap = 36f;
 
-	// squad damage — how many runners each threat costs
-	public const int SquadContactCostStart = 1;
-	public const int SquadContactCostMax = 3;
-	public const int SquadBossContactCost = 6;
-	public const float HazardSquadLossFraction = 0.28f; // a hazard rips a chunk of the crowd
-	public const int HazardSquadLossMin = 3;
-	public const int ProjectileSquadCost = 1;
+	// squad gates — Count Masters style: +N and xN both exist
+	public const float GateSquadAddMin = 2f;
+	public const float GateSquadAddMax = 9f;
+	public const float GateSquadAddCap = 40f;
+	public const float GateSquadAddPump = 0.35f;
+	public const float GateSquadDistanceScale = 0.01f;
+	public const float GateSquadMultMin = 1.4f;
+	public const float GateSquadMultMax = 2.6f;
+	public const float GateSquadMultCap = 3.5f;
+	public const float GateSquadMultPump = 0.02f;
+	public const float GateSquadTrapMin = 3f;
+	public const float GateSquadTrapMax = 12f;
+
+	// squad damage — leaks hurt; late contacts shred
+	public const int SquadContactCostStart = 2;
+	public const int SquadContactCostMax = 7;
+	public const int SquadBossContactCost = 10;
+	public const float HazardSquadLossFraction = 0.6f;
+	public const int HazardSquadLossMin = 6;
+	public const int ProjectileSquadCost = 2;
 
 	// --- Gates ---
-	public const float GateSpacing = 720f;
+	public const float GateSpacing = 540f;
 	public const float GateWidth = LaneHalf;
 	public const float GateHeight = 190f;
 	public const float GateAddPumpPerHit = 1f;
@@ -120,19 +135,19 @@ public static class GameConstants
 	public const float Tier1Meters = 130f;   // lines + light swarms appear
 	public const float Tier2Meters = 300f;   // walls + pincers appear
 	public const float Tier3Meters = 480f;   // funnels + heavy mixes appear
-	public const float EnemyContactDamageStart = 15f;
-	public const float EnemyAdvanceSpeedStartMult = 0.68f;
-	public const float PackSpawnChanceStart = 0.45f;
+	public const float EnemyContactDamageStart = 18f;
+	public const float EnemyAdvanceSpeedStartMult = 0.78f;
+	public const float PackSpawnChanceStart = 0.55f;
 
 	// --- Hazards (unshootable obstacles you must strafe around) ---
-	public const float HazardStartMeters = 140f;
-	public const float HazardChanceStart = 0.14f;
-	public const float HazardChanceMax = 0.72f;
-	public const float HazardRampMeters = 1000f;
+	public const float HazardStartMeters = 70f;
+	public const float HazardChanceStart = 0.55f;
+	public const float HazardChanceMax = 0.95f;
+	public const float HazardRampMeters = 500f;
 	public const float HazardDamage = 32f;
 	public const float HazardHeight = 155f;
-	public const float HazardMinGap = 120f;   // narrowest guaranteed passable gap
-	public const float HazardMaxGap = 240f;   // widest gap early on
+	public const float HazardMinGap = 95f;    // tight late gaps — fat crowds clip them
+	public const float HazardMaxGap = 200f;
 	public const double EnemyCoinPerHealth = 0.6;
 	public const float EliteSpawnChance = 0.22f;
 	public const float EliteHealthMult = 2.2f;
@@ -148,7 +163,7 @@ public static class GameConstants
 	public const float ProjectileDamage = 22f;
 
 	// --- Boss ---
-	public const float BossIntervalMeters = 600f;
+	public const float BossIntervalMeters = 320f;
 	public const float BossHealthMult = 18f;
 	public const float BossCoinMult = 8f;
 	public const float BossAttackInterval = 3.5f;

@@ -16,6 +16,7 @@
 				</div>
 
 				<div class="center-stats">
+					<div class="district">@DistrictName</div>
 					<div class="distance">@((int)Core.Run.DistanceMeters)m</div>
 					<div class="score">@((int)Core.Run.Score) pts</div>
 				</div>
@@ -32,13 +33,18 @@
 
 				@if ( Core.Run.ComboCount > 1 )
 				{
-					<div class="combo">@($"x{Core.Run.ComboCount} COMBO")</div>
+					<div class="combo">@($"x{Core.Run.ComboCount} RIOT")</div>
+				}
+
+				@if ( Core.StatusBannerTime > 0f && !string.IsNullOrEmpty( Core.StatusBanner ) )
+				{
+					<div class="banner">@Core.StatusBanner</div>
 				}
 
 				<div class="overdrive">
 					<div class="overdrive-label">
 						<i class="icon">flash_on</i>
-						@(Core.Run.OverdriveActive ? "OVERDRIVE" : "SPACE — Overdrive")
+						@(Core.Run.OverdriveActive ? "RIOT SURGE" : "SPACE — Riot Surge")
 					</div>
 					<div class="overdrive-track">
 						<div class="overdrive-fill @(Core.Run.OverdriveActive ? "active" : "")" style="width: @(OverdrivePercent)%;"></div>
@@ -54,7 +60,7 @@
 						<i class="icon">groups</i>
 						<span>@SquadCount</span>
 					</div>
-					<div class="crew-label">CREW</div>
+					<div class="crew-label">MOB</div>
 				</div>
 
 				<div class="missions">
@@ -66,7 +72,30 @@
 					}
 				</div>
 
-				<div class="hint">A / D strafe &nbsp;·&nbsp; grow your crew at gates &nbsp;·&nbsp; dodge red walls &nbsp;·&nbsp; SPACE overdrive</div>
+					@if ( (Core.Save.TotalRuns < 2 || !Core.Save.HasCompletedTutorialRun) && Core.Run.DistanceMeters < 100f )
+					{
+						<div class="hint">GREEN grows or powers you · RED always kills crew · dodge walls</div>
+					}
+			</div>
+		}
+
+		@if ( Core.PowerPicks.IsOpen )
+		{
+			<div class="screen pick">
+				<div class="pick-panel">
+					<div class="pick-title">BOSS LOOT</div>
+					<div class="pick-sub">Earned power — pick one</div>
+					<div class="pick-row">
+						@foreach ( var pick in Core.PowerPicks.Choices )
+						{
+							<div class="pick-card" style="border-color: @pick.Tint.Hex;" onclick=@(() => ChoosePick(pick.Id))>
+								<i class="icon">@pick.Icon</i>
+								<div class="pick-name">@pick.Name</div>
+								<div class="pick-desc">@pick.Description</div>
+							</div>
+						}
+					</div>
+				</div>
 			</div>
 		}
 
@@ -74,8 +103,8 @@
 		{
 			<div class="screen">
 				<div class="panel">
-					<div class="title">RUN <span class="amp">&amp;</span> GUN</div>
-					<div class="subtitle">Grow your crew. Pick the bigger gate. Don't get wrecked.</div>
+					<div class="title">RIOT <span class="amp">RUN</span></div>
+					<div class="subtitle">Grow the mob. Survive the street. One bad gate ends the riot.</div>
 					<div class="meta-row">
 						<div class="meta"><span class="k">Best</span><span class="v">@((int)Core.Save.BestDistance)m</span></div>
 						<div class="meta"><span class="k">Score</span><span class="v">@((int)Core.Save.BestScore)</span></div>
@@ -85,9 +114,9 @@
 						<span class="k">Daily:</span> @Core.Daily.ModifierName — @Core.Daily.ModifierDescription
 						@if ( Core.Daily.CompletedToday ) { <span class="done"> ✓</span> }
 					</div>
-					<div class="btn primary" onclick=@Play>PLAY</div>
+					<div class="btn primary" onclick=@Play>START RIOT</div>
 					<div class="btn" onclick=@OpenShop>UPGRADES</div>
-					<div class="btn" onclick=@OpenCharacters>RUNNERS</div>
+					<div class="btn" onclick=@OpenCharacters>LEADERS</div>
 				</div>
 			</div>
 		}
@@ -102,6 +131,10 @@
 						<div class="result"><span class="k">Score</span><span class="v">@((int)Core.LastRunScore)</span></div>
 						<div class="result"><span class="k">Earned</span><span class="v gold">@Format(Core.LastRunReward)</span></div>
 					</div>
+					@if ( Core.LastPayoutBonus > 0 )
+					{
+						<div class="mission-bonus">Starter bonus +@Format(Core.LastPayoutBonus)</div>
+					}
 					@if ( Core.LastMissionReward > 0 )
 					{
 						<div class="mission-bonus">Mission bonus: @Format(Core.LastMissionReward)</div>
@@ -114,9 +147,20 @@
 							</div>
 						}
 					</div>
-					<div class="btn primary" onclick=@Play>RUN AGAIN</div>
-					<div class="btn" onclick=@OpenShop>UPGRADES</div>
-					<div class="btn" onclick=@OpenCharacters>RUNNERS</div>
+
+					@if ( FeaturedDef is not null )
+					{
+						<div class="featured @(CanAffordFeatured ? "" : "locked")" onclick=@BuyFeatured>
+							<div class="featured-kicker">NEXT UPGRADE</div>
+							<div class="featured-name">@FeaturedDef.Name · Lv @(Upgrades.Level(FeaturedDef.Id) + 1)</div>
+							<div class="featured-desc">@FeaturedDef.Description</div>
+							<div class="featured-cost">@(CanAffordFeatured ? $"BUY {Format(Upgrades.NextCost(FeaturedDef.Id))}" : $"NEED {Format(Upgrades.NextCost(FeaturedDef.Id))}")</div>
+						</div>
+					}
+
+					<div class="btn primary" onclick=@Play>RIOT AGAIN</div>
+					<div class="btn" onclick=@OpenShop>ALL UPGRADES</div>
+					<div class="btn" onclick=@OpenCharacters>LEADERS</div>
 				</div>
 			</div>
 		}
@@ -132,8 +176,8 @@
 					</div>
 
 					<div class="prestige-row">
-						<div class="prestige-text">Prestige @Core.Save.PrestigeLevel — permanent coin bonus</div>
-						<div class="btn small @(CanPrestige ? "" : "locked")" onclick=@Prestige>ASCEND</div>
+						<div class="prestige-text">Escalate @Core.Save.PrestigeLevel — permanent loot bonus</div>
+						<div class="btn small @(CanPrestige ? "" : "locked")" onclick=@Prestige>ESCALATE</div>
 					</div>
 
 					<div class="shop-list">
@@ -173,7 +217,7 @@
 			<div class="screen">
 				<div class="shop">
 					<div class="shop-header">
-						<div class="shop-title">RUNNERS</div>
+						<div class="shop-title">LEADERS</div>
 						<div class="shop-cash">@Cash</div>
 						<div class="shop-close" onclick=@CloseCharacters>✕</div>
 					</div>
@@ -223,6 +267,22 @@
 	private bool CanPrestige => Core is not null && Core.Save.PrestigeLevel < 10
 		&& UpgradeSystem.All.Sum( u => Upgrades.Level( u.Id ) ) >= 25;
 
+	private string DistrictName
+	{
+		get
+		{
+			var idx = Core?.Track?.CurrentBiomeIndex ?? 0;
+			return DistrictTheme.Name( idx );
+		}
+	}
+
+	private UpgradeDef FeaturedDef =>
+		Core?.FeaturedUpgrade is { } id ? UpgradeSystem.Def( id ) : null;
+
+	private bool CanAffordFeatured =>
+		FeaturedDef is not null && !Upgrades.IsMaxed( FeaturedDef.Id )
+		&& Core.Wallet.Cash >= Upgrades.NextCost( FeaturedDef.Id );
+
 	private IEnumerable<BuildChip> BuildChips
 	{
 		get
@@ -249,7 +309,9 @@
 	private void OpenCharacters() => Core?.OpenCharacters();
 	private void CloseCharacters() => Core?.CloseCharacters();
 	private void Buy( UpgradeId id ) => Core?.BuyUpgrade( id );
+	private void BuyFeatured() => Core?.BuyFeaturedUpgrade();
 	private void Prestige() => Core?.TryPrestige();
+	private void ChoosePick( PowerPickId id ) => Core?.ChoosePowerPick( id );
 	private void PickCharacter( string id )
 	{
 		if ( Characters.IsUnlocked( id ) ) Core?.SelectCharacter( id );
@@ -277,7 +339,11 @@
 			SquadCount,
 			CrewFlashClass,
 			Core?.Run.OverdriveActive ?? false ),
-		(int)(Core?.Save.BestDistance ?? 0),
-		(int)(Core?.Save.BestScore ?? 0)
+		System.HashCode.Combine(
+			Core?.PowerPicks?.IsOpen ?? false,
+			Core?.FeaturedUpgrade,
+			(int)(Core?.StatusBannerTime ?? 0),
+			Core?.Track?.CurrentBiomeIndex ?? 0,
+			(int)(Core?.Save.BestDistance ?? 0) )
 	);
 }

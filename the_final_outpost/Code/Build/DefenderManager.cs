@@ -1,10 +1,8 @@
 namespace FinalOutpost;
 
 /// <summary>
-/// Recruited defenders that patrol the base by day and auto-fire during the Night. Each recruit
-/// carries one of five gun types (see <see cref="RecruitWeapons"/>) with its own stats, visuals and
-/// animations. Players can buy recruits of a chosen type, or train a type to raise its damage.
-/// Individual recruits are selectable in the world via <see cref="DefenderSelectable"/>.
+/// Recruited defenders patrol by day and auto-defend at night. Player focus/area commands
+/// temporarily override their autonomous targeting; towers remain fully automatic.
 /// </summary>
 public sealed class DefenderManager : Component
 {
@@ -224,6 +222,8 @@ public sealed class DefenderManager : Component
 		var core = GameCore.Instance;
 		if ( core is null ) return;
 
+		DestructionFx.Burst( unit.WorldPos, 0.33f );
+
 		if ( BuildManager.Instance?.Selected is DefenderSelectable sel && sel.Wraps( unit ) )
 			BuildManager.Instance.Deselect();
 
@@ -268,6 +268,38 @@ public sealed class DefenderManager : Component
 		}
 	}
 
+	/// <summary>All living recruits chase and fire on one zombie. Towers are unaffected.</summary>
+	public void OrderAllFocus( ZombieInstance target )
+	{
+		if ( target is null || target.Dead ) return;
+		foreach ( var u in _units )
+		{
+			if ( !u.IsAlive ) continue;
+			u.SetAttackOrder( target );
+		}
+	}
+
+	/// <summary>All living recruits move to a point and engage zombies near it.</summary>
+	public void OrderAllAreaAttack( Vector3 ground )
+	{
+		var target = ground.WithZ( 0f );
+		var guard = GameConstants.ArenaHalf - 70f;
+		if ( target.Length > guard )
+			target = target.Normal * guard;
+
+		foreach ( var u in _units )
+		{
+			if ( !u.IsAlive ) continue;
+			u.SetAreaAttackOrder( target );
+		}
+	}
+
+	public void ClearAllOrders()
+	{
+		foreach ( var u in _units )
+			u.ClearOrder();
+	}
+
 	private static bool IsAssignedToBarracks( DefenderUnit unit, PlacedBuilding barracks ) =>
 		BuildManager.Instance?.GetBarracksForRecruit( unit.SaveIndex ) == barracks;
 
@@ -306,8 +338,10 @@ public sealed class DefenderManager : Component
 			var angle = slot / (float)GameConstants.RecruitsPerBarracks * MathF.PI * 2f;
 			var offset = 48f + slot * 8f;
 			pos = roamCenter + new Vector3( MathF.Cos( angle ) * offset, MathF.Sin( angle ) * offset, 0f );
-			if ( BuildingCollision.BlocksUnit( pos ) )
-				BuildingCollision.TryFindClearPoint( roamCenter, 24f, roamRadius, out pos );
+			if ( BuildingCollision.BlocksUnit( pos )
+			     && !BuildingCollision.TryFindClearPoint( roamCenter, 24f, roamRadius, out pos )
+			     && !BuildingCollision.TryEscape( roamCenter, out pos ) )
+				pos = roamCenter;
 		}
 		else
 		{
@@ -390,6 +424,7 @@ public sealed class DefenderManager : Component
 
 		private float _fireTimer;
 		private UnitLocomotion.WanderState _wander;
+		private UnitLocomotion.SteerState _steer;
 		private float _moveStuckTimer;
 		private UnitOrderKind _orderKind = UnitOrderKind.None;
 		private Vector3 _orderTarget;
@@ -412,10 +447,25 @@ public sealed class DefenderManager : Component
 			if ( target is null || target.Dead ) return;
 			_orderKind = UnitOrderKind.AttackMove;
 			_attackTarget = target;
+			_orderTarget = target.Position.WithZ( 0f );
 			_wander.RepathTimer = 0f;
 		}
 
-		public void ClearOrder() => _orderKind = UnitOrderKind.None;
+		public void SetAreaAttackOrder( Vector3 ground )
+		{
+			_orderKind = UnitOrderKind.AreaAttack;
+			_orderTarget = ground.WithZ( 0f );
+			_attackTarget = null;
+			_wander.Waypoint = _orderTarget;
+			_wander.HasWaypoint = true;
+			_wander.RepathTimer = 0f;
+		}
+
+		public void ClearOrder()
+		{
+			_orderKind = UnitOrderKind.None;
+			_attackTarget = null;
+		}
 
 		public void TickDay( float dt )
 		{
@@ -432,9 +482,18 @@ public sealed class DefenderManager : Component
 				return;
 			}
 
+			if ( _orderKind == UnitOrderKind.AreaAttack )
+			{
+				var areaDef = RecruitWeapons.Get( Type );
+				var areaTrain = DefenderManager.Instance?.TrainLevelOf( Type ) ?? 0;
+				var areaShot = areaDef.Damage + areaTrain * areaDef.DamagePerTrain;
+				TickAreaHunt( dt, speed, GameCore.Instance?.Combat, areaDef, areaShot, areaDef.Range );
+				return;
+			}
+
 			if ( _orderKind == UnitOrderKind.Move )
 			{
-				UnitLocomotion.MoveHumanoid( Go, _orderTarget, dt, speed, ref Aim, Character, ref _moveStuckTimer );
+				UnitLocomotion.MoveHumanoid( Go, _orderTarget, dt, speed, ref Aim, Character, ref _moveStuckTimer, ref _steer );
 				if ( (_orderTarget - Go.WorldPosition).WithZ( 0f ).Length <= UnitLocomotion.ArrivalDistance )
 					_orderKind = UnitOrderKind.None;
 				return;
@@ -450,47 +509,136 @@ public sealed class DefenderManager : Component
 
 			var def = RecruitWeapons.Get( Type );
 			var trainLevel = DefenderManager.Instance?.TrainLevelOf( Type ) ?? 0;
-			var perShot = def.VolleyDamage( trainLevel );
+			var perShot = def.Damage + trainLevel * def.DamagePerTrain;
 			var range = def.Range;
 
-			var pos = Go.WorldPosition;
 			var target = _attackTarget;
 			if ( target is null || target.Dead ) { _orderKind = UnitOrderKind.None; _attackTarget = null; return; }
 
-			var dist = (target.Position - pos).WithZ( 0f ).Length;
-			var muzzle = Character?.MuzzleWorld( Aim ) ?? pos + Vector3.Up * 52f;
-			if ( dist <= range && BuildingCollision.HasLineOfFire( muzzle, target.Position ) )
-			{
-				var to = (target.Position - muzzle).WithZ( 0f );
-				if ( to.Length > 1f )
-					Aim = Rotation.LookAt( to.Normal );
-
-				Go.WorldRotation = Aim;
-				Character?.Tick( Vector3.Zero, Aim );
-
-				_fireTimer -= dt;
-				if ( _fireTimer <= 0f )
-				{
-					FireVolley( combat, def, perShot, muzzle );
-					_fireTimer = def.FireInterval;
-				}
-				return;
-			}
-
-			UnitLocomotion.MoveHumanoid( Go, target.Position, dt, speed, ref Aim, Character, ref _moveStuckTimer );
+			EngageTarget( dt, combat, def, perShot, range, target, speed );
 		}
 
+		/// <summary>
+		/// Recruits auto-defend at night unless the player gives a focus or area order.
+		/// Explicit orders temporarily override autonomous target selection.
+		/// </summary>
 		public void TickNight( float dt, CombatSystem combat, RecruitWeaponDef def, float perShotDamage, float range )
 		{
 			if ( !Go.IsValid() || !IsAlive ) return;
 
+			var speed = GameConstants.DefenderMoveSpeed;
+
+			if ( _orderKind == UnitOrderKind.AttackMove )
+			{
+				if ( _attackTarget is null || _attackTarget.Dead )
+				{
+					_orderKind = UnitOrderKind.None;
+					_attackTarget = null;
+				}
+				else
+				{
+					EngageTarget( dt, combat, def, perShotDamage, range, _attackTarget, speed );
+					return;
+				}
+			}
+
+			if ( _orderKind == UnitOrderKind.AreaAttack )
+			{
+				TickAreaHunt( dt, speed, combat, def, perShotDamage, range );
+				return;
+			}
+
+			TickAutonomousNight( dt, combat, def, perShotDamage, range, speed );
+		}
+
+		private void TickAutonomousNight(
+			float dt,
+			CombatSystem combat,
+			RecruitWeaponDef def,
+			float perShotDamage,
+			float range,
+			float speed )
+		{
 			var pos = Go.WorldPosition;
 			var losOrigin = pos + Vector3.Up * 52f;
 			var target = combat.NearestEngageableZombie( pos, range, losOrigin );
 
 			if ( target is not null )
 			{
-				var muzzle = Character?.MuzzleWorld( Aim ) ?? losOrigin;
+				EngageTarget( dt, combat, def, perShotDamage, range, target, speed );
+				return;
+			}
+
+			var threat = combat.NearestZombie( pos, GameConstants.DefenderAcquireRange );
+			if ( threat is not null )
+			{
+				var guard = GameConstants.ArenaHalf - 70f;
+				var destination = threat.Position.WithZ( 0f );
+				if ( destination.Length > guard )
+					destination = destination.Normal * guard;
+
+				UnitLocomotion.MoveHumanoid(
+					Go, destination, dt, speed, ref Aim, Character, ref _moveStuckTimer, ref _steer );
+				return;
+			}
+
+			TickWander( dt, speed * 0.55f );
+		}
+
+		private void TickAreaHunt( float dt, float speed, CombatSystem combat, RecruitWeaponDef def, float perShotDamage, float range )
+		{
+			if ( combat is null )
+			{
+				UnitLocomotion.MoveHumanoid( Go, _orderTarget, dt, speed, ref Aim, Character, ref _moveStuckTimer, ref _steer );
+				return;
+			}
+
+			if ( _attackTarget is not null && !_attackTarget.Dead )
+			{
+				var toFocus = (_attackTarget.Position - _orderTarget).WithZ( 0f ).Length;
+				if ( toFocus <= GameConstants.NightAreaEngageRadius )
+				{
+					EngageTarget( dt, combat, def, perShotDamage, range, _attackTarget, speed );
+					return;
+				}
+
+				_attackTarget = null;
+			}
+
+			var nearPoint = combat.NearestZombie( _orderTarget, GameConstants.NightAreaEngageRadius );
+			if ( nearPoint is not null && !nearPoint.Dead )
+			{
+				_attackTarget = nearPoint;
+				EngageTarget( dt, combat, def, perShotDamage, range, nearPoint, speed );
+				return;
+			}
+
+			if ( (_orderTarget - Go.WorldPosition).WithZ( 0f ).Length <= UnitLocomotion.ArrivalDistance )
+			{
+				_orderKind = UnitOrderKind.None;
+				_attackTarget = null;
+				TickAutonomousNight( dt, combat, def, perShotDamage, range, speed );
+				return;
+			}
+
+			UnitLocomotion.MoveHumanoid( Go, _orderTarget, dt, speed, ref Aim, Character, ref _moveStuckTimer, ref _steer );
+		}
+
+		private void EngageTarget(
+			float dt,
+			CombatSystem combat,
+			RecruitWeaponDef def,
+			float perShotDamage,
+			float range,
+			ZombieInstance target,
+			float moveSpeed )
+		{
+			var pos = Go.WorldPosition;
+			var dist = (target.Position - pos).WithZ( 0f ).Length;
+			var muzzle = Character?.MuzzleWorld( Aim ) ?? pos + Vector3.Up * 52f;
+
+			if ( dist <= range && BuildingCollision.HasLineOfFire( muzzle, target.Position ) )
+			{
 				var to = (target.Position - muzzle).WithZ( 0f );
 				if ( to.Length > 1f )
 					Aim = Rotation.Slerp( Aim, Rotation.LookAt( to.Normal ), MathF.Min( 1f, dt * 16f ) );
@@ -509,20 +657,7 @@ public sealed class DefenderManager : Component
 				return;
 			}
 
-			// Nothing in weapon range — advance toward the nearest threat, else keep patrolling.
-			var threat = combat.NearestZombie( pos, GameConstants.DefenderAcquireRange );
-			if ( threat is not null )
-			{
-				var guard = GameConstants.ArenaHalf - 70f;
-				var tp = threat.Position.WithZ( 0f );
-				if ( tp.Length > guard )
-					tp = tp.Normal * guard;
-				UnitLocomotion.MoveHumanoid( Go, tp, dt, GameConstants.DefenderMoveSpeed, ref Aim, Character, ref _moveStuckTimer );
-			}
-			else
-			{
-				TickWander( dt, GameConstants.DefenderMoveSpeed * 0.55f );
-			}
+			UnitLocomotion.MoveHumanoid( Go, target.Position, dt, moveSpeed, ref Aim, Character, ref _moveStuckTimer, ref _steer );
 		}
 
 		private void FireVolley( CombatSystem combat, RecruitWeaponDef def, float perShotDamage, Vector3 muzzle )

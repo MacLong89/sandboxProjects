@@ -48,7 +48,7 @@ public static class BuildStatPresentation
 
 	public static string ShortName( BuildStat stat ) => stat switch
 	{
-		BuildStat.Squad => "CREW",
+		BuildStat.Squad => "MOB",
 		BuildStat.Damage => "DMG",
 		BuildStat.FireRate => "RATE",
 		BuildStat.Multishot => "SHOTS",
@@ -63,6 +63,9 @@ public static class BuildStatPresentation
 	/// <summary>Just the value portion, e.g. "+12", "x1.4", "+8%". Kept short so it never clips.</summary>
 	public static string FormatGateValue( BuildStat stat, GateOp op, float value )
 	{
+		if ( stat == BuildStat.Squad && op == GateOp.Add && value < 0f )
+			return $"-{(int)MathF.Abs( value )}";
+
 		return stat switch
 		{
 			BuildStat.Squad => op == GateOp.Add ? $"+{(int)value}" : $"x{value:0.0}",
@@ -80,9 +83,12 @@ public static class BuildStatPresentation
 
 	public static string FormatGateLabel( BuildStat stat, GateOp op, float value )
 	{
+		if ( stat == BuildStat.Squad && op == GateOp.Add && value < 0f )
+			return $"-{(int)MathF.Abs( value )} MOB";
+
 		return stat switch
 		{
-			BuildStat.Squad => op == GateOp.Add ? $"+{(int)value} CREW" : $"x{value:0.0} CREW",
+			BuildStat.Squad => op == GateOp.Add ? $"+{(int)value} MOB" : $"x{value:0.0} MOB",
 			BuildStat.Damage => op == GateOp.Add ? $"+{(int)value} DMG" : $"x{value:0.0} DMG",
 			BuildStat.FireRate => op == GateOp.Add ? $"+{value:0.1} RATE" : $"x{value:0.0} RATE",
 			BuildStat.Multishot => $"+{(int)value} SHOT",
@@ -93,5 +99,12 @@ public static class BuildStatPresentation
 			BuildStat.CoinMult => op == GateOp.Add ? $"+{value:0.1} COINS" : $"x{value:0.0} COINS",
 			_ => "?"
 		};
+	}
+
+	public static Color ColorForGate( BuildStat stat, GateOp op, float value )
+	{
+		if ( stat == BuildStat.Squad && op == GateOp.Add && value < 0f )
+			return new Color( 1f, 0.2f, 0.18f );
+		return ColorFor( stat );
 	}
 }

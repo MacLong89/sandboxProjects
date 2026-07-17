@@ -63,6 +63,13 @@ public static class CureUnlocks
 	public static bool IsRecruitUnlocked( SaveData save, RecruitWeaponType type ) =>
 		IsUnlocked( save, RecruitUnlockSeason( type ) );
 
+	/// <summary>AUDIT FIX M3: HUD used Survival "Night N" even in Cure — use season labels here.</summary>
+	public static string RecruitUnlockLabel( SaveData save, RecruitWeaponType type ) =>
+		UnlockLabel( RecruitUnlockSeason( type ) );
+
+	public static string ShortExpeditionUnlockLabel( SaveData save ) => UnlockLabel( 2 );
+	public static string LongExpeditionUnlockLabel( SaveData save ) => UnlockLabel( 4 );
+
 	public static bool IsWorkerUnlocked( SaveData save, WorkerRole role )
 	{
 		var tech = WorkerRequiredTech( role );
@@ -78,7 +85,7 @@ public static class CureUnlocks
 		if ( tech is not null )
 		{
 			var node = TechTreeCatalog.Get( tech );
-			return node is not null ? $"Requires {node.Name}" : "Requires research";
+			return node is not null ? $"Tech: {node.Name}" : "Requires tech";
 		}
 
 		return UnlockLabel( WorkerUnlockSeason( role ) );

@@ -259,6 +259,12 @@ public sealed class ThornsDeathCrateWorldService : Component
 
 	public void HostDespawnWhenEmpty( int crateId ) => HostForceDespawn( crateId );
 
+	/// <summary>
+	/// AUDIT NOTE: unused legacy bulk-loot API. Live loot uses container UI +
+	/// <see cref="ThornsWorldLootContainerService"/>. Do not call — it does not unregister /
+	/// stay in sync with container slots. Kept only so old call sites are obvious if searched.
+	/// </summary>
+	[Obsolete( "Use world container UI / ThornsWorldLootContainerService moves instead of bulk HostTryLoot." )]
 	public bool HostTryLoot( GameObject playerRoot, int crateId )
 	{
 		if ( !ThornsMultiplayer.IsHostOrOffline || !_crates.TryGetValue( crateId, out var entry ) )
@@ -410,6 +416,12 @@ public sealed class ThornsDeathCrateWorldService : Component
 
 	void TrimOldestIfNeeded()
 	{
+		// AUDIT FIX (2026-07): Cap trim used to Destroy() the visual and drop `_crates` WITHOUT
+		// calling HostForceDespawn / HostUnregister. Items already extracted from players were then
+		// permanently lost (and death: container records could orphan). Airdrops already called
+		// HostDespawnExpired — match that pattern here.
+		// Revert: restore the inline Destroy/_crates.Remove/_looted.Add block if HostForceDespawn
+		// ever double-despawns (it should be idempotent via !_crates.ContainsKey).
 		_trimScratch.Clear();
 		foreach ( var id in _crates.Keys )
 		{
@@ -422,18 +434,8 @@ public sealed class ThornsDeathCrateWorldService : Component
 		{
 			var removeId = _trimScratch[0];
 			_trimScratch.RemoveAt( 0 );
-			var broadcastPos = Vector3.Zero;
-			if ( _crates.TryGetValue( removeId, out var removedEntry ) )
-			{
-				broadcastPos = removedEntry.WorldPosition;
-				if ( removedEntry.Object.IsValid() )
-					removedEntry.Object.Destroy();
-			}
-
-			_crates.Remove( removeId );
-			_looted.Add( removeId );
-			if ( Networking.IsActive )
-				HostBroadcastDespawn( removeId, broadcastPos );
+			Log.Warning( $"[Thorns Death Crates] Cap trim despawning crate #{removeId} (MaxActiveCrates={MaxActiveCrates}). Loot unregistered — not returned to players." );
+			HostForceDespawn( removeId );
 		}
 	}
 

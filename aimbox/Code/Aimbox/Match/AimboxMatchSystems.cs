@@ -153,6 +153,16 @@ public sealed class AimboxMatchSystem
 		if ( !IsRunning || Mode != AimboxGameMode.Survival || SurvivalComplete || SurvivalFailed )
 			return;
 
+		// AUDIT FIX H5: finishing the configured final wave ends survival as a win.
+		// Previously SurvivalWave only incremented and SurvivalComplete stayed false forever.
+		if ( SurvivalWave >= AimboxArenaConfig.SurvivalFinalWave )
+		{
+			SurvivalComplete = true;
+			_survivalWaveAdvancePending = false;
+			Log.Info( $"[Aimbox] Survival complete after wave {SurvivalWave}." );
+			return;
+		}
+
 		SurvivalWave++;
 		SurvivalWaveBotTarget = AimboxArenaConfig.GetSurvivalWaveBotCount( SurvivalWave );
 		SurvivalHardMode = SurvivalWave >= AimboxArenaConfig.SurvivalHardModeStartWave;
@@ -202,7 +212,12 @@ public sealed class AimboxMatchSystem
 
 	List<string> ResolveWinners( IReadOnlyList<AimboxPlayerController> players )
 	{
-		var humans = players.Where( p => !p.IsProxy ).ToList();
+		// AUDIT FIX C3 (2026-07-13): old filter `!p.IsProxy` meant the HOST's ResolveWinners
+		// only considered the local human — remote AccountIds never won even when scores said so.
+		// IsProxy is a presentation/ownership flag, not "is NPC". Include every live human pawn.
+		var humans = players
+			.Where( p => p is not null && p.IsValid() && !string.IsNullOrWhiteSpace( p.AccountId ) )
+			.ToList();
 		if ( humans.Count == 0 )
 			return [];
 
@@ -211,17 +226,18 @@ public sealed class AimboxMatchSystem
 			if ( !SurvivalComplete )
 				return [];
 
-			return humans.Select( p => p.AccountId ).ToList();
+			return humans.Select( p => p.AccountId ).Distinct( StringComparer.OrdinalIgnoreCase ).ToList();
 		}
 
 		if ( Mode == AimboxGameMode.Range )
-			return humans.Select( p => p.AccountId ).ToList();
+			return humans.Select( p => p.AccountId ).Distinct( StringComparer.OrdinalIgnoreCase ).ToList();
 
 		if ( AimboxAimModeRules.IsAimMode( Mode ) )
 		{
 			var best = PlayerAimScores.Values.DefaultIfEmpty().Max();
-			var aimTopIds = PlayerAimScores.Where( x => x.Value == best ).Select( x => x.Key ).ToHashSet();
-			return humans.Where( p => aimTopIds.Contains( p.AccountId ) ).Select( p => p.AccountId ).ToList();
+			var aimTopIds = PlayerAimScores.Where( x => x.Value == best ).Select( x => x.Key ).ToHashSet( StringComparer.OrdinalIgnoreCase );
+			return humans.Where( p => aimTopIds.Contains( p.AccountId ) ).Select( p => p.AccountId )
+				.Distinct( StringComparer.OrdinalIgnoreCase ).ToList();
 		}
 
 		if ( Mode == AimboxGameMode.TeamDeathmatch )
@@ -230,19 +246,24 @@ public sealed class AimboxMatchSystem
 			if ( TimeRemaining <= 0 && TeamScores.Count > 0 )
 				bestTeam = TeamScores.OrderByDescending( x => x.Value ).ThenBy( x => x.Key ).First().Key;
 
-			return humans.Where( p => p.Team == bestTeam ).Select( p => p.AccountId ).ToList();
+			return humans.Where( p => p.Team == bestTeam ).Select( p => p.AccountId )
+				.Distinct( StringComparer.OrdinalIgnoreCase ).ToList();
 		}
 
 		if ( Mode == AimboxGameMode.Duel )
 		{
 			var bestKills = PlayerKills.Values.DefaultIfEmpty().Max();
-			var winnerIds = PlayerKills.Where( x => x.Value == bestKills ).Select( x => x.Key ).ToList();
-			return humans.Where( p => winnerIds.Contains( p.AccountId ) ).Select( p => p.AccountId ).ToList();
+			var winnerIds = PlayerKills.Where( x => x.Value == bestKills ).Select( x => x.Key )
+				.ToHashSet( StringComparer.OrdinalIgnoreCase );
+			return humans.Where( p => winnerIds.Contains( p.AccountId ) ).Select( p => p.AccountId )
+				.Distinct( StringComparer.OrdinalIgnoreCase ).ToList();
 		}
 
 		var bestFfa = PlayerScores.Values.DefaultIfEmpty().Max();
-		var topIds = PlayerScores.Where( x => x.Value == bestFfa ).Select( x => x.Key ).ToHashSet();
-		return humans.Where( p => topIds.Contains( p.AccountId ) ).Select( p => p.AccountId ).ToList();
+		var topIds = PlayerScores.Where( x => x.Value == bestFfa ).Select( x => x.Key )
+			.ToHashSet( StringComparer.OrdinalIgnoreCase );
+		return humans.Where( p => topIds.Contains( p.AccountId ) ).Select( p => p.AccountId )
+			.Distinct( StringComparer.OrdinalIgnoreCase ).ToList();
 	}
 }
 

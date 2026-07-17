@@ -21,6 +21,8 @@ public sealed class NightController : Component
 	{
 		ZombiesRemainingToSpawn = ZombiesForNight( night );
 		SpawnTimer = 0f;
+		_roundStallTimer = 0f;
+		_roundAliveSnapshot = -1;
 		Sfx.Play( Sfx.WaveStart );
 	}
 
@@ -28,11 +30,15 @@ public sealed class NightController : Component
 	{
 		ZombiesRemainingToSpawn = zombieCount;
 		SpawnTimer = 0f;
+		_roundStallTimer = 0f;
+		_roundAliveSnapshot = -1;
 		Sfx.Play( Sfx.WaveStart );
 		_threatIndex = threatIndex;
 	}
 
 	private int _threatIndex = 1;
+	private int _roundAliveSnapshot = -1;
+	private float _roundStallTimer;
 
 	protected override void OnUpdate()
 	{
@@ -41,6 +47,7 @@ public sealed class NightController : Component
 
 		TickSpawns( core );
 		TickDefenses( core );
+		TickRoundFailsafe( core );
 
 		if ( ZombiesRemainingToSpawn <= 0 && CombatSystem.Instance?.AliveCount == 0 )
 		{
@@ -67,6 +74,36 @@ public sealed class NightController : Component
 		CombatSystem.Instance?.SpawnZombie( PickSpawnPoint(), night, typeDef );
 	}
 
+	private void TickRoundFailsafe( GameCore core )
+	{
+		if ( ZombiesRemainingToSpawn > 0 )
+		{
+			_roundStallTimer = 0f;
+			_roundAliveSnapshot = -1;
+			return;
+		}
+
+		var alive = CombatSystem.Instance?.AliveCount ?? 0;
+		if ( alive <= 0 )
+		{
+			_roundStallTimer = 0f;
+			_roundAliveSnapshot = 0;
+			return;
+		}
+
+		if ( alive < _roundAliveSnapshot )
+			_roundStallTimer = 0f;
+
+		_roundAliveSnapshot = alive;
+		_roundStallTimer += Time.Delta;
+
+		if ( _roundStallTimer < GameConstants.NightRoundFailsafeDelay )
+			return;
+
+		CombatSystem.Instance?.FailsafeClearRemainingZombies( core );
+		_roundStallTimer = 0f;
+	}
+
 	private void TickDefenses( GameCore core )
 	{
 		var combat = CombatSystem.Instance;
@@ -91,7 +128,7 @@ public sealed class NightController : Component
 		// clipped the wall corners). The frontier pushes outward as the player claims more plots.
 		var claimedHalf = PlotManager.Instance?.ClaimedHalfExtent ?? GameConstants.ArenaHalf;
 		var half = MathF.Max( GameConstants.ArenaHalf, claimedHalf ) + GameConstants.SpawnMargin;
-		half = MathF.Min( half, GameConstants.TerrainHalfExtent - 60f );
+		half = MathF.Min( half, GameConstants.ActiveTerrainHalfExtent - 60f );
 
 		var t = Game.Random.Float( -half, half );
 		return Game.Random.Int( 0, 3 ) switch

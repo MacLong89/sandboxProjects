@@ -128,15 +128,16 @@ public static class TeamBonuses
 	{
 		if ( core?.Save is null || core.Resources is null ) return;
 
+		core.Resources.Add( ResourceKind.Food, CureConstants.StartingFood );
+
 		switch ( team )
 		{
 			case CureTeamId.Scientists:
 				core.Resources.Add( ResourceKind.Specimens, 1 );
 				break;
 			case CureTeamId.Settlers:
-				core.Resources.Add( ResourceKind.Wood, 15 );
-				core.Resources.Add( ResourceKind.Stone, 15 );
-				core.Resources.Add( ResourceKind.Water, 10 );
+				core.Resources.Add( ResourceKind.Wood, 25 );
+				core.Resources.Add( ResourceKind.Stone, 25 );
 				break;
 		}
 	}
@@ -151,6 +152,6 @@ public static class CureTeamCatalog
 		new() { Id = CureTeamId.Soldiers, Name = "Soldiers", Icon = "shield", Description = "Stronger recruits and turrets" },
 		new() { Id = CureTeamId.Scientists, Name = "Scientists", Icon = "science", Description = "Faster research, cheaper tiers, +1 Specimen" },
 		new() { Id = CureTeamId.Scouts, Name = "Scouts", Icon = "explore", Description = "Better expeditions and forager yield" },
-		new() { Id = CureTeamId.Settlers, Name = "Settlers", Icon = "home_work", Description = "Cheaper plots, faster clearing, bonus resources" }
+		new() { Id = CureTeamId.Settlers, Name = "Settlers", Icon = "home_work", Description = "Cheaper plots, faster clearing, bonus wood & stone" }
 	};
 }

@@ -1,0 +1,33 @@
+{
+  "Title": "Plunge",
+  "Type": "game",
+  "Org": "local",
+  "Ident": "plunge",
+  "Schema": 1,
+  "IncludeSourceFiles": false,
+  "Resources": "/sprites/*\n/ui/*\n/backgrounds/*",
+  "PackageReferences": [],
+  "EditorReferences": null,
+  "Mounts": [],
+  "IsStandaloneOnly": false,
+  "Metadata": {
+    "MaxPlayers": 1,
+    "MinPlayers": 1,
+    "TickRate": 50,
+    "GameNetworkType": "Singleplayer",
+    "MapSelect": "Unrestricted",
+    "MapList": [],
+    "RankType": "None",
+    "PerMapRanking": false,
+    "LeaderboardType": "None",
+    "CsProjName": "",
+    "StartupScene": "scenes/plunge.scene",
+    "MapStartupScene": "scenes/plunge.scene",
+    "LaunchMode": "Normal",
+    "ControlModes": {
+      "Keyboard": true,
+      "Gamepad": true,
+      "VR": false
+    }
+  }
+}

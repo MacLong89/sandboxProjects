@@ -34,6 +34,12 @@ public static class GameConstants
 	public const float ObstacleBlockRadius = 80f;
 	/// <summary>How close the cursor ground point can be to pick a tree/rock.</summary>
 	public const float ObstaclePickRadius = 180f;
+	/// <summary>
+	/// How close the player must stand (feet → cell center) to clear a tree/rock.
+	/// Larger than pick radius: sprites/colliders are big and click-select can
+	/// target obstacles whose centers sit well past 180u.
+	/// </summary>
+	public const float ObstacleClearRadius = ObstacleCellSize * 0.75f;
 	public const float ObstacleClearSeconds = 3f;
 	public const int ObstacleClearReward = 35;
 	public const int XpClearObstacle = 10;

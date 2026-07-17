@@ -87,8 +87,11 @@ public static class LeaderboardService
 				&& string.Equals( name, localDisplayName, StringComparison.OrdinalIgnoreCase ) )
 				continue;
 
+			var nights = Math.Max( 0, (int)Math.Round( e.Value ) );
+			if ( nights < 1 ) continue;
+
 			var sortTime = e.Timestamp.ToUnixTimeSeconds();
-			rows.Add( ((int)e.Value, sortTime, name, false) );
+			rows.Add( (nights, sortTime, name, false) );
 		}
 
 		var ordered = rows

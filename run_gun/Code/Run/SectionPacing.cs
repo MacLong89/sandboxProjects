@@ -48,11 +48,9 @@ public sealed class SectionPacing
 		}
 	}
 
-	public static (Color ground, Color wall) BiomeColors( int index ) => index switch
+	public static (Color ground, Color wall) BiomeColors( int index )
 	{
-		0 => (new Color( 0.32f, 0.34f, 0.38f ), new Color( 0.22f, 0.24f, 0.29f )),
-		1 => (new Color( 0.28f, 0.36f, 0.3f ), new Color( 0.16f, 0.28f, 0.2f )),
-		2 => (new Color( 0.34f, 0.3f, 0.42f ), new Color( 0.22f, 0.18f, 0.34f )),
-		_ => (new Color( 0.38f, 0.3f, 0.28f ), new Color( 0.28f, 0.2f, 0.18f )),
-	};
+		var (ground, wall, _) = DistrictTheme.Colors( index );
+		return (ground, wall);
+	}
 }

@@ -880,7 +880,7 @@ public sealed partial class ThornsInventoryScreen : ThornsScreenBase
 			card.Style.FlexShrink = 0;
 			card.Style.Width = Length.Percent( 100 );
 			card.Style.Position = PositionMode.Relative;
-			card.Style.MarginBottom = Length.Pixels( 4 );
+			card.Style.MarginBottom = Length.Pixels( 8 );
 
 			var selectArea = ThornsUiFactory.AddClickable( card, "recipe-card-select", () =>
 
@@ -912,6 +912,8 @@ public sealed partial class ThornsInventoryScreen : ThornsScreenBase
 
 			body.Style.PointerEvents = PointerEvents.None;
 
+			body.Style.JustifyContent = Justify.Center;
+
 			ThornsUiFactory.AddPassiveLabel( body, captured.DisplayName, "recipe-card-title" );
 
 			var reqLabel = ThornsUiFactory.AddPassiveLabel( body,
@@ -935,6 +937,8 @@ public sealed partial class ThornsInventoryScreen : ThornsScreenBase
 			mats.Style.FlexDirection = FlexDirection.Row;
 
 			mats.Style.FlexWrap = Wrap.Wrap;
+
+			mats.Style.AlignItems = Align.Center;
 
 			foreach ( var ing in captured.Ingredients )
 

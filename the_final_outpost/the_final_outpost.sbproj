@@ -4,9 +4,11 @@
   "Org": "maclgames",
   "Ident": "the_final_outpost",
   "Schema": 1,
-  "IncludeSourceFiles": false,
+  "IncludeSourceFiles": true,
   "Resources": null,
-  "PackageReferences": [],
+  "PackageReferences": [
+    "facepunch.sboxweapons"
+  ],
   "EditorReferences": [
     "facepunch.sboxweapons"
   ],

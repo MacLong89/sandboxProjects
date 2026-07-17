@@ -1,0 +1,73 @@
+$font: Poppins;
+$accent: #00cfff;
+$text: #f4f8fc;
+$panel: rgba(16, 24, 34, 0.86);
+
+root {
+	position: absolute;
+	left: 0;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	pointer-events: none;
+	font-family: $font;
+	color: $text;
+}
+
+.viewer-panel {
+	position: absolute;
+	left: 28px;
+	top: 28px;
+	min-width: 320px;
+	max-width: 520px;
+	padding: 18px 22px 16px;
+	background-color: $panel;
+	border: 1px solid rgba(255, 255, 255, 0.12);
+	border-radius: 10px;
+}
+
+.viewer-badge {
+	font-size: 11px;
+	font-weight: 800;
+	letter-spacing: 2px;
+	color: $accent;
+	margin-bottom: 8px;
+}
+
+.viewer-level {
+	font-size: 13px;
+	font-weight: 700;
+	letter-spacing: 1px;
+	opacity: 0.75;
+	margin-bottom: 4px;
+}
+
+.viewer-name {
+	font-size: 26px;
+	font-weight: 800;
+	line-height: 1.15;
+	margin-bottom: 6px;
+}
+
+.viewer-location {
+	font-size: 15px;
+	font-weight: 500;
+	opacity: 0.88;
+	margin-bottom: 4px;
+}
+
+.viewer-theme {
+	font-size: 12px;
+	font-weight: 600;
+	opacity: 0.55;
+	margin-bottom: 14px;
+}
+
+.viewer-hints {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px 14px;
+	font-size: 12px;
+	font-weight: 600;
+	opacity: 0.7;
+}

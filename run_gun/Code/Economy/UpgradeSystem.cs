@@ -39,17 +39,17 @@ public sealed class UpgradeSystem
 
 	public static readonly IReadOnlyList<UpgradeDef> All = new List<UpgradeDef>
 	{
-		new() { Id = UpgradeId.StartPower, Key = "startpower", Name = "Head Start", Description = "Begin every run with more damage.", Icon = "rocket_launch", MaxLevel = 30, BaseCost = 60, CostGrowth = 1.55 },
-		new() { Id = UpgradeId.Damage, Key = "damage", Name = "Hollow Points", Description = "Every bullet hits harder.", Icon = "whatshot", MaxLevel = 30, BaseCost = 80, CostGrowth = 1.6 },
-		new() { Id = UpgradeId.FireRate, Key = "firerate", Name = "Trigger Finger", Description = "Shoot faster at any power.", Icon = "bolt", MaxLevel = 25, BaseCost = 100, CostGrowth = 1.6 },
-		new() { Id = UpgradeId.MoveSpeed, Key = "movespeed", Name = "Light Feet", Description = "Strafe across lanes quicker.", Icon = "directions_run", MaxLevel = 15, BaseCost = 70, CostGrowth = 1.6 },
-		new() { Id = UpgradeId.MaxHealth, Key = "health", Name = "Recruits", Description = "Start every run with a bigger crew.", Icon = "groups", MaxLevel = 20, BaseCost = 90, CostGrowth = 1.65 },
-		new() { Id = UpgradeId.CoinBonus, Key = "coins", Name = "Bounty", Description = "Earn more cash from every run.", Icon = "payments", MaxLevel = 30, BaseCost = 120, CostGrowth = 1.6 },
-		new() { Id = UpgradeId.CritChance, Key = "crit", Name = "Deadeye", Description = "Higher crit chance every run.", Icon = "stars", MaxLevel = 20, BaseCost = 150, CostGrowth = 1.65 },
-		new() { Id = UpgradeId.Pierce, Key = "pierce", Name = "Penetrator", Description = "Bullets punch through more targets.", Icon = "arrow_forward", MaxLevel = 15, BaseCost = 140, CostGrowth = 1.65 },
-		new() { Id = UpgradeId.Lifesteal, Key = "lifesteal", Name = "Recruiter", Description = "Chance to draft a runner into your crew on kill.", Icon = "person_add", MaxLevel = 12, BaseCost = 180, CostGrowth = 1.7 },
-		new() { Id = UpgradeId.OverdriveCharge, Key = "overdrive", Name = "Adrenaline", Description = "Overdrive charges faster.", Icon = "flash_on", MaxLevel = 15, BaseCost = 160, CostGrowth = 1.65 },
-		new() { Id = UpgradeId.GateLuck, Key = "gateluck", Name = "Gate Sense", Description = "Better gate values and rarer stats.", Icon = "auto_awesome", MaxLevel = 20, BaseCost = 130, CostGrowth = 1.6 },
+		new() { Id = UpgradeId.StartPower, Key = "startpower", Name = "Molotov Stash", Description = "Start every riot with harder hits.", Icon = "local_fire_department", MaxLevel = 30, BaseCost = 25, CostGrowth = 1.45 },
+		new() { Id = UpgradeId.Damage, Key = "damage", Name = "Brick Ammo", Description = "Every shot hits harder.", Icon = "whatshot", MaxLevel = 30, BaseCost = 35, CostGrowth = 1.5 },
+		new() { Id = UpgradeId.FireRate, Key = "firerate", Name = "Trigger Finger", Description = "Spray faster at any power.", Icon = "bolt", MaxLevel = 25, BaseCost = 40, CostGrowth = 1.5 },
+		new() { Id = UpgradeId.MoveSpeed, Key = "movespeed", Name = "Parkour", Description = "Strafe across lanes quicker.", Icon = "directions_run", MaxLevel = 15, BaseCost = 30, CostGrowth = 1.5 },
+		new() { Id = UpgradeId.MaxHealth, Key = "health", Name = "Recruiters", Description = "Start every run with a bigger mob.", Icon = "groups", MaxLevel = 20, BaseCost = 30, CostGrowth = 1.55 },
+		new() { Id = UpgradeId.CoinBonus, Key = "coins", Name = "Loot Share", Description = "Earn more cash from every run.", Icon = "payments", MaxLevel = 30, BaseCost = 45, CostGrowth = 1.5 },
+		new() { Id = UpgradeId.CritChance, Key = "crit", Name = "Deadeye", Description = "Higher crit chance every run.", Icon = "stars", MaxLevel = 20, BaseCost = 55, CostGrowth = 1.55 },
+		new() { Id = UpgradeId.Pierce, Key = "pierce", Name = "Armor Crack", Description = "Bullets punch through more targets.", Icon = "arrow_forward", MaxLevel = 15, BaseCost = 50, CostGrowth = 1.55 },
+		new() { Id = UpgradeId.Lifesteal, Key = "lifesteal", Name = "Convert", Description = "Chance to draft a foe into your mob on kill.", Icon = "person_add", MaxLevel = 12, BaseCost = 70, CostGrowth = 1.6 },
+		new() { Id = UpgradeId.OverdriveCharge, Key = "overdrive", Name = "Riot Surge", Description = "Overdrive charges faster.", Icon = "flash_on", MaxLevel = 15, BaseCost = 60, CostGrowth = 1.55 },
+		new() { Id = UpgradeId.GateLuck, Key = "gateluck", Name = "Street Sense", Description = "Better gate values and rarer stats.", Icon = "auto_awesome", MaxLevel = 20, BaseCost = 50, CostGrowth = 1.5 },
 	};
 
 	public static UpgradeDef Def( UpgradeId id ) => All.First( u => u.Id == id );

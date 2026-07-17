@@ -1,0 +1,79 @@
+{
+  "diver": {
+    "frameSize": [
+      64,
+      64
+    ],
+    "filter": "nearest",
+    "animations": {
+      "Idle": {
+        "frames": [
+          "textures/diver/idle.png"
+        ],
+        "fps": 1
+      },
+      "Swim": {
+        "frames": [
+          "textures/diver/swim.png"
+        ],
+        "fps": 6
+      },
+      "SwimUp": {
+        "frames": [
+          "textures/diver/swim_up.png"
+        ],
+        "fps": 6
+      },
+      "SwimDown": {
+        "frames": [
+          "textures/diver/swim_down.png"
+        ],
+        "fps": 6
+      },
+      "Harpoon": {
+        "frames": [
+          "textures/diver/harpoon_1.png",
+          "textures/diver/harpoon_2.png",
+          "textures/diver/harpoon_3.png"
+        ],
+        "fps": 12
+      }
+    }
+  },
+  "submarine": {
+    "frameSize": [
+      96,
+      64
+    ],
+    "filter": "nearest",
+    "animations": {
+      "Idle": {
+        "frames": [
+          "textures/vehicles/submarine.png"
+        ],
+        "fps": 1
+      },
+      "Thrust": {
+        "frames": [
+          "textures/vehicles/submarine.png"
+        ],
+        "fps": 8
+      }
+    }
+  },
+  "fish": {
+    "frameSize": [
+      48,
+      32
+    ],
+    "filter": "nearest",
+    "animations": {
+      "Swim": {
+        "frames": [
+          "textures/creatures/reef_fish.png"
+        ],
+        "fps": 4
+      }
+    }
+  }
+}

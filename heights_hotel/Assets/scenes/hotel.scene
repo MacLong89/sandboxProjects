@@ -1,0 +1,89 @@
+{
+  "__guid": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "GameObjects": [
+    {
+      "__guid": "b1c2d3e4-f5a6-7890-bcde-f12345678901",
+      "Flags": 0,
+      "Name": "Sun",
+      "Rotation": "-0.0729315,0.4822396,0.1305433,0.8631827",
+      "Tags": "light_directional,light",
+      "Enabled": true,
+      "Components": [
+        {
+          "__type": "Sandbox.DirectionalLight",
+          "__guid": "c1d2e3f4-a5b6-7890-cdef-123456789012",
+          "FogMode": "Enabled",
+          "FogStrength": 0.2,
+          "LightColor": "0.9,0.85,0.8,1",
+          "Shadows": false,
+          "SkyColor": "0.25,0.22,0.35,1"
+        }
+      ]
+    },
+    {
+      "__guid": "d1e2f3a4-b5c6-7890-defa-234567890123",
+      "Flags": 0,
+      "Name": "Camera",
+      "Position": "0,0,200",
+      "Enabled": true,
+      "Components": [
+        {
+          "__type": "Sandbox.CameraComponent",
+          "__guid": "e1f2a3b4-c5d6-7890-efab-345678901234",
+          "BackgroundColor": "0.07,0.11,0.18,1",
+          "ClearFlags": "All",
+          "FieldOfView": 60,
+          "IsMainCamera": true,
+          "Orthographic": true,
+          "OrthographicHeight": 200,
+          "Priority": 1,
+          "RenderExcludeTags": "",
+          "RenderTags": "",
+          "TargetEye": "None",
+          "Viewport": "0,0,1,1",
+          "ZFar": 10000,
+          "ZNear": 1
+        }
+      ]
+    },
+    {
+      "__guid": "f1a2b3c4-d5e6-7890-fabc-456789012345",
+      "Flags": 0,
+      "Name": "HotelGame",
+      "Enabled": true,
+      "Components": [
+        {
+          "__type": "HeightsHotel.HotelGameManager",
+          "__guid": "a2b3c4d5-e6f7-8901-abcd-567890123456"
+        }
+      ]
+    }
+  ],
+  "SceneProperties": {
+    "FixedUpdateFrequency": 50,
+    "MaxFixedUpdates": 5,
+    "NetworkFrequency": 60,
+    "NetworkInterpolation": true,
+    "ThreadedAnimation": true,
+    "TimeScale": 1,
+    "UseFixedUpdate": true,
+    "WantsSystemScene": true,
+    "NavMesh": {
+      "Enabled": false,
+      "IncludeStaticBodies": true,
+      "IncludeKeyframedBodies": true,
+      "EditorAutoUpdate": true,
+      "AgentHeight": 64,
+      "AgentRadius": 16,
+      "AgentStepSize": 18,
+      "AgentMaxSlope": 40,
+      "ExcludedBodies": "",
+      "IncludedBodies": ""
+    }
+  },
+  "Title": "hotel",
+  "Description": "Heights Hotel main game",
+  "ResourceVersion": 1,
+  "__references": [],
+  "__version": 1
+}

@@ -57,7 +57,13 @@ public sealed class AimboxGame : Component, Component.INetworkListener
 	public AimboxSaveQueueSystem Saves { get; private set; }
 	public IReadOnlyList<AimboxPlayerController> Players => _players;
 	public IReadOnlyList<AimboxBotController> Bots => _bots;
-	public int HumanPlayerCount => _players.Count( p => !p.IsProxy );
+	public int HumanPlayerCount => _players.Count( IsLivePlayer );
+	/// <summary>
+	/// AUDIT FIX H2 (2026-07-13): previously counted only `!IsProxy`, so each peer saw ≤1 human
+	/// and UsesLobbyMapVote never enabled with remotes. Count all registered live player pawns
+	/// (proxies on host ARE remote humans). Lobby vote Sync is still incomplete — this only
+	/// unlocks the multi-human vote code path on hosts that actually have ≥2 pawns.
+	/// </summary>
 	public bool UsesLobbyMapVote => HumanPlayerCount > 1;
 	public bool IsLobbyHost => AimboxLobbyAuthority.IsHost;
 	public bool IsLobbyJoiner => AimboxLobbyAuthority.IsJoiner;
@@ -226,9 +232,34 @@ public sealed class AimboxGame : Component, Component.INetworkListener
 
 		TickMatchFreeze();
 		TickDuelRoundReset();
+		TickHostProxyWeaponClocks();
 
+		// AUDIT FIX C2: only the host decides ShouldEnd when networked. Clients wait for RpcEndMatch.
+		// Offline (no Networking) still ends locally as before.
 		if ( Match.ShouldEnd() )
-			EndMatch();
+		{
+			if ( !Networking.IsActive || Networking.IsHost )
+				EndMatch();
+		}
+	}
+
+	/// <summary>
+	/// AUDIT FIX C1/H1: host proxies never hit UpdateWeaponInput, so weapon _cooldown never drained
+	/// after EnsureHostAuthorityWeapon built a runtime. Tick them once per Playing frame.
+	/// </summary>
+	void TickHostProxyWeaponClocks()
+	{
+		if ( !Networking.IsActive || !Networking.IsHost )
+			return;
+
+		var dt = Time.Delta;
+		foreach ( var player in _players )
+		{
+			if ( player is null || !player.IsValid() || !player.IsProxy )
+				continue;
+
+			player.TickHostProxyCombat( dt );
+		}
 	}
 
 	protected override void OnPreRender()
@@ -256,18 +287,33 @@ public sealed class AimboxGame : Component, Component.INetworkListener
 		if ( !_duelRoundResetPending )
 			return;
 
-		if ( Networking.IsActive && !Networking.IsHost )
-			return;
-
 		if ( _duelRoundResetStarted < AimboxArenaConfig.DuelRoundResetSeconds )
 			return;
 
+		// AUDIT FIX H4 follow-up: joiners also receive _duelRoundResetPending (IsCombatLocked).
+		// Clearing must happen on ALL peers. Only the host respawns + starts freeze (which
+		// RpcBeginMatchFreeze's to joiners). Do NOT early-out joiners before clearing — that
+		// used to softlock combat forever after a duel round.
 		_duelRoundResetPending = false;
+
+		if ( Networking.IsActive && !Networking.IsHost )
+			return;
+
 		RespawnDuelPair();
 		BeginMatchFreeze( AimboxArenaConfig.DuelRoundFreezeSeconds, "ROUND START" );
 	}
 
 	public void BeginMatchFreeze( float seconds, string label = "FREEZE TIME" )
+	{
+		ApplyMatchFreezeLocal( seconds, label );
+
+		// AUDIT FIX H4: broadcast freeze so joiners lock combat with the host.
+		// Host already applied locally; RPC skips host via Networking.IsHost check inside.
+		if ( Networking.IsActive && Networking.IsHost && seconds > 0f )
+			RpcBeginMatchFreeze( seconds, label );
+	}
+
+	void ApplyMatchFreezeLocal( float seconds, string label )
 	{
 		if ( seconds <= 0f )
 		{
@@ -284,14 +330,41 @@ public sealed class AimboxGame : Component, Component.INetworkListener
 		Match.StopClock();
 	}
 
+	[Rpc.Broadcast( NetFlags.HostOnly )]
+	void RpcBeginMatchFreeze( float seconds, string label )
+	{
+		if ( Networking.IsHost )
+			return;
+
+		ApplyMatchFreezeLocal( seconds, label );
+	}
+
 	public void OnDuelRoundEnded( IAimboxCombatActor attacker, IAimboxCombatActor victim )
 	{
 		if ( Match.Mode != AimboxGameMode.Duel || Match.ShouldEnd() || _duelRoundResetPending )
 			return;
 
+		ApplyDuelRoundResetLocal();
+		Log.Info( $"[Aimbox] Duel round {Match.DuelRound} won by {attacker.CombatId}." );
+
+		// AUDIT FIX H4: joiners previously never saw _duelRoundResetPending / freeze.
+		if ( Networking.IsActive && Networking.IsHost )
+			RpcDuelRoundReset();
+	}
+
+	void ApplyDuelRoundResetLocal()
+	{
 		_duelRoundResetPending = true;
 		_duelRoundResetStarted = 0;
-		Log.Info( $"[Aimbox] Duel round {Match.DuelRound} won by {attacker.CombatId}." );
+	}
+
+	[Rpc.Broadcast( NetFlags.HostOnly )]
+	void RpcDuelRoundReset()
+	{
+		if ( Networking.IsHost )
+			return;
+
+		ApplyDuelRoundResetLocal();
 	}
 
 	public void OnSurvivalPlayerEliminated( AimboxPlayerController player )
@@ -336,6 +409,14 @@ public sealed class AimboxGame : Component, Component.INetworkListener
 		if ( Scene is null || !Scene.IsValid() )
 		{
 			Log.Warning( "[Aimbox] StartMatch aborted — scene unavailable." );
+			return;
+		}
+
+		// AUDIT FIX M5: StartMatch had no phase guard and could re-enter while Playing
+		// (legacy SetMode / AutoStart). Host-driven StartNextMatch still works from Intermission.
+		if ( Phase == AimboxSessionPhase.Playing )
+		{
+			Log.Warning( $"[Aimbox] StartMatch ignored — already Playing ({mode})." );
 			return;
 		}
 
@@ -397,6 +478,10 @@ public sealed class AimboxGame : Component, Component.INetworkListener
 		if ( Phase != AimboxSessionPhase.Playing )
 			return;
 
+		// AUDIT FIX C2: when networked, joiners must not unilaterally Finish/enter intermission
+		// from a divergent Match snapshot — host owns end, then broadcasts.
+		var endingAsHost = !Networking.IsActive || Networking.IsHost;
+
 		LastScoreboard = AimboxScoreboardBuilder.Snapshot( this );
 		var winners = Match.Finish( _players );
 		Log.Info( $"Aimbox match ended. Winners: {string.Join( ", ", winners )}" );
@@ -415,9 +500,10 @@ public sealed class AimboxGame : Component, Component.INetworkListener
 		IntermissionTimeRemaining = AimboxMetaNavigation.IntermissionDurationSeconds;
 		ResetLobbyTeamPicks();
 
+		var winnerSet = new HashSet<string>( winners, StringComparer.OrdinalIgnoreCase );
 		foreach ( var player in _players )
 		{
-			var won = winners.Contains( player.AccountId );
+			var won = winnerSet.Contains( player.AccountId );
 			player.FinishMatch( won );
 			var summary = player.BuildMatchSummary( won );
 			MatchHistory.Add( new AimboxMatchHistoryEntry
@@ -434,14 +520,62 @@ public sealed class AimboxGame : Component, Component.INetworkListener
 				AimboxMetaNavigation.EnterIntermission( summary );
 		}
 
-		if ( Match.Mode == AimboxGameMode.Duel && _players.Count >= 2 )
+		// AUDIT FIX C3 (ranked path): was `_players.Where(!IsProxy)` which never yields two humans
+		// on a listen server. Rank two live humans with highest kill counts from Match.
+		if ( Match.Mode == AimboxGameMode.Duel && endingAsHost )
 		{
-			var ordered = _players.Where( p => !p.IsProxy )
+			var ordered = _players
+				.Where( p => p is not null && p.IsValid() && p.Data is not null )
 				.OrderByDescending( p => Match.PlayerKills.GetValueOrDefault( p.AccountId ) )
 				.ToList();
 			if ( ordered.Count >= 2 )
 				Ranked.ApplyDuelResult( ordered[0].Data, ordered[1].Data );
 		}
+
+		if ( endingAsHost && Networking.IsActive )
+			RpcEndMatch( winners.ToArray() );
+	}
+
+	[Rpc.Broadcast( NetFlags.HostOnly )]
+	void RpcEndMatch( string[] winnerAccountIds )
+	{
+		if ( Networking.IsHost )
+			return;
+
+		if ( Phase != AimboxSessionPhase.Playing )
+			return;
+
+		// Joiners apply Finish to stop local clock, then drive intermission using host winners
+		// (local ResolveWinners may be empty / wrong because scores never synced).
+		LastScoreboard = AimboxScoreboardBuilder.Snapshot( this );
+		Match.Finish( _players );
+
+		_freezeActive = false;
+		_duelRoundResetPending = false;
+		FreezeTimeRemaining = 0f;
+
+		Phase = AimboxSessionPhase.Intermission;
+		NextMode = Match.Mode;
+		AwaitingFirstMatch = false;
+		IsLocalReady = false;
+		_readyCountdownActive = false;
+		ReadyCountdownRemaining = 0f;
+		_intermissionStarted = 0;
+		IntermissionTimeRemaining = AimboxMetaNavigation.IntermissionDurationSeconds;
+		ResetLobbyTeamPicks();
+
+		var winnerSet = new HashSet<string>( winnerAccountIds ?? [], StringComparer.OrdinalIgnoreCase );
+		foreach ( var player in _players )
+		{
+			if ( player.IsProxy )
+				continue;
+
+			var won = winnerSet.Contains( player.AccountId );
+			player.FinishMatch( won );
+			AimboxMetaNavigation.EnterIntermission( player.BuildMatchSummary( won ) );
+		}
+
+		Log.Info( $"[Aimbox] Match ended by host. Winners: {string.Join( ", ", winnerSet )}." );
 	}
 
 	public void SetNextMode( AimboxGameMode mode )
@@ -931,8 +1065,17 @@ public sealed class AimboxGame : Component, Component.INetworkListener
 		if ( attacker is null || !attacker.IsAlive )
 			return;
 
-		var weapon = attacker.CurrentWeapon;
+		// AUDIT FIX C1: proxies never built an inventory on the host — CurrentWeapon was null
+		// and every joiner shot no-op'd. Ensure a host-side runtime for the claimed weapon.
+		var weapon = attacker.EnsureHostAuthorityWeapon( weaponId );
 		if ( weapon is null || weapon.Definition.Id != weaponId )
+			return;
+
+		// AUDIT FIX H1: host must consume ammo/ROF itself. Client already consumed for UX;
+		// reject spam / empty mags here. aimOrigin is reserved for future lag-comp — today we
+		// still resolve from attacker.EyePosition (synced transform).
+		_ = aimOrigin;
+		if ( !weapon.TryConsumeShot() )
 			return;
 
 		var request = new AimboxCombatShotRequest(
@@ -961,8 +1104,15 @@ public sealed class AimboxGame : Component, Component.INetworkListener
 			return;
 
 		var attacker = FindPlayerByAccountId( attackerAccountId );
-		var weapon = attacker?.CurrentWeapon;
-		if ( attacker is null || weapon is null || weapon.Definition.Id != weaponId )
+		if ( attacker is null )
+			return;
+
+		// Prefer existing runtime; on joiners the owning client already has inventory.
+		var weapon = attacker.CurrentWeapon;
+		if ( weapon is null || weapon.Definition.Id != weaponId )
+			weapon = attacker.EnsureHostAuthorityWeapon( weaponId );
+
+		if ( weapon is null || weapon.Definition.Id != weaponId )
 			return;
 
 		var request = new AimboxCombatShotRequest(
@@ -983,27 +1133,78 @@ public sealed class AimboxGame : Component, Component.INetworkListener
 
 	[Rpc.Broadcast( NetFlags.HostOnly )]
 	public void RpcBroadcastPlayerKill(
-		string attackerAccountId,
+		string attackerCombatId,
 		string victimAccountId,
 		AimboxWeaponId weapon,
 		bool headshot,
 		float distance )
 	{
-		var attacker = FindPlayerByAccountId( attackerAccountId );
 		var victim = FindPlayerByAccountId( victimAccountId );
-		if ( attacker is null || victim is null )
+		if ( victim is null )
 			return;
+
+		// AUDIT FIX C4: attacker may be a player AccountId OR bot CombatId (bot_XXX).
+		var attackerPlayer = FindPlayerByAccountId( attackerCombatId );
+		var attackerBot = FindBotById( attackerCombatId );
+		IAimboxCombatActor attacker = attackerPlayer ?? (IAimboxCombatActor)attackerBot;
+		if ( attacker is null )
+		{
+			Log.Warning( $"[Aimbox] Kill broadcast dropped — unknown attacker '{attackerCombatId}'." );
+			return;
+		}
 
 		KillFeed.Record( attacker, victim, weapon, headshot );
 
 		if ( Networking.IsHost )
 			Match.RegisterKillScores( attacker, victim );
 
-		if ( attacker is AimboxPlayerController localAttacker && !localAttacker.IsProxy )
-			localAttacker.ConfirmKill( victim, weapon, headshot, distance );
+		// Only human attackers award local XP / mastery (bots use ConfirmKill → RegisterKill offline;
+		// here scores already registered above — avoid double RegisterKill for bots).
+		if ( attackerPlayer is not null && !attackerPlayer.IsProxy )
+			attackerPlayer.ConfirmKill( victim, weapon, headshot, distance );
 
-		if ( victim is AimboxPlayerController localVictim && !localVictim.IsProxy )
-			localVictim.RegisterNetworkDeath();
+		if ( !victim.IsProxy )
+			victim.RegisterNetworkDeath();
+	}
+
+	public AimboxBotController FindBotById( string botId )
+	{
+		if ( string.IsNullOrWhiteSpace( botId ) )
+			return null;
+
+		return _bots.FirstOrDefault( b => b.BotId == botId )
+			?? Scene.GetAllComponents<AimboxBotController>().FirstOrDefault( b => b.BotId == botId );
+	}
+
+	/// <summary>
+	/// AUDIT FIX (bot victim MP): same shape as RpcBroadcastPlayerKill but victim is a bot.
+	/// Host registers scores; owning attacker client runs ConfirmKill for XP.
+	/// </summary>
+	[Rpc.Broadcast( NetFlags.HostOnly )]
+	public void RpcBroadcastBotVictimKill(
+		string attackerCombatId,
+		string botId,
+		AimboxWeaponId weapon,
+		bool headshot,
+		float distance )
+	{
+		var bot = FindBotById( botId );
+		if ( bot is null )
+			return;
+
+		var attackerPlayer = FindPlayerByAccountId( attackerCombatId );
+		var attackerBot = FindBotById( attackerCombatId );
+		IAimboxCombatActor attacker = attackerPlayer ?? (IAimboxCombatActor)attackerBot;
+		if ( attacker is null )
+			return;
+
+		KillFeed.Record( attacker, bot, weapon, headshot );
+
+		if ( Networking.IsHost )
+			Match.RegisterKillScores( attacker, bot );
+
+		if ( attackerPlayer is not null && !attackerPlayer.IsProxy )
+			attackerPlayer.ConfirmKill( bot, weapon, headshot, distance );
 	}
 
 	public void UnregisterPlayer( AimboxPlayerController player )
@@ -1274,7 +1475,18 @@ public sealed class AimboxGame : Component, Component.INetworkListener
 		}
 
 		if ( Match.Mode == AimboxGameMode.Duel || AimboxLobbyTeamRules.UsesTeamSelect( Match.Mode ) )
+		{
+			// AUDIT FIX H3: mid-match joiners previously returned here with Team.None, then
+			// spawn FilterForMode could fall back to ALL candidates (wrong side). Auto-balance
+			// only when still unassigned; leave deliberate lobby picks alone.
+			if ( Phase == AimboxSessionPhase.Playing && player.Team == AimboxTeam.None )
+			{
+				player.Team = PickBalancedTeam();
+				Log.Info( $"[Aimbox] Late-join assigned {player.AccountId} → {player.Team}." );
+			}
+
 			return;
+		}
 
 		player.Team = AimboxTeam.None;
 	}
@@ -1288,7 +1500,12 @@ public sealed class AimboxGame : Component, Component.INetworkListener
 		}
 
 		if ( Match.Mode == AimboxGameMode.Duel || AimboxLobbyTeamRules.UsesTeamSelect( Match.Mode ) )
+		{
+			if ( Phase == AimboxSessionPhase.Playing && bot.Team == AimboxTeam.None )
+				bot.Team = PickBalancedTeam();
+
 			return;
+		}
 
 		bot.Team = AimboxTeam.None;
 	}

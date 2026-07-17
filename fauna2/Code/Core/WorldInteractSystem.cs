@@ -60,7 +60,12 @@ public sealed class WorldInteractSystem : Component
 			return;
 		}
 
-		if ( BuildController.Instance?.Mode != BuildMode.None || UiState.IsPageOpen || UiState.DebugVisible )
+		// AUDIT FIX B11: also block during welcome intro / session loading / catch UI
+		// via CanWorldInput (previously WelcomeIntroVisible was missing here).
+		if ( !UiState.CanWorldInput
+			|| BuildController.Instance?.Mode != BuildMode.None
+			|| UiState.IsPageOpen
+			|| UiState.DebugVisible )
 		{
 			_cachedTarget = default;
 			WorldInteractState.Clear();
@@ -109,7 +114,9 @@ public sealed class WorldInteractSystem : Component
 			if ( dist > CollectibleBuildingHelper.CollectibleInteractRange ) continue;
 
 			var hasMoney = restaurant.Uncollected > 0;
-			if ( hasMoney )
+			// AUDIT FIX: CollectRevenue prompt was shown to visitors; Host RPC
+			// rejects them silently. Gate the prompt to zoo owner.
+			if ( hasMoney && PlayerState.Local?.IsZooOwner == true )
 			{
 				TryCandidate(
 					ref best,

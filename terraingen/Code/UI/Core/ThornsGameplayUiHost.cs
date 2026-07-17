@@ -99,14 +99,20 @@ public sealed class ThornsGameplayUiHost : Component
 
 	static async System.Threading.Tasks.Task WaitForMountedAssetsAsync( System.Threading.CancellationToken cancel )
 	{
-		if ( ThornsMountedFiles.SamplePublishAssetsPresent )
+		// BOOT FIX: wait on boot-critical stylesheets, not the full icon+grass publish set.
+		// Full SamplePublishAssetsPresent used to stall ~12s then still continue — felt like "won't boot".
+		if ( ThornsRequiredPublishAssets.AreBootCriticalAssetsMounted() )
+		{
+			if ( !ThornsMountedFiles.SamplePublishAssetsPresent )
+				ThornsRequiredPublishAssets.LogMissingMounted( "gameplay bootstrap (non-blocking)" );
 			return;
+		}
 
 		ThornsMenuJoinFlow.SetProgressMessage( "Loading game files..." );
-		for ( var attempt = 0; attempt < 120; attempt++ )
+		for ( var attempt = 0; attempt < 40; attempt++ )
 		{
 			cancel.ThrowIfCancellationRequested();
-			if ( ThornsMountedFiles.SamplePublishAssetsPresent )
+			if ( ThornsRequiredPublishAssets.AreBootCriticalAssetsMounted() )
 				return;
 
 			await System.Threading.Tasks.Task.Delay( 100, cancel );

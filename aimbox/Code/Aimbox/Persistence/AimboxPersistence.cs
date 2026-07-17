@@ -38,10 +38,26 @@ public sealed class JsonFileAimboxDatabase : IAimboxDatabase
 		}
 		catch ( Exception ex )
 		{
+			// AUDIT FIX H7 (2026-07-13): corrupt JSON used to SavePlayer(fresh) over the bad file,
+			// permanently wiping progression with only a log line. Quarantine the corrupt blob and
+			// return an in-memory fresh profile WITHOUT writing over the original path.
 			Log.Warning( $"Aimbox failed to load player data for {accountId}: {ex.Message}" );
-			var fallback = AimboxPlayerData.CreateFreshStart( accountId );
-			SavePlayer( fallback );
-			return fallback;
+
+			try
+			{
+				var corruptBackup = $"{path}.corrupt.{DateTime.UtcNow:yyyyMMddHHmmss}.bak";
+				if ( FileSystem.Data.FileExists( path ) )
+				{
+					FileSystem.Data.WriteAllText( corruptBackup, FileSystem.Data.ReadAllText( path ) );
+					Log.Warning( $"[Aimbox] Quarantined corrupt save to {corruptBackup}. Fresh session profile will not overwrite until a clean save." );
+				}
+			}
+			catch ( Exception backupEx )
+			{
+				Log.Warning( $"[Aimbox] Could not quarantine corrupt save for {accountId}: {backupEx.Message}" );
+			}
+
+			return AimboxPlayerData.CreateFreshStart( accountId );
 		}
 	}
 

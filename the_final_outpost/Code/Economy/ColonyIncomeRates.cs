@@ -53,17 +53,22 @@ public static class ColonyIncomeRates
 		if ( core.IsCure )
 		{
 			var labMult = TechTreeCatalog.IsUnlocked( core.Save, "synthesis" ) ? 1.25f : 1f;
+			var agriculture = TechTreeCatalog.IsUnlocked( core.Save, "agriculture" );
 
-			food += farms * CureConstants.FarmFoodPerSec;
+			if ( agriculture )
+				food += farms * CureConstants.FarmFoodPerSec;
 			supplies += factories * CureConstants.FactorySuppliesPerSec;
 			food += factories * CureConstants.FactoryFoodPerSec;
+			knowledge += CureConstants.BaseKnowledgePerSec * labMult;
 			knowledge += libraries * CureConstants.LibraryKnowledgePerSec * labMult;
 			knowledge += schools * CureConstants.SchoolKnowledgePerSec * labMult;
 			scrap += shops * CureConstants.ShopScrapPerSec * incomeMult;
+			scrap += PlotBoosts.ScrapPerSec( core.Save );
+			food += PlotBoosts.FoodPerSec( core.Save );
+			knowledge += PlotBoosts.KnowledgePerSec( core.Save );
 
-			var population = (DefenderManager.Instance?.Count ?? 0) + (WorkerManager.Instance?.Count ?? 0);
-			if ( population > 0 )
-				food -= population * 0.08f;
+			food -= ColonyEconomy.FoodDrainPerSec();
+			scrap -= ColonyEconomy.ScrapUpkeepPerSec();
 		}
 
 		foreach ( var u in WorkerManager.Instance?.Units ?? Array.Empty<WorkerManager.WorkerUnit>() )
@@ -79,7 +84,8 @@ public static class ColonyIncomeRates
 							* (float)GameConstants.CraftsmanScrapPerResource * incomeMult;
 					break;
 				case WorkerRole.Farmer:
-					food += CureConstants.FarmerFoodPerSec;
+					if ( TechTreeCatalog.IsUnlocked( core.Save, "agriculture" ) )
+						food += CureConstants.FarmerFoodPerSec;
 					break;
 				case WorkerRole.Scholar:
 					knowledge += CureConstants.ScholarKnowledgePerSec
@@ -120,6 +126,7 @@ public static class ColonyIncomeRates
 		if ( core.IsCure )
 		{
 			rate *= TeamBonuses.ForagerYieldMult( core );
+			rate *= PlotBoosts.ForagerMult( core.Save );
 			var sickness = core.Save.ColonySickness / CureConstants.MaxSickness;
 			rate *= MathF.Max( 0.4f, 1f - sickness * CureConstants.SicknessWorkerPenalty * 100f );
 		}
@@ -128,7 +135,11 @@ public static class ColonyIncomeRates
 		{
 			case ResourceKind.Wood: wood += rate; break;
 			case ResourceKind.Stone: stone += rate; break;
-			case ResourceKind.Water: water += rate; break;
+			case ResourceKind.Water:
+				// Water plots are retired; keep for old saves / Survival only.
+				if ( !core.IsCure )
+					water += rate;
+				break;
 		}
 	}
 
@@ -137,7 +148,7 @@ public static class ColonyIncomeRates
 		if ( MathF.Abs( rate ) < 0.05f )
 			return null;
 
-		var sign = rate >= 0f ? "+" : "";
+		var sign = rate > 0f ? "+" : "-";
 		var abs = MathF.Abs( rate );
 		var text = abs >= 10f ? abs.ToString( "0" ) : abs.ToString( "0.#" );
 		return $"{sign}{text}/s";

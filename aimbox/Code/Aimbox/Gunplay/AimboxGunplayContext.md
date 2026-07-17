@@ -259,9 +259,14 @@ Headshot band: hit world Z ≥ target origin Z + 56.
 
 ## Known limitations (intentional or TODO)
 
-- No host-authoritative multiplayer yet — client applies all damage.
-- Ammo not synced over network.
-- Grenades not implemented (catalog stubs).
+> AUDIT NOTES 2026-07-13: partial host-authoritative MP now exists (`AimboxNetworkCombat` +
+> `AimboxGame` fire/kill/end RPCs). Remaining gaps below are still real.
+
+- Host-authoritative player HP + fire resolve exist for listen-server; joiner inventory is mirrored
+  on the host per fire RPC (base weapon stats only — attachments not Synced yet).
+- Ammo still not Synced — host and client each ConsumeShot; can desync over a long mag fight.
+- Match scores / lobby votes are not fully Synced (EndMatch + winners RPC exist; mid-match HUD may lag).
+- Grenades catalog stubs may still lack full definition damage entries.
 - TP weapon model on proxies — static world model, no fire anim.
 - Recoil bloom uses `Random.Shared` for micro-spread (consider seeded RNG for replay).
 - `AimboxViewModelTuner` editor component exists but is not wired to runtime controller.

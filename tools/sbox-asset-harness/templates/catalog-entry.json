@@ -1,0 +1,19 @@
+{
+  "id": "prop_example_01",
+  "games": ["*"],
+  "lane": "kit",
+  "kind": "prop",
+  "title": "Example prop",
+  "status": "ready",
+  "vmdl": null,
+  "vmat": null,
+  "kit": {
+    "recipe": "crate",
+    "targetHeight": 36,
+    "colors": {
+      "body": "#C49A6C"
+    }
+  },
+  "tags": [],
+  "notes": ""
+}

@@ -1197,7 +1197,10 @@ public sealed class AimboxPlayerController : Component, IAimboxCombatActor
 			? AimboxGame.Instance.Medals.EvaluateKill( this, victimPlayer, headshot, distance )
 			: [];
 		AimboxGame.Instance.Killstreaks.EvaluateKill( this );
-		if ( !AimboxNetworkCombat.UseHostAuthority || victim is AimboxBotController )
+		// AUDIT FIX: when UseHostAuthority, scores/killfeed are owned by RpcBroadcastPlayerKill
+		// (player victims) or AimboxBotController.Die (bot victims). Calling RegisterKill here
+		// for bot victims double-counted kills on the host. Offline still uses ConfirmKill as SoT.
+		if ( !AimboxNetworkCombat.UseHostAuthority )
 			AimboxGame.Instance.Match.RegisterKill( this, victim, weapon, headshot );
 		QueueSaveProgress();
 		RecordSessionProgression( weapon, playerXp, masteryXp, unlocks );
@@ -1223,14 +1226,76 @@ public sealed class AimboxPlayerController : Component, IAimboxCombatActor
 
 	public void ConfirmAimDrillKill( int points )
 	{
+		// AUDIT FIX M4: was empty stub — AimDrillController called it after RegisterAimScore.
+		// Keep lightweight: practice tally + save. Do not award match KillXp here.
 		if ( IsProxy || Data is null || points <= 0 )
 			return;
+
+		Data.PracticeKills += points;
+		QueueSaveProgress();
 	}
 
 	public void ConfirmAimDrillHit( int points )
 	{
+		// AUDIT FIX M4: tracking drills fire hits without a "kill" — still persist a ping so
+		// something happens if we later want hitchance analytics.
 		if ( IsProxy || Data is null || points <= 0 )
 			return;
+
+		Data.ShotsHit += points;
+		QueueSaveProgress();
+	}
+
+	/// <summary>
+	/// AUDIT FIX H6 (2026-07-13): mid-match loadout apply without Respawn/heal.
+	/// Old EquipLoadout → Respawn() fully healed the host and no-op'd for joiners
+	/// (Respawn early-outs when !IsHost). Call this from the editor session instead.
+	/// </summary>
+	public void ApplyEquippedLoadoutPreservingLife()
+	{
+		if ( IsProxy || Data is null )
+			return;
+
+		EnsureWeaponCombat();
+		ApplyLoadout( AimboxGame.Instance?.Loadouts.GetActiveLoadout( Data ) ?? AimboxLoadoutData.Default() );
+		RefillGrenades();
+		_lastEquippedWeapon = null;
+		_weaponCombat?.ResetRecoilState();
+		Log.Info( $"[Aimbox] Applied loadout preserving life for {AccountId} (weapon={ActiveWeapon})." );
+	}
+
+	/// <summary>
+	/// AUDIT FIX C1/H1: host proxies never ran ApplyLoadout, so RpcRequestPlayerFire always
+	/// saw CurrentWeapon == null. Ensure a runtime exists for the claimed weapon id, then
+	/// tick it so fire-delay cooldowns advance on the host.
+	/// Attachments are base-stat only until we Sync attach lists — intentional minimal fix.
+	/// </summary>
+	public AimboxWeaponRuntime EnsureHostAuthorityWeapon( AimboxWeaponId weaponId )
+	{
+		EnsureWeaponCombat();
+
+		for ( var i = 0; i < _inventory.Slots.Count; i++ )
+		{
+			var slot = _inventory.GetSlot( i );
+			if ( slot is not null && slot.Definition.Id == weaponId )
+			{
+				ActiveWeapon = weaponId;
+				return slot;
+			}
+		}
+
+		_inventory.ApplySingleWeapon( weaponId );
+		ActiveWeapon = weaponId;
+		return _inventory.GetSlot( 0 );
+	}
+
+	/// <summary>Host-only: advance proxy ammo cooldown/reload so TryConsumeShot can rate-limit.</summary>
+	public void TickHostProxyCombat( float delta )
+	{
+		if ( !IsProxy )
+			return;
+
+		CurrentWeapon?.Update( delta );
 	}
 
 	public void BeginMatch()

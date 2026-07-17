@@ -65,7 +65,7 @@ public sealed class UpgradeSystem
 
 		return id switch
 		{
-			UpgradeId.WallArmor => $"Current bonus: walls at {WallMaxHp:0} HP",
+			UpgradeId.WallArmor => $"Current bonus: walls at {WallMaxHp:0} HP / segment",
 			UpgradeId.TurretPower =>
 				$"Current bonus: +{TurretDamageBonus:0} tower dmg, +{TurretDamageBonus * 0.25f:0.#} recruit dmg",
 			UpgradeId.TurretRange =>
@@ -98,7 +98,16 @@ public sealed class UpgradeSystem
 		return true;
 	}
 
-	public float WallMaxHp => 80f + Level( UpgradeId.WallArmor ) * 35f;
+	public float WallMaxHp
+	{
+		get
+		{
+			// Keep total perimeter HP ≈ same as when each side had LegacySegmentsPerSide chunks.
+			var legacyPerSegment = 80f + Level( UpgradeId.WallArmor ) * 35f;
+			return legacyPerSegment
+				* (GameConstants.LegacySegmentsPerSide / (float)GameConstants.SegmentsPerSide);
+		}
+	}
 	public float TurretDamageBonus => Level( UpgradeId.TurretPower ) * GameConstants.TurretDamagePerLevel;
 	public float TurretRangeBonus => Level( UpgradeId.TurretRange ) * GameConstants.TurretRangePerLevel;
 	public double ScrapMult => 1.0 + Level( UpgradeId.ScrapBonus ) * 0.10;

@@ -54,6 +54,11 @@ public sealed class WildAnimalComponent : Component
 				GameObject.WorldPosition = _fleePosition;
 				RebuildVisual();
 				PickRoamTarget();
+
+				// AUDIT FIX B8 (respawn side): after local flee timer, wild is live again
+				// and must reappear in the next client snapshot.
+				if ( Networking.IsHost )
+					ClientWorldSync.Instance?.ScheduleWildSync();
 			}
 
 			return;
@@ -93,6 +98,12 @@ public sealed class WildAnimalComponent : Component
 		_visual?.Destroy();
 		_visual = null;
 		_respawnAfterFlee = GameConstants.WildAnimalRespawnDuration;
+
+		// AUDIT FIX B8: Snapshots omit fled wilds (see WildernessSpawner.CaptureSave).
+		// Without a sync after Flee, clients keep showing a catchable ghost until
+		// the next unrelated top-up/plot event. Coalesced via ScheduleWildSync.
+		if ( Networking.IsHost )
+			ClientWorldSync.Instance?.ScheduleWildSync();
 	}
 
 	private void EnsurePickCollider()
@@ -225,14 +236,7 @@ public sealed class WildAnimalComponent : Component
 		}
 
 		GameObject.WorldPosition = next.WithZ( 0f );
-
-		if ( dir.LengthSquared > 0.0001f )
-		{
-			GameObject.WorldRotation = Rotation.Lerp(
-				GameObject.WorldRotation,
-				Rotation.LookAt( dir ),
-				Time.Delta * 5f );
-		}
+		// Facing comes from SpriteWalkAnimator horizontal flip — keep root unyawed.
 	}
 
 	private static float WildMovementSpeedMultiplier( AnimalLocomotion locomotion ) => locomotion switch

@@ -19,16 +19,18 @@ public static class ThornsProjectCompileGuard
 
 		var codeDir = project.GetCodePath();
 		var projectRoot = string.IsNullOrWhiteSpace( codeDir ) ? null : Path.GetDirectoryName( codeDir );
-		var csproj = Path.Combine( codeDir, "terraingen.csproj" );
+		// BOOT FIX: sbproj Ident is "thorns"; assembly/csproj is Code/thorns.csproj (not terraingen.csproj).
+		// Wrong CsProjName previously pointed at a missing file → no game assembly → players report "won't boot".
+		var csproj = Path.Combine( codeDir, "thorns.csproj" );
 		var slnx = string.IsNullOrWhiteSpace( projectRoot )
-			? Path.Combine( codeDir, "terraingen.slnx" )
-			: Path.Combine( projectRoot, "terraingen.slnx" );
+			? Path.Combine( codeDir, "thorns.slnx" )
+			: Path.Combine( projectRoot, "thorns.slnx" );
 
 		if ( !File.Exists( csproj ) )
-			Log.Error( $"[Thorns] Missing Code/terraingen.csproj at '{csproj}' — game code will not compile." );
+			Log.Error( $"[Thorns] Missing Code/thorns.csproj at '{csproj}' — game code will not compile. Check terraingen.sbproj CsProjName." );
 
 		if ( !File.Exists( slnx ) )
-			Log.Warning( $"[Thorns] Missing terraingen.slnx at '{slnx}' — open via terraingen.slnx in the editor." );
+			Log.Warning( $"[Thorns] Missing thorns.slnx at '{slnx}' — open via thorns.slnx in the editor." );
 
 		var pathToCheck = projectRoot ?? codeDir;
 		if ( pathToCheck.Contains( '&' ) )

@@ -13,6 +13,7 @@ public sealed class GameCore : Component
 	public AchievementSystem Achievements { get; private set; }
 	public DailyChallengeSystem Daily { get; private set; }
 	public MissionSystem Missions { get; private set; }
+	public PowerPickSystem PowerPicks { get; private set; }
 	public RunState Run { get; private set; }
 
 	public TrackManager Track { get; private set; }
@@ -21,14 +22,27 @@ public sealed class GameCore : Component
 	public GamePhase Phase { get; private set; } = GamePhase.Start;
 	public bool ShopOpen { get; private set; }
 	public bool CharacterSelectOpen { get; private set; }
-	public bool IsUiBlocking => Phase != GamePhase.Running;
+	public string StatusBanner { get; private set; } = "";
+	public float StatusBannerTime { get; private set; }
+	public UpgradeId? FeaturedUpgrade { get; private set; }
+	public string DistrictAnnounce { get; private set; } = "";
+	public float DistrictAnnounceTime { get; private set; }
+	public int LastDistrictIndex { get; private set; } = -1;
+
+	public bool IsUiBlocking =>
+		Phase != GamePhase.Running
+		|| ShopOpen
+		|| CharacterSelectOpen
+		|| (PowerPicks?.IsOpen ?? false);
 
 	public double LastRunReward { get; private set; }
 	public float LastRunDistance { get; private set; }
 	public double LastRunScore { get; private set; }
 	public double LastMissionReward { get; private set; }
+	public double LastPayoutBonus { get; private set; }
 
 	private TimeUntil _nextAutosave;
+	private bool _bootstrapped;
 
 	protected override void OnAwake()
 	{
@@ -41,6 +55,7 @@ public sealed class GameCore : Component
 		Achievements = new AchievementSystem( Save, Wallet );
 		Daily = new DailyChallengeSystem( Save );
 		Missions = new MissionSystem();
+		PowerPicks = new PowerPickSystem();
 		Run = new RunState( Upgrades, Characters, Daily );
 	}
 
@@ -62,12 +77,31 @@ public sealed class GameCore : Component
 
 		Phase = GamePhase.Start;
 		_nextAutosave = GameConstants.AutosaveInterval;
+		_bootstrapped = true;
+
+		if ( !Save.HasCompletedTutorialRun )
+		{
+			ShowBanner( "PICK A LANE — bigger MOB wins · red gates KILL crew", 4.5f );
+			StartRun();
+		}
 	}
 
 	protected override void OnUpdate()
 	{
-		if ( Phase == GamePhase.Running && Run.Squad < 1f )
-			EndRun();
+		if ( !_bootstrapped ) return;
+
+		if ( StatusBannerTime > 0f )
+			StatusBannerTime = MathF.Max( 0f, StatusBannerTime - Time.Delta );
+		if ( DistrictAnnounceTime > 0f )
+			DistrictAnnounceTime = MathF.Max( 0f, DistrictAnnounceTime - Time.Delta );
+
+		if ( Phase == GamePhase.Running && Run.Active )
+		{
+			TickDistrictAnnounce();
+
+			if ( Run.Squad < 1f )
+				EndRun();
+		}
 
 		if ( _nextAutosave )
 		{
@@ -89,12 +123,22 @@ public sealed class GameCore : Component
 	{
 		ShopOpen = false;
 		CharacterSelectOpen = false;
+		FeaturedUpgrade = null;
+		LastPayoutBonus = 0;
+		LastDistrictIndex = -1;
+		DistrictAnnounce = "";
+		DistrictAnnounceTime = 0f;
+
 		Daily.BeginRun();
 		Missions.BeginRun( Daily.TodaySeed );
+		PowerPicks.Reset();
 		Player?.ResetToStart( 0f );
 		Run.Begin( 0f );
 		Track?.ResetRun( 0f );
 		Phase = GamePhase.Running;
+
+		if ( !Save.HasCompletedTutorialRun )
+			ShowBanner( "A / D strafe · take the BIGGER gate · dodge RED walls", 5f );
 	}
 
 	private void EndRun()
@@ -108,8 +152,17 @@ public sealed class GameCore : Component
 		LastRunDistance = Run.DistanceMeters;
 		LastRunScore = Run.Score;
 
+		// First wreck only: tiny floor so a brand-new player can buy one upgrade.
+		if ( Save.TotalRuns == 0 && LastRunReward < GameConstants.FirstRunBonusPayout )
+		{
+			LastPayoutBonus = GameConstants.FirstRunBonusPayout - LastRunReward;
+			LastRunReward = GameConstants.FirstRunBonusPayout;
+		}
+
 		Wallet.Earn( LastRunReward );
 		Save.TotalRuns++;
+		Save.HasCompletedTutorialRun = true;
+
 		if ( Run.DistanceMeters > Save.BestDistance )
 			Save.BestDistance = Run.DistanceMeters;
 		if ( Run.Score > Save.BestScore )
@@ -123,8 +176,45 @@ public sealed class GameCore : Component
 		}
 
 		Achievements.CheckRunEnd( Run );
+		FeaturedUpgrade = PickFeaturedUpgrade();
 		Sfx.Play( Sfx.Death );
 		SaveManager.Save( Save );
+	}
+
+	public UpgradeId? PickFeaturedUpgrade()
+	{
+		UpgradeId? best = null;
+		var bestCost = double.PositiveInfinity;
+
+		foreach ( var def in UpgradeSystem.All )
+		{
+			if ( Upgrades.IsMaxed( def.Id ) ) continue;
+			var cost = Upgrades.NextCost( def.Id );
+			if ( cost > Wallet.Cash ) continue;
+			if ( cost >= bestCost ) continue;
+			bestCost = cost;
+			best = def.Id;
+		}
+
+		if ( best is not null ) return best;
+
+		foreach ( var def in UpgradeSystem.All )
+		{
+			if ( Upgrades.IsMaxed( def.Id ) ) continue;
+			var cost = Upgrades.NextCost( def.Id );
+			if ( cost >= bestCost ) continue;
+			bestCost = cost;
+			best = def.Id;
+		}
+
+		return best;
+	}
+
+	public void BuyFeaturedUpgrade()
+	{
+		if ( FeaturedUpgrade is not { } id ) return;
+		if ( BuyUpgrade( id ) )
+			FeaturedUpgrade = PickFeaturedUpgrade();
 	}
 
 	public void OpenShop() { ShopOpen = true; CharacterSelectOpen = false; }
@@ -141,6 +231,7 @@ public sealed class GameCore : Component
 		{
 			Sfx.Play( Sfx.Purchase );
 			SaveManager.Save( Save );
+			ShowBanner( $"{UpgradeSystem.Def( id ).Name} upgraded!", 1.6f );
 		}
 		return ok;
 	}
@@ -175,6 +266,40 @@ public sealed class GameCore : Component
 
 		Achievements.CheckPrestige();
 		SaveManager.Save( Save );
+		ShowBanner( $"RIOT LEVEL {Save.PrestigeLevel} — permanent coin bonus", 3f );
 		return true;
+	}
+
+	public void OnBossKilled()
+	{
+		if ( Phase != GamePhase.Running || !Run.Active ) return;
+		PowerPicks.OfferBossReward();
+		if ( PowerPicks.IsOpen )
+			ShowBanner( "BOSS DOWN — grab a power", 2f );
+	}
+
+	public void ChoosePowerPick( PowerPickId id )
+	{
+		if ( PowerPicks is null || !PowerPicks.IsOpen ) return;
+		PowerPicks.Choose( id, Run );
+		ShowBanner( PowerPickSystem.Catalog.First( p => p.Id == id ).Name, 1.8f );
+	}
+
+	public void ShowBanner( string text, float seconds )
+	{
+		StatusBanner = text ?? "";
+		StatusBannerTime = seconds;
+	}
+
+	private void TickDistrictAnnounce()
+	{
+		var track = Track;
+		if ( track is null ) return;
+		var idx = track.CurrentBiomeIndex;
+		if ( idx == LastDistrictIndex ) return;
+		LastDistrictIndex = idx;
+		DistrictAnnounce = DistrictTheme.Name( idx );
+		DistrictAnnounceTime = 2.8f;
+		ShowBanner( $"{DistrictTheme.Name( idx )} — {DistrictTheme.Tagline( idx )}", 2.6f );
 	}
 }

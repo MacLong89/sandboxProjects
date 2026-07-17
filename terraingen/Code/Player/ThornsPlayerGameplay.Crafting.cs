@@ -94,12 +94,43 @@ public sealed partial class ThornsPlayerGameplay
 		if ( recipe is null )
 			return;
 
-		HostAddItem( recipe.OutputItemId, recipe.OutputCount );
-		ThornsMilestoneTracker.OnCrafted( this, recipe.OutputItemId, recipe.OutputCount );
-		ThornsMilestoneTracker.OnInventoryChanged( this );
-		ThornsJourneyProgression.NotifySurvivalArmamentAcquired( this );
-		if ( ThornsItemRegistry.TryGet( recipe.OutputItemId, out var itemDef ) )
-			PushCraftCompleteToOwner( itemDef.DisplayName );
+		// AUDIT FIX: HostAddItem previously discarded overflow silently after ingredients were
+		// already consumed at queue time. Now: add what fits, drop leftovers as a world crate,
+		// and notify the owner. Revert: call HostAddItem only and remove overflow handling.
+		var granted = HostTryAddItem( recipe.OutputItemId, recipe.OutputCount, out var remaining );
+		var droppedOverflow = false;
+		if ( remaining > 0 )
+		{
+			var overflow = new ThornsItemStack { ItemId = recipe.OutputItemId, Count = remaining };
+			if ( ThornsItemRegistry.TryGet( recipe.OutputItemId, out var overflowDef ) )
+			{
+				if ( ThornsItemTier.SupportsTiering( overflowDef ) )
+					ThornsItemTier.ApplyCraftDefaults( ref overflow, overflowDef );
+			}
+
+			droppedOverflow = Terraingen.World.ThornsDeathCrateWorldService.Instance
+				?.HostTrySpawnPlayerDrop( GameObject, overflow ) == true;
+
+			PushOwnerNotification(
+				droppedOverflow
+					? $"Inventory full — crafted items dropped nearby ({remaining})."
+					: $"Inventory full — lost {remaining} crafted item(s).",
+				droppedOverflow ? "warning" : "error" );
+
+			Log.Warning(
+				$"[Thorns Craft] Grant overflow itemId={recipe.OutputItemId} remaining={remaining} dropped={droppedOverflow} account={AccountKey}" );
+		}
+
+		// Still credit milestones if anything was granted or safely dropped (ingredients already spent).
+		if ( granted > 0 || droppedOverflow || remaining == 0 )
+		{
+			ThornsMilestoneTracker.OnCrafted( this, recipe.OutputItemId, recipe.OutputCount );
+			ThornsMilestoneTracker.OnInventoryChanged( this );
+			ThornsJourneyProgression.NotifySurvivalArmamentAcquired( this );
+			if ( ThornsItemRegistry.TryGet( recipe.OutputItemId, out var itemDef ) )
+				PushCraftCompleteToOwner( itemDef.DisplayName );
+		}
+
 		MarkInventorySyncDirty();
 		PushInventoryToOwner();
 		HostPersistPlayerState();

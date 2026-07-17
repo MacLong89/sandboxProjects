@@ -96,6 +96,9 @@ public static class ThornsWorldUseAim
 			.IgnoreGameObjectHierarchy( pawnRoot )
 			.Run();
 
+		// AUDIT NOTE: no hit along aim ⇒ treat as clear LOS (open air). Soft failure if occluders
+		// lack colliders. Hard through-wall interact would need layered traces; leave for runtime test
+		// before changing — see audit UseAim finding. Revert: N/A (behavior unchanged 2026-07).
 		if ( !trAim.Hit || !trAim.GameObject.IsValid() )
 			return true;
 

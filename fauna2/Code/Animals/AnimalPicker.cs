@@ -10,6 +10,10 @@ public sealed class AnimalPicker : Component
 		if ( GameManager.Instance is null || !GameManager.Instance.GameStarted )
 			return;
 
+		// AUDIT FIX B11: share world-input gate (intro / loading / catch).
+		if ( !UiState.CanWorldInput )
+			return;
+
 		if ( BuildController.Instance?.Mode != BuildMode.None )
 			return;
 

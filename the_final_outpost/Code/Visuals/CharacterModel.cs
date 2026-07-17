@@ -33,6 +33,7 @@ public sealed class CharacterModel : Component
 	private CitizenAnimationHelper.MoveStyles _zombieMoveStyle = CitizenAnimationHelper.MoveStyles.Walk;
 	private bool _isZombie;
 	private bool _zombieEngaged;
+	private bool _zombieVaulting;
 
 	private Vector3 _velocity;
 	private Rotation _aim;
@@ -57,13 +58,24 @@ public sealed class CharacterModel : Component
 
 		var body = new GameObject( GameObject, true, "Body" );
 		_skin = body.Components.Create<SkinnedModelRenderer>();
-		_skin.Model = Model.Load( CitizenVmdl );
+		var citizen = AssetSafe.Model( CitizenVmdl );
+		if ( citizen is null )
+		{
+			// Extremely rare (engine base content missing) — stand-in humanoid silhouette.
+			citizen = MeshPrimitives.Box;
+			Log.Warning( "[FinalOutpost] Citizen model missing — using box stand-in for humanoids." );
+		}
+
+		_skin.Model = citizen;
 		_skin.Tint = tint;
-		_skin.UseAnimGraph = true;
-		_skin.CreateBoneObjects = true;
+		_skin.UseAnimGraph = citizen != MeshPrimitives.Box;
+		_skin.CreateBoneObjects = citizen != MeshPrimitives.Box;
 
 		_anim = body.Components.Create<CitizenAnimationHelper>();
 		_anim.Target = _skin;
+
+		if ( citizen == MeshPrimitives.Box )
+			body.LocalScale = new Vector3( 28f, 28f, 72f );
 
 		if ( !string.IsNullOrWhiteSpace( weaponModel ) )
 		{
@@ -93,6 +105,7 @@ public sealed class CharacterModel : Component
 	{
 		_isZombie = true;
 		_zombieEngaged = false;
+		_zombieVaulting = false;
 		Setup( def.Tint, null, CitizenAnimationHelper.HoldTypes.None );
 		_zombieDuck = def.DuckLevel;
 		_zombieAnimSpeed = def.AnimSpeedMult;
@@ -100,6 +113,16 @@ public sealed class CharacterModel : Component
 	}
 
 	public void SetZombieEngaged( bool engaged ) => _zombieEngaged = engaged;
+
+	/// <summary>
+	/// Wall vault presentation — airborne = not grounded + optional one-shot TriggerJump.
+	/// </summary>
+	public void SetWallVaulting( bool airborne, bool triggerJump = false )
+	{
+		_zombieVaulting = airborne;
+		if ( airborne && triggerJump && _anim.IsValid() )
+			_anim.TriggerJump();
+	}
 
 	public void TriggerMeleeSwing()
 	{
@@ -131,7 +154,7 @@ public sealed class CharacterModel : Component
 
 	protected override void OnUpdate()
 	{
-		if ( !_anim.IsValid() )
+		if ( !_anim.IsValid() || !_skin.IsValid() || !_skin.UseAnimGraph )
 			return;
 
 		if ( !_aimInit )
@@ -140,15 +163,24 @@ public sealed class CharacterModel : Component
 			_aimInit = true;
 		}
 
-		_anim.IsGrounded = true;
+		_anim.IsGrounded = !_zombieVaulting;
 
 		if ( _isZombie )
 		{
+			_zombieEngaged = _zombieEngaged && !_zombieVaulting;
 			_anim.DuckLevel = _zombieDuck;
 			_anim.MoveStyle = _zombieMoveStyle;
 			_anim.AimAngle = _aim;
 
-			if ( _zombieEngaged )
+			if ( _zombieVaulting )
+			{
+				_anim.HoldType = CitizenAnimationHelper.HoldTypes.None;
+				_anim.AimBodyWeight = 0.2f;
+				_anim.AimHeadWeight = 0.4f;
+				_anim.WithWishVelocity( _velocity );
+				_anim.WithVelocity( _velocity + Vector3.Up * 80f );
+			}
+			else if ( _zombieEngaged )
 			{
 				// Press-in melee pose instead of snapping to a hard idle (prevents foot shuffle jitter).
 				var press = _aim.Forward * 42f;

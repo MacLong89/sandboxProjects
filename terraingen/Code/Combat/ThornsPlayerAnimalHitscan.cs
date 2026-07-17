@@ -32,6 +32,10 @@ public sealed class ThornsPlayerAnimalHitscan : Component
 		if ( !IsLocallyControlled() )
 			return;
 
+		// AUDIT FIX: melee/tools shared Attack1 with inventory UI and must not fire while dead.
+		if ( ThornsPlayerActionGate.BlocksLocalWorldActions( GameObject ) )
+			return;
+
 		if ( ThornsPlayerWeaponCombat.IsRangedWeaponEquipped( GameObject )
 		     || ThornsPlayerBowCombat.IsBowEquipped( GameObject ) )
 			return;
@@ -118,6 +122,10 @@ public sealed class ThornsPlayerAnimalHitscan : Component
 	void HostTryFire( Vector3 origin, Vector3 direction )
 	{
 		if ( !ThornsMultiplayer.IsHostOrOffline || Time.Now < _nextHostFireTime )
+			return;
+
+		// AUDIT FIX: host-side dead check (inventory already used HostIsDead; combat did not).
+		if ( ThornsPlayerActionGate.BlocksHostWorldActions( GameObject ) )
 			return;
 
 		var activeItemId = ResolveActiveItemId();

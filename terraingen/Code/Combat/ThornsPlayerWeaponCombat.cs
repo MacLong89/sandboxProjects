@@ -57,6 +57,10 @@ public sealed class ThornsPlayerWeaponCombat : Component
 
 	public void RequestBowNockIfNeeded()
 	{
+		// AUDIT FIX: bow nock is a combat intent — same dead/UI gate as guns.
+		if ( ThornsPlayerActionGate.BlocksLocalWorldActions( GameObject ) )
+			return;
+
 		if ( ShouldBlockCombatWhileBuilding() )
 			return;
 
@@ -74,6 +78,10 @@ public sealed class ThornsPlayerWeaponCombat : Component
 
 	public void RequestBowReleaseFire( Vector3 origin, Vector3 direction )
 	{
+		// AUDIT FIX: release still reaches HostTryFire — gate locally before predict/RPC.
+		if ( ThornsPlayerActionGate.BlocksLocalWorldActions( GameObject ) )
+			return;
+
 		if ( ShouldBlockCombatWhileBuilding() )
 			return;
 
@@ -139,6 +147,10 @@ public sealed class ThornsPlayerWeaponCombat : Component
 
 	void TickLocalFireInput()
 	{
+		// AUDIT FIX: dead / inventory-open clients must not send fire intents (Attack1 is shared with UI).
+		if ( ThornsPlayerActionGate.BlocksLocalWorldActions( GameObject ) )
+			return;
+
 		if ( !TryResolveActiveFirearm( out var combatId, out var def ) )
 			return;
 
@@ -322,6 +334,10 @@ public sealed class ThornsPlayerWeaponCombat : Component
 	void HostTryFire( Vector3 origin, Vector3 direction, bool aimDownSights )
 	{
 		if ( !ThornsMultiplayer.IsHostOrOffline || _hostReloadInProgress )
+			return;
+
+		// AUDIT FIX: host refuses fire from dead pawns even if a stale RPC arrives.
+		if ( ThornsPlayerActionGate.BlocksHostWorldActions( GameObject ) )
 			return;
 
 		if ( ShouldBlockCombatWhileBuilding() )
@@ -601,6 +617,9 @@ public sealed class ThornsPlayerWeaponCombat : Component
 
 	public void RequestReload()
 	{
+		if ( ThornsPlayerActionGate.BlocksLocalWorldActions( GameObject ) )
+			return;
+
 		if ( ShouldBlockCombatWhileBuilding() )
 			return;
 
@@ -626,6 +645,9 @@ public sealed class ThornsPlayerWeaponCombat : Component
 	void HostTryStartReload()
 	{
 		if ( !ThornsMultiplayer.IsHostOrOffline || _hostReloadInProgress )
+			return;
+
+		if ( ThornsPlayerActionGate.BlocksHostWorldActions( GameObject ) )
 			return;
 
 		if ( ShouldBlockCombatWhileBuilding() )
@@ -673,6 +695,9 @@ public sealed class ThornsPlayerWeaponCombat : Component
 	void HostTryNockBowArrow()
 	{
 		if ( !ThornsMultiplayer.IsHostOrOffline || _hostReloadInProgress )
+			return;
+
+		if ( ThornsPlayerActionGate.BlocksHostWorldActions( GameObject ) )
 			return;
 
 		if ( ShouldBlockCombatWhileBuilding() )

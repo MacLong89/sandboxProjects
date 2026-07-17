@@ -673,19 +673,30 @@ public sealed partial class ThornsPlayerGameplay
 		}
 	}
 
-	void HostAddItem( string itemId, int count )
+	void HostAddItem( string itemId, int count ) =>
+		_ = HostTryAddItem( itemId, count, out _ );
+
+	/// <summary>
+	/// AUDIT FIX: returns how many were stored and how many did not fit.
+	/// Callers that previously assumed full grants (craft) must handle <paramref name="remaining"/>.
+	/// </summary>
+	int HostTryAddItem( string itemId, int count, out int remaining )
 	{
-		if ( !ThornsMultiplayer.IsHostOrOffline || count <= 0 )
-			return;
+		remaining = Math.Max( 0, count );
+		if ( !ThornsMultiplayer.IsHostOrOffline || count <= 0 || string.IsNullOrWhiteSpace( itemId ) )
+			return 0;
 
 		MarkInventorySyncDirty();
-		var remaining = count;
+		remaining = count;
 		for ( var i = 0; i < ThornsInventoryContainer.InventorySlotCount && remaining > 0; i++ )
 		{
 			var s = _inventory.GetSlot( ThornsContainerKind.Inventory, i );
 			var def = ThornsDefinitionRegistry.GetItem( itemId );
 			if ( def is null )
-				return;
+			{
+				remaining = count;
+				return 0;
+			}
 
 			if ( !s.IsEmpty && s.ItemId != itemId )
 				continue;
@@ -714,6 +725,8 @@ public sealed partial class ThornsPlayerGameplay
 		var added = count - remaining;
 		if ( added > 0 )
 			ThornsMilestoneTracker.OnItemCollected( this, itemId, added );
+
+		return added;
 	}
 
 	public void RequestEquipAttachment( ThornsEquipAttachmentRequest req )

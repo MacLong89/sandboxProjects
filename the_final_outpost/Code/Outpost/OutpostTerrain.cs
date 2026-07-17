@@ -10,7 +10,7 @@ namespace FinalOutpost;
 public sealed class OutpostTerrain : Component
 {
 	// Covers the whole plot field plus the enemy spawn ring with a margin.
-	private static float Extent => GameConstants.TerrainHalfExtent;
+	private static float Extent => GameConstants.ActiveTerrainHalfExtent;
 	private static float CellSize => GameConstants.TerrainCellSize;
 	private const float Amplitude = GameConstants.TerrainAmplitude;
 	// Keep the entire home base (walls + build grid) flat; hills only start past it.

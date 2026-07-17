@@ -1,0 +1,66 @@
+@using Sandbox
+@using Sandbox.UI
+@using SceneLab
+@inherits PanelComponent
+@namespace SceneLab.UI
+
+<root>
+	@if ( Boot is not null )
+	{
+		<div class="panel">
+			<div class="badge">SCENE LAB</div>
+			<div class="title">@Boot.SceneTitle</div>
+			<div class="notes">@Boot.SceneNotes</div>
+			<div class="hints">
+				<span>WASD move</span>
+				<span>Mouse look</span>
+				<span>Shift run</span>
+				<span>R rebuild</span>
+			</div>
+			<div class="legend-title">Building legend</div>
+			<div class="legend">
+				<div class="legend-row">
+					<div class="swatch skyscraper"></div>
+					<span class="legend-label">Skyscraper</span>
+					<span class="legend-hex">#DB33E6</span>
+				</div>
+				<div class="legend-row">
+					<div class="swatch office"></div>
+					<span class="legend-label">Office</span>
+					<span class="legend-hex">#2673F2</span>
+				</div>
+				<div class="legend-row">
+					<div class="swatch apartment"></div>
+					<span class="legend-label">Apartment</span>
+					<span class="legend-hex">#FA7A1A</span>
+				</div>
+				<div class="legend-row">
+					<div class="swatch factory"></div>
+					<span class="legend-label">Factory</span>
+					<span class="legend-hex">#F2D91F</span>
+				</div>
+				<div class="legend-row">
+					<div class="swatch warehouse"></div>
+					<span class="legend-label">Warehouse</span>
+					<span class="legend-hex">#1AC7B8</span>
+				</div>
+				<div class="legend-row">
+					<div class="swatch house"></div>
+					<span class="legend-label">Suburban house</span>
+					<span class="legend-hex">#E6D6B8</span>
+				</div>
+			</div>
+			<div class="export">Commercial strip: middle street, east, +Y side.</div>
+		</div>
+	}
+</root>
+
+@code
+{
+	SceneLabBoot Boot => SceneLabBoot.Instance;
+
+	protected override int BuildHash() => System.HashCode.Combine(
+		Boot?.BuildGeneration,
+		Boot?.SceneTitle,
+		Boot?.SceneNotes );
+}

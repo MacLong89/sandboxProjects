@@ -29,16 +29,16 @@ public sealed class MissionSystem
 {
 	private static readonly MissionDef[] Pool =
 	[
-		new() { Type = MissionType.KillElites, Description = "Kill {0} elites", Target = 3, Reward = 400 },
-		new() { Type = MissionType.KillElites, Description = "Kill {0} elites", Target = 5, Reward = 700 },
-		new() { Type = MissionType.ReachDistance, Description = "Reach {0}m", Target = 500, Reward = 350 },
-		new() { Type = MissionType.ReachDistance, Description = "Reach {0}m", Target = 800, Reward = 600 },
-		new() { Type = MissionType.CrossMultGates, Description = "Cross {0} mult gates", Target = 4, Reward = 450 },
-		new() { Type = MissionType.CrossMultGates, Description = "Cross {0} mult gates", Target = 8, Reward = 800 },
-		new() { Type = MissionType.KillCount, Description = "Kill {0} brutes", Target = 15, Reward = 300 },
-		new() { Type = MissionType.KillCount, Description = "Kill {0} brutes", Target = 30, Reward = 550 },
-		new() { Type = MissionType.ComboStreak, Description = "Hit a {0} combo", Target = 10, Reward = 400 },
-		new() { Type = MissionType.ComboStreak, Description = "Hit a {0} combo", Target = 20, Reward = 750 },
+		new() { Type = MissionType.KillElites, Description = "Drop {0} elite units", Target = 2, Reward = 350 },
+		new() { Type = MissionType.KillElites, Description = "Drop {0} elite units", Target = 5, Reward = 700 },
+		new() { Type = MissionType.ReachDistance, Description = "Push {0}m into the city", Target = 250, Reward = 280 },
+		new() { Type = MissionType.ReachDistance, Description = "Push {0}m into the city", Target = 500, Reward = 500 },
+		new() { Type = MissionType.CrossMultGates, Description = "Take {0} multiplier gates", Target = 3, Reward = 350 },
+		new() { Type = MissionType.CrossMultGates, Description = "Take {0} multiplier gates", Target = 6, Reward = 650 },
+		new() { Type = MissionType.KillCount, Description = "Smash {0} security", Target = 12, Reward = 250 },
+		new() { Type = MissionType.KillCount, Description = "Smash {0} security", Target = 25, Reward = 500 },
+		new() { Type = MissionType.ComboStreak, Description = "Hit a {0} riot combo", Target = 8, Reward = 320 },
+		new() { Type = MissionType.ComboStreak, Description = "Hit a {0} riot combo", Target = 18, Reward = 700 },
 	];
 
 	public IReadOnlyList<ActiveMission> Active { get; private set; } = Array.Empty<ActiveMission>();

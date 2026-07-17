@@ -1,0 +1,1 @@
+See the personal skill copy at `~/.cursor/skills/sbox-asset-authoring/kit-recipes.md`, or follow recipes in `tools/sbox-asset-harness/README.md` and catalog `kit.recipe` fields (`tree`, `bush`, `house`, `crate`, `creature`).

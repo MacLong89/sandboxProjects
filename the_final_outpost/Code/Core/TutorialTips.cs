@@ -40,6 +40,8 @@ public static class TutorialTips
 			Id = "start_night", MinNight = 1, MaxNight = 1, Priority = 80, Icon = "bedtime",
 			Title = "Start your first night",
 			Body = "When you are ready, press Start Night in the build dock. "
+				+ "Towers and recruits defend automatically. Use Command Recruits during the night, then click "
+				+ "a zombie to focus it or the ground to clear that area. "
 				+ "You earn scrap for every kill and a bonus if you survive until dawn."
 		},
 		new()
@@ -83,7 +85,7 @@ public static class TutorialTips
 			Id = "zombie_brute", MinNight = 5, MaxNight = 5, Priority = 95, Icon = "fitness_center",
 			Title = "Tonight: Brutes",
 			Body = "Brutes are slow but very tanky and smash structures hard. "
-				+ "Focus fire on them and repair walls between waves."
+				+ "Click them to focus your recruits, and repair walls between waves."
 		},
 		new()
 		{

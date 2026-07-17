@@ -28,6 +28,12 @@ public sealed class SocialSystem : Component
 	/// <summary>steamId → last visit-bonus day (UTC day number). Host only; persisted.</summary>
 	public Dictionary<long, int> VisitBonusDays { get; } = new();
 
+	// AUDIT FIX B12: engage used to ++TotalVisitors with no rate limit (E spam /
+	// forged RPC inflated weekly score). Per-caller cooldown below.
+	// Revert: remove dictionary + checks in RequestVisitorEngaged.
+	private readonly Dictionary<long, TimeSince> _lastEngageBySteamId = new();
+	private const float VisitorEngageCooldownSeconds = 8f;
+
 	public ILeaderboardProvider Leaderboards { get; set; } = new NullLeaderboardProvider();
 	private TimeUntil _nextWeeklySubmit;
 
@@ -113,7 +119,10 @@ public sealed class SocialSystem : Component
 
 	public void OnVisitorLeft( Connection channel )
 	{
-		// Reserved for future: visit duration stats, guestbook entries...
+		// AUDIT: clear engage cooldown entry so a quick rejoin doesn't inherit an
+		// ancient TimeSince (TimeSince resets on remove/re-add anyway).
+		if ( channel is not null )
+			_lastEngageBySteamId.Remove( channel.SteamId.Value );
 	}
 
 	/// <summary>Visitors engaging with exhibits helps the host zoo socially.</summary>
@@ -123,10 +132,7 @@ public sealed class SocialSystem : Component
 			return;
 
 		if ( Networking.IsHost )
-		{
-			TotalVisitors++;
-			UpdateWeeklyCompetition();
-		}
+			ApplyVisitorEngaged( Connection.Local?.SteamId.Value ?? 0 );
 		else
 			RequestVisitorEngaged();
 	}
@@ -134,6 +140,21 @@ public sealed class SocialSystem : Component
 	[Rpc.Host]
 	private void RequestVisitorEngaged()
 	{
+		var steamId = Rpc.Caller?.SteamId.Value ?? 0;
+		ApplyVisitorEngaged( steamId );
+	}
+
+	/// <summary>AUDIT FIX B12: rate-limited engage credit (not unique-visitor join).</summary>
+	private void ApplyVisitorEngaged( long steamId )
+	{
+		if ( !Networking.IsHost ) return;
+		if ( steamId == 0 ) return;
+
+		if ( _lastEngageBySteamId.TryGetValue( steamId, out var since )
+			&& since < VisitorEngageCooldownSeconds )
+			return;
+
+		_lastEngageBySteamId[steamId] = 0f;
 		TotalVisitors++;
 		UpdateWeeklyCompetition();
 	}

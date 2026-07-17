@@ -8,6 +8,12 @@ public sealed class NightRecapLine
 	public bool Warn { get; init; }
 }
 
+public sealed class NightRecapAction
+{
+	public string Icon { get; init; } = "arrow_forward";
+	public string Text { get; init; }
+}
+
 /// <summary>Summary shown after surviving a night — casualties, damage, earnings, unlocks.</summary>
 public sealed class NightRecap
 {
@@ -21,6 +27,7 @@ public sealed class NightRecap
 	public double RepairAllCost { get; init; }
 	public string UnlockMsg { get; init; }
 	public IReadOnlyList<NightRecapLine> StatusLines { get; init; } = Array.Empty<NightRecapLine>();
+	public IReadOnlyList<NightRecapAction> RecommendedActions { get; init; } = Array.Empty<NightRecapAction>();
 
 	public static NightRecap Build(
 		GameCore core,
@@ -152,7 +159,61 @@ public sealed class NightRecap
 			RecruitsLost = recruitsLost,
 			RepairAllCost = repairCost,
 			UnlockMsg = unlockMsg,
-			StatusLines = lines
+			StatusLines = lines,
+			RecommendedActions = BuildRecommendations( core, clearedNight, repairCost, damaged, destroyed, recruitsLost, plotExpansionBonus )
 		};
+	}
+
+	private static IReadOnlyList<NightRecapAction> BuildRecommendations(
+		GameCore core,
+		int clearedNight,
+		double repairCost,
+		int damaged,
+		int destroyed,
+		int recruitsLost,
+		double plotExpansionBonus )
+	{
+		var actions = new List<NightRecapAction>( 2 );
+		var scrap = core?.Wallet.Scrap ?? 0;
+		var build = core?.Build;
+		var barracks = build?.BarracksCount ?? 0;
+		var recruitCount = core?.Save.Recruits.Count ?? 0;
+		var capacity = build?.RecruitCapacity ?? 0;
+		var hasTower = build?.Buildings.Any( b =>
+			!b.IsDestroyed && b.IsDefense ) == true;
+
+		void Add( string icon, string text )
+		{
+			if ( actions.Count >= 2 ) return;
+			if ( actions.Any( a => a.Text == text ) ) return;
+			actions.Add( new NightRecapAction { Icon = icon, Text = text } );
+		}
+
+		if ( plotExpansionBonus > 0 )
+			Add( "map", "Claim an adjacent plot with your plot fund" );
+
+		if ( (damaged > 0 || destroyed > 0) && repairCost > 0 )
+		{
+			Add( "build", scrap >= repairCost
+				? $"Repair All ({GameConstants.FormatScrap( repairCost )})"
+				: $"Repair damage — need {GameConstants.FormatScrap( repairCost )}" );
+		}
+
+		if ( barracks <= 0 && clearedNight >= 1 )
+			Add( "groups", "Build a Barracks so you can hire recruits" );
+		else if ( barracks > 0 && recruitCount < capacity && (recruitsLost > 0 || recruitCount == 0) )
+			Add( "military_tech", "Recruit defenders at the Barracks" );
+		else if ( barracks > 0 && recruitCount < capacity && recruitCount < 2 && clearedNight <= 4 )
+			Add( "military_tech", "Hire more recruits before the next night" );
+
+		if ( !hasTower )
+			Add( "adjust", "Place a Gun Tower before starting the next night" );
+		else if ( actions.Count == 0 && clearedNight <= 3 )
+			Add( "adjust", "Add another tower or upgrade coverage" );
+
+		if ( actions.Count == 0 )
+			Add( "bedtime", "Prep defenses, then Start Night when ready" );
+
+		return actions;
 	}
 }

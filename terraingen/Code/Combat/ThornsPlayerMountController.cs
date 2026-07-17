@@ -57,7 +57,12 @@ public sealed class ThornsPlayerMountController : Component
 			if ( ThornsMultiplayer.IsHostOrOffline )
 				HostForceDismount();
 			else
-				HostClearMountPresentation();
+			{
+				// AUDIT FIX: clients must NOT clear [Sync(FromHost)] MountedAnimalId.
+				// Old HostClearMountPresentation wrote the sync property from non-host peers.
+				CleanupPresentationAfterDeathOrRespawn();
+			}
+
 			return;
 		}
 
@@ -161,8 +166,19 @@ public sealed class ThornsPlayerMountController : Component
 		_seatPoseInitialized = false;
 	}
 
+	/// <summary>
+	/// Host-only: clear mount sync + presentation.
+	/// AUDIT FIX: previously callable from clients via stale naming — clients use
+	/// <see cref="CleanupPresentationAfterDeathOrRespawn"/> instead.
+	/// </summary>
 	public void HostClearMountPresentation()
 	{
+		if ( !ThornsMultiplayer.IsHostOrOffline )
+		{
+			CleanupPresentationAfterDeathOrRespawn();
+			return;
+		}
+
 		MountedAnimalId = Guid.Empty;
 		ApplyDismountPresentation();
 		_mountControlsApplied = false;

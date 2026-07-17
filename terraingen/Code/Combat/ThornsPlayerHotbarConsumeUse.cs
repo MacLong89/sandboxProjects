@@ -67,6 +67,10 @@ public sealed class ThornsPlayerHotbarConsumeUse : Component
 
 	bool ShouldBlockConsume()
 	{
+		// AUDIT FIX: consume while dead / blocked overlays (kept alongside menu checks below).
+		if ( ThornsPlayerActionGate.BlocksLocalWorldActions( GameObject ) )
+			return true;
+
 		if ( ThornsMenuHost.IsOpen || ThornsMenuHost.IsWorldContainerOpen || ThornsMenuHost.IsRadioShopOpen || ThornsMenuHost.IsResearchOpen )
 			return true;
 

@@ -33,7 +33,7 @@ public sealed class Gate : Component
 		MaxY = leftSide ? 0f : GameConstants.LaneHalf;
 		WorldPosition = WorldPosition.WithY( centerY );
 
-		_accent = BuildStatPresentation.ColorFor( stat );
+		_accent = BuildStatPresentation.ColorForGate( stat, op, value );
 
 		var slab = new GameObject( GameObject, true, "Slab" );
 		slab.LocalPosition = new Vector3( 0f, 0f, GameConstants.GateHeight * 0.5f );
@@ -60,7 +60,6 @@ public sealed class Gate : Component
 		_label = labelGo.Components.Create<UI.WorldLabel>();
 		_label.Accent = _accent;
 		_label.Big = true;
-		_label.Sub = BuildStatPresentation.ShortName( Stat );
 		RefreshLabel();
 	}
 
@@ -79,12 +78,19 @@ public sealed class Gate : Component
 		VfxManager.Instance?.SpawnGatePop( WorldPosition, BuildStatPresentation.FormatGateLabel( Stat, Op, Value ), _accent );
 	}
 
-	public bool Contains( float y ) => y >= MinY && y <= MaxY;
+	// The center line belongs to exactly one gate. Inclusive bounds previously applied both gates at y == 0.
+	public bool Contains( float y ) =>
+		LeftSide
+			? y >= MinY && y < MaxY
+			: y >= MinY && y <= MaxY;
+
+	private bool IsTrap => Stat == BuildStat.Squad && Op == GateOp.Add && Value < 0f;
 
 	private void RefreshLabel()
 	{
 		if ( _label is null ) return;
 		_label.Text = BuildStatPresentation.FormatGateValue( Stat, Op, Value );
-		_label.Sub = BuildStatPresentation.ShortName( Stat );
+		_label.Sub = IsTrap ? "TRAP" : BuildStatPresentation.ShortName( Stat );
+		_label.Accent = BuildStatPresentation.ColorForGate( Stat, Op, Value );
 	}
 }

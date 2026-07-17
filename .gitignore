@@ -1,0 +1,6 @@
+# Local s&box editor/cache
+**/.sbox/cloud.db
+
+# Python
+**/__pycache__/
+*.py[cod]

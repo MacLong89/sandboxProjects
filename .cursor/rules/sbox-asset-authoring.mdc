@@ -1,0 +1,22 @@
+---
+description: Game-agnostic rules for s&box scenery, props, buildings, creatures, and landscapes
+globs:
+  - "**/Code/**/*Scenery*.cs"
+  - "**/Code/**/*MeshPrimitives*.cs"
+  - "**/Code/**/*Visual*.cs"
+  - "**/Code/World/**/*.cs"
+  - "**/Code/Visual*/**/*.cs"
+  - "**/Code/Buildings/**/*.cs"
+  - "tools/sbox-asset-harness/**/*"
+alwaysApply: false
+---
+
+# s&box visual content
+
+When authoring landscapes, buildings, furniture, creatures, trees, or props:
+
+1. Follow the `sbox-asset-authoring` skill (kit / mesh / place / look router).
+2. Use `tools/sbox-asset-harness/` catalogs — do not invent `.vmdl` / `.vmat` paths.
+3. Reuse the active game’s `MeshPrimitives` / scenery helpers; otherwise copy from `tools/sbox-asset-harness/portable/SceneKit/`.
+4. Center-pivoted primitives must be lifted so the bottom sits on the ground; coplanar faces get ~±1 unit nudge — no large floating Z bands.
+5. Update catalog JSON in the same change. Run `powershell -File tools/sbox-asset-harness/scripts/validate_catalog.ps1` when catalogs change (or the `.py` script if Python exists).

@@ -72,13 +72,41 @@ public sealed class PlotManager : Component
 		var save = GameCore.Instance?.Save;
 		if ( save is not null )
 		{
+			if ( GameCore.Instance?.IsCure == true )
+				RivalCivManager.EnsureSeeded( save );
+
 			foreach ( var key in save.OwnedPlots )
 				if ( PlotGrid.ParseKey( key, out var x, out var y ) && PlotGrid.InGrid( x, y ) )
 					_owned.Add( (x, y) );
+
+			// AUDIT FIX M7: restore mid-clear progress (was runtime-only → lost on quit).
+			save.PlotClearProgress ??= new Dictionary<string, float>();
+			foreach ( var (key, frac) in save.PlotClearProgress )
+			{
+				if ( !PlotGrid.ParseKey( key, out var x, out var y ) ) continue;
+				if ( !IsOwned( x, y ) || IsCleared( x, y ) ) continue;
+				_clearProgress[(x, y)] = Math.Clamp( frac, 0f, 0.999f );
+			}
 		}
 
 		_owned.Add( (0, 0) );
 		RebuildVisuals();
+	}
+
+	/// <summary>
+	/// AUDIT FIX M7: push live clear fractions into the save before disk write.
+	/// Called from GameCore.SaveManagerTouch.
+	/// </summary>
+	public void SaveClearProgress( SaveData save )
+	{
+		if ( save is null ) return;
+		save.PlotClearProgress ??= new Dictionary<string, float>();
+		save.PlotClearProgress.Clear();
+		foreach ( var ((x, y), frac) in _clearProgress )
+		{
+			if ( frac <= 0f || IsCleared( x, y ) ) continue;
+			save.PlotClearProgress[PlotGrid.Key( x, y )] = Math.Clamp( frac, 0f, 0.999f );
+		}
 	}
 
 	protected override void OnUpdate()
@@ -128,6 +156,7 @@ public sealed class PlotManager : Component
 				core.Save.ClearedPlots.Add( key );
 
 			PlotRewards.OnPlotCleared( core, x, y );
+			KnowledgeGain.OnPlotCleared( core );
 		}
 
 		RebuildVisuals();
@@ -141,12 +170,21 @@ public sealed class PlotManager : Component
 		if ( core is null || core.Phase != GamePhase.Day ) return false;
 		if ( !IsBuyable( x, y ) ) return false;
 
-		if ( !core.Wallet.TrySpend( PlotGrid.BuyCostEffective( x, y ) ) ) return false;
+		var cost = PlotGrid.BuyCostEffective( x, y ) * RivalCivManager.InvasionCostMult( core.Save, x, y );
+		if ( !core.Wallet.TrySpend( cost ) ) return false;
+
+		var key = PlotGrid.Key( x, y );
+		if ( RivalCivManager.IsRivalOwned( core.Save, x, y ) )
+		{
+			core.Save.RivalOwnedPlots?.Remove( key );
+			core.ShowToast( "Rival territory invaded — plot claimed at double cost" );
+		}
 
 		_owned.Add( (x, y) );
-		if ( !core.Save.OwnedPlots.Contains( PlotGrid.Key( x, y ) ) )
-			core.Save.OwnedPlots.Add( PlotGrid.Key( x, y ) );
+		if ( !core.Save.OwnedPlots.Contains( key ) )
+			core.Save.OwnedPlots.Add( key );
 
+		KnowledgeGain.OnPlotClaimed( core );
 		RebuildVisuals();
 		Sfx.Play( Sfx.Purchase );
 		core.SaveManagerTouch();
@@ -155,7 +193,7 @@ public sealed class PlotManager : Component
 
 	// --- Visuals ------------------------------------------------------------
 
-	private void RebuildVisuals()
+	public void RebuildVisuals()
 	{
 		_root?.Destroy();
 		_root = new GameObject( true, "Plots" );
@@ -169,18 +207,31 @@ public sealed class PlotManager : Component
 			var kind = PlotGrid.HarvestResourceAt( x, y );
 			var cleared = IsOwned( x, y ) && IsCleared( x, y );
 			var feature = PlotGrid.FeatureKindAt( x, y );
+			var save = GameCore.Instance?.Save;
+			var rivalOwned = RivalCivManager.IsRivalOwned( save, x, y );
+			var rivalSeed = RivalCivManager.IsSeedPlot( x, y );
+			var boss = PlotWorldRolls.BossAt( x, y );
+			var boost = PlotWorldRolls.BoostAt( x, y );
+			var bossCleared = save?.ClearedBossPlots?.Contains( PlotGrid.Key( x, y ) ) == true;
+			var boostClaimed = PlotBoosts.IsClaimed( save, x, y );
 
-			// Resource props render on every plot (owned or not) so the surrounding land
-			// looks alive from the very first game and players can see what each plot offers.
-			// Cleared plots are stripped bare — the trees/rocks are gone and the land is buildable.
 			if ( !cleared )
 			{
 				BuildResourceProps( x, y, kind );
 				if ( feature != PlotKind.Standard )
 					BuildFeatureMarker( x, y, feature );
+				if ( boss != BossKind.None && !bossCleared )
+					BuildBossLandmark( x, y, boss );
+				else if ( boost != PlotBoostKind.None && !boostClaimed )
+					BuildBoostLandmark( x, y, boost );
 			}
 
-			// Only owned plots get the coloured boundary rail (marks your territory).
+			if ( rivalSeed && !IsOwned( x, y ) )
+				BuildRivalCommandPost( x, y );
+
+			if ( rivalOwned && !IsOwned( x, y ) )
+				BuildBoundary( x, y, new Color( 0.85f, 0.28f, 0.32f ), height: 16f );
+
 			if ( IsOwned( x, y ) )
 				BuildBoundary( x, y, cleared ? new Color( 0.7f, 0.7f, 0.55f ) : ResourceInfo.Tint( kind ).WithAlpha( 1f ), height: 12f );
 		}
@@ -258,6 +309,95 @@ public sealed class PlotManager : Component
 		var center = PlotGrid.CenterWorld( x, y );
 		AddProp( "Feature", MeshPrimitives.Cylinder, MeshPrimitives.Mat,
 			center + Vector3.Up * 48f, new Vector3( 18f, 18f, 96f ), def.MarkerTint.WithAlpha( 0.85f ) );
+	}
+
+	private void BuildBoostLandmark( int x, int y, PlotBoostKind boost )
+	{
+		var def = PlotWorldRolls.GetBoost( boost );
+		var center = PlotGrid.CenterWorld( x, y );
+		var rng = new Random( unchecked( x * 48271 + y * 27733 ) );
+
+		switch ( boost )
+		{
+			case PlotBoostKind.FertileSoil:
+				for ( var i = 0; i < 5; i++ )
+					ScatterGrass( center, rng, GameConstants.PlotSize * 0.22f, 1, new Color( 0.72f, 0.92f, 0.28f ) );
+				AddProp( "Boost", MeshPrimitives.Pyramid, MeshPrimitives.Mat,
+					center + Vector3.Up * 36f, new Vector3( 48f, 48f, 40f ), def.Tint );
+				break;
+			case PlotBoostKind.ScrapForge:
+				AddProp( "Boost", MeshPrimitives.Box, StylizedMaterials.Stone,
+					center + Vector3.Up * 24f, new Vector3( 52f, 40f, 48f ), def.Tint );
+				AddProp( "BoostGlow", MeshPrimitives.Cylinder, MeshPrimitives.Mat,
+					center + Vector3.Up * 56f, new Vector3( 20f, 20f, 8f ), new Color( 1f, 0.55f, 0.15f ) );
+				break;
+			case PlotBoostKind.Archive:
+				AddProp( "Boost", MeshPrimitives.Box, StylizedMaterials.Stone,
+					center + Vector3.Up * 40f, new Vector3( 34f, 34f, 80f ), def.Tint );
+				AddProp( "BoostTop", MeshPrimitives.Pyramid, MeshPrimitives.Mat,
+					center + Vector3.Up * 88f, new Vector3( 40f, 40f, 28f ), def.Tint * 1.2f );
+				break;
+			case PlotBoostKind.IronRich:
+				for ( var i = 0; i < 6; i++ )
+					BuildRockCluster( ScatterXY( center, rng, GameConstants.PlotSize * 0.28f ), rng );
+				break;
+			case PlotBoostKind.HealingSpring:
+				AddProp( "Boost", MeshPrimitives.Cylinder, MeshPrimitives.Mat,
+					center + Vector3.Up * 4f, new Vector3( 64f, 64f, 8f ), def.Tint.WithAlpha( 0.75f ) );
+				AddProp( "BoostSpring", MeshPrimitives.Cylinder, MeshPrimitives.Mat,
+					center + Vector3.Up * 22f, new Vector3( 28f, 28f, 44f ), def.Tint );
+				break;
+		}
+	}
+
+	private void BuildBossLandmark( int x, int y, BossKind boss )
+	{
+		var def = PlotWorldRolls.GetBoss( boss );
+		var center = PlotGrid.CenterWorld( x, y );
+
+		switch ( boss )
+		{
+			case BossKind.Giant:
+				AddProp( "Boss", MeshPrimitives.Box, MeshPrimitives.Mat,
+					center + Vector3.Up * 70f, new Vector3( 44f, 36f, 140f ), def.Tint );
+				AddProp( "BossHead", MeshPrimitives.Box, MeshPrimitives.Mat,
+					center + Vector3.Up * 150f, new Vector3( 32f, 28f, 32f ), def.Tint * 0.9f );
+				break;
+			case BossKind.MutantBeast:
+				AddProp( "Boss", MeshPrimitives.Cylinder, MeshPrimitives.Mat,
+					center + Vector3.Up * 36f, new Vector3( 90f, 70f, 72f ), def.Tint );
+				AddProp( "BossSpine", MeshPrimitives.Pyramid, MeshPrimitives.Mat,
+					center + Vector3.Up * 78f, new Vector3( 36f, 36f, 48f ), def.Tint * 1.1f );
+				break;
+			case BossKind.MilitaryConvoy:
+				for ( var i = -1; i <= 1; i++ )
+					AddProp( "Boss", MeshPrimitives.Box, StylizedMaterials.Stone,
+						center + new Vector3( i * 55f, 0f, 22f ), new Vector3( 48f, 28f, 44f ), def.Tint );
+				break;
+			case BossKind.InfectedHive:
+				for ( var i = 0; i < 5; i++ )
+				{
+					var ang = i * MathF.PI * 2f / 5f;
+					var offset = new Vector3( MathF.Cos( ang ) * 40f, MathF.Sin( ang ) * 40f, 0f );
+					AddProp( "Boss", MeshPrimitives.Cylinder, MeshPrimitives.Mat,
+						center + offset + Vector3.Up * 34f, new Vector3( 22f, 22f, 68f ), def.Tint );
+				}
+				AddProp( "BossCore", MeshPrimitives.Cylinder, MeshPrimitives.Mat,
+					center + Vector3.Up * 48f, new Vector3( 36f, 36f, 96f ), def.Tint * 0.8f );
+				break;
+		}
+	}
+
+	private void BuildRivalCommandPost( int x, int y )
+	{
+		var center = PlotGrid.CenterWorld( x, y );
+		var tint = new Color( 0.82f, 0.25f, 0.28f );
+		AddProp( "RivalCore", MeshPrimitives.Box, StylizedMaterials.Stone,
+			center + Vector3.Up * 36f, new Vector3( 56f, 56f, 72f ), tint );
+		AddProp( "RivalFlag", MeshPrimitives.Cylinder, MeshPrimitives.Mat,
+			center + new Vector3( 28f, 28f, 78f ), new Vector3( 8f, 8f, 64f ), tint * 0.7f );
+		AddProp( "RivalBanner", MeshPrimitives.Box, MeshPrimitives.Mat,
+			center + new Vector3( 42f, 28f, 108f ), new Vector3( 36f, 6f, 24f ), new Color( 0.95f, 0.35f, 0.35f ) );
 	}
 
 	private static Vector3 ScatterXY( Vector3 center, Random rng, float spread )

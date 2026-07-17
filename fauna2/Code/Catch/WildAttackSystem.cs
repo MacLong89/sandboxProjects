@@ -194,15 +194,33 @@ public sealed class WildAttackSystem : Component
 		BarSpeed = BarSpeedFor( difficulty );
 	}
 
+	/// <summary>
+	/// AUDIT FIX B13: Cancel by connection / missing owner — same soft-lock race as CatchSystem.
+	/// Does not apply knockout penalty on disconnect (leave = forfeit the encounter cleanly).
+	/// </summary>
 	public void CancelIfOwnerDisconnected( Connection channel )
 	{
 		if ( !EncounterActive || channel is null ) return;
 
+		var leavingId = channel.SteamId.Value;
+		var ownerStillPresent = false;
 		foreach ( var ps in Game.ActiveScene.GetAllComponents<PlayerState>() )
 		{
-			if ( !ps.IsValid() || !ps.IsZooOwner || ps.SteamId != channel.SteamId.Value ) continue;
+			if ( !ps.IsValid() || !ps.IsZooOwner ) continue;
+			if ( ps.SteamId == leavingId )
+			{
+				CancelEncounterHost();
+				return;
+			}
+
+			ownerStillPresent = true;
+		}
+
+		if ( !ownerStillPresent
+			|| (Connection.Host is not null && channel == Connection.Host)
+			|| (Networking.IsHost && channel == Connection.Local) )
+		{
 			CancelEncounterHost();
-			return;
 		}
 	}
 

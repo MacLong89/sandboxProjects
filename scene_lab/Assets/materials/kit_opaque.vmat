@@ -1,0 +1,22 @@
+// Opaque tintable kit material — walls/props. No alpha blend.
+Layer0
+{
+	shader "shaders/complex.shader"
+
+	TextureColor "materials/default/default_color.tga"
+	TextureNormal "materials/default/default_normal.tga"
+	TextureRoughness "materials/default/default_rough.tga"
+	TextureAmbientOcclusion "materials/default/default_ao.tga"
+
+	F_TRANSPARENT 0
+	F_ALPHA_TEST 0
+	F_RENDER_BACKFACES 0
+	F_SPECULAR 0
+
+	g_flOpacity "1.000"
+	g_flModelTintAmount "1.000"
+	g_vColorTint "[1.000000 1.000000 1.000000 1.000000]"
+	g_flMetalness "0.000"
+	g_flRoughnessScaleFactor "1.000"
+	g_vTexCoordScale "[1.000 1.000]"
+}

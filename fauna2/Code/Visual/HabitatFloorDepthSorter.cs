@@ -1,8 +1,9 @@
 namespace Fauna2;
 
 /// <summary>
-/// Habitat interior floor uses one shared sort depth for the whole footprint so large
-/// owned-grass billboards cannot win the middle rows via per-cell Y sorting.
+/// Habitat interior floor — one shared depth for the whole enclosure in the
+/// HabitatGroundLayer band (just above OwnedTile grass, well below enrichment).
+/// Flat pads must NOT sit near camera Z (e.g. 1.5) or they depth-clip Nature props.
 /// </summary>
 public sealed class HabitatFloorDepthSorter : Component
 {

@@ -77,19 +77,36 @@ public sealed class SeasonController : Component
 
 	private void BeginSeasonEnd( GameCore core )
 	{
-		SeasonCheckpoint.Save( core.Save );
+		// ---------------------------------------------------------------------------
+		// AUDIT FIX C1 — Season checkpoint ordering (2026-07)
+		//
+		// OLD BUG: Save() ran first while SeasonDay was already DaysPerSeason+1 (29).
+		// RetrySeason restored Day 29 → next TickSeasonClock immediately re-ended season.
+		//
+		// NEW ORDER:
+		//  1) Apply end-of-season lab lump (so it is in the checkpoint).
+		//  2) Normalize calendar to "start of this season" (Day 1, threats cleared).
+		//  3) Checkpoint THAT state (CheckpointYear/Season still = completed season).
+		//  4) Then advance season/year for the live run.
+		//
+		// Revert tip: if season retry feels "too generous" or lab points double-dip,
+		// check ApplySeasonLabBonus vs continuous TickLabPoints (M5 / lab policy).
+		// ---------------------------------------------------------------------------
 		CureResearch.ApplySeasonLabBonus( core );
 
 		var save = core.Save;
 		LastSeasonSummary = $"Year {save.CurrentYear} · {CureConstants.SeasonName( save.CurrentSeason )} complete — " +
 			$"{save.ThreatsSurvivedThisSeason} threats survived, tier {save.CureResearchTier} research";
 
+		// Normalize BEFORE checkpoint so Restore never sees SeasonDay=29.
 		save.ThreatsSurvivedThisSeason = 0;
 		save.SeasonDay = 1;
 		save.SeasonTimeAccum = 0f;
 		_dayTimer = 0f;
 
-		var prevSeason = save.CurrentSeason;
+		SeasonCheckpoint.Save( core.Save );
+
+		// Advance live calendar after the snapshot is locked.
 		save.CurrentSeason++;
 		if ( save.CurrentSeason >= 4 )
 		{
@@ -98,6 +115,7 @@ public sealed class SeasonController : Component
 		}
 
 		save.NextThreatTimer = CureConstants.ThreatInterval( save.CurrentSeason );
+		RivalCivManager.ExpandSeason( core );
 		SeasonRecapPending = true;
 		core.BeginSeasonRecap( LastSeasonSummary );
 		core.SaveManagerTouch();

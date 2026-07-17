@@ -36,6 +36,7 @@ public sealed class TrackManager : Component
 	private readonly Stack<Bullet> _bulletPool = new();
 	private readonly List<BossState> _bosses = new();
 	private readonly SectionPacing _pacing = new();
+	private readonly List<ModelRenderer> _accentProps = new();
 
 	private ModelRenderer _groundRenderer;
 	private ModelRenderer _wallLeft;
@@ -46,6 +47,11 @@ public sealed class TrackManager : Component
 	private float _lastMeters;
 	private int _nextBossMilestone = 1;
 	private int _spawnSeed;
+	private int _gateRowsSpawned;
+	private float _nextPropX;
+
+	public int CurrentBiomeIndex => _pacing.BiomeIndex;
+	public RunSection CurrentSection => _pacing.Current;
 
 	protected override void OnAwake() => Instance = this;
 
@@ -64,6 +70,8 @@ public sealed class TrackManager : Component
 		_lastMeters = 0f;
 		_nextBossMilestone = 1;
 		_spawnSeed = Game.Random.Int( 0, 99999 );
+		_gateRowsSpawned = 0;
+		_nextPropX = startX + 400f;
 		_pacing.Update( 0f );
 		ApplyBiomeTint();
 	}
@@ -74,11 +82,14 @@ public sealed class TrackManager : Component
 		foreach ( var h in _hazards ) h?.GameObject?.Destroy();
 		foreach ( var e in _enemies ) e?.GameObject?.Destroy();
 		foreach ( var p in _projectiles ) p?.Kill();
+		foreach ( var prop in _accentProps )
+			prop?.GameObject?.Destroy();
 		_gates.Clear();
 		_hazards.Clear();
 		_enemies.Clear();
 		_projectiles.Clear();
 		_bosses.Clear();
+		_accentProps.Clear();
 
 		foreach ( var b in _bullets ) RecycleBullet( b );
 		_bullets.Clear();
@@ -127,6 +138,7 @@ public sealed class TrackManager : Component
 	{
 		var core = GameCore.Instance;
 		if ( core is null || !core.Run.Active ) return;
+		if ( core.PowerPicks?.IsOpen == true ) return;
 
 		var player = core.Player;
 		if ( !player.IsValid() ) return;
@@ -144,6 +156,7 @@ public sealed class TrackManager : Component
 			ApplyBiomeTint();
 
 		AdvanceSpawns( pos.x, run, core );
+		SpawnDistrictProps( pos.x );
 		UpdateBullets( dt, pos.x, core );
 		UpdateEnemies( dt, pos, run, core );
 		UpdateProjectiles( dt, pos, run );
@@ -181,7 +194,9 @@ public sealed class TrackManager : Component
 					SpawnEnemyPack( _spawnCursor + GameConstants.GateSpacing * 0.5f, meters, core.Daily );
 
 				// Hazards sit between gate rows so dodging them is its own beat.
-				if ( _pacing.Current != RunSection.Breather && Game.Random.Float( 0f, 1f ) < Difficulty.HazardChance( meters ) )
+				if ( meters >= GameConstants.EarlyHazardDelayMeters
+				     && _pacing.Current != RunSection.Breather
+				     && Game.Random.Float( 0f, 1f ) < Difficulty.HazardChance( meters ) )
 					SpawnHazardRow( _spawnCursor + GameConstants.GateSpacing * 0.75f, meters );
 			}
 
@@ -191,69 +206,83 @@ public sealed class TrackManager : Component
 
 	private void SpawnGateRow( float x, float meters, GameCore core )
 	{
-		// Every row is a tension between getting stronger and staying alive: one side is
-		// always offense, the other survival/economy. Which side is which is randomised.
-		var offenseOnLeft = Game.Random.Float( 0f, 1f ) < 0.5f;
-		var left = RollGate( meters, core, offense: offenseOnLeft );
-		var right = RollGate( meters, core, offense: !offenseOnLeft );
-		CreateGate( x, left, true );
-		CreateGate( x, right, false );
+		_gateRowsSpawned++;
+
+		(BuildStat Stat, GateOp Op, float Value) reward;
+		(BuildStat Stat, GateOp Op, float Value) trap;
+
+		// Teach the actual rule: one lane grows the mob, the red lane kills it.
+		if ( _gateRowsSpawned <= GameConstants.TutorialGateRows )
+		{
+			switch ( _gateRowsSpawned )
+			{
+				case 1:
+					trap = (BuildStat.Squad, GateOp.Add, -4f);
+					reward = (BuildStat.Squad, GateOp.Add, 7f);
+					break;
+				case 2:
+					trap = (BuildStat.Squad, GateOp.Add, -6f);
+					reward = (BuildStat.Squad, GateOp.Mult, 2f);
+					break;
+				default:
+					trap = (BuildStat.Squad, GateOp.Add, -5f);
+					reward = (BuildStat.Damage, GateOp.Add, 7f);
+					break;
+			}
+		}
+		else
+		{
+			reward = RollRewardGate( meters, core );
+			trap = (
+				BuildStat.Squad,
+				GateOp.Add,
+				-(GameConstants.GateSquadTrapMin
+					+ Game.Random.Float( 0f, GameConstants.GateSquadTrapMax - GameConstants.GateSquadTrapMin )
+					+ meters * 0.02f) );
+		}
+
+		var flip = Game.Random.Float( 0f, 1f ) < 0.5f;
+		CreateGate( x, flip ? reward : trap, true );
+		CreateGate( x, flip ? trap : reward, false );
 	}
 
-	// Quality stats sharpen each runner; support keeps you alive / rich. But the star of every
-	// row is CREW — growing the crowd is both power and survival, so it dominates the pools.
-	private static readonly BuildStat[] QualityPool =
-		{ BuildStat.Damage, BuildStat.FireRate, BuildStat.CritChance, BuildStat.Pierce };
-	private static readonly BuildStat[] SupportPool =
-		{ BuildStat.Shield, BuildStat.CoinMult };
-
-	private (BuildStat Stat, GateOp Op, float Value) RollGate( float meters, GameCore core, bool offense )
+	/// <summary>Every row is one reward and one red loss gate. Speed supplies the execution pressure.</summary>
+	private (BuildStat Stat, GateOp Op, float Value) RollRewardGate( float meters, GameCore core )
 	{
 		var luck = core.Upgrades.GateLuck;
 		var daily = core.Daily.ActiveModifier;
-
-		// Crowd gates are the hook. The offense side is almost always CREW; the support side is
-		// crew often enough that most rows become the classic "+15 vs x2" pick.
-		var squadChance = offense ? 0.72f : 0.45f;
-		BuildStat stat;
-		if ( daily == DailyModifier.CritGatesOnly && !offense )
-			stat = Game.Random.Float( 0f, 1f ) < 0.5f ? BuildStat.Shield : BuildStat.CoinMult;
-		else if ( Game.Random.Float( 0f, 1f ) < squadChance )
-			stat = BuildStat.Squad;
-		else if ( offense )
-			stat = QualityPool[Game.Random.Int( 0, QualityPool.Length - 1 )];
-		else
-			stat = SupportPool[Game.Random.Int( 0, SupportPool.Length - 1 )];
-
-		// Crew never multiplies — only additive +N — so the army grows linearly, not exponentially.
-		// Multiply gates stay for the quality stats, which don't snowball the whole run.
-		var multAllowed = stat is BuildStat.Damage or BuildStat.FireRate or BuildStat.CoinMult;
-		var useMult = multAllowed && Game.Random.Float( 0f, 1f ) < 0.16f + luck * 0.06f;
-		var op = useMult ? GateOp.Mult : GateOp.Add;
-
 		var sectionMult = _pacing.GateBonusMult;
-		var value = stat switch
-		{
-			BuildStat.Squad =>
-				GameConstants.GateSquadAddMin
-				+ Game.Random.Float( 0f, GameConstants.GateSquadAddMax - GameConstants.GateSquadAddMin )
-				+ meters * GameConstants.GateSquadDistanceScale + luck * 0.5f,
-			BuildStat.Damage => useMult
-				? Game.Random.Float( 1.25f, 1.6f ) + luck * 0.05f
-				: GameConstants.GateAddStartMin + Game.Random.Float( 0f, 3f ) + meters * 0.03f + luck,
-			BuildStat.FireRate => useMult
-				? Game.Random.Float( 1.2f, 1.45f )
-				: 0.08f + luck * 0.02f,
-			BuildStat.CritChance => 0.03f + luck * 0.01f,
-			BuildStat.Pierce => 1f,
-			BuildStat.Shield => 6f + meters * 0.04f,
-			BuildStat.CoinMult => useMult ? Game.Random.Float( 1.15f, 1.35f ) : 0.08f + luck * 0.02f,
-			_ => 1f,
-		};
+		var roll = Game.Random.Float( 0f, 1f );
 
-		if ( op == GateOp.Add ) value *= sectionMult;
-		return (stat, op, value);
+		if ( daily == DailyModifier.CritGatesOnly )
+			return roll < 0.5f
+				? (BuildStat.CritChance, GateOp.Add, 0.06f + luck * 0.01f)
+				: (BuildStat.Damage, GateOp.Add, (6f + meters * 0.04f + luck) * sectionMult);
+
+		if ( roll < 0.4f )
+			return (BuildStat.Squad, GateOp.Add, SquadAddValue( meters, luck, sectionMult ));
+		if ( roll < 0.62f )
+			return (BuildStat.Squad, GateOp.Mult, SquadMultValue( luck ));
+		if ( roll < 0.74f )
+			return (BuildStat.Damage, GateOp.Add, (6f + meters * 0.04f + luck) * sectionMult);
+		if ( roll < 0.84f )
+			return (BuildStat.FireRate, GateOp.Add, 0.14f + luck * 0.03f);
+		if ( roll < 0.91f )
+			return (BuildStat.Pierce, GateOp.Add, 1f);
+		if ( roll < 0.96f )
+			return (BuildStat.CritChance, GateOp.Add, 0.06f + luck * 0.01f);
+		return (BuildStat.CoinMult, GateOp.Mult, Game.Random.Float( 1.25f, 1.5f ) + luck * 0.03f);
 	}
+
+	private static float SquadAddValue( float meters, float luck, float sectionMult ) =>
+		(GameConstants.GateSquadAddMin
+			+ Game.Random.Float( 0f, GameConstants.GateSquadAddMax - GameConstants.GateSquadAddMin )
+			+ meters * GameConstants.GateSquadDistanceScale + luck * 0.5f) * sectionMult;
+
+	private static float SquadMultValue( float luck ) =>
+		GameConstants.GateSquadMultMin
+		+ Game.Random.Float( 0f, GameConstants.GateSquadMultMax - GameConstants.GateSquadMultMin )
+		+ luck * 0.05f;
 
 	private void CreateGate( float x, (BuildStat Stat, GateOp Op, float Value) roll, bool leftSide )
 	{
@@ -444,7 +473,10 @@ public sealed class TrackManager : Component
 				core.Run.OnKill( e );
 				Sfx.Play( crit ? Sfx.Crit : Sfx.EnemyKill );
 				if ( e.Type == EnemyType.Boss )
+				{
 					core.Player?.ApplyCameraShake( GameConstants.CamShakeHurt * 1.3f );
+					core.OnBossKilled();
+				}
 				else if ( e.IsElite )
 					core.Player?.ApplyCameraShake( 6f );
 				if ( e.Type == EnemyType.Splitter )
@@ -488,7 +520,7 @@ public sealed class TrackManager : Component
 
 	private void UpdateEnemies( float dt, Vector3 playerPos, RunState run, GameCore core )
 	{
-		var reach = GameConstants.EnemyRadius + GameConstants.PlayerRadius;
+		var reach = GameConstants.EnemyRadius + GameConstants.PlayerRadius + run.CrowdFat * 0.35f;
 		var advanceMult = Difficulty.AdvanceSpeedMult( run.DistanceMeters );
 
 		foreach ( var e in _enemies )
@@ -607,10 +639,10 @@ public sealed class TrackManager : Component
 
 			h.Triggered = true;
 
-			if ( h.Contains( playerPos.y ) )
+			if ( h.Contains( playerPos.y, run.CrowdFat ) )
 			{
-				// A hazard rips a whole chunk of the crowd away — the big, felt punishment.
-				LoseCrew( run, core, run.HazardSquadCost(), playerPos, GameConstants.CamShakeHurt * 1.6f );
+				// Hazards bypass shields and Surge: visibly hitting a wall must always hurt.
+				LoseCrew( run, core, run.HazardSquadCost(), playerPos, GameConstants.CamShakeHurt * 1.6f, unavoidable: true );
 			}
 		}
 	}
@@ -626,15 +658,23 @@ public sealed class TrackManager : Component
 	private void HandleMilestones( Vector3 playerPos, RunState run )
 	{
 		if ( run.PendingMilestone <= 0 ) return;
-		VfxManager.Instance?.SpawnMilestone( playerPos, $"{run.PendingMilestone}m!" );
+		var m = run.PendingMilestone;
+		var bonus = 20.0 + m * 0.15;
+		run.Coins += bonus * run.EffectiveCoinMult;
+		VfxManager.Instance?.SpawnMilestone( playerPos, $"{m}m!" );
+		GameCore.Instance?.ShowBanner( $"{m}m CLEARED — +{GameConstants.FormatCash( bonus )}", 1.6f );
+		Sfx.Play( Sfx.Purchase );
 		run.PendingMilestone = 0;
 	}
 
 	/// <summary>Applies a crowd loss and fires the feedback (shake, sound, floating "-N") when it lands.</summary>
-	private void LoseCrew( RunState run, GameCore core, int cost, Vector3 pos, float shake )
+	private void LoseCrew( RunState run, GameCore core, int cost, Vector3 pos, float shake, bool unavoidable = false )
 	{
 		var before = run.SquadInt;
-		run.LoseSquad( cost );
+		if ( unavoidable )
+			run.LoseSquadUnavoidable( cost );
+		else
+			run.LoseSquad( cost );
 		var lost = before - run.SquadInt;
 		if ( lost <= 0 ) return;   // absorbed by shield or invulnerable during overdrive
 
@@ -677,12 +717,49 @@ public sealed class TrackManager : Component
 			_enemies[i].GameObject?.Destroy();
 			_enemies.RemoveAt( i );
 		}
+
+		for ( var i = _accentProps.Count - 1; i >= 0; i-- )
+		{
+			var prop = _accentProps[i];
+			if ( !prop.IsValid() || !prop.GameObject.IsValid() )
+			{
+				_accentProps.RemoveAt( i );
+				continue;
+			}
+			if ( prop.GameObject.WorldPosition.x >= cutoff ) continue;
+			prop.GameObject.Destroy();
+			_accentProps.RemoveAt( i );
+		}
+	}
+
+	private void SpawnDistrictProps( float playerX )
+	{
+		while ( _nextPropX < playerX + GameConstants.SpawnAhead )
+		{
+			var (_, _, accent) = DistrictTheme.Colors( _pacing.BiomeIndex );
+			var side = Game.Random.Float( 0f, 1f ) < 0.5f ? 1f : -1f;
+			var y = side * (GameConstants.LaneHalf + 55f + Game.Random.Float( 0f, 40f ));
+			var h = 40f + Game.Random.Float( 0f, 120f );
+			var w = 30f + Game.Random.Float( 0f, 50f );
+			var d = 30f + Game.Random.Float( 0f, 40f );
+
+			var go = new GameObject( true, "DistrictProp" );
+			go.WorldPosition = new Vector3( _nextPropX, y, h * 0.5f );
+			go.LocalScale = MeshPrimitives.BoxScale( new Vector3( d, w, h ) );
+			var mr = go.Components.Create<ModelRenderer>();
+			mr.Model = MeshPrimitives.Box;
+			mr.MaterialOverride = MeshPrimitives.Mat;
+			mr.Tint = Color.Lerp( accent, new Color( 0.15f, 0.15f, 0.18f ), 0.55f );
+			_accentProps.Add( mr );
+
+			_nextPropX += Game.Random.Float( 180f, 320f );
+		}
 	}
 
 	private void ApplyBiomeTint()
 	{
 		if ( !_worldBuilt ) return;
-		var (ground, wall) = SectionPacing.BiomeColors( _pacing.BiomeIndex );
+		var (ground, wall, _) = DistrictTheme.Colors( _pacing.BiomeIndex );
 		if ( _groundRenderer.IsValid() ) _groundRenderer.Tint = ground;
 		if ( _wallLeft.IsValid() ) _wallLeft.Tint = wall;
 		if ( _wallRight.IsValid() ) _wallRight.Tint = wall;

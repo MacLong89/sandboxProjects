@@ -1,0 +1,535 @@
+@using Sandbox
+@using Sandbox.UI
+@using System
+@using System.Linq
+@inherits PanelComponent
+@namespace Plunge
+
+<root class="@RootClass">
+	@if ( Game is null )
+	{
+		<div class="loading">PRESS PLAY TO BEGIN PLUNGE</div>
+	}
+	else if ( Game.Screen == GameScreen.Dive )
+	{
+		@DiveHud()
+	}
+	else if ( Game.Screen == GameScreen.Results )
+	{
+		@Results()
+	}
+	else
+	{
+		@Hub()
+	}
+</root>
+
+@code
+{
+	private PlungeGame Game => PlungeGame.Instance;
+	private PlungeSaveData Save => Game?.Save;
+	private string RootClass => Game?.Screen.ToString().ToLowerInvariant() ?? "loading";
+
+	private RenderFragment DiveHud() => @<div class="dive-layer">
+		<div class="top-left stack">
+			<div class="glass-panel depth-panel">
+				<div class="big-readout">DEPTH: <b>@Game.Depth.ToString("0")m</b></div>
+				<div>PRESSURE: @((1 + Game.Depth / 10).ToString("0.0")) atm</div>
+				<div class="section-label">ENVIRONMENT</div>
+				<div>🌡 @Temperature() °C</div>
+				<div>≋ @CurrentName()</div>
+				<div class="good">◆ O₂ @OxygenLabel()</div>
+			</div>
+			<div class="glass-panel objective-panel">
+				<div class="section-label">OBJECTIVE</div>
+				<div>@Game.ObjectiveText</div>
+				<div class="objective-progress">◆ @Game.ObjectiveProgress / @Game.ObjectiveTarget</div>
+			</div>
+		</div>
+
+		<div class="top-right">
+			<div class="glass-panel day-panel">
+				<div><img src="/ui/coin.png"/> @Save.Gold.ToString("N0")</div>
+				<div>◷ @Game.TimeText</div>
+				<div class="day">DAY @Save.Day</div>
+			</div>
+			<div class="minimap glass-panel">
+				<div class="map-water">
+					<div class="map-line one"></div>
+					<div class="map-line two"></div>
+					<div class="map-line three"></div>
+					<div class="player-dot" style="left:@MapX%; top:@MapY%"></div>
+				</div>
+			</div>
+		</div>
+
+		<div class="bottom-left vitals glass-panel">
+			@Vital("heart", Game.Health, Game.MaxHealth, "health")
+			@Vital("o2", Game.Oxygen, Game.MaxOxygen, "oxygen")
+			@Vital("bolt", Game.Energy, 100, "energy")
+		</div>
+
+		<div class="bottom-center">
+			<div class="active-tool">@ToolName() <span>M1</span></div>
+			<div class="hotbar glass-panel">
+				@Hotbar(0, "harpoon", "1")
+				@Hotbar(1, "knife", "2")
+				@Hotbar(2, "lamp", "3")
+				@Hotbar(3, "camera", "C")
+				<div class="slot"><span class="key">F</span><img src="/ui/lamp.png"/><span class="qty">LIGHT</span></div>
+				<div class="slot"><span class="key">R</span><img src="/ui/sonar.png"/><span class="qty">SURFACE</span></div>
+			</div>
+			<div class="controls">WASD SWIM · SHIFT BOOST · M1 USE TOOL · R SURFACE</div>
+		</div>
+
+		<div class="bottom-right stack">
+			@if ( Game.NoticeAge < 5 )
+			{
+				<div class="notice glass-panel @Game.NoticeClass">@Game.LatestNotice</div>
+			}
+			<div class="glass-panel cargo">
+				<div class="section-label">CARGO @Game.Haul.Count / @Game.CargoCapacity</div>
+				<div class="cargo-grid">
+					@foreach ( var item in Game.Haul.TakeLast( 6 ) )
+					{
+						<div class="cargo-item"><img src="@SpritePath(item.Sprite)"/><span>@item.Value</span></div>
+					}
+				</div>
+			</div>
+		</div>
+	</div>;
+
+	private RenderFragment Hub() => @<div class="hub-layer">
+		<div class="top-nav">
+			<div class="logo">
+				<div class="logo-title">PLUNGE</div>
+				<div class="logo-sub">DESCEND · DISCOVER · RETURN</div>
+			</div>
+			<div class="tabs">
+				@TabButton(HubTab.Diver, "helmet", "DIVER")
+				@TabButton(HubTab.Submarine, "prop", "SUBMARINE")
+				@TabButton(HubTab.DiveHistory, "book", "DIVE HISTORY")
+			</div>
+			<div class="wallet glass-panel">
+				<span><img src="/ui/coin.png"/> @Save.Gold.ToString("N0")</span>
+				<span><img src="/ui/gem.png"/> @Save.Gems</span>
+				<span>DAY @Save.Day<br/>@Game.TimeText</span>
+			</div>
+		</div>
+
+		<div class="hub-content">
+			@if ( Game.Tab == HubTab.Diver )
+			{
+				@DiverTab()
+			}
+			else if ( Game.Tab == HubTab.Submarine )
+			{
+				@SubTab()
+			}
+			else
+			{
+				@HistoryTab()
+			}
+		</div>
+
+		<div class="hub-footer">
+			<div class="tip">? TIP: @TipText()</div>
+			<div class="dive-actions">
+				<button class="primary" onclick="@(() => Game.StartDive(false))">DIVE NOW</button>
+				<button class="sub-dive @(String.IsNullOrEmpty(Save.EquippedSub) ? "locked" : "")"
+					onclick="@(() => Game.StartDive(true))">
+					@(String.IsNullOrEmpty(Save.EquippedSub) ? "SUB UNLOCKS AT LEVEL 5" : "LAUNCH SUB")
+				</button>
+			</div>
+		</div>
+	</div>;
+
+	private RenderFragment DiverTab() => @<div class="three-columns diver-tab">
+		<div class="left-card panel">
+			<div class="panel-title">DIVER</div>
+			<div class="diver-preview">
+				<img src="/sprites/diver_0.png"/>
+				<div class="bubble b1"></div><div class="bubble b2"></div><div class="bubble b3"></div>
+			</div>
+			<div class="level">LEVEL @Save.Level</div>
+			@Bar(Save.Xp, Save.XpTarget, "xp")
+			<div class="xp-text">@Save.Xp.ToString("N0") / @Save.XpTarget.ToString("N0") XP</div>
+			<div class="stat-list">
+				@Stat("heart", "HEALTH", Game.GetDiverStats().Health, 200, "")
+				@Stat("o2", "OXYGEN", Game.GetDiverStats().Oxygen, 280, "")
+				@Stat("flippers", "SWIM SPEED", Game.GetDiverStats().Speed, 210, "")
+				@Stat("bag", "CARRY CAPACITY", Game.GetDiverStats().Carry, 18, "")
+				@Stat("shield", "RESISTANCE", Game.GetDiverStats().Resistance, 50, "%")
+				@Stat("lamp", "LIGHT RADIUS", Game.GetDiverStats().Light, 260, "m")
+			</div>
+		</div>
+
+		<div class="middle-card panel">
+			<div class="panel-title">EQUIPMENT</div>
+			<div class="equipment-layout">
+				<div class="slot-list">
+					@foreach ( var slot in Catalog.Slots )
+					{
+						<div class="slot-tab @(Game.SelectedGearSlot == slot ? "selected" : "")"
+							onclick="@(() => SelectSlot(slot))">
+							<img src="@SlotIcon(slot)"/> <span>@slot.ToUpperInvariant()</span>
+						</div>
+					}
+				</div>
+				<div class="gear-list">
+					@foreach ( var gear in Catalog.GearFor( Game.SelectedGearSlot ) )
+					{
+						var owned = Save.OwnedGear.Contains( gear.Id );
+						var equipped = Save.Equipped.TryGetValue( gear.Slot, out var eq ) && eq == gear.Id;
+						var locked = Save.Level < gear.RequiredLevel;
+						<div class="gear-row @(Game.SelectedGearId == gear.Id ? "selected" : "") @(locked ? "locked" : "")"
+							onclick="@(() => Game.SelectGear(gear.Slot, gear.Id))">
+							<img src="@SlotIcon(gear.Slot)"/>
+							<div class="gear-copy">
+								<div class="gear-name">@gear.Name</div>
+								<div class="gear-desc">@GearDescription(gear)</div>
+							</div>
+							<div class="gear-tier">LEVEL @gear.Tier<br/>@TierPips(gear.Tier)</div>
+							<div class="gear-price">
+								@if ( equipped ) { <span class="equipped">EQUIPPED</span> }
+								else if ( owned ) { <span>OWNED</span> }
+								else if ( locked ) { <span>🔒 LVL @gear.RequiredLevel</span> }
+								else { <span><img src="/ui/coin.png"/> @gear.Cost</span> }
+							</div>
+						</div>
+					}
+				</div>
+			</div>
+			<div class="loadout-title">EQUIPPED LOADOUT</div>
+			<div class="loadout-row">
+				@foreach ( var slot in Catalog.Slots )
+				{
+					var gear = Catalog.GearById( Save.Equipped[slot] );
+					<div class="loadout-slot"><span>@slot.ToUpperInvariant()</span><img src="@SlotIcon(slot)"/><b>LVL @gear.Tier</b></div>
+				}
+			</div>
+		</div>
+
+		<div class="right-card panel">
+			@GearDetails()
+		</div>
+	</div>;
+
+	private RenderFragment GearDetails() => @<div class="details">
+		@{
+			var gear = Catalog.GearById( Game.SelectedGearId ) ?? Catalog.GearFor( Game.SelectedGearSlot ).First();
+			var owned = Save.OwnedGear.Contains( gear.Id );
+			var equipped = Save.Equipped.TryGetValue( gear.Slot, out var eq ) && eq == gear.Id;
+			var locked = Save.Level < gear.RequiredLevel;
+		}
+		<div class="panel-title">ITEM DETAILS</div>
+		<div class="detail-name">@gear.Name.ToUpperInvariant()</div>
+		<div class="detail-level">LEVEL @gear.Tier</div>
+		<div class="detail-art"><img src="@SlotIcon(gear.Slot)"/></div>
+		<p>@GearDescription(gear) Built for longer, safer descents.</p>
+		<div class="bonuses">
+			@if ( gear.Health != 0 ) { <div>♥ HEALTH <b>+@gear.Health</b></div> }
+			@if ( gear.Oxygen != 0 ) { <div>O₂ OXYGEN <b>+@gear.Oxygen</b></div> }
+			@if ( gear.Speed != 0 ) { <div>» SWIM SPEED <b>+@gear.Speed</b></div> }
+			@if ( gear.Carry != 0 ) { <div>▣ CAPACITY <b>+@gear.Carry</b></div> }
+			@if ( gear.Resistance != 0 ) { <div>◆ RESISTANCE <b>+@gear.Resistance%</b></div> }
+			@if ( gear.Light != 0 ) { <div>☀ LIGHT <b>+@gear.Light</b></div> }
+			@if ( gear.Damage != 0 ) { <div>† DAMAGE <b>+@gear.Damage</b></div> }
+		</div>
+		<div class="cost-line">COST <span><img src="/ui/coin.png"/> @(owned ? 0 : gear.Cost)</span></div>
+		<button class="primary wide @(locked ? "locked" : "")" onclick="@(() => Game.BuyOrEquipGear(gear.Id))">
+			@(locked ? $"REQUIRES LEVEL {gear.RequiredLevel}" : equipped ? "EQUIPPED" : owned ? "EQUIP" : "UPGRADE")
+		</button>
+	</div>;
+
+	private RenderFragment SubTab() => @<div class="three-columns sub-tab">
+		<div class="left-card panel">
+			<div class="panel-title">CURRENT SUBMARINE</div>
+			@if ( String.IsNullOrEmpty( Save.EquippedSub ) )
+			{
+				<div class="empty-sub">
+					<img src="/ui/lock.png"/>
+					<h2>NO SUBMARINE</h2>
+					<p>Reach Diver Level 5 and save 900 credits to unlock the Seeker I.</p>
+				</div>
+			}
+			else
+			{
+				var current = Catalog.SubById( Save.EquippedSub );
+				<div class="detail-name">@current.Name.ToUpperInvariant()</div>
+				<div class="detail-level">LEVEL @Save.SubLevel</div>
+				<div class="sub-preview"><img src="/sprites/sub_0.png"/></div>
+				<div class="stat-list substats">
+					@SimpleStat("DEPTH RATING", $"{CurrentSubDepth():0}m")
+					@SimpleStat("HULL STRENGTH", $"{CurrentSubHull():0}")
+					@SimpleStat("O₂ CAPACITY", $"{CurrentSubOxygen():0}")
+					@SimpleStat("SPEED", $"{current.Speed / 100:0.0} m/s")
+					@SimpleStat("CARGO CAPACITY", $"{CurrentSubCargo():0}")
+					@SimpleStat("SONAR RANGE", $"{current.Sonar + Game.UpgradeLevel("Sonar") * 20:0}m")
+				</div>
+			}
+		</div>
+
+		<div class="middle-card panel">
+			<div class="panel-title">SUBMARINES</div>
+			<p>Purchase and upgrade submarines to dive deeper and carry more.</p>
+			<div class="sub-list">
+				@foreach ( var sub in Catalog.Subs )
+				{
+					var owned = Save.OwnedSubs.Contains( sub.Id );
+					var equipped = Save.EquippedSub == sub.Id;
+					var locked = Save.Level < sub.RequiredLevel;
+					<div class="sub-row @(Game.SelectedSubId == sub.Id ? "selected" : "") @(locked ? "locked" : "")"
+						onclick="@(() => Game.SelectedSubId = sub.Id)">
+						<img src="/sprites/sub_0.png"/>
+						<div class="sub-copy"><b>@sub.Name.ToUpperInvariant()</b><span>@SubDescription(sub)</span></div>
+						<div>LEVEL 1<br/>▰▰▱▱</div>
+						<div class="gear-price">
+							@if ( equipped ) { <span class="equipped">EQUIPPED</span> }
+							else if ( owned ) { <span>OWNED</span> }
+							else if ( locked ) { <span>🔒 LVL @sub.RequiredLevel</span> }
+							else { <span><img src="/ui/coin.png"/> @sub.Cost.ToString("N0")</span> }
+						</div>
+					</div>
+				}
+			</div>
+		</div>
+
+		<div class="right-card panel">
+			@SubDetails()
+		</div>
+
+		<div class="sub-upgrade-strip panel">
+			@foreach ( var part in new[] { "Hull", "Engine", "O2 Tank", "Sonar", "Lights", "Armor", "Storage", "Drone Bay" } )
+			{
+				var lv = Game.UpgradeLevel( part );
+				<div class="sub-part @(part == "Drone Bay" && Save.SubLevel < 5 ? "locked" : "")"
+					onclick="@(() => Game.UpgradeSubPart(part))">
+					<img src="@PartIcon(part)"/><b>@part.ToUpperInvariant()</b><span>LVL @lv</span>
+				</div>
+			}
+		</div>
+	</div>;
+
+	private RenderFragment SubDetails() => @<div class="details">
+		@{
+			var sub = Catalog.SubById( Game.SelectedSubId ) ?? Catalog.Subs.First();
+			var owned = Save.OwnedSubs.Contains( sub.Id );
+			var equipped = Save.EquippedSub == sub.Id;
+			var locked = Save.Level < sub.RequiredLevel;
+		}
+		<div class="panel-title">SUBMARINE DETAILS</div>
+		<div class="detail-name">@sub.Name.ToUpperInvariant()</div>
+		<div class="detail-level">DEPTH CLASS @sub.Depth.ToString("0")m</div>
+		<div class="detail-art sub"><img src="/sprites/sub_0.png"/></div>
+		<p>@SubDescription(sub) Designed for sustained exploration below diver-safe pressure.</p>
+		<div class="bonuses">
+			<div>◆ DEPTH RATING <b>@sub.Depth.ToString("0")m</b></div>
+			<div>♥ HULL STRENGTH <b>@sub.Hull.ToString("0")</b></div>
+			<div>O₂ CAPACITY <b>@sub.Oxygen.ToString("0")</b></div>
+			<div>» SPEED <b>@(sub.Speed / 100) m/s</b></div>
+			<div>▣ CARGO <b>@sub.Cargo.ToString("0")</b></div>
+			<div>◉ SONAR <b>@sub.Sonar.ToString("0")m</b></div>
+		</div>
+		<button class="primary wide @(locked ? "locked" : "")" onclick="@(() => Game.BuyOrEquipSub(sub.Id))">
+			@(locked ? $"REQUIRES LEVEL {sub.RequiredLevel}" : equipped ? "EQUIPPED" : owned ? "EQUIP" : $"BUY  ◉ {sub.Cost:N0}")
+		</button>
+		@if ( equipped )
+		{
+			<button class="secondary wide" onclick="@Game.UpgradeSub">LEVEL UP SUB — @(500 + Save.SubLevel * Save.SubLevel * 250)</button>
+		}
+	</div>;
+
+	private RenderFragment HistoryTab() => @<div class="history-layout">
+		<div class="history-list panel">
+			<div class="panel-title">PAST DIVES</div>
+			@if ( Save.DiveHistory.Count == 0 )
+			{
+				<div class="empty-history">No dives logged yet.<br/>Your first expedition is waiting.</div>
+			}
+			@foreach ( var historyItem in Save.DiveHistory.Take( 8 ) )
+			{
+				<div class="history-row @(SelectedDive()?.Number == historyItem.Number ? "selected" : "")"
+					onclick="@(() => SelectedHistoryNumber = historyItem.Number)">
+					<div class="biome-thumb @historyItem.BiomeId"></div>
+					<div><b>DIVE #@historyItem.Number</b><span>@historyItem.Biome</span><small>DAY @historyItem.Day</small></div>
+					<div class="history-status @(historyItem.Success ? "success" : "failed")">@(historyItem.Success ? "SUCCESS" : "FAILED")<br/>⌖ @historyItem.MaxDepth.ToString("0")m<br/>◷ @Duration(historyItem.Duration)</div>
+				</div>
+			}
+		</div>
+
+		<div class="history-detail panel">
+			@if ( SelectedDive() is { } selectedDive )
+			{
+				<div class="history-title"><h2>DIVE #@selectedDive.Number</h2><span class="status success">@(selectedDive.Success ? "SUCCESS" : "FAILED")</span></div>
+				<div>⌖ @selectedDive.Biome</div><div>DAY @selectedDive.Day · @Game.TimeText</div>
+				<div class="history-hero @selectedDive.BiomeId"><img src="/sprites/@(selectedDive.BiomeId == "abyss" ? "sub_0" : "diver_0").png"/></div>
+				<div class="dive-metrics">
+					@Metric("MAX DEPTH", $"{selectedDive.MaxDepth:0}m")
+					@Metric("DIVE TIME", Duration(selectedDive.Duration))
+					@Metric("O₂ USED", $"{selectedDive.OxygenUsed}%")
+					@Metric("ITEMS COLLECTED", $"{selectedDive.Items}")
+					@Metric("CREDITS EARNED", $"{selectedDive.Credits:N0}")
+				</div>
+				<div class="history-bottom">
+					<div><div class="panel-title">COLLECTED ITEMS</div><div class="item-grid">
+						@foreach ( var item in selectedDive.Haul.Take( 10 ) ) { <div><img src="@SpritePath(item.Sprite)"/><span>@item.Name</span></div> }
+					</div></div>
+					<div><div class="panel-title">DISCOVERIES</div>
+						@foreach ( var discovery in selectedDive.Discoveries.Take( 6 ) ) { <div class="discovery">◆ @discovery</div> }
+					</div>
+				</div>
+			}
+			else
+			{
+				<div class="empty-history">Complete a dive to populate the automatic expedition log.</div>
+			}
+		</div>
+
+		<div class="records panel">
+			<div class="panel-title">DIVE RECORDS</div>
+			@SimpleStat("DEEPEST DIVE", $"{Save.DeepestDive:0}m")
+			@SimpleStat("LONGEST DIVE", Duration(Save.LongestDive))
+			@SimpleStat("MOST ITEMS COLLECTED", $"{Save.MostItems}")
+			@SimpleStat("MOST CREDITS EARNED", $"{Save.MostCredits:N0}")
+			<div class="panel-title spaced">DISCOVERY LOG</div>
+			@SimpleStat("FISH SPECIES", $"{Save.FishLog.Count} / {Catalog.Fish.Length}")
+			@SimpleStat("ARTIFACTS", $"{Save.ArtifactLog.Count} / {Catalog.Artifacts.Length}")
+			@SimpleStat("CREATURES", $"{Save.CreatureLog.Count} / 8")
+			@SimpleStat("BIOMES VISITED", $"{Save.BiomeLog.Count} / 4")
+			<div class="panel-title spaced">TOTAL STATS</div>
+			@SimpleStat("TOTAL DIVES", $"{Save.TotalDives}")
+			@SimpleStat("TOTAL TIME DIVING", Duration(Save.TotalDiveTime))
+			@SimpleStat("TOTAL ITEMS", $"{Save.TotalItems}")
+			@SimpleStat("TOTAL CREDITS", $"{Save.TotalCredits:N0}")
+		</div>
+	</div>;
+
+	private RenderFragment Results() => @<div class="results-overlay">
+		<div class="results-card panel">
+			<div class="result-kicker">EXPEDITION LOGGED</div>
+			<h1>DIVE #@Game.LastResult.Number</h1>
+			<div class="result-biome">@Game.LastResult.Biome · @Game.LastResult.MaxDepth.ToString("0")m</div>
+			<div class="auto-sell">
+				<div class="panel-title">HAUL AUTO-SOLD</div>
+				@foreach ( var item in Game.LastResult.Haul )
+				{
+					<div class="sale-row"><img src="@SpritePath(item.Sprite)"/><span>@item.Name</span><b>+@item.Value</b></div>
+				}
+			</div>
+			<div class="result-total"><span>TOTAL EARNED</span><b><img src="/ui/coin.png"/> @Game.LastResult.Credits.ToString("N0")</b></div>
+			@if ( Game.LastResult.Discoveries.Any() )
+			{
+				<div class="new-discoveries"><div class="panel-title">NEW DISCOVERIES</div>@String.Join(" · ", Game.LastResult.Discoveries)</div>
+			}
+			<button class="primary wide" onclick="@Game.ContinueFromResults">RETURN TO WORKSHOP</button>
+		</div>
+	</div>;
+
+	private RenderFragment Vital(string icon, float value, float max, string cls) => @<div class="vital">
+		<img src="/ui/@(icon).png"/><div class="vital-bar @cls"><i style="width:@Pct(value,max)%"></i><span>@value.ToString("0")/@max.ToString("0")</span></div>
+	</div>;
+
+	private RenderFragment Hotbar(int slot, string icon, string key) => @<div class="slot @(Game.HotbarSlot == slot ? "active" : "")">
+		<span class="key">@key</span><img src="/ui/@(icon).png"/>
+	</div>;
+
+	private RenderFragment TabButton(HubTab tab, string icon, string text) => @<div class="nav-tab @(Game.Tab == tab ? "active" : "")" onclick="@(() => Game.Tab = tab)">
+		<img src="/ui/@(icon).png"/> @text
+	</div>;
+
+	private RenderFragment Bar(float value, float max, string cls) => @<div class="progress @cls"><i style="width:@Pct(value,max)%"></i></div>;
+
+	private RenderFragment Stat(string icon, string label, float value, float max, string suffix) => @<div class="stat">
+		<img src="/ui/@(icon).png"/><span>@label</span><b>@value.ToString("0")@suffix</b>
+		<div class="statbar"><i style="width:@Pct(value,max)%"></i></div>
+	</div>;
+
+	private RenderFragment SimpleStat(string label, string value) => @<div class="simple-stat"><span>@label</span><b>@value</b></div>;
+	private RenderFragment Metric(string label, string value) => @<div class="metric"><span>@label</span><b>@value</b></div>;
+
+	private int SelectedHistoryNumber;
+	private DiveRecord SelectedDive()
+	{
+		if ( Save?.DiveHistory is null || Save.DiveHistory.Count == 0 ) return null;
+		return Save.DiveHistory.FirstOrDefault(x => x.Number == SelectedHistoryNumber) ?? Save.DiveHistory.First();
+	}
+
+	private void SelectSlot(string slot)
+	{
+		Game.SelectedGearSlot = slot;
+		Game.SelectedGearId = Catalog.GearFor(slot).First().Id;
+	}
+
+	private string SpritePath(string sprite) => sprite switch
+	{
+		"fish_common" => "/sprites/fish_common_0.png",
+		"fish_blue" => "/sprites/fish_blue_0.png",
+		"fish_rare" => "/sprites/fish_rare_0.png",
+		"shark" => "/sprites/shark_0.png",
+		"jelly" => "/sprites/jelly_0.png",
+		_ => $"/sprites/{sprite}.png"
+	};
+
+	private string SlotIcon(string slot) => slot switch
+	{
+		"Helmet" => "/ui/helmet.png", "Suit" => "/ui/suit.png", "Tank" => "/ui/o2.png",
+		"Flippers" => "/ui/flippers.png", "Tools" => "/ui/bag.png", "Weapon" => "/ui/harpoon.png",
+		"Light" => "/ui/lamp.png", _ => "/ui/gem.png"
+	};
+
+	private string PartIcon(string part) => part switch
+	{
+		"Hull" or "Armor" => "/ui/shield.png", "Engine" => "/ui/prop.png", "O2 Tank" => "/ui/o2.png",
+		"Sonar" or "Drone Bay" => "/ui/sonar.png", "Lights" => "/ui/lamp.png", _ => "/ui/bag.png"
+	};
+
+	private string GearDescription(GearDef gear) => gear.Slot switch
+	{
+		"Helmet" => "Clear vision and pressure protection.",
+		"Suit" => "Reinforced layers for deeper dives.",
+		"Tank" => "More breathing time per expedition.",
+		"Flippers" => "Faster movement through strong currents.",
+		"Tools" => "Carry and recover more valuable finds.",
+		"Weapon" => "Defend against aggressive sea life.",
+		"Light" => "Push back the dark and reveal secrets.",
+		_ => "A lucky keepsake from the sea."
+	};
+
+	private string SubDescription(SubDef sub) => sub.Id switch
+	{
+		"seeker" => "Reliable entry submarine for shallow and mid-depth exploration.",
+		"explorer" => "Balanced for depth, range, and heavy cargo.",
+		"hunter" => "Fast pursuit craft built for dangerous fauna.",
+		"pioneer" => "Heavy-duty submarine for extreme depths.",
+		_ => "Top-tier research vessel for the final frontier."
+	};
+
+	private string TierPips(int tier) => new string('▰', tier) + new string('▱', Math.Max(0, 4-tier));
+	private float Pct(float value, float max) => Math.Clamp(max <= 0 ? 0 : value / max * 100, 0, 100);
+	private float MapX => Math.Clamp(50 + (Game.Depth % 100 - 50) * .4f, 10, 90);
+	private float MapY => Math.Clamp(10 + Game.Depth / 5, 10, 90);
+	private string Temperature() => Math.Max(2.1f, 19 - Game.Depth * .045f).ToString("0.0");
+	private string CurrentName() => Game.Depth < 100 ? "Low Current" : Game.Depth < 240 ? "Cross Current" : "Heavy Current";
+	private string OxygenLabel() => Game.Oxygen > Game.MaxOxygen * .5f ? "Good" : Game.Oxygen > Game.MaxOxygen * .25f ? "Fair" : "Low";
+	private string ToolName() => Game.HotbarSlot switch { 0 => "HARPOON", 1 => "KNIFE", _ => "LIGHT" };
+	private string Duration(float seconds) => $"{(int)(seconds/60):00}:{(int)(seconds%60):00}";
+	private string TipText() => Save.Level < 2 ? "Your first tank upgrade costs only 130 credits." :
+		Save.Level < 5 ? "Return often. Each dive logs discoveries and sells cargo automatically." :
+		"Submarines unlock deeper biomes, larger cargo holds, and rare artifacts.";
+	private float CurrentSubDepth() => Catalog.SubById(Save.EquippedSub).Depth + Game.UpgradeLevel("Hull") * 12;
+	private float CurrentSubHull() => Catalog.SubById(Save.EquippedSub).Hull + Game.UpgradeLevel("Hull") * 15;
+	private float CurrentSubOxygen() => Catalog.SubById(Save.EquippedSub).Oxygen + Game.UpgradeLevel("O2 Tank") * 20;
+	private float CurrentSubCargo() => Catalog.SubById(Save.EquippedSub).Cargo + Game.UpgradeLevel("Storage") * 2;
+
+	protected override int BuildHash() => HashCode.Combine(
+		Game?.Screen,
+		Game?.Tab,
+		Save?.Gold,
+		Save?.Level,
+		Game?.Depth,
+		Game?.Haul.Count,
+		Game?.LatestNotice,
+		HashCode.Combine(Game?.SelectedGearId, Game?.SelectedSubId, Save?.DiveHistory.Count, SelectedHistoryNumber)
+	);
+}

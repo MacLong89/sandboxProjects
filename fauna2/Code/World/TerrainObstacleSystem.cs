@@ -10,6 +10,16 @@ public sealed class TerrainObstacleSystem : Component
 
 	[Sync( SyncFlags.FromHost )] public int TotalCleared { get; set; }
 
+	// AUDIT FIX B7: Host-authoritative clear session.
+	// Client UiState used to run a 3s local timer then call RequestClear with no
+	// host duration/proximity check — walk away or forge the RPC still paid out.
+	// Flow: RequestBeginClear arms _pendingClear*; RequestClear completes only if
+	// still in range and enough host time elapsed. Revert: delete these fields +
+	// RequestBeginClear and the checks inside RequestClear.
+	private string _pendingClearCellKey;
+	private TimeSince _pendingClearStarted;
+	private long _pendingClearCallerSteamId;
+
 	protected override void OnAwake() => Instance = this;
 
 	protected override void OnDestroy()
@@ -180,6 +190,34 @@ public sealed class TerrainObstacleSystem : Component
 		return list;
 	}
 
+	/// <summary>
+	/// AUDIT FIX B7: Start a host-tracked clear. UI still shows its own progress bar,
+	/// but completion is rejected unless this was armed and time/range still pass.
+	/// </summary>
+	[Rpc.Host]
+	public void RequestBeginClear( string cellKey )
+	{
+		if ( !RpcAuthorization.IsOwnerCaller() ) return;
+		if ( string.IsNullOrEmpty( cellKey ) ) return;
+
+		var obstacle = TerrainObstacleRegistry.Find( cellKey );
+		if ( obstacle is null || !obstacle.IsValid() ) return;
+
+		if ( !RpcAuthorization.IsCallerWithinRange( obstacle.WorldPosition, GameConstants.ObstacleClearRadius ) )
+			return;
+
+		var callerId = Rpc.Caller?.SteamId.Value ?? 0;
+
+		// Same clear already armed — do not reset the host timer (UI retries Begin).
+		if ( _pendingClearCellKey == cellKey
+			&& ( _pendingClearCallerSteamId == 0 || _pendingClearCallerSteamId == callerId ) )
+			return;
+
+		_pendingClearCellKey = cellKey;
+		_pendingClearStarted = 0f;
+		_pendingClearCallerSteamId = callerId;
+	}
+
 	[Rpc.Host]
 	public void RequestClear( string cellKey )
 	{
@@ -188,7 +226,32 @@ public sealed class TerrainObstacleSystem : Component
 		var obstacle = TerrainObstacleRegistry.Find( cellKey );
 		if ( obstacle is null || !obstacle.IsValid() ) return;
 
+		// AUDIT FIX B7: require matching begin + duration + still in range.
+		var callerId = Rpc.Caller?.SteamId.Value ?? 0;
+		// Require ~90% of the clear duration so RPC latency cannot soft-fail a legit clear.
+		// Full Duration would reject when the client timer finished but the begin RPC arrived late.
+		var clearedPending =
+			!string.IsNullOrEmpty( _pendingClearCellKey )
+			&& _pendingClearCellKey == cellKey
+			&& ( _pendingClearCallerSteamId == 0 || _pendingClearCallerSteamId == callerId )
+			&& _pendingClearStarted >= GameConstants.ObstacleClearDuration * 0.9f;
+
+		if ( !clearedPending )
+		{
+			// Soft fail — UI retries for a short grace window; do not award.
+			return;
+		}
+
+		if ( !RpcAuthorization.IsCallerWithinRange( obstacle.WorldPosition, GameConstants.ObstacleClearRadius ) )
+		{
+			_pendingClearCellKey = null;
+			ZooState.Instance?.Notify( "Move closer to finish clearing.", "warning" );
+			return;
+		}
+
 		var label = obstacle.DisplayName;
+
+		_pendingClearCellKey = null;
 
 		if ( !Clear( cellKey ) ) return;
 

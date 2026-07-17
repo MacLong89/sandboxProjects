@@ -2,7 +2,7 @@ namespace RunGun;
 
 public sealed class SaveData
 {
-	public int Version { get; set; } = 2;
+	public int Version { get; set; } = 3;
 
 	public double Cash { get; set; }
 	public double LifetimeEarned { get; set; }
@@ -13,6 +13,12 @@ public sealed class SaveData
 	public double BestScore { get; set; }
 	public int TotalRuns { get; set; }
 	public int PrestigeLevel { get; set; }
+
+	/// <summary>True after the player finishes (or skips) the forced first riot run.</summary>
+	public bool HasCompletedTutorialRun { get; set; }
+
+	/// <summary>Soft-revives used across the lifetime soft-revive window.</summary>
+	public int SoftRevivesUsed { get; set; }
 
 	public string SelectedCharacter { get; set; } = "runner";
 	public HashSet<string> UnlockedCharacters { get; set; } = new() { "runner" };

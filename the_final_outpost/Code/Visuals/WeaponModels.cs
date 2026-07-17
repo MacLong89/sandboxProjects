@@ -1,8 +1,7 @@
 namespace FinalOutpost;
 
 /// <summary>
-/// Recruit weapon world models. Prefer local/editor-mounted paths; fall back to
-/// <see cref="WeaponModelLoader"/> cloud fetch (five small packages, not sboxweapons).
+/// Recruit weapon world models from the mounted <c>facepunch.sboxweapons</c> package.
 /// </summary>
 public static class WeaponModels
 {
@@ -30,17 +29,7 @@ public static class WeaponModels
 		if ( cached is not null && !cached.IsError )
 			return cached;
 
-		try
-		{
-			var model = Model.Load( path );
-			if ( model is not null && !model.IsError )
-				return model;
-		}
-		catch
-		{
-			// fall through to placeholder
-		}
-
+		// Avoid Model.Load here — unmounted paths spam ERROR_FILEOPEN in the console.
 		return MeshPrimitives.Box;
 	}
 }

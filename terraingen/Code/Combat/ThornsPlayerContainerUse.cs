@@ -3,6 +3,7 @@ namespace Terraingen.Combat;
 using Sandbox.Network;
 using Terraingen;
 using Terraingen.Buildings;
+using Terraingen.Multiplayer;
 using Terraingen.Player;
 using Terraingen.UI.Core;
 using Terraingen.World;
@@ -37,6 +38,12 @@ public sealed class ThornsPlayerContainerUse : Component
 
 			return;
 		}
+
+		// AUDIT FIX: Use while dead or while a non-container overlay is up (inventory, etc.).
+		// AllowUse intentionally does NOT use BlocksGameplayInput when ONLY a world container is open —
+		// that path already returns above. Here we still refuse dead pawns / inventory modals.
+		if ( ThornsPlayerActionGate.BlocksLocalWorldActions( GameObject ) )
+			return;
 
 		if ( !Input.Pressed( "Use" ) && !Input.Pressed( "use" ) )
 			return;
@@ -196,6 +203,15 @@ public sealed class ThornsPlayerContainerUse : Component
 		if ( !picked.IsValid() || string.IsNullOrWhiteSpace( picked.InstanceKey ) )
 			return false;
 
+		// AUDIT FIX: do not advertise / resolve foreign storage for Use prompts.
+		// Host ownership is authoritative; this keeps prompt text from lying.
+		var callerGameplay = playerRoot.Components.Get<ThornsPlayerGameplay>( FindMode.EnabledInSelf );
+		var callerKey = callerGameplay.IsValid()
+			? callerGameplay.AccountKey
+			: ThornsPersistenceIdentity.GetStableAccountKey( playerRoot );
+		if ( !ThornsBuildingOwnership.HostAccountMayUseStructure( picked.OwnerAccountKey, callerKey ) )
+			return false;
+
 		containerKey = ThornsWorldLootContainerService.StructureKey( picked.InstanceKey );
 		return true;
 	}
@@ -258,6 +274,14 @@ public sealed class ThornsPlayerContainerUse : Component
 		if ( playerRoot is null || !playerRoot.IsValid() || string.IsNullOrWhiteSpace( containerKey ) )
 			return false;
 
+		// AUDIT FIX: dead players must not open / keep using world containers via RPC.
+		if ( ThornsPlayerActionGate.BlocksHostWorldActions( playerRoot ) )
+			return false;
+
+		// AUDIT FIX: player-placed structure storage requires owner (or guild). World loot stays public.
+		if ( !HostPlayerMayAccessContainerOwnership( playerRoot, containerKey ) )
+			return false;
+
 		if ( TryResolveOpenableContainerKey( playerRoot, out var pickedKey )
 		     && string.Equals( pickedKey, containerKey, StringComparison.Ordinal ) )
 			return true;
@@ -266,6 +290,31 @@ public sealed class ThornsPlayerContainerUse : Component
 			return false;
 
 		return Vector3.DistanceBetween( playerRoot.WorldPosition, worldPos ) <= ContainerAccessMaxDistance;
+	}
+
+	/// <summary>
+	/// AUDIT FIX: <c>struct:</c> storage chests were openable by anyone in range.
+	/// Death crates / airdrops / furniture remain public world loot.
+	/// Revert: delete this method and the call above if intentional free-loot bases return.
+	/// </summary>
+	public static bool HostPlayerMayAccessContainerOwnership( GameObject playerRoot, string containerKey )
+	{
+		if ( string.IsNullOrWhiteSpace( containerKey )
+		     || !containerKey.StartsWith( "struct:", StringComparison.Ordinal ) )
+			return true;
+
+		var instanceKey = containerKey["struct:".Length..];
+		if ( string.IsNullOrWhiteSpace( instanceKey )
+		     || !ThornsPlacedBuildStructure.TryFindByInstanceKey( instanceKey, out var placed )
+		     || !placed.IsValid() )
+			return false;
+
+		var gameplay = playerRoot.Components.Get<ThornsPlayerGameplay>( FindMode.EnabledInSelf );
+		var callerKey = gameplay.IsValid()
+			? gameplay.AccountKey
+			: ThornsPersistenceIdentity.GetStableAccountKey( playerRoot );
+
+		return ThornsBuildingOwnership.HostAccountMayUseStructure( placed.OwnerAccountKey, callerKey );
 	}
 
 	public const float ContainerAccessMaxDistance = 260f;

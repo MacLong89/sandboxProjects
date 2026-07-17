@@ -1,35 +1,102 @@
 namespace FinalOutpost;
 
-/// <summary>Keeps workers and defenders from walking through placed structures.</summary>
+/// <summary>Keeps workers and defenders from walking through occupied grid tiles.</summary>
 public static class BuildingCollision
 {
 	public static float UnitRadius => GameConstants.UnitCollisionRadius;
 
-	private static Vector3 AgentFootprint( float agentRadius ) =>
-		new( agentRadius * 2f, agentRadius * 2f, 0f );
-
-	public static bool BlocksUnit( Vector3 worldPos, float agentRadius = -1f )
+	/// <summary>Path exceptions for a single move query (zombie attacking a chosen structure).</summary>
+	public readonly struct PathAllow
 	{
-		agentRadius = ResolveAgentRadius( agentRadius );
-		worldPos = worldPos.WithZ( 0f );
-		var agentSize = AgentFootprint( agentRadius );
+		public readonly bool IgnorePerimeterWalls;
+		public readonly bool IgnoreCore;
+		public readonly bool IgnoreBuildings;
+		public readonly int? PassThroughCellX;
+		public readonly int? PassThroughCellY;
+		/// <summary>Scale-aware zombie probe radius; 0 uses <see cref="GameConstants.ZombiePathRadius"/>.</summary>
+		public readonly float PathRadiusOverride;
 
-		if ( BuildGrid.FootprintsOverlap( worldPos, agentSize, Vector3.Zero, BuildGrid.CommandPostCollisionFootprint ) )
-			return true;
+		public static PathAllow None => default;
 
-		var build = BuildManager.Instance;
-		if ( build is null ) return false;
-
-		foreach ( var b in build.Buildings )
+		public PathAllow(
+			bool ignorePerimeterWalls,
+			bool ignoreCore,
+			bool ignoreBuildings,
+			int? passThroughCellX,
+			int? passThroughCellY,
+			float pathRadiusOverride )
 		{
-			if ( b.IsDestroyed ) continue;
-
-			var center = BuildGrid.CellToWorld( b.CellX, b.CellY );
-			if ( BuildGrid.FootprintsOverlap( worldPos, agentSize, center, b.Def.CollisionFootprint ) )
-				return true;
+			IgnorePerimeterWalls = ignorePerimeterWalls;
+			IgnoreCore = ignoreCore;
+			IgnoreBuildings = ignoreBuildings;
+			PassThroughCellX = passThroughCellX;
+			PassThroughCellY = passThroughCellY;
+			PathRadiusOverride = pathRadiusOverride;
 		}
 
-		return false;
+		public static PathAllow ForZombieTarget(
+			bool ignorePerimeterWalls,
+			PlacedBuilding building = null,
+			WallSegment wall = null,
+			bool towardCore = false,
+			bool ignoreBuildings = false,
+			float pathRadiusOverride = 0f )
+		{
+			int? passX = building?.CellX;
+			int? passY = building?.CellY;
+			if ( passX is null && wall is not null && BuildGrid.WorldToCell( wall.Center, out var wx, out var wy ) )
+			{
+				passX = wx;
+				passY = wy;
+			}
+
+			return new(
+				ignorePerimeterWalls,
+				towardCore,
+				ignoreBuildings,
+				passX,
+				passY,
+				pathRadiusOverride );
+		}
+	}
+
+	static float ResolveZombieAgentRadius( PathAllow allow ) =>
+		allow.PathRadiusOverride > 0.01f
+			? allow.PathRadiusOverride
+			: GameConstants.ZombiePathRadius;
+
+	public static bool BlocksUnit(
+		Vector3 worldPos,
+		float agentRadius = -1f,
+		bool ignorePerimeterWalls = false,
+		bool forZombieMelee = false,
+		PathAllow allow = default )
+	{
+		agentRadius = forZombieMelee
+			? ResolveZombieAgentRadius( allow )
+			: ResolveAgentRadius( agentRadius );
+
+		// Wall-mounted towers share tiles with perimeter walls. A normal pathing radius clips
+		// neighboring wall cells and binary-searches into a crawl. Shrink the probe when we
+		// already have a pass-through target tile so attackers can finish the last approach.
+		if ( forZombieMelee
+		     && allow.PassThroughCellX is int px
+		     && allow.PassThroughCellY is int py
+		     && BuildGrid.WorldToCell( worldPos, out var cx, out var cy )
+		     && Math.Abs( cx - px ) + Math.Abs( cy - py ) <= 1 )
+		{
+			agentRadius = MathF.Min( agentRadius, 2f );
+		}
+
+		// Same model as walls: occupied grid cells (building cell, core cells, wall path cells).
+		return TileOccupancy.IsWorldBlocked(
+			worldPos,
+			agentRadius,
+			allow.IgnorePerimeterWalls || ignorePerimeterWalls,
+			allow.PassThroughCellX,
+			allow.PassThroughCellY,
+			allow.IgnoreCore,
+			allow.IgnoreBuildings );
 	}
 
 	/// <summary>XY distance from a point to the nearest edge of an axis-aligned footprint.</summary>
@@ -71,7 +138,12 @@ public static class BuildingCollision
 	}
 
 	/// <summary>Stand-off point outside a footprint for melee approach.</summary>
-	public static Vector3 ApproachPoint( Vector3 from, Vector3 center, Vector3 size, float agentRadius = -1f )
+	public static Vector3 ApproachPoint(
+		Vector3 from,
+		Vector3 center,
+		Vector3 size,
+		float agentRadius = -1f,
+		float standoff = 2f )
 	{
 		agentRadius = ResolveAgentRadius( agentRadius );
 		var closest = ClosestPointOnFootprint( from, center, size );
@@ -83,31 +155,384 @@ public static class BuildingCollision
 				away = Vector3.Right;
 		}
 
-		return closest + away.Normal * (agentRadius + 2f);
+		return closest + away.Normal * (agentRadius + standoff);
 	}
 
-	/// <summary>True when a world point lies inside a solid building footprint (no unit padding).</summary>
-	public static bool IsInsideBuildingFootprint( Vector3 worldPos )
+	public static Vector3 ApproachPointForZombie(
+		Vector3 from,
+		Vector3 center,
+		Vector3 size,
+		PathAllow allow = default )
 	{
-		worldPos = worldPos.WithZ( 0f );
-		if ( IsInsideFootprint( worldPos, Vector3.Zero, BuildGrid.CommandPostCollisionFootprint ) )
-			return true;
+		var radius = ResolveZombieAgentRadius( allow );
+		from = from.WithZ( 0f );
+		center = center.WithZ( 0f );
 
-		var build = BuildManager.Instance;
-		if ( build is null ) return false;
-
-		foreach ( var b in build.Buildings )
+		var closest = ClosestPointOnFootprint( from, center, size );
+		var away = (from - closest).WithZ( 0f );
+		if ( away.Length < 0.001f )
 		{
-			if ( b.IsDestroyed ) continue;
-			var center = BuildGrid.CellToWorld( b.CellX, b.CellY );
-			if ( IsInsideFootprint( worldPos, center, b.Def.CollisionFootprint ) )
+			away = (from - center).WithZ( 0f );
+			if ( away.Length < 0.001f )
+				away = Vector3.Right;
+		}
+
+		away = away.Normal;
+		var point = closest + away * (radius + GameConstants.ZombieApproachStandoff);
+
+		// Pass-through target cell may sit on the face.
+		if ( allow.PassThroughCellX is int px
+		     && allow.PassThroughCellY is int py
+		     && BuildGrid.WorldToCell( point, out var cx, out var cy )
+		     && cx == px && cy == py
+		     && !BlocksUnit( point, ignorePerimeterWalls: allow.IgnorePerimeterWalls, forZombieMelee: true, allow: allow ) )
+			return point;
+
+		// Keep walking outward from the structure until the stand is free (grid cells ≠ mesh face).
+		for ( var i = 0; i < 16; i++ )
+		{
+			if ( !BlocksUnit( point, ignorePerimeterWalls: allow.IgnorePerimeterWalls, forZombieMelee: true, allow: allow ) )
+				return point;
+
+			point += away * MathF.Max( 8f, radius );
+		}
+
+		return EnsureClearStand(
+			point,
+			from,
+			radius,
+			allow.IgnorePerimeterWalls,
+			forZombieMelee: true,
+			allow );
+	}
+
+	/// <summary>
+	/// Stand point on the exterior (or interior) face of a wall-mounted building, along the
+	/// perimeter outward normal so zombies don't crawl into neighboring wall tiles.
+	/// </summary>
+	public static Vector3 ApproachPointForWallMounted(
+		Vector3 from,
+		Vector3 center,
+		Vector3 size,
+		PathAllow allow = default )
+	{
+		center = center.WithZ( 0f );
+		from = from.WithZ( 0f );
+		var half = size.WithZ( 0f ) * 0.5f;
+		var side = WallApproach.FromWorldPosition( center, Vector3.Zero );
+		var outward = WallApproach.OutwardNormal( side );
+		var toFrom = from - center;
+		var faceDir = Vector3.Dot( toFrom, outward ) >= 0f ? outward : -outward;
+		var extent = MathF.Abs( faceDir.x ) > 0.5f ? half.x : half.y;
+		var radius = ResolveZombieAgentRadius( allow );
+		var point = center + faceDir * (extent + radius + GameConstants.ZombieApproachStandoff);
+
+		for ( var i = 0; i < 16; i++ )
+		{
+			if ( !BlocksUnit( point, ignorePerimeterWalls: allow.IgnorePerimeterWalls, forZombieMelee: true, allow: allow ) )
+				return point;
+
+			point += faceDir * MathF.Max( 8f, radius );
+		}
+
+		return EnsureClearStand(
+			point,
+			from,
+			radius,
+			allow.IgnorePerimeterWalls,
+			forZombieMelee: true,
+			allow );
+	}
+
+	/// <summary>
+	/// True when the walk segment from→to overlaps an occupied pathing cell (excluding pass-through).
+	/// </summary>
+	public static bool SegmentHitsBlocker(
+		Vector3 from,
+		Vector3 to,
+		PathAllow allow = default,
+		int samples = 0 )
+	{
+		from = from.WithZ( 0f );
+		to = to.WithZ( 0f );
+		var delta = to - from;
+		var len = delta.Length;
+		if ( len < 4f ) return false;
+
+		if ( samples <= 0 )
+			samples = Math.Clamp( (int)(len / 24f) + 2, 6, 28 );
+
+		for ( var i = 1; i <= samples; i++ )
+		{
+			var t = i / (float)samples;
+			var p = from + delta * t;
+			if ( BlocksUnit( p, ignorePerimeterWalls: allow.IgnorePerimeterWalls, forZombieMelee: true, allow: allow ) )
 				return true;
 		}
 
 		return false;
 	}
 
-	/// <summary>Can a projectile travel from origin to target without passing through a building?</summary>
+	/// <summary>
+	/// Picks a clear corner waypoint around the first occupied footprint blocking from→goal.
+	/// Only uses waypoints we can walk to without crossing the blocker (no far-side midpoints —
+	/// those stranded agents against HQ while the goal sat on the opposite face).
+	/// </summary>
+	public static bool TryDetourWaypoint(
+		Vector3 from,
+		Vector3 goal,
+		PathAllow allow,
+		out Vector3 waypoint ) =>
+		TryDetourWaypoint( from, goal, allow, skipPerimeterWalls: false, out waypoint );
+
+	public static bool TryDetourWaypoint(
+		Vector3 from,
+		Vector3 goal,
+		PathAllow allow,
+		bool skipPerimeterWalls,
+		out Vector3 waypoint )
+	{
+		from = from.WithZ( 0f );
+		goal = goal.WithZ( 0f );
+		waypoint = goal;
+
+		if ( !TryFirstBlockerAlong( from, goal, allow, skipPerimeterWalls, out var blockCenter, out var blockHalf ) )
+			return false;
+
+		var radius = ResolveZombieAgentRadius( allow );
+		// Stand outside the rasterized cells with a little walkway clearance for corner skirting.
+		var pad = radius + MathF.Max( 12f, GameConstants.ZombieApproachStandoff * 0.5f );
+		var hx = blockHalf.x + pad;
+		var hy = blockHalf.y + pad;
+		var c = blockCenter;
+
+		// Corners only — face centers on the far side look "straight" but require going through.
+		var candidates = new[]
+		{
+			new Vector3( c.x - hx, c.y - hy, 0f ),
+			new Vector3( c.x - hx, c.y + hy, 0f ),
+			new Vector3( c.x + hx, c.y - hy, 0f ),
+			new Vector3( c.x + hx, c.y + hy, 0f )
+		};
+
+		var toGoal = goal - from;
+		var direct = toGoal.Length;
+		if ( direct < 0.001f )
+			return false;
+
+		// When skirting HQ/buildings after a breach, ignore walls on the segment probe so we
+		// don't reject every corner that clips a perimeter cell.
+		var probeAllow = skipPerimeterWalls
+			? new PathAllow(
+				true,
+				allow.IgnoreCore,
+				allow.IgnoreBuildings,
+				allow.PassThroughCellX,
+				allow.PassThroughCellY,
+				allow.PathRadiusOverride )
+			: allow;
+
+		var bestScore = float.MinValue;
+		var found = false;
+		foreach ( var candidate in candidates )
+		{
+			var cand = candidate;
+			if ( BlocksUnit( cand, ignorePerimeterWalls: probeAllow.IgnorePerimeterWalls, forZombieMelee: true, allow: probeAllow ) )
+			{
+				cand = EnsureClearStand(
+					candidate,
+					from,
+					radius,
+					probeAllow.IgnorePerimeterWalls,
+					forZombieMelee: true,
+					probeAllow );
+			}
+
+			if ( BlocksUnit( cand, ignorePerimeterWalls: probeAllow.IgnorePerimeterWalls, forZombieMelee: true, allow: probeAllow ) )
+				continue;
+
+			var leave = (cand - from).WithZ( 0f ).Length;
+			if ( leave < 14f )
+				continue;
+
+			if ( SegmentHitsBlocker( from, cand, probeAllow ) )
+				continue;
+
+			var via = leave + (goal - cand).WithZ( 0f ).Length;
+			if ( via > direct * 3.5f )
+				continue;
+
+			var clearsRest = !SegmentHitsBlocker( cand, goal, probeAllow );
+			var score = -via + (clearsRest ? 200f : 0f);
+			if ( score <= bestScore )
+				continue;
+
+			bestScore = score;
+			waypoint = cand;
+			found = true;
+		}
+
+		return found;
+	}
+
+	static bool TryFirstBlockerAlong(
+		Vector3 from,
+		Vector3 to,
+		PathAllow allow,
+		bool skipPerimeterWalls,
+		out Vector3 blockCenter,
+		out Vector3 blockHalf )
+	{
+		blockCenter = default;
+		blockHalf = default;
+		var delta = to - from;
+		var len = delta.Length;
+		if ( len < 4f )
+			return false;
+
+		var samples = Math.Clamp( (int)(len / 24f) + 2, 6, 28 );
+		for ( var i = 1; i <= samples; i++ )
+		{
+			var p = from + delta * (i / (float)samples);
+			if ( !BlocksUnit( p, ignorePerimeterWalls: allow.IgnorePerimeterWalls || skipPerimeterWalls, forZombieMelee: true, allow: allow ) )
+				continue;
+
+			if ( !BuildGrid.WorldToCell( p, out var cx, out var cy ) )
+				continue;
+
+			if ( skipPerimeterWalls && TileOccupancy.IsWallPathCell( cx, cy ) && !BuildGrid.IsCoreCell( cx, cy )
+			     && !TileOccupancy.IsBuildingCell( cx, cy ) )
+				continue;
+
+			if ( BuildGrid.IsCoreCell( cx, cy ) )
+			{
+				var core = OutpostManager.Instance?.CorePosition ?? Vector3.Zero;
+				blockCenter = core.WithZ( 0f );
+				var half = BuildGrid.CommandPostZombieCollisionFootprint * 0.5f;
+				blockHalf = half.WithZ( 0f );
+				return true;
+			}
+
+			if ( TileOccupancy.IsBuildingCell( cx, cy ) && !BuildGrid.IsCoreCell( cx, cy ) )
+			{
+				blockCenter = BuildGrid.CellToWorld( cx, cy ).WithZ( 0f );
+				blockHalf = new Vector3( GameConstants.CellSize * 0.5f, GameConstants.CellSize * 0.5f, 0f );
+				return true;
+			}
+
+			// Perimeter walls are never useful detour AABBs (keeps agents skating the ring).
+			if ( TileOccupancy.IsWallPathCell( cx, cy ) )
+				continue;
+		}
+
+		return false;
+	}
+
+	/// <summary>
+	/// Pushes a stand point off occupied tiles so path goals never sit inside blockers.
+	/// Prefer falling back to <paramref name="preferFrom"/> over returning a blocked goal.
+	/// For zombies, stay near the preferred side — never jump a goal across the map.
+	/// </summary>
+	public static Vector3 EnsureClearStand(
+		Vector3 desired,
+		Vector3 preferFrom,
+		float agentRadius = -1f,
+		bool ignorePerimeterWalls = false,
+		bool forZombieMelee = false,
+		PathAllow allow = default )
+	{
+		agentRadius = forZombieMelee
+			? ResolveZombieAgentRadius( allow )
+			: ResolveAgentRadius( agentRadius );
+		desired = desired.WithZ( 0f );
+		preferFrom = preferFrom.WithZ( 0f );
+
+		if ( !BlocksUnit( desired, agentRadius, ignorePerimeterWalls, forZombieMelee, allow ) )
+			return desired;
+
+		var away = (preferFrom - desired).WithZ( 0f );
+		if ( away.Length < 0.001f )
+			away = Vector3.Right;
+		away = away.Normal;
+
+		var step = MathF.Max( 6f, agentRadius );
+		var maxPush = forZombieMelee ? GameConstants.CellSize * 2.5f : step * 12f;
+		var maxI = forZombieMelee ? 20 : 12;
+		for ( var i = 1; i <= maxI; i++ )
+		{
+			var push = step * i;
+			if ( push > maxPush )
+				break;
+
+			var candidate = desired + away * push;
+			if ( !BlocksUnit( candidate, agentRadius, ignorePerimeterWalls, forZombieMelee, allow ) )
+				return candidate;
+		}
+
+		if ( forZombieMelee )
+		{
+			// Near the intended face first — never "stay put" while the desired approach is still far.
+			if ( TryFindClearPoint(
+				    desired,
+				    agentRadius,
+				    GameConstants.CellSize * 2f,
+				    out var nearDesired,
+				    28,
+				    ignorePerimeterWalls,
+				    forZombieMelee,
+				    allow ) )
+				return nearDesired;
+
+			if ( TryFindClearPoint(
+				    preferFrom,
+				    agentRadius,
+				    GameConstants.CellSize * 1.5f,
+				    out var nearFrom,
+				    20,
+				    ignorePerimeterWalls,
+				    forZombieMelee,
+				    allow )
+			     && (nearFrom - preferFrom).WithZ( 0f ).Length > 4f )
+				return nearFrom;
+
+			if ( !BlocksUnit( preferFrom, agentRadius, ignorePerimeterWalls, forZombieMelee, allow ) )
+				return preferFrom;
+
+			return preferFrom;
+		}
+
+		if ( TryFindClearPoint( desired, step, GameConstants.CellSize * 1.5f, out var clear, 36, ignorePerimeterWalls, forZombieMelee, allow ) )
+			return clear;
+
+		if ( TryEscape( desired, out var escape, agentRadius, ignorePerimeterWalls, forZombieMelee, allow ) )
+			return escape;
+
+		if ( !BlocksUnit( preferFrom, agentRadius, ignorePerimeterWalls, forZombieMelee, allow ) )
+			return preferFrom;
+
+		if ( TryEscape( preferFrom, out var fromEscape, agentRadius, ignorePerimeterWalls, forZombieMelee, allow ) )
+			return fromEscape;
+
+		if ( TryFindClearPoint( preferFrom, step, GameConstants.CellSize * 2f, out var nearPrefer, 28, ignorePerimeterWalls, forZombieMelee, allow ) )
+			return nearPrefer;
+
+		return preferFrom;
+	}
+
+	/// <summary>True when a world point lies on a command-post or building tile.</summary>
+	public static bool IsInsideBuildingFootprint( Vector3 worldPos )
+	{
+		if ( !BuildGrid.WorldToCell( worldPos, out var cellX, out var cellY ) )
+			return false;
+
+		return TileOccupancy.IsBuildingCell( cellX, cellY );
+	}
+
+	/// <summary>
+	/// Can a projectile travel from origin to target without passing through a solid building?
+	/// Perimeter walls are ignored — towers and recruits shoot over the parapet.
+	/// The shooter's own cell is skipped so turrets aren't blinded by their tile.
+	/// </summary>
 	public static bool HasLineOfFire( Vector3 origin, Vector3 target, float targetMargin = 28f )
 	{
 		origin = origin.WithZ( 0f );
@@ -116,34 +541,61 @@ public static class BuildingCollision
 		var len = seg.Length;
 		if ( len < 8f ) return true;
 
+		BuildGrid.WorldToCell( origin, out var originX, out var originY );
+
 		var dir = seg / len;
 		var steps = Math.Max( 2, (int)(len / 32f) );
+		const float muzzleClearance = 22f;
 		for ( var i = 1; i < steps; i++ )
 		{
 			var distAlong = len * (i / (float)steps);
+			if ( distAlong < muzzleClearance )
+				continue;
 			if ( len - distAlong < targetMargin )
 				break;
 
-			if ( IsInsideBuildingFootprint( origin + dir * distAlong ) )
+			var sample = origin + dir * distAlong;
+			if ( !BuildGrid.WorldToCell( sample, out var cellX, out var cellY ) )
+				continue;
+
+			// Don't treat the firing tile as an occluder.
+			if ( cellX == originX && cellY == originY )
+				continue;
+
+			if ( TileOccupancy.IsBuildingCell( cellX, cellY ) )
 				return false;
 		}
 
 		return true;
 	}
 
-	private static bool IsInsideFootprint( Vector3 point, Vector3 center, Vector3 size )
+	/// <summary>Steps toward <paramref name="target"/> without entering occupied tiles.</summary>
+	public static Vector3 ResolveStep(
+		Vector3 from,
+		Vector3 target,
+		float step,
+		float agentRadius = -1f,
+		bool ignorePerimeterWalls = false,
+		bool forZombieMelee = false,
+		PathAllow allow = default )
 	{
-		var half = size.WithZ( 0f ) * 0.5f;
-		return MathF.Abs( point.x - center.x ) <= half.x
-		       && MathF.Abs( point.y - center.y ) <= half.y;
-	}
-
-	/// <summary>Steps toward <paramref name="target"/> without entering building footprints.</summary>
-	public static Vector3 ResolveStep( Vector3 from, Vector3 target, float step, float agentRadius = -1f )
-	{
-		agentRadius = ResolveAgentRadius( agentRadius );
+		agentRadius = forZombieMelee
+			? ResolveZombieAgentRadius( allow )
+			: ResolveAgentRadius( agentRadius );
 		from = from.WithZ( 0f );
 		target = target.WithZ( 0f );
+
+		if ( BlocksUnit( from, agentRadius, ignorePerimeterWalls, forZombieMelee, allow )
+		     && TryEscape( from, out var escaped, agentRadius, ignorePerimeterWalls, forZombieMelee, allow ) )
+		{
+			var escapeDelta = (escaped - from).WithZ( 0f );
+			var escapeCap = forZombieMelee
+				? MathF.Max( step, agentRadius )
+				: MathF.Max( step, agentRadius * 1.5f );
+			var escapeStep = MathF.Min( escapeDelta.Length, escapeCap );
+			if ( escapeStep > 0.01f )
+				from = from + escapeDelta.Normal * escapeStep;
+		}
 
 		var delta = target - from;
 		var dist = delta.Length;
@@ -151,66 +603,126 @@ public static class BuildingCollision
 
 		var move = MathF.Min( step, dist );
 		var desired = from + delta / dist * move;
-		var resolved = ResolveMove( from, desired, agentRadius );
-
-		if ( (resolved - from).Length <= 0.01f && BlocksUnit( from, agentRadius ) )
-			resolved = PushOut( from, agentRadius );
-
-		return resolved;
+		return ResolveMove( from, desired, agentRadius, ignorePerimeterWalls, forZombieMelee, allow );
 	}
 
-	public static Vector3 ResolveMove( Vector3 from, Vector3 desired, float agentRadius = -1f )
+	public static Vector3 ResolveZombieStep(
+		Vector3 from,
+		Vector3 target,
+		float step,
+		bool ignorePerimeterWalls = false,
+		PathAllow allow = default ) =>
+		ResolveStep( from, target, step, ResolveZombieAgentRadius( allow ), ignorePerimeterWalls, forZombieMelee: true, allow );
+
+	/// <summary>
+	/// Resolves a single short move. Slides stay within this frame's step length so agents turn/walk
+	/// around obstacles instead of sideways-teleporting.
+	/// </summary>
+	public static Vector3 ResolveMove(
+		Vector3 from,
+		Vector3 desired,
+		float agentRadius = -1f,
+		bool ignorePerimeterWalls = false,
+		bool forZombieMelee = false,
+		PathAllow allow = default )
 	{
-		agentRadius = ResolveAgentRadius( agentRadius );
+		agentRadius = forZombieMelee
+			? ResolveZombieAgentRadius( allow )
+			: ResolveAgentRadius( agentRadius );
 		from = from.WithZ( 0f );
 		desired = desired.WithZ( 0f );
 
-		if ( !BlocksUnit( desired, agentRadius ) )
+		if ( !BlocksUnit( desired, agentRadius, ignorePerimeterWalls, forZombieMelee, allow ) )
 			return desired;
 
 		var delta = desired - from;
-		if ( delta.Length <= 0.001f )
+		var full = delta.Length;
+		if ( full <= 0.001f )
 			return from;
 
+		var prefer = delta / full;
 		var best = from;
-		var bestDist = 0f;
-		var norm = delta / delta.Length;
-		var slide = agentRadius * 1.35f;
+		var bestScore = -1f;
 
-		TryCandidate( from + new Vector3( delta.x, 0f, 0f ), ref best, ref bestDist );
-		TryCandidate( from + new Vector3( 0f, delta.y, 0f ), ref best, ref bestDist );
-		TryCandidate( from + norm * MathF.Min( delta.Length, slide ), ref best, ref bestDist );
+		var lo = 0f;
+		var hi = full;
+		for ( var i = 0; i < 6; i++ )
+		{
+			var mid = (lo + hi) * 0.5f;
+			if ( BlocksUnit( from + prefer * mid, agentRadius, ignorePerimeterWalls, forZombieMelee, allow ) )
+				hi = mid;
+			else
+				lo = mid;
+		}
 
-		var perp = new Vector3( -norm.y, norm.x, 0f );
-		TryCandidate( from + perp * slide, ref best, ref bestDist );
-		TryCandidate( from - perp * slide, ref best, ref bestDist );
-		TryCandidate( from + (norm + perp).Normal * slide, ref best, ref bestDist );
-		TryCandidate( from + (norm - perp).Normal * slide, ref best, ref bestDist );
+		Consider( from + prefer * lo );
+
+		Consider( from + new Vector3( delta.x, 0f, 0f ) );
+		Consider( from + new Vector3( 0f, delta.y, 0f ) );
+
+		var perp = new Vector3( -prefer.y, prefer.x, 0f );
+		var degrees = forZombieMelee
+			? new[] { 15f, 30f, 45f, 60f, 80f, 100f, 125f, 150f }
+			: new[] { 20f, 35f, 50f, 70f, 90f };
+		foreach ( var deg in degrees )
+		{
+			var rad = deg * (MathF.PI / 180f);
+			var cos = MathF.Cos( rad );
+			var sin = MathF.Sin( rad );
+			var left = (prefer * cos + perp * sin).Normal;
+			var right = (prefer * cos - perp * sin).Normal;
+			Consider( from + left * full );
+			Consider( from + right * full );
+		}
 
 		return best;
 
-		void TryCandidate( Vector3 candidate, ref Vector3 bestPoint, ref float bestLen )
+		void Consider( Vector3 candidate )
 		{
-			if ( BlocksUnit( candidate, agentRadius ) ) return;
-			var len = (candidate - from).Length;
-			if ( len <= bestLen ) return;
-			bestPoint = candidate;
-			bestLen = len;
+			candidate = candidate.WithZ( 0f );
+			var move = candidate - from;
+			var len = move.Length;
+			if ( len < 0.01f ) return;
+
+			if ( len > full + 0.05f )
+			{
+				candidate = from + move / len * full;
+				move = candidate - from;
+				len = move.Length;
+			}
+
+			if ( BlocksUnit( candidate, agentRadius, ignorePerimeterWalls, forZombieMelee, allow ) )
+				return;
+
+			var progress = Vector3.Dot( move, prefer );
+			var score = progress * 2.5f + len * 0.35f;
+			if ( score <= bestScore ) return;
+			best = candidate;
+			bestScore = score;
 		}
 	}
 
-	public static bool TryFindClearPoint( Vector3 center, float minRadius, float maxRadius, out Vector3 point, int attempts = 12 )
+	public static bool TryFindClearPoint(
+		Vector3 center,
+		float minRadius,
+		float maxRadius,
+		out Vector3 point,
+		int attempts = 12,
+		bool ignorePerimeterWalls = false,
+		bool forZombieMelee = false,
+		PathAllow allow = default )
 	{
 		center = center.WithZ( 0f );
 		minRadius = MathF.Max( 0f, minRadius );
 		maxRadius = MathF.Max( minRadius, maxRadius );
+		var agentRadius = forZombieMelee ? ResolveZombieAgentRadius( allow ) : -1f;
 
 		for ( var i = 0; i < attempts; i++ )
 		{
 			var angle = Game.Random.Float( 0f, MathF.PI * 2f );
 			var r = Game.Random.Float( minRadius, maxRadius );
 			var candidate = center + new Vector3( MathF.Cos( angle ) * r, MathF.Sin( angle ) * r, 0f );
-			if ( !BlocksUnit( candidate ) )
+			if ( !BlocksUnit( candidate, agentRadius, ignorePerimeterWalls, forZombieMelee, allow ) )
 			{
 				point = candidate;
 				return true;
@@ -218,34 +730,65 @@ public static class BuildingCollision
 		}
 
 		point = center;
-		if ( !BlocksUnit( center ) )
+		if ( !BlocksUnit( center, agentRadius, ignorePerimeterWalls, forZombieMelee, allow ) )
 			return true;
 
-		return PushOut( from: center, out point );
+		return TryEscape( center, out point, agentRadius, ignorePerimeterWalls, forZombieMelee, allow );
 	}
 
-	private static Vector3 PushOut( Vector3 from, float agentRadius = -1f )
+	public static bool TryEscape(
+		Vector3 from,
+		out Vector3 point,
+		float agentRadius = -1f,
+		bool ignorePerimeterWalls = false,
+		bool forZombieMelee = false,
+		PathAllow allow = default )
 	{
-		if ( PushOut( from, out var point, agentRadius ) )
-			return point;
-		return from;
-	}
-
-	private static bool PushOut( Vector3 from, out Vector3 point, float agentRadius = -1f )
-	{
-		agentRadius = ResolveAgentRadius( agentRadius );
+		agentRadius = forZombieMelee
+			? ResolveZombieAgentRadius( allow )
+			: ResolveAgentRadius( agentRadius );
 		from = from.WithZ( 0f );
-		for ( var ring = 1; ring <= 4; ring++ )
+
+		if ( !BlocksUnit( from, agentRadius, ignorePerimeterWalls, forZombieMelee, allow ) )
 		{
-			var push = agentRadius * ring * 0.85f;
-			for ( var i = 0; i < 8; i++ )
+			point = from;
+			return true;
+		}
+
+		var cellSize = GameConstants.CellSize;
+		for ( var ring = 1; ring <= 10; ring++ )
+		{
+			var push = MathF.Max( agentRadius, 8f ) * ring * 0.75f;
+			if ( ring >= 5 )
+				push = cellSize * 0.35f * (ring - 3);
+
+			var samples = ring <= 4 ? 8 : 12;
+			for ( var i = 0; i < samples; i++ )
 			{
-				var angle = i / 8f * MathF.PI * 2f;
+				var angle = i / (float)samples * MathF.PI * 2f;
 				var candidate = from + new Vector3( MathF.Cos( angle ) * push, MathF.Sin( angle ) * push, 0f );
-				if ( !BlocksUnit( candidate, agentRadius ) )
+				if ( !BlocksUnit( candidate, agentRadius, ignorePerimeterWalls, forZombieMelee, allow ) )
 				{
 					point = candidate;
 					return true;
+				}
+			}
+		}
+
+		if ( BuildGrid.WorldToCell( from, out var cx, out var cy ) )
+		{
+			for ( var r = 1; r <= 3; r++ )
+			{
+				for ( var dx = -r; dx <= r; dx++ )
+				for ( var dy = -r; dy <= r; dy++ )
+				{
+					if ( Math.Abs( dx ) != r && Math.Abs( dy ) != r ) continue;
+					var cell = BuildGrid.CellToWorld( cx + dx, cy + dy ).WithZ( 0f );
+					if ( !BlocksUnit( cell, agentRadius, ignorePerimeterWalls, forZombieMelee, allow ) )
+					{
+						point = cell;
+						return true;
+					}
 				}
 			}
 		}

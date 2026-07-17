@@ -193,10 +193,25 @@ public sealed class GameManager : Component, Component.INetworkListener
 
 		var go = new GameObject( true, $"Player - {channel.DisplayName}" );
 		go.Tags.Add( "player" );
-		go.AddComponent<PlayerState>();
+		var playerState = go.AddComponent<PlayerState>();
 		go.NetworkMode = NetworkMode.Object;
 		go.NetworkSpawn( channel );
 		go.Network.SetOrphanedMode( NetworkOrphaned.Destroy );
+
+		// AUDIT FIX B1: Host stamps IsZooOwner after NetworkSpawn so FromHost Sync
+		// replicates to everyone. Lobby host connection == zoo operator.
+		// Previously each client wrote IsZooOwner = SaveHost.CanStartSession locally,
+		// which a modded client could forge. Revert: remove StampZooOwnership and
+		// restore local write in PlayerState.TryBindLocal (NOT recommended).
+		var isLobbyHost = Connection.Host is not null
+			? channel == Connection.Host
+			: channel == Connection.Local;
+		playerState.StampZooOwnership( isLobbyHost );
+
+		// Inventory lives on the zoo owner only (was gated on IsZooOwner in OnStart,
+		// which may race with FromHost stamp on late replication — ensure here).
+		if ( isLobbyHost && playerState.Components.Get<PlayerInventory>() is null )
+			playerState.GameObject.GetOrAddComponent<PlayerInventory>();
 
 		if ( GameStarted )
 		{
