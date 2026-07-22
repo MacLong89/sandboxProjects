@@ -41,6 +41,9 @@ public sealed class BuildController : Component
 	private bool _attack1WasDown;
 	private bool _hasLastPathCell;
 	private Vector3 _lastPathCell;
+	private bool _pendingAnimalPlace;
+	private int _pendingAnimalCountBefore;
+	private TimeUntil _pendingAnimalTimeout;
 
 	protected override void OnAwake()
 	{
@@ -64,7 +67,7 @@ public sealed class BuildController : Component
 
 		UiWorldProjection.BindScreenPanelCamera( Scene, camera );
 
-		Log.Info( "[Fauna2 Build] BuildController ready — WorldInput wired to attack1/attack2." );
+		Fauna2Debug.Info( "Build", "BuildController ready — WorldInput wired to attack1/attack2." );
 	}
 	protected override void OnDestroy()
 	{
@@ -83,16 +86,44 @@ public sealed class BuildController : Component
 		_yaw = 0;
 		_hasLastPathCell = false;
 		BuildGhostFor( def );
-		Log.Info( $"[Fauna2 Build] BeginPlace '{def?.DisplayName}' id={def?.ResourceName} habitat={def?.IsHabitat} footprint={GameConstants.FormatTiles( def?.EffectiveFootprint ?? Vector2.Zero )} tiles snap={MathF.Max( GameConstants.TileSize, def?.GridSnap ?? GameConstants.TileSize ) / GameConstants.TileSize:0.##} tiles." );
+		Fauna2Debug.Info( "Build", $"BeginPlace '{def?.DisplayName}' id={def?.ResourceName} habitat={def?.IsHabitat} footprint={GameConstants.FormatTiles( def?.EffectiveFootprint ?? Vector2.Zero )} tiles snap={MathF.Max( GameConstants.TileSize, def?.GridSnap ?? GameConstants.TileSize ) / GameConstants.TileSize:0.##} tiles." );
 	}
 
 	public void BeginPlaceAnimal( AnimalDefinition def )
 	{
+		if ( PlayerState.Local?.IsZooOwner != true ) return;
 		CancelMode();
 		Mode = BuildMode.PlaceAnimal;
 		PlacingAnimal = def;
 		PlacingCarrySlot = -1;
 		BuildAnimalGhost( def );
+	}
+
+	/// <summary>
+	/// Free starter adopt: release into the first valid habitat without requiring a click.
+	/// Returns false when no habitat accepts the animal (caller should start ghost placement).
+	/// </summary>
+	public bool TryAutoReleaseIntoHabitat( AnimalDefinition def )
+	{
+		if ( PlayerState.Local?.IsZooOwner != true || def is null )
+			return false;
+
+		HabitatComponent habitat = null;
+		foreach ( var candidate in HabitatRegistry.All )
+		{
+			if ( candidate.TryAccept( def, null, out _ ) )
+			{
+				habitat = candidate;
+				break;
+			}
+		}
+
+		if ( habitat is null )
+			return false;
+
+		var countBefore = AnimalRegistry.Count;
+		AnimalSystem.Instance?.RequestBuyAnimal( Defs.IdOf( def ), habitat.GameObject.WorldPosition );
+		return AnimalRegistry.Count > countBefore;
 	}
 
 	public bool BeginPlaceCarried( int carrySlot )
@@ -113,7 +144,7 @@ public sealed class BuildController : Component
 		PlacingAnimal = def;
 		PlacingCarrySlot = carrySlot;
 		BuildAnimalGhost( def );
-		Log.Info( $"[Fauna2 Build] BeginPlaceCarried slot={carrySlot} species={speciesId} ({def.DisplayName})." );
+		Fauna2Debug.Info( "Build", $"BeginPlaceCarried slot={carrySlot} species={speciesId} ({def.DisplayName})." );
 		return true;
 	}
 
@@ -150,6 +181,7 @@ public sealed class BuildController : Component
 		PlacingCarrySlot = -1;
 		MovingAnimal = null;
 		HintText = "";
+		ClearPendingAnimalPlace();
 		ClearGhost();
 	}
 
@@ -180,6 +212,9 @@ public sealed class BuildController : Component
 			return;
 		}
 
+		if ( TryResolvePendingAnimalPlace() )
+			return;
+
 		UpdateCursor();
 
 		switch ( Mode )
@@ -191,6 +226,47 @@ public sealed class BuildController : Component
 			case BuildMode.Demolish: TickDemolish(); break;
 			case BuildMode.ExpandLand: TickExpandLand(); break;
 		}
+	}
+
+	private void ClearPendingAnimalPlace()
+	{
+		_pendingAnimalPlace = false;
+		_pendingAnimalCountBefore = 0;
+	}
+
+	/// <summary>Keep the ghost until the host confirms spawn (or timeout).</summary>
+	private bool TryResolvePendingAnimalPlace()
+	{
+		if ( !_pendingAnimalPlace )
+			return false;
+
+		if ( AnimalRegistry.Count > _pendingAnimalCountBefore )
+		{
+			ClearPendingAnimalPlace();
+			FinishPlacement();
+			return true;
+		}
+
+		if ( _pendingAnimalTimeout )
+		{
+			ClearPendingAnimalPlace();
+			HintText = "Placement failed — try another spot inside the habitat";
+			UiState.PushToast( HintText, "block" );
+		}
+		else
+		{
+			HintText = "Placing…";
+		}
+
+		return true;
+	}
+
+	private void BeginPendingAnimalPlace()
+	{
+		_pendingAnimalPlace = true;
+		_pendingAnimalCountBefore = AnimalRegistry.Count;
+		_pendingAnimalTimeout = 2.5f;
+		HintText = "Placing…";
 	}
 
 	private void UpdateCursor()
@@ -310,7 +386,7 @@ public sealed class BuildController : Component
 				return;
 			}
 
-			Log.Info( $"[Fauna2 Build] Placing '{PlacingDef.DisplayName}' at {pos} yaw={_yaw}" );
+			Fauna2Debug.Info( "Build", $"Placing '{PlacingDef.DisplayName}' at {pos} yaw={_yaw}" );
 
 			if ( Networking.IsHost )
 				build.Place( PlacingDef, pos, _yaw );
@@ -335,7 +411,7 @@ public sealed class BuildController : Component
 				: !affordable ? $"Need ${PlacingDef.Cost:n0}"
 				: !spatialOk ? error
 				: "Can't place here";
-			Log.Info( $"[Fauna2 Build] Click rejected: {reason} (pos={pos} plots={PlotSystem.Instance?.PlotCount ?? -1} owned={PlotSystem.Instance?.IsWorldPointOnOwnedPlot( pos )})" );
+			Fauna2Debug.Info( "Build", $"Click rejected: {reason} (pos={pos} plots={PlotSystem.Instance?.PlotCount ?? -1} owned={PlotSystem.Instance?.IsWorldPointOnOwnedPlot( pos )})" );
 			UiState.PushToast( reason, "block" );
 			ZooSoundEffects.PlayPlacementError();
 		}
@@ -393,14 +469,17 @@ public sealed class BuildController : Component
 		HintText = habitat is null ? $"Needs a {AnimalHabitatRules.RequirementText( PlacingAnimal )} — click inside one"
 			: !canPlace ? placeError ?? "Can't place here"
 			: !affordable ? $"Need ${cost:n0}"
-			: $"Release {PlacingAnimal.DisplayName} here — ${cost:n0}   [Esc/RMB] cancel";
+			: cost == 0
+				? $"Release {PlacingAnimal.DisplayName} here — FREE   [Esc/RMB] cancel"
+				: $"Release {PlacingAnimal.DisplayName} here — ${cost:n0}   [Esc/RMB] cancel";
 
 		UpdateGhostTransform( _cursorWorld, _yaw, GhostValid );
 
 		if ( ClickedWorld() && GhostValid )
 		{
+			BeginPendingAnimalPlace();
 			AnimalSystem.Instance?.RequestBuyAnimal( Defs.IdOf( PlacingAnimal ), _cursorWorld );
-			FinishPlacement();
+			TryResolvePendingAnimalPlace();
 		}
 	}
 
@@ -425,8 +504,9 @@ public sealed class BuildController : Component
 
 		if ( ClickedWorld() && GhostValid )
 		{
+			BeginPendingAnimalPlace();
 			CatchSystem.Instance?.RequestPlaceCarriedAtSlot( _cursorWorld, PlacingCarrySlot );
-			FinishPlacement();
+			TryResolvePendingAnimalPlace();
 		}
 	}
 
@@ -550,14 +630,6 @@ public sealed class BuildController : Component
 		_ghost.Enabled = _cursorOnGround;
 		_ghost.WorldPosition = position.WithZ( 0 );
 		_ghost.WorldRotation = Rotation.FromYaw( yaw );
-		if ( PlacingDef?.IsPathTile == true )
-		{
-			foreach ( var child in _ghost.Children )
-			{
-				if ( child.Name != "Visuals" ) continue;
-				PathGroundOverlay.SyncParentElevation( child, _ghost.WorldPosition.z );
-			}
-		}
 		TintGhost( valid );
 	}
 

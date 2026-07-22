@@ -40,16 +40,21 @@
 		<div class="ui-tooltip">@UIManager.Tooltip.Text</div>
 	}
 
-	@if ( ShowOnboarding )
+	@if ( ShowOnboardingModal && CurrentOnboardingTip is { } onboardingTip )
 	{
 		<div class="onboarding-backdrop"></div>
-		<div class="onboarding-panel">
-			<div class="onboarding-title">HOW TO PLAY</div>
-			<div class="onboarding-step"><span class="step-num">1</span> Ready up in the lobby — solo players can tap <strong>Play vs Practice Bot</strong>.</div>
-			<div class="onboarding-step"><span class="step-num">2</span> Watch the big board, then press <strong>E</strong> or the red buzzer to buzz in.</div>
-			<div class="onboarding-step"><span class="step-num">3</span> Type your answer and submit. First to the win threshold takes the match!</div>
-			<div class="onboarding-goal">Goal: first to @VotedThreshold points wins.</div>
-			<div class="onboarding-btn btn" onclick=@DismissOnboarding>Got it — let's play!</div>
+		<div class="onboarding-panel tutorial-tip">
+			<i class="icon onboarding-icon">@onboardingTip.Icon</i>
+			<div class="onboarding-title">@onboardingTip.Title</div>
+			<div class="onboarding-body">@onboardingTip.Body</div>
+			@if ( _onboardingGoalIndex == MaxOnboardingGoalIndex )
+			{
+				<div class="onboarding-goal">Goal: first to @VotedThreshold points wins.</div>
+			}
+			<div class="onboarding-actions">
+				<div class="onboarding-btn btn ghost" onclick=@HideOnboardingTips><i class="icon">visibility_off</i><span>Hide tips</span></div>
+				<div class="onboarding-btn btn primary" onclick=@DismissOnboardingTip>Got it</div>
+			</div>
 		</div>
 	}
 
@@ -519,7 +524,28 @@
 	private bool LobbyModeUsesBuzzers => GameModeRegistry.Create( SelectedMode.Id ).GetRoundSettings( 1, RandomEventType.None ).UsesBuzzers;
 	private string FeaturedCategory => GameConstants.GetFeaturedCategory();
 	private bool DailyBonusAvailable => LocalProfile is not null && LocalProfile.DailyBonusClaimedDate != DateTime.UtcNow.ToString( "yyyy-MM-dd" );
-	private bool ShowOnboarding => Phase == MatchPhase.Lobby && LocalProfile is not null && !LocalProfile.HasSeenOnboarding && !_onboardingDismissed;
+	private const int MaxOnboardingGoalIndex = 2;
+	private bool ShowOnboarding => ShouldRunOnboarding && _onboardingGoalIndex <= MaxOnboardingGoalIndex;
+	private bool ShowOnboardingModal => ShowOnboarding && CurrentOnboardingTip is not null;
+	private bool ShouldRunOnboarding => LocalProfile is not null && !LocalProfile.HasSeenOnboarding && !_onboardingDismissed;
+	private OnboardingTipDef CurrentOnboardingTip
+	{
+		get
+		{
+			if ( !ShouldRunOnboarding || _onboardingGoalIndex > MaxOnboardingGoalIndex )
+				return null;
+			if ( _onboardingGoalIndex == _onboardingTipDismissedGoal )
+				return null;
+			if ( _onboardingTipCooldown )
+				return null;
+			if ( !CanShowOnboardingGoal( _onboardingGoalIndex ) )
+				return null;
+
+			return _onboardingGoalIndex >= 0 && _onboardingGoalIndex < OnboardingTips.Length
+				? OnboardingTips[_onboardingGoalIndex]
+				: null;
+		}
+	}
 	private MatchPlayerResult LocalPostMatchResult => LastResult?.Players?.FirstOrDefault( p => p.SteamId == LocalPlayer?.SteamKey );
 	private string PostMatchText => PhaseTimer > 0 ? $"{MathF.Ceiling( PhaseTimer ):0}s" : "";
 	private bool CanSkipPostMatch => Phase == MatchPhase.PostMatch && PhaseTimer <= GameConstants.PostMatchSeconds - GameConstants.PostMatchSkipDelaySeconds;
@@ -591,6 +617,23 @@
 	private bool _attemptedBuzzThisRound;
 	private bool _onboardingDismissed;
 	private bool _onboardingSynced;
+	private int _onboardingGoalIndex;
+	private int _onboardingTipDismissedGoal = -1;
+	private TimeUntil _onboardingTipCooldown;
+	private bool _wasOnboardingTipCooldown;
+	private bool _onboardingInFirstMatch;
+	private bool _onboardingReachedBuzzPhase;
+	private bool _onboardingHasBuzzed;
+	private bool _onboardingHasSubmittedAnswer;
+
+	private static readonly OnboardingTipDef[] OnboardingTips =
+	[
+		new( "Ready up", "Ready up in the lobby — solo players can tap Play vs Practice Bot.", "groups" ),
+		new( "Buzz in", "Watch the big board, then press E or the red buzzer to buzz in.", "campaign" ),
+		new( "Answer & win", "Type your answer and submit. First to the win threshold takes the match!", "emoji_events" ),
+	];
+
+	private sealed record OnboardingTipDef( string Title, string Body, string Icon );
 	private readonly Dictionary<string, int> _scorePopByName = new();
 	private readonly Dictionary<string, int> _lastMatchScores = new();
 
@@ -739,6 +782,7 @@
 		UiFeedback.Click();
 		LocalPlayer?.SubmitCreativeQuip( UiState.AnswerDraft );
 		UiState.ClearAnswerDraft();
+		TrackOnboardingAnswerSubmitted();
 	}
 
 	private void SubmitCreativeVoteClick( string letter )
@@ -747,6 +791,7 @@
 		if ( string.Equals( letter, LocalCreativeLetter, StringComparison.OrdinalIgnoreCase ) ) return;
 		UiFeedback.Click();
 		LocalPlayer?.SubmitCreativeVote( letter );
+		TrackOnboardingAnswerSubmitted();
 	}
 
 	private void AdjustVolume( string channel, float delta )
@@ -785,13 +830,87 @@
 		UiState.Bump();
 	}
 
-	private void DismissOnboarding()
+	private void DismissOnboardingTip()
 	{
 		UiFeedback.Click();
+
+		if ( _onboardingGoalIndex >= MaxOnboardingGoalIndex )
+		{
+			CompleteOnboarding();
+			return;
+		}
+
+		_onboardingTipDismissedGoal = _onboardingGoalIndex;
+		UiState.Bump();
+	}
+
+	private void HideOnboardingTips()
+	{
+		UiFeedback.Click();
+		CompleteOnboarding();
+	}
+
+	private void CompleteOnboarding()
+	{
 		_onboardingDismissed = true;
 		UIManager.SetOnboardingActive( false );
 		LocalPlayer?.CompleteOnboarding();
 		UiState.Bump();
+	}
+
+	private bool CanShowOnboardingGoal( int goalIndex ) => goalIndex switch
+	{
+		0 => Phase == MatchPhase.Lobby,
+		1 => Phase is not MatchPhase.Lobby and not MatchPhase.PostMatch
+			&& (_onboardingInFirstMatch || _onboardingReachedBuzzPhase),
+		2 => _onboardingHasBuzzed || _onboardingHasSubmittedAnswer,
+		_ => false
+	};
+
+	private void SyncOnboardingGoals()
+	{
+		if ( !ShouldRunOnboarding )
+			return;
+
+		if ( _onboardingGoalIndex == 0 && (LocalReady || BotActive) )
+			AdvanceOnboardingAfterGoal( 0 );
+		else if ( _onboardingGoalIndex == 1 && (_onboardingHasBuzzed || _onboardingHasSubmittedAnswer) )
+			AdvanceOnboardingAfterGoal( 1 );
+	}
+
+	private void AdvanceOnboardingAfterGoal( int completedGoalIndex )
+	{
+		if ( _onboardingGoalIndex != completedGoalIndex )
+			return;
+
+		if ( completedGoalIndex >= MaxOnboardingGoalIndex )
+		{
+			CompleteOnboarding();
+			return;
+		}
+
+		_onboardingGoalIndex = completedGoalIndex + 1;
+		_onboardingTipDismissedGoal = -1;
+		_onboardingTipCooldown = 0.55f;
+		UiState.Bump();
+	}
+
+	private void TrackOnboardingAnswerSubmitted()
+	{
+		if ( !ShouldRunOnboarding )
+			return;
+
+		_onboardingHasSubmittedAnswer = true;
+		SyncOnboardingGoals();
+	}
+
+	private void TrackOnboardingBuzz()
+	{
+		if ( !ShouldRunOnboarding )
+			return;
+
+		_onboardingHasBuzzed = true;
+		SyncOnboardingGoals();
 	}
 
 	private void SkipPostMatch()
@@ -814,6 +933,7 @@
 			LocalPlayer?.SubmitStealAnswer( letter );
 		else
 			LocalPlayer?.SubmitAnswer( letter );
+		TrackOnboardingAnswerSubmitted();
 	}
 
 	private void Rematch()
@@ -877,6 +997,7 @@
 	{
 		if ( LocalPlayer?.SteamKey == steamId )
 		{
+			TrackOnboardingBuzz();
 			UiState.ClearAnswerDraft();
 			UiState.CloseOverlay();
 			QueueAnswerFocus();
@@ -946,6 +1067,7 @@
 		UiFeedback.Click();
 		LocalPlayer?.SubmitAnswer( UiState.AnswerDraft );
 		UiState.ClearAnswerDraft();
+		TrackOnboardingAnswerSubmitted();
 	}
 
 	private void SubmitSteal()
@@ -954,6 +1076,7 @@
 		UiFeedback.Click();
 		LocalPlayer?.SubmitStealAnswer( UiState.AnswerDraft );
 		UiState.ClearAnswerDraft();
+		TrackOnboardingAnswerSubmitted();
 	}
 
 	private void SubmitPrediction()
@@ -975,6 +1098,8 @@
 	protected override void OnUpdate()
 	{
 		SyncOnboardingState();
+		SyncOnboardingGoals();
+		SyncOnboardingTipCooldown();
 		UIManager.HandleInput();
 
 		if ( ShowPhaseSkipHint && Input.Pressed( "Score" ) && UiState.Overlay == UiScreen.Lobby && !UIManager.BlocksGameplayInput )
@@ -995,10 +1120,18 @@
 
 	private void SyncOnboardingState()
 	{
-		var active = ShowOnboarding;
+		var active = ShowOnboardingModal;
 		if ( active == _onboardingSynced ) return;
 		_onboardingSynced = active;
 		UIManager.SetOnboardingActive( active );
+	}
+
+	private void SyncOnboardingTipCooldown()
+	{
+		var cooling = ShowOnboarding && _onboardingTipCooldown;
+		if ( _wasOnboardingTipCooldown && !cooling )
+			UiState.Bump();
+		_wasOnboardingTipCooldown = cooling;
 	}
 
 	private void TrackScoreChanges()
@@ -1048,6 +1181,12 @@
 	private void HandlePhaseEntered( MatchPhase phase )
 	{
 		UIManager.OnMatchPhaseChanged( phase );
+
+		if ( ShouldRunOnboarding && phase is not MatchPhase.Lobby and not MatchPhase.PostMatch )
+			_onboardingInFirstMatch = true;
+
+		if ( ShouldRunOnboarding && phase is MatchPhase.QuestionReveal or MatchPhase.BuzzIn )
+			_onboardingReachedBuzzPhase = true;
 
 		if ( phase is MatchPhase.BuzzIn or MatchPhase.ScoreboardReveal or MatchPhase.MatchEnd )
 			PulseVignette();
@@ -1148,16 +1287,23 @@
 			UiState.LevelUpMessage,
 			UiState.MatchStreak,
 			ShowOnboarding,
-			CanSkipPostMatch,
+			ShowOnboardingModal,
+			_onboardingGoalIndex,
+			_onboardingTipDismissedGoal,
+			CanSkipPostMatch
+		);
+
+		var stateHashE = HashCode.Combine(
 			UsesMultipleChoice,
-			PhaseSkipCount
+			PhaseSkipCount,
+			CurrentOnboardingTip?.Title
 		);
 
 		return HashCode.Combine(
 			HashCode.Combine(stateHashA, stateHashB),
 			ActiveModeUsesBuzzers,
 			BotActive,
-			HashCode.Combine(stateHashC, HashCode.Combine(stateHashD, UIManager.Tooltip.Visible, UIManager.InputContext))
+			HashCode.Combine(stateHashC, HashCode.Combine(stateHashD, stateHashE, UIManager.Tooltip.Visible, UIManager.InputContext))
 		);
 	}
 }

@@ -26,6 +26,9 @@ public sealed class HabitatComponent : Component
 	private Vector2 _visualSize = new( -1f, -1f );
 	private string _visualDefinitionId = "";
 	private Biome _visualBiome = Biome.Grassland;
+	private int _visualBuildVersion;
+	/// <summary>Bump when habitat floor/fence visuals change so live habitats rebuild.</summary>
+	private const int VisualBuildVersion = 6;
 	private TimeUntil _nextRescore;
 
 	protected override void OnStart()
@@ -39,8 +42,8 @@ public sealed class HabitatComponent : Component
 
 	protected override void OnFixedUpdate()
 	{
-		// Clients only: rebuild once synced footprint arrives (defaults to 512×512).
-		if ( IsProxy && NeedsVisualRebuild() )
+		// Rebuild when synced size arrives, or after visual pipeline hotfixes.
+		if ( NeedsVisualRebuild() )
 			BuildVisuals();
 
 		if ( IsProxy || !_nextRescore ) return;
@@ -56,7 +59,8 @@ public sealed class HabitatComponent : Component
 		_visualRoot is null || !_visualRoot.IsValid()
 		|| Size.x != _visualSize.x || Size.y != _visualSize.y
 		|| ( DefinitionId ?? "" ) != _visualDefinitionId
-		|| Biome != _visualBiome;
+		|| Biome != _visualBiome
+		|| _visualBuildVersion != VisualBuildVersion;
 
 	protected override void OnDestroy()
 	{
@@ -69,8 +73,11 @@ public sealed class HabitatComponent : Component
 	public bool ContainsPoint( Vector3 point )
 	{
 		var pos = GameObject.WorldPosition;
-		return MathF.Abs( point.x - pos.x ) <= Size.x * 0.5f
-			&& MathF.Abs( point.y - pos.y ) <= Size.y * 0.5f;
+		// Pad by one tile: habitat floor visuals nudge along +X (FloorTileAlignFix),
+		// so clicks on the visible pad near the screen-up edge still count as inside.
+		var pad = GameConstants.TileSize;
+		return MathF.Abs( point.x - pos.x ) <= Size.x * 0.5f + pad
+			&& MathF.Abs( point.y - pos.y ) <= Size.y * 0.5f + pad;
 	}
 
 	public Vector3 ClampInside( Vector3 point )
@@ -157,6 +164,7 @@ public sealed class HabitatComponent : Component
 		_visualSize = Size;
 		_visualDefinitionId = DefinitionId ?? "";
 		_visualBiome = Biome;
+		_visualBuildVersion = VisualBuildVersion;
 
 		_visualRoot?.Destroy();
 		_visualRoot = null;
@@ -171,8 +179,10 @@ public sealed class HabitatComponent : Component
 
 		if ( Fauna2Debug.Enabled || _fenceTiles.Count == 0 )
 		{
-			Log.Info( $"[Fauna2 Habitat] visuals id={HabitatId} size={footprint.x:0}x{footprint.y:0} " +
-			          $"world=({GameObject.WorldPosition.x:0.##},{GameObject.WorldPosition.y:0.##}) fence={_fenceTiles.Count} biome={Biome}" );
+			Fauna2Debug.Info( "Habitat", $"visuals id={HabitatId} size={footprint.x:0}x{footprint.y:0} " +
+				$"world=({GameObject.WorldPosition.x:0.##},{GameObject.WorldPosition.y:0.##}) fence={_fenceTiles.Count} biome={Biome}" );
+			if ( _fenceTiles.Count == 0 )
+				Log.Warning( $"[Fauna2 Habitat] visuals id={HabitatId} produced zero fence tiles." );
 		}
 	}
 }

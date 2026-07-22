@@ -46,9 +46,4 @@ public static class PathGroundOverlay
 
 		return go;
 	}
-
-	public static void SyncParentElevation( GameObject parent, float parentWorldZ )
-	{
-		// PathFloorDepthSorter tracks the build ghost / placeable root each frame.
-	}
 }

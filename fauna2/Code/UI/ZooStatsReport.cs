@@ -277,7 +277,7 @@ public static class ZooStatsReport
 			{
 				Icon = "menu_book", Title = "More species to discover",
 				Detail = species == 0
-					? "Adopt your first animal from the market (N)."
+					? "Catch a wild animal and house it in your habitat."
 					: $"Guests enjoy variety — you have {species} species; aim for 4+.",
 				Priority = 40, IsPositive = true,
 			} );

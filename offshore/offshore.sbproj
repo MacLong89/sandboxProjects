@@ -1,28 +1,33 @@
 {
-  "Title": "Offshore",
+  "Title": "OFFSHORE",
   "Type": "game",
   "Org": "local",
   "Ident": "offshore",
   "Schema": 1,
   "IncludeSourceFiles": false,
-  "Resources": null,
+  "Resources": "/textures/*\n/textures/**/*\n/sounds/*\n/ui/*",
   "PackageReferences": [],
   "EditorReferences": null,
-  "Mounts": null,
+  "Mounts": [],
   "IsStandaloneOnly": false,
   "Metadata": {
-    "MaxPlayers": 64,
+    "MaxPlayers": 1,
     "MinPlayers": 1,
     "TickRate": 50,
-    "GameNetworkType": "Multiplayer",
+    "GameNetworkType": "Singleplayer",
     "MapSelect": "Unrestricted",
-    "MapList": [
-      "facepunch.flatgrass"
-    ],
+    "MapList": [],
     "RankType": "None",
     "PerMapRanking": false,
     "LeaderboardType": "None",
-    "CsProjName": "",
-    "StartupScene": "scenes/offshore.scene"
+    "CsProjName": "offshore",
+    "StartupScene": "scenes/offshore.scene",
+    "MapStartupScene": "scenes/offshore.scene",
+    "LaunchMode": "Normal",
+    "ControlModes": {
+      "Keyboard": true,
+      "Gamepad": true,
+      "VR": false
+    }
   }
 }

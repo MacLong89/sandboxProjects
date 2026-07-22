@@ -35,6 +35,11 @@ public sealed class PlungeSaveData
 	public int TotalCredits { get; set; }
 	public int TutorialStep { get; set; }
 	public bool HasSeenSubUnlock { get; set; }
+	public bool HideTutorialTips { get; set; }
+	public List<string> TutorialTipsShown { get; set; } = new();
+
+	/// <summary>Tutorial gate — player bought gear, a sub, or an upgrade.</summary>
+	public bool HasShopPurchase { get; set; }
 
 	public static PlungeSaveData NewGame()
 	{

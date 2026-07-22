@@ -49,6 +49,7 @@ public sealed class ThornsWorldBuildingSyncRpc : Component
 			return;
 
 		_instance?.ClientRequestIfNeeded();
+		Terraingen.World.ThornsDeathCrateWorldService.RequestSyncFromHostIfNeeded();
 	}
 
 	void HostPublishFrom( ThornsWorldBuildingGenerator generator )

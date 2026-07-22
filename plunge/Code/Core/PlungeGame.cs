@@ -34,6 +34,9 @@ public sealed class PlungeGame : Component
 	public string LatestNotice { get; private set; } = "";
 	public string NoticeClass { get; private set; } = "info";
 	public float NoticeAge { get; private set; } = 99;
+	public TutorialTipDef ActiveTutorialTip { get; private set; }
+	public string TipToast { get; private set; } = "";
+	public bool TutorialTipsHidden => Save?.HideTutorialTips ?? false;
 	public IReadOnlyList<HaulItem> Haul => CurrentHaul;
 	public int CargoCapacity { get; private set; }
 	public bool UsingSub { get; private set; }
@@ -56,13 +59,16 @@ public sealed class PlungeGame : Component
 	private float SpawnClock;
 	private float LastWarn;
 	private bool Settled;
+	private TimeUntil _tipToastHide;
 
 	protected override void OnStart()
 	{
 		Instance = this;
 		Save = PlungeSave.Load();
+		Save.TutorialTipsShown ??= new List<string>();
 		Camera = Components.Get<CameraComponent>();
 		SelectedGearId = Catalog.GearFor( SelectedGearSlot ).Skip( 1 ).First().Id;
+		RefreshTutorialTips();
 	}
 
 	protected override void OnDestroy()
@@ -74,10 +80,69 @@ public sealed class PlungeGame : Component
 	protected override void OnUpdate()
 	{
 		NoticeAge += Time.Delta;
+
+		if ( _tipToastHide )
+			TipToast = "";
+
+		if ( Input.Keyboard.Pressed( "h" ) || Input.Keyboard.Pressed( "H" ) )
+			ToggleTutorialTipsHidden();
+
+		RefreshTutorialTips();
+
 		if ( Screen != GameScreen.Dive )
 			return;
 
 		UpdateDive();
+	}
+
+	public void RefreshTutorialTips()
+	{
+		if ( Save.HideTutorialTips || Screen != GameScreen.Hub )
+		{
+			ActiveTutorialTip = null;
+			return;
+		}
+
+		if ( ActiveTutorialTip is not null )
+			return;
+
+		ActiveTutorialTip = TutorialTips.PickNext( Save );
+	}
+
+	public void DismissTutorialTip( bool hideAll = false )
+	{
+		if ( ActiveTutorialTip is not null )
+		{
+			TutorialTips.MarkShown( Save, ActiveTutorialTip.Id );
+			ActiveTutorialTip = null;
+		}
+
+		if ( hideAll )
+		{
+			Save.HideTutorialTips = true;
+			TipToast = "Tips hidden — press H to show again";
+			_tipToastHide = 3f;
+		}
+
+		PlungeSave.Write( Save );
+	}
+
+	public void ToggleTutorialTipsHidden()
+	{
+		Save.HideTutorialTips = !Save.HideTutorialTips;
+		if ( Save.HideTutorialTips )
+		{
+			ActiveTutorialTip = null;
+			TipToast = "Tips hidden — press H to show again";
+		}
+		else
+		{
+			TipToast = "Tips enabled";
+		}
+
+		_tipToastHide = 3f;
+		PlungeSave.Write( Save );
+		RefreshTutorialTips();
 	}
 
 	public DiverStats GetDiverStats()
@@ -153,6 +218,7 @@ public sealed class PlungeGame : Component
 			SettleDive( false );
 		ClearWorld();
 		Screen = GameScreen.Hub;
+		RefreshTutorialTips();
 	}
 
 	public void ContinueFromResults()
@@ -160,6 +226,7 @@ public sealed class PlungeGame : Component
 		ClearWorld();
 		Screen = GameScreen.Hub;
 		Tab = HubTab.Diver;
+		RefreshTutorialTips();
 	}
 
 	public void BuyOrEquipGear( string id )
@@ -177,12 +244,14 @@ public sealed class PlungeGame : Component
 			}
 			Save.Gold -= gear.Cost;
 			Save.OwnedGear.Add( id );
+			Save.HasShopPurchase = true;
 		}
 
 		Save.Equipped[gear.Slot] = id;
 		SelectedGearSlot = gear.Slot;
 		SelectedGearId = id;
 		PlungeSave.Write( Save );
+		RefreshTutorialTips();
 	}
 
 	public void SelectGear( string slot, string id )
@@ -205,10 +274,12 @@ public sealed class PlungeGame : Component
 			}
 			Save.Gold -= sub.Cost;
 			Save.OwnedSubs.Add( id );
+			Save.HasShopPurchase = true;
 		}
 		Save.EquippedSub = id;
 		SelectedSubId = id;
 		PlungeSave.Write( Save );
+		RefreshTutorialTips();
 	}
 
 	public void UpgradeSub()
@@ -218,7 +289,9 @@ public sealed class PlungeGame : Component
 			return;
 		Save.Gold -= cost;
 		Save.SubLevel++;
+		Save.HasShopPurchase = true;
 		PlungeSave.Write( Save );
+		RefreshTutorialTips();
 	}
 
 	public void UpgradeSubPart( string part )
@@ -231,7 +304,9 @@ public sealed class PlungeGame : Component
 			return;
 		Save.Gold -= cost;
 		Save.SubUpgrades[part] = level + 1;
+		Save.HasShopPurchase = true;
 		PlungeSave.Write( Save );
+		RefreshTutorialTips();
 	}
 
 	public int UpgradeLevel( string part ) =>
@@ -748,6 +823,7 @@ public sealed class PlungeGame : Component
 		while ( Save.MinuteOfDay >= 1440 ) { Save.MinuteOfDay -= 1440; Save.Day++; }
 		PlungeSave.Write( Save );
 		Screen = GameScreen.Results;
+		RefreshTutorialTips();
 	}
 
 	private void AddXp( int amount )

@@ -37,7 +37,8 @@ public sealed class DefenderManager : Component
 
 	public double RecruitCost( RecruitWeaponType type )
 	{
-		var cost = RecruitWeapons.Get( type ).RecruitCost;
+		var def = RecruitWeapons.Get( type );
+		var cost = CombatEconomy.EscalatedCost( def.BaseCost, CountOf( type ), def.CostBump );
 		var core = GameCore.Instance;
 		if ( core?.IsCure == true )
 			cost *= TeamBonuses.RecruitCostMult( core );
@@ -125,7 +126,7 @@ public sealed class DefenderManager : Component
 		core.Save.Recruits.RemoveAt( idx );
 		if ( idx < core.Save.RecruitHealth.Count )
 			core.Save.RecruitHealth.RemoveAt( idx );
-		core.Wallet.Earn( RecruitCost( unit.Type ) * GameConstants.SellRefundFraction, applyIncomeScale: false );
+		core.Wallet.Earn( RecruitWeapons.Get( unit.Type ).BaseCost * GameConstants.SellRefundFraction, applyIncomeScale: false );
 
 		if ( BuildManager.Instance?.Selected is DefenderSelectable sel && sel.Wraps( unit ) )
 			BuildManager.Instance.Deselect();
@@ -145,7 +146,10 @@ public sealed class DefenderManager : Component
 
 		if ( unit.Health > 0f ) return false;
 
+		var wasPossessed = unit.IsPossessed;
 		KillUnit( unit );
+		if ( wasPossessed )
+			RecruitTakeoverController.Instance?.NotifyPossessedDied();
 		return true;
 	}
 
@@ -243,7 +247,7 @@ public sealed class DefenderManager : Component
 	protected override void OnUpdate()
 	{
 		var core = GameCore.Instance;
-		if ( core is null || core.Phase != GamePhase.Day ) return;
+		if ( core is null || core.IsUiBlocking || core.Phase != GamePhase.Day ) return;
 
 		var dt = Time.Delta;
 		foreach ( var u in _units )
@@ -262,7 +266,8 @@ public sealed class DefenderManager : Component
 			var trainMult = 1f + upgrades.DefenderTrainBonus;
 			var perShot = def.Damage + trainLevel * def.DamagePerTrain * trainMult
 				+ upgrades.TurretDamageBonus * 0.25f / MathF.Max( 1, def.Pellets );
-			var range = def.Range + upgrades.TurretRangeBonus * 0.5f;
+			var range = (def.Range + upgrades.TurretRangeBonus * 0.5f)
+				* DefenseEffects.RangeMultAt( u.WorldPos );
 
 			u.TickNight( dt, combat, def, perShot, range );
 		}
@@ -283,7 +288,7 @@ public sealed class DefenderManager : Component
 	public void OrderAllAreaAttack( Vector3 ground )
 	{
 		var target = ground.WithZ( 0f );
-		var guard = GameConstants.ArenaHalf - 70f;
+		var guard = GameConstants.ArenaHalf - GameConstants.U( 70f );
 		if ( target.Length > guard )
 			target = target.Normal * guard;
 
@@ -321,7 +326,7 @@ public sealed class DefenderManager : Component
 	{
 		var build = BuildManager.Instance;
 		var barracks = build?.GetBarracksForRecruit( index );
-		var roamCenter = Vector3.Zero;
+		var roamCenter = OutpostManager.Instance?.CorePosition ?? Vector3.Zero;
 		var roamRadius = GameConstants.PlotSize * 0.32f;
 		var hasPlot = false;
 
@@ -336,7 +341,7 @@ public sealed class DefenderManager : Component
 		{
 			var slot = index % GameConstants.RecruitsPerBarracks;
 			var angle = slot / (float)GameConstants.RecruitsPerBarracks * MathF.PI * 2f;
-			var offset = 48f + slot * 8f;
+			var offset = GameConstants.U( 48f ) + slot * GameConstants.U( 8f );
 			pos = roamCenter + new Vector3( MathF.Cos( angle ) * offset, MathF.Sin( angle ) * offset, 0f );
 			if ( BuildingCollision.BlocksUnit( pos )
 			     && !BuildingCollision.TryFindClearPoint( roamCenter, 24f, roamRadius, out pos )
@@ -384,7 +389,7 @@ public sealed class DefenderManager : Component
 
 	private static Vector3 FallbackSpawnPosition( int index, int total )
 	{
-		var half = GameConstants.ArenaHalf - 100f;
+		var half = GameConstants.ArenaHalf - GameConstants.U( 100f );
 		var angle = (index / (float)Math.Max( 1, total )) * MathF.PI * 2f;
 		return new Vector3( MathF.Cos( angle ) * half * 0.85f, MathF.Sin( angle ) * half * 0.85f, 0f );
 	}
@@ -421,6 +426,8 @@ public sealed class DefenderManager : Component
 		public Vector3 RoamCenter;
 		public float RoamRadius = GameConstants.PlotSize * 0.32f;
 		public bool HasBarracksPlot;
+		/// <summary>True while the local player controls this recruit in first person.</summary>
+		public bool IsPossessed;
 
 		private float _fireTimer;
 		private UnitLocomotion.WanderState _wander;
@@ -430,7 +437,20 @@ public sealed class DefenderManager : Component
 		private Vector3 _orderTarget;
 		private ZombieInstance _attackTarget;
 
-		public Vector3 WorldPos => Go.IsValid() ? Go.WorldPosition : Vector3.Zero;
+		public Vector3 WorldPos
+		{
+			get
+			{
+				if ( IsPossessed )
+				{
+					var pawn = RecruitTakeoverController.Instance?.Pawn;
+					if ( pawn is not null && pawn.IsValid() )
+						return pawn.WorldPosition;
+				}
+
+				return Go.IsValid() ? Go.WorldPosition : Vector3.Zero;
+			}
+		}
 
 		public void SetMoveOrder( Vector3 ground )
 		{
@@ -475,6 +495,7 @@ public sealed class DefenderManager : Component
 			var speed = GameConstants.DefenderMoveSpeed * 0.55f;
 			if ( core?.IsCure == true && TechTreeCatalog.IsUnlocked( core.Save, "tactics" ) )
 				speed *= 1.35f;
+			speed *= DefenseEffects.RecruitMoveMultAt( WorldPos );
 
 			if ( _orderKind == UnitOrderKind.AttackMove && _attackTarget is not null && !_attackTarget.Dead )
 			{
@@ -525,8 +546,13 @@ public sealed class DefenderManager : Component
 		public void TickNight( float dt, CombatSystem combat, RecruitWeaponDef def, float perShotDamage, float range )
 		{
 			if ( !Go.IsValid() || !IsAlive ) return;
+			if ( IsPossessed ) return;
 
 			var speed = GameConstants.DefenderMoveSpeed;
+			var core = GameCore.Instance;
+			if ( core?.IsCure == true && TechTreeCatalog.IsUnlocked( core.Save, "tactics" ) )
+				speed *= 1.35f;
+			speed *= DefenseEffects.RecruitMoveMultAt( WorldPos );
 
 			if ( _orderKind == UnitOrderKind.AttackMove )
 			{
@@ -560,8 +586,8 @@ public sealed class DefenderManager : Component
 			float speed )
 		{
 			var pos = Go.WorldPosition;
-			var losOrigin = pos + Vector3.Up * 52f;
-			var target = combat.NearestEngageableZombie( pos, range, losOrigin );
+			var acquire = GameConstants.DefenderAcquireRange * DefenseEffects.RecruitAcquireMultAt( pos );
+			var target = combat.NearestZombie( pos, range );
 
 			if ( target is not null )
 			{
@@ -569,16 +595,31 @@ public sealed class DefenderManager : Component
 				return;
 			}
 
-			var threat = combat.NearestZombie( pos, GameConstants.DefenderAcquireRange );
+			var hostile = HostileForceSystem.Instance?.Nearest( pos, range );
+			if ( hostile is not null )
+			{
+				EngageHostile( dt, combat, def, perShotDamage, range, hostile, speed );
+				return;
+			}
+
+			var threat = combat.NearestZombie( pos, acquire );
 			if ( threat is not null )
 			{
-				var guard = GameConstants.ArenaHalf - 70f;
+				var guard = GameConstants.ArenaHalf - GameConstants.U( 70f );
 				var destination = threat.Position.WithZ( 0f );
 				if ( destination.Length > guard )
 					destination = destination.Normal * guard;
 
 				UnitLocomotion.MoveHumanoid(
 					Go, destination, dt, speed, ref Aim, Character, ref _moveStuckTimer, ref _steer );
+				return;
+			}
+
+			var hostileThreat = HostileForceSystem.Instance?.Nearest( pos, acquire );
+			if ( hostileThreat is not null )
+			{
+				UnitLocomotion.MoveHumanoid(
+					Go, hostileThreat.WorldPos, dt, speed, ref Aim, Character, ref _moveStuckTimer, ref _steer );
 				return;
 			}
 
@@ -613,6 +654,13 @@ public sealed class DefenderManager : Component
 				return;
 			}
 
+			var nearHostile = HostileForceSystem.Instance?.Nearest( _orderTarget, GameConstants.NightAreaEngageRadius );
+			if ( nearHostile is not null )
+			{
+				EngageHostile( dt, combat, def, perShotDamage, range, nearHostile, speed );
+				return;
+			}
+
 			if ( (_orderTarget - Go.WorldPosition).WithZ( 0f ).Length <= UnitLocomotion.ArrivalDistance )
 			{
 				_orderKind = UnitOrderKind.None;
@@ -637,7 +685,7 @@ public sealed class DefenderManager : Component
 			var dist = (target.Position - pos).WithZ( 0f ).Length;
 			var muzzle = Character?.MuzzleWorld( Aim ) ?? pos + Vector3.Up * 52f;
 
-			if ( dist <= range && BuildingCollision.HasLineOfFire( muzzle, target.Position ) )
+			if ( dist <= range )
 			{
 				var to = (target.Position - muzzle).WithZ( 0f );
 				if ( to.Length > 1f )
@@ -650,14 +698,50 @@ public sealed class DefenderManager : Component
 				if ( _fireTimer <= 0f )
 				{
 					muzzle = Character?.MuzzleWorld( Aim ) ?? pos + Vector3.Up * 52f;
-					if ( BuildingCollision.HasLineOfFire( muzzle, target.Position ) )
-						FireVolley( combat, def, perShotDamage, muzzle );
-					_fireTimer = def.FireInterval;
+					FireVolley( combat, def, perShotDamage, muzzle );
+					_fireTimer = def.FireInterval * DefenseEffects.FireIntervalMultAt( pos );
 				}
 				return;
 			}
 
 			UnitLocomotion.MoveHumanoid( Go, target.Position, dt, moveSpeed, ref Aim, Character, ref _moveStuckTimer, ref _steer );
+		}
+
+		private void EngageHostile(
+			float dt,
+			CombatSystem combat,
+			RecruitWeaponDef def,
+			float perShotDamage,
+			float range,
+			HostileUnit target,
+			float moveSpeed )
+		{
+			if ( target is null || !target.IsAlive ) return;
+
+			var pos = Go.WorldPosition;
+			var dist = (target.WorldPos - pos).WithZ( 0f ).Length;
+			var muzzle = Character?.MuzzleWorld( Aim ) ?? pos + Vector3.Up * 52f;
+
+			if ( dist <= range )
+			{
+				var to = (target.WorldPos - muzzle).WithZ( 0f );
+				if ( to.Length > 1f )
+					Aim = Rotation.Slerp( Aim, Rotation.LookAt( to.Normal ), MathF.Min( 1f, dt * 16f ) );
+
+				Go.WorldRotation = Aim;
+				Character?.Tick( Vector3.Zero, Aim );
+
+				_fireTimer -= dt;
+				if ( _fireTimer <= 0f )
+				{
+					muzzle = Character?.MuzzleWorld( Aim ) ?? pos + Vector3.Up * 52f;
+					FireVolley( combat, def, perShotDamage, muzzle );
+					_fireTimer = def.FireInterval * DefenseEffects.FireIntervalMultAt( pos );
+				}
+				return;
+			}
+
+			UnitLocomotion.MoveHumanoid( Go, target.WorldPos, dt, moveSpeed, ref Aim, Character, ref _moveStuckTimer, ref _steer );
 		}
 
 		private void FireVolley( CombatSystem combat, RecruitWeaponDef def, float perShotDamage, Vector3 muzzle )

@@ -84,6 +84,9 @@ public class SimulationTests
 			Assert.IsTrue(
 				GameBalance.CanAssignStaff( preferredRole, room.Type ),
 				$"{preferredRole} should be compatible with {room.Type}." );
+			// Lobby (structure) exists from day one; preferred staff still unlocks at reputation 1.
+			if ( room.Category == RoomCategory.Structure )
+				continue;
 			Assert.IsTrue(
 				GameBalance.GetStaff( preferredRole ).UnlockReputation <= room.UnlockReputation,
 				$"{room.Type} unlocks before its preferred {preferredRole}." );
@@ -498,5 +501,106 @@ public class SimulationTests
 		Assert.IsNotNull( guest );
 		Assert.AreEqual( GuestPhase.Staying, guest.Phase );
 		Assert.IsTrue( guest.RoomX.HasValue );
+	}
+
+	[TestMethod]
+	public void Restaurant_OpensWhenCookHired_NoAssignmentRequired()
+	{
+		var sim = new HotelSimulation( HotelSimulation.CreateNewGame( 208 ) );
+		sim.State.ReputationLevel = 3;
+		Assert.IsTrue( sim.TryBuild( RoomType.Restaurant, 1, 0 ).Ok );
+		var restaurant = sim.GetCell( 1, 0 );
+		restaurant.UnderConstruction = false;
+
+		Assert.IsFalse( sim.IsAmenityOpen( restaurant ) );
+		Assert.IsTrue( sim.AmenityClosedReason( restaurant )!.Contains( "hire", StringComparison.OrdinalIgnoreCase ) );
+
+		Assert.IsTrue( sim.TryHire( StaffRole.Cook ).Ok );
+		Assert.IsTrue( sim.IsAmenityOpen( restaurant ) );
+	}
+
+	[TestMethod]
+	public void GiftShop_OpensWhenReceptionistHired_NoAssignmentRequired()
+	{
+		var sim = new HotelSimulation( HotelSimulation.CreateNewGame( 209 ) );
+		sim.State.ReputationLevel = 2;
+		Assert.IsTrue( sim.TryBuild( RoomType.GiftShop, 1, 0 ).Ok );
+		var shop = sim.GetCell( 1, 0 );
+		shop.UnderConstruction = false;
+		Assert.IsTrue( sim.TryBuild( RoomType.StandardRoom, -1, 0 ).Ok );
+		var lodging = sim.GetCell( -1, 0 );
+		lodging.UnderConstruction = false;
+
+		Assert.IsFalse( sim.IsAmenityOpen( shop ) );
+
+		for ( var i = 0; i < 100; i++ )
+		{
+			lodging.OccupantGuestIds.Add( i + 1 );
+			sim.State.Guests.Add( new Guest
+			{
+				Id = i + 1,
+				Phase = GuestPhase.Staying,
+				RoomX = -1,
+				RoomY = 0,
+				StayRemaining = 60f,
+				PosX = -1,
+				PosY = 0,
+				LastLodgingType = RoomType.StandardRoom,
+				Satisfaction = 0.7f,
+				PreferredTier = 1
+			} );
+		}
+
+		sim.Advance( GameBalance.TickSeconds );
+		Assert.IsFalse( sim.State.Guests.Any( g => g.Phase == GuestPhase.VisitingAmenity && g.AmenityX == 1 ) );
+
+		var hire = sim.TryHire( StaffRole.Receptionist );
+		Assert.IsTrue( hire.Ok, hire.Message );
+		Assert.IsTrue( sim.IsAmenityOpen( shop ), sim.AmenityClosedReason( shop ) );
+
+		var visited = false;
+		for ( var i = 0; i < 40 && !visited; i++ )
+		{
+			sim.Advance( GameBalance.TickSeconds );
+			visited = sim.State.Guests.Any( g => g.Phase == GuestPhase.VisitingAmenity && g.AmenityX == 1 );
+		}
+		Assert.IsTrue( visited, "Staffed gift shop should accept amenity visits." );
+	}
+
+	[TestMethod]
+	public void StaffingNeeds_ReportsHireWhenDirtyRoomsHaveNoHousekeeper()
+	{
+		var sim = new HotelSimulation( HotelSimulation.CreateNewGame( 210 ) );
+		Assert.IsTrue( sim.TryBuild( RoomType.StandardRoom, 1, 0 ).Ok );
+		var room = sim.GetCell( 1, 0 );
+		room.UnderConstruction = false;
+		room.Cleanliness = 0.4f;
+
+		var needs = sim.GetStaffingNeeds();
+		Assert.IsTrue( needs.Any( n => n.Role == StaffRole.Housekeeper ), "Should need a housekeeper." );
+		Assert.IsTrue( sim.IsUnderstaffed );
+
+		Assert.IsTrue( sim.TryHire( StaffRole.Housekeeper ).Ok );
+		Assert.IsTrue( sim.TryHire( StaffRole.Receptionist ).Ok );
+		Assert.IsFalse( sim.GetStaffingNeeds().Any( n => n.Role == StaffRole.Housekeeper ) );
+	}
+
+	[TestMethod]
+	public void UnassignedHousekeeper_AutoCleansDirtyRooms()
+	{
+		var sim = new HotelSimulation( HotelSimulation.CreateNewGame( 211 ) );
+		Assert.IsTrue( sim.TryBuild( RoomType.StandardRoom, 1, 0 ).Ok );
+		var room = sim.GetCell( 1, 0 );
+		room.UnderConstruction = false;
+		room.Cleanliness = 0.2f;
+		Assert.IsTrue( sim.TryHire( StaffRole.Housekeeper ).Ok );
+
+		var cleaned = false;
+		for ( var i = 0; i < 80 && !cleaned; i++ )
+		{
+			sim.Advance( GameBalance.TickSeconds );
+			cleaned = room.Cleanliness >= 0.9f;
+		}
+		Assert.IsTrue( cleaned, "Housekeeper should auto-clean without room assignment." );
 	}
 }

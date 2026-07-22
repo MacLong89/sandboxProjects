@@ -4,21 +4,31 @@
 @inherits PanelComponent
 @namespace Fauna2.UI
 
-<root class="@(UiState.WelcomeIntroVisible ? "visible" : "")">
-	@if ( UiState.WelcomeIntroVisible && SaveHost.CanStartSession )
+@* Center-screen coach tips — high z-index so HudRoot / catch UI cannot bury clicks. *@
+<root class="@(HasTip ? "visible" : "")">
+	@if ( HasTip )
 	{
-		<div class="welcome-intro">
-			<div class="welcome-card">
-				<div class="welcome-title"><i class="icon">park</i> Welcome to Fauna</div>
-				<div class="welcome-body">
-					<div class="paragraph">You've just moved here to start a zoo! Capture animals in the wild, buy and breed them, and customize your zoo with habitats, shops, and more. It's yours to customize — the only rule is, you can't run out of money!</div>
-					<div class="paragraph">At the top you'll see the day, biome, your cash, level, and more. At the top right, follow the goals to get started.</div>
-					<div class="paragraph">Press <span class="key">Tab</span> to open objectives, stats, and other zoo info.</div>
-					<div class="paragraph">Use the gear icon in the top right to change volume and difficulty.</div>
-					<div class="paragraph">At the bottom you'll see hotkeys, or press the toolbar buttons directly.</div>
-					<div class="paragraph closing">Have fun!</div>
+		var tip = UiState.ActiveOnboardingTip;
+		<div class="tip-overlay">
+			<div class="tutorial-tip">
+				<i class="icon tip-icon">@tip.Icon</i>
+				<div class="tip-title">@tip.Title</div>
+				<div class="tip-body">
+					@foreach ( var block in BodyBlocks )
+					{
+						<div class="tip-para">@block</div>
+					}
 				</div>
-				<div class="welcome-dismiss" onclick=@DismissWelcomeIntro>Let's go!</div>
+				<div class="tip-actions">
+					<div class="btn ghost" onclick=@( () => HideTips() )>
+						<i class="icon">visibility_off</i><span>Hide tips</span>
+					</div>
+					@if ( tip.OpenAction != ObjectiveAction.None )
+					{
+						<div class="btn secondary" onclick=@( () => OpenTool() )>@tip.ActionLabel</div>
+					}
+					<div class="btn primary" onclick=@( () => Dismiss() )>Got it</div>
+				</div>
 			</div>
 		</div>
 	}
@@ -26,9 +36,42 @@
 
 @code
 {
-	private void DismissWelcomeIntro() => UiState.DismissWelcomeIntro();
+	private bool HasTip => UiState.ActiveOnboardingTip is not null;
+
+	private List<string> BodyBlocks
+	{
+		get
+		{
+			var body = UiState.ActiveOnboardingTip?.Body;
+			var blocks = new List<string>();
+			if ( string.IsNullOrWhiteSpace( body ) )
+				return blocks;
+
+			foreach ( var part in body.Replace( "\r\n", "\n" ).Split( "\n\n", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries ) )
+				blocks.Add( part );
+
+			return blocks;
+		}
+	}
+
+	private void Dismiss() => UiState.DismissOnboardingTip();
+	private void OpenTool() => UiState.OpenOnboardingTipTool();
+	private void HideTips() => UiState.HideOnboardingTips();
+
+	protected override void OnUpdate()
+	{
+		if ( Panel is null )
+			return;
+
+		// Explicit hit-testing — CSS pointer-events alone is flaky across sibling ScreenPanel roots.
+		Panel.Style.PointerEvents = HasTip ? PointerEvents.All : PointerEvents.None;
+		Panel.Style.ZIndex = 900;
+	}
 
 	protected override int BuildHash() => System.HashCode.Combine(
-		UiState.WelcomeIntroVisible,
+		UiState.ActiveOnboardingTip?.Id,
+		UiState.ActiveOnboardingTip?.Title,
+		UiState.ActiveOnboardingTip?.Body,
+		UiState.ActiveOnboardingTip?.ActionLabel,
 		UiState.Revision );
 }

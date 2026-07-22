@@ -286,26 +286,20 @@ public sealed class OceanTerrain
 			PixelActor.ConfigureRenderer( sprite );
 			sprite.Size = new Vector2( solid.Half.x * 2.15f, solid.Half.y * 2.15f );
 
-			var path = solid.Tag switch
-			{
-				"overhang" or "shelf" => "sprites/rock.png",
-				"cave" => "sprites/rock.png",
-				"floor" => "sprites/rock.png",
-				_ => "sprites/rock.png"
-			};
+			var path = solid.Tag == "floor" ? "sprites/seabed.png" : "sprites/rock.png";
 			var loaded = PixelActor.LoadSprite( path );
 			if ( loaded is not null )
 				sprite.Sprite = loaded;
 
-			// Tint by type for readable silhouettes
+			// The textures are already art-directed; only mild tints for depth mood.
 			sprite.Color = solid.Tag switch
 			{
-				"floor" => new Color( 0.35f, 0.42f, 0.48f ),
-				"overhang" => new Color( 0.45f, 0.38f, 0.32f ),
-				"cave" => new Color( 0.22f, 0.28f, 0.36f ),
-				"shelf" => new Color( 0.40f, 0.48f, 0.42f ),
-				"seamount" => new Color( 0.30f, 0.36f, 0.40f ),
-				_ => new Color( 0.28f, 0.34f, 0.40f )
+				"floor" => Color.White,
+				"overhang" => new Color( 1f, 0.88f, 0.78f ),
+				"cave" => new Color( 0.62f, 0.70f, 0.85f ),
+				"shelf" => new Color( 0.85f, 1f, 0.90f ),
+				"seamount" => new Color( 0.80f, 0.88f, 0.95f ),
+				_ => new Color( 0.85f, 0.92f, 1f )
 			};
 
 			Visuals.Add( go );

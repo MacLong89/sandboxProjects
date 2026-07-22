@@ -184,6 +184,13 @@ public static class WorldSprites
 	/// <summary>Horizontal floor quads in the XY plane (Z-up). Yaw 180° keeps supplied tile art right-side up.</summary>
 	public static readonly Rotation FloorTileRotation = Rotation.From( -90f, 180f, 0f );
 
+	/// <summary>
+	/// Camera sits on −X looking toward +X, so screen-up is world +X (not ±Y).
+	/// <see cref="FloorTileRotation"/> biases the flat quad toward the camera (−X); nudge +X
+	/// so habitat floors line up with fence feet.
+	/// </summary>
+	public static Vector3 FloorTileAlignFix => new Vector3( GameConstants.TileSize, 0f, 0f );
+
 	/// <summary>SpriteRenderer on ground tile roots — child object, same layout as prop sprites.</summary>
 	public static SpriteRenderer GetGroundSpriteRenderer( GameObject root )
 	{
@@ -199,7 +206,11 @@ public static class WorldSprites
 		return default;
 	}
 
-	/// <summary>Flat ground tile root — sorted billboard in the depth pass. Returns the tile root (not the child sprite).</summary>
+	/// <summary>
+	/// Flat ground tile root (owned grass / wilderness). Returns the tile root (not the child sprite).
+	/// HABITAT GROUND FIX: must match habitat floors — flat XY + unsorted. Sorted Always-billboards
+	/// depth-fight the flat habitat pad under the pitched camera and cut it into horizontal rows.
+	/// </summary>
 	public static GameObject SpawnGroundTileWorld(
 		Vector3 worldPosition,
 		Texture texture,
@@ -221,15 +232,17 @@ public static class WorldSprites
 		root.Enabled = false;
 
 		var spriteGo = new GameObject( root, true, "Sprite" );
+		spriteGo.LocalRotation = FloorTileRotation;
 		var renderer = spriteGo.AddComponent<SpriteRenderer>();
 		AssignSprite( renderer, texture );
 		PixelArt.ApplyWorldScale( renderer, drawSize, PixelArt.TileSourcePixels, texture );
-		ConfigureRenderer( renderer, depthSort: true );
+		ConfigureWorldFloorSprite( renderer );
 		renderer.Opaque = true;
 		renderer.AlphaCutoff = 0.08f;
 
+		// Z band only — IsSorted stays false. Bias breaks coplanar fights between overlapping tiles.
 		var sorter = spriteGo.AddComponent<PixelDepthSorter>();
-		sorter.BaseLayer = layer;
+		sorter.BaseLayer = layer + GroundGrid.FloorDepthBias( feet.x, feet.y );
 		sorter.SortOrigin = root;
 
 		return root;
@@ -257,7 +270,8 @@ public static class WorldSprites
 	{
 		var root = new GameObject( parent, true, name );
 		// XY only — HabitatFloorDepthSorter pushes this into the ground band.
-		root.LocalPosition = localPosition.WithZ( 0f );
+		// Nudge along +X (screen-up under the zoo camera) — see FloorTileAlignFix.
+		root.LocalPosition = localPosition.WithZ( 0f ) + FloorTileAlignFix;
 
 		var spriteGo = new GameObject( root, true, "Sprite" );
 		spriteGo.LocalRotation = FloorTileRotation;
@@ -399,8 +413,8 @@ public static class WorldSprites
 
 		if ( !PixelArt.TryProp( propName, out var texture ) )
 		{
-			Fauna2Debug.Warn( "Assets", $"Skipped prop '{propName}' — no texture mounted" );
-			return null;
+			texture = PlaceholderTiles.Prop( propName );
+			Fauna2Debug.Warn( "Assets", $"Prop '{propName}' missing — using color placeholder" );
 		}
 
 		return SpawnWorld(

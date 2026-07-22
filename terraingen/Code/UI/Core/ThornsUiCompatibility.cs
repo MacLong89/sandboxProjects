@@ -67,6 +67,7 @@ public static class ThornsUiCompatibility
 		ThornsUiWindowKind.LevelUpMoment => ThornsUiPriority.Toast,
 		ThornsUiWindowKind.SessionRecap => ThornsUiPriority.CriticalPopup,
 		ThornsUiWindowKind.VictoryIntro => ThornsUiPriority.CriticalPopup,
+		ThornsUiWindowKind.FirstSessionTutorial => ThornsUiPriority.CriticalPopup,
 		ThornsUiWindowKind.MainMenuConfirm => ThornsUiPriority.CriticalPopup,
 		ThornsUiWindowKind.MainMenuWorldName => ThornsUiPriority.CriticalPopup,
 		ThornsUiWindowKind.GameplayModal => ThornsUiPriority.CriticalPopup,
@@ -87,6 +88,7 @@ public static class ThornsUiCompatibility
 			or ThornsUiWindowKind.Campfire
 			or ThornsUiWindowKind.SessionRecap
 			or ThornsUiWindowKind.VictoryIntro
+			or ThornsUiWindowKind.FirstSessionTutorial
 			or ThornsUiWindowKind.MainMenuConfirm
 			or ThornsUiWindowKind.MainMenuWorldName
 			or ThornsUiWindowKind.GameplayModal;

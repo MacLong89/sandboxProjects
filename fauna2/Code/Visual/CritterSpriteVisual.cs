@@ -8,10 +8,11 @@ public static class CritterSpriteVisual
 		var stem = def is not null ? Defs.ResourceStem( def.ResourceName ) : "";
 		var key = WorldSpriteCatalog.CritterFor( stem );
 		var sprite = PixelArt.CritterSprite( key );
+		var hasSpriteArt = PixelArt.HasCritterArt( key );
 
 		var root = new GameObject( parent, true, "PixelVisual" );
 		var tiles = WorldSpriteCatalog.AnimalTileSize( def );
-		WorldSprites.Spawn(
+		var renderer = WorldSprites.Spawn(
 			root,
 			sprite,
 			GameConstants.Tiles( tiles ),
@@ -22,8 +23,23 @@ public static class CritterSpriteVisual
 			sourcePixels: PixelArt.IsSuppliedCritter( key ) ? PixelArt.SuppliedSpriteSourcePixels : PixelArt.SpriteSourcePixels,
 			movementRoot: parent,
 			walkAnimator: true,
-			flipFacingHorizontal: true );
-		Log.Info( $"[Fauna2 Scale] Animal sprite '{key}' size={tiles:0.##} tiles for definition='{def?.ResourceName ?? "unknown"}'." );
+			flipFacingHorizontal: false );
+
+		if ( renderer.IsValid() )
+		{
+			var animator = renderer.GameObject.Components.Get<SpriteWalkAnimator>();
+			if ( animator is not null )
+			{
+				animator.DirectionalCritterKey = key;
+				animator.FlipFacingHorizontal = false;
+			}
+		}
+
+		// Supplied art is pre-colored. Placeholders are solid blocks — tint them so species stay distinct.
+		if ( renderer.IsValid() && !hasSpriteArt )
+			renderer.Color = tint;
+
+		Fauna2Debug.Info( "Scale", $"Animal sprite '{key}' size={tiles:0.##} tiles for definition='{def?.ResourceName ?? "unknown"}'." );
 
 		return root;
 	}

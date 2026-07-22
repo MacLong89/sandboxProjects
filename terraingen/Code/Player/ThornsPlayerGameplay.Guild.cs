@@ -6,6 +6,26 @@ using Terraingen.Multiplayer;
 /// <summary>Guild requests and host RPCs (extracted from gameplay god-class).</summary>
 public sealed partial class ThornsPlayerGameplay
 {
+	public void RequestGuildLeave()
+	{
+		if ( !IsLocalPlayer() )
+			return;
+
+		if ( Networking.IsActive && !Networking.IsHost )
+			RpcGuildLeave();
+		else
+			ThornsGuildWorldService.Instance?.HostRequestLeaveGuild( this );
+	}
+
+	[Rpc.Host]
+	void RpcGuildLeave()
+	{
+		if ( !ValidateCaller() )
+			return;
+
+		ThornsGuildWorldService.Instance?.HostRequestLeaveGuild( this );
+	}
+
 	public void RequestGuildCreate( string name )
 	{
 		if ( !IsLocalPlayer() || string.IsNullOrWhiteSpace( name ) )

@@ -61,23 +61,54 @@ public static class GameConstants
 	/// <summary>Legacy alias — use <see cref="DefaultAmbienceVolume"/> for new code.</summary>
 	public const float AmbienceVolume = DefaultAmbienceVolume;
 
+	// =====================================================================
+	// World / tile scale
+	// Author linear sizes at TileScale 1 (CellSize 60). Bump TileScale to
+	// grow the whole outpost; HeightScale grows walls/buildings vs the player.
+	// =====================================================================
+	/// <summary>XY layout multiplier vs the original CoC-scale base (CellSize 60).</summary>
+	public const float TileScale = 3f;
+	/// <summary>Vertical multiplier — tall enough for FP realism, not skyscrapers from iso.</summary>
+	public const float HeightScale = 2f;
+	/// <summary>Design-time cell width before <see cref="TileScale"/>.</summary>
+	public const float BaseCellSize = 60f;
+
+	/// <summary>Scale a length authored for TileScale 1.</summary>
+	public static float U( float designUnits ) => designUnits * TileScale;
+	/// <summary>Scale a height authored for HeightScale 1 (original wall/building Z).</summary>
+	public static float H( float designUnits ) => designUnits * HeightScale;
+	/// <summary>
+	/// Engagement reach (towers, recruits, heal radii, splash, order radii).
+	/// Matches <see cref="TileScale"/> so design ranges keep the same cell coverage as the
+	/// TileScale-1 layout (e.g. gun tower BaseRange 340 → ~5.7 cells). The old 0.3×/0.6×
+	/// factors left towers covering only ~1.7 cells, so zombies walked up to the muzzle
+	/// before anything fired — often mistaken for LOS / vision blockage.
+	/// </summary>
+	public const float RangeScale = TileScale;
+
 	// --- Build grid (source of truth for 1×1 placeable footprint) ---
-	public const float CellSize = 60f;
+	public const float CellSize = BaseCellSize * TileScale; // 180
 	public const int GridCellsPerSide = 12;
 	public const float GridOrigin = -(GridCellsPerSide * CellSize) * 0.5f;
 
 	// --- Outpost layout (XY ground, Z up) ---
 	// Perimeter is a ring of 1×1 cell wall segments. ArenaHalf = half the ring edge.
+	// Interior clear ≈ CellSize * (SegmentsPerSide - 2) ≈ 2160 → FP sprint ~4.2s at 510.
 	public const int SegmentsPerSide = 14;
-	public const float ArenaHalf = SegmentsPerSide * CellSize * 0.5f; // 420
+	public const float ArenaHalf = SegmentsPerSide * CellSize * 0.5f; // 1260 — outer face of the ring
+	/// <summary>
+	/// World |coord| of perimeter wall cell centers (half a cell inside <see cref="ArenaHalf"/>).
+	/// Starter walls and placeable <see cref="BuildableId.WallPiece"/> both sit on this line so they join flush.
+	/// </summary>
+	public const float WallRingCenter = ArenaHalf - CellSize * 0.5f; // 1170
 	/// <summary>Perimeter walls are one cell deep so they match placeable WallPiece / tower tiles.</summary>
 	public const float WallThickness = CellSize;
 	/// <summary>
 	/// Pathing / melee depth of a wall segment (matches scaffold frame ~0.22×thickness, not the full placement cell).
 	/// Full <see cref="WallThickness"/> left empty outside this strip so zombies don't stop in open air.
 	/// </summary>
-	public const float WallPathDepth = 20f;
-	public const float WallHeight = 110f;
+	public const float WallPathDepth = CellSize * 0.22f;
+	public const float WallHeight = 110f * HeightScale; // 220
 	/// <summary>Extra Z so wall-mounted defenses clear the wall top (no z-fighting / clipping).</summary>
 	public const float WallMountDeckClearance = 0f;
 	/// <summary>When false, defenses cannot be placed on perimeter wall tiles.</summary>
@@ -86,51 +117,53 @@ public static class GameConstants
 	public const int LegacySegmentsPerSide = 5;
 
 	// --- World / terrain (much larger than the base so plots can surround it) ---
-	// Half-extent 3250 ≈ √2 × 2300 → twice the land surface area of the old map.
-	public const float TerrainHalfExtent = 3250f;
+	public const float TerrainHalfExtent = 3250f * TileScale;
 
 	/// <summary>Active terrain bounds — wider in Road to a Cure.</summary>
 	public static float ActiveTerrainHalfExtent =>
 		GameCore.Instance?.IsCure == true ? CureConstants.TerrainHalfExtent : TerrainHalfExtent;
-	public const float TerrainCellSize = 80f;
-	public const float TerrainAmplitude = 26f;
+	public const float TerrainCellSize = 80f * TileScale;
+	public const float TerrainAmplitude = 26f * HeightScale;
 	/// <summary>Flat ocean plane sits at this world Z; terrain dips toward it only at the far rim.</summary>
-	public const float SeaLevel = -14f;
+	public const float SeaLevel = -14f * HeightScale;
 	/// <summary>How far past the terrain edge the water quad extends (moves with terrain size).</summary>
-	public const float SeaSheetOvershoot = 500f;
+	public const float SeaSheetOvershoot = 500f * TileScale;
 	/// <summary>Width of the outer ring where terrain slopes down to meet the sea.</summary>
-	public const float SeaRimBlendWidth = 220f;
+	public const float SeaRimBlendWidth = 220f * TileScale;
 
 	// --- Plots (large parcels surrounding the home base) ---
 	// One plot equals the base footprint; the centre plot (0,0) is the home base.
-	public const float PlotSize = ArenaHalf * 2f;      // 840
+	public const float PlotSize = ArenaHalf * 2f;
 	public const int PlotGridRadius = 2;               // (2R+1)^2 plots total
 	public const double PlotBuyBaseCost = 180;
 	public const double PlotBuyCostPerRing = 1.85;
 
 	// --- Enemy spawning ---
 	// Enemies appear on a square ring this far beyond the claimed territory edge.
-	public const float SpawnMargin = 170f;
+	public const float SpawnMargin = 170f * TileScale;
 
 	// --- Workers (non-combat: forager / craftsman / repairman) ---
 	public const int MaxWorkers = 10;
 	public const double WorkerHireCost = 90;
-	public const float WorkerMoveSpeed = 105f;
-	public const float ForagerHarvestPerSec = 0.55f;      // resource units / sec
+	public const float WorkerMoveSpeed = 105f * TileScale;
+	public const float ForagerHarvestPerSec = 0.55f;      // resource units / sec (Cure materials; Survival uses scrap rate)
+	/// <summary>Survival foragers earn this scrap/s while clearing a claimed plot.</summary>
+	public const float ForagerScrapPerSec = 1.9f;
 	public const float PlotClearSeconds = 55f;            // forager-seconds to fully clear a plot for building
-	public const float CraftsmanConvertPerSec = 0.45f;    // resource units consumed / sec
+	public const float CraftsmanConvertPerSec = 0.45f;    // resource units consumed / sec (legacy / leftover stock)
 	public const double CraftsmanScrapPerResource = 3.5;    // scrap produced per resource unit
 
 	// --- Command post ---
 	public const float CoreBaseHp = 500f;
 	public const float CoreHpPerFortify = 120f;
-	public const float CoreSize = 90f;
+	/// <summary>Melee / select radius around the command post (human-scale structure).</summary>
+	public const float CoreSize = 90f * HeightScale;
 
 	// --- Tower combat ---
 	public const float TurretBaseDamage = 6f;
 	public const float TurretDamagePerLevel = 3f;
-	public const float TurretBaseRange = 380f;
-	public const float TurretRangePerLevel = 35f;
+	public const float TurretBaseRange = 380f * RangeScale;
+	public const float TurretRangePerLevel = 35f * RangeScale;
 	public const float TurretFireInterval = 0.35f;
 
 	// --- Defender recruits ---
@@ -141,25 +174,30 @@ public static class GameConstants
 	public const float DefenderBaseDamage = 8f;
 	public const float DefenderDamagePerTrain = 2.5f;
 	public const float DefenderFireInterval = 0.5f;
-	public const float DefenderRange = 320f;
-	public const float DefenderMoveSpeed = 130f;
-	public const float DefenderAcquireRange = 2200f;
-	public const float DefenderHomeDeadzone = 14f;
+	public const float DefenderRange = 320f * RangeScale;
+	public const float DefenderMoveSpeed = 130f * TileScale;
+	public const float DefenderAcquireRange = 2200f * RangeScale;
+	public const float DefenderHomeDeadzone = 14f * TileScale;
 	/// <summary>Click within this radius of a zombie to focus-fire it with all recruits.</summary>
-	public const float NightFocusPickRadius = 150f;
+	public const float NightFocusPickRadius = 150f * RangeScale;
 	/// <summary>Area orders engage zombies within this radius of the click point.</summary>
-	public const float NightAreaEngageRadius = 340f;
+	public const float NightAreaEngageRadius = 340f * RangeScale;
 
-	// --- Camera ---
+	// --- Camera (iso RTS — pull back with the larger yard) ---
 	public const float CameraFov = 55f;
-	public const float CameraPanSpeed = 520f;
-	public const float CameraZoomSpeed = 80f;
-	public const float CameraMinDistance = 400f;
-	public const float CameraMaxDistance = 3200f;
+	public const float CameraPanSpeed = 520f * TileScale;
+	public const float CameraZoomSpeed = 80f * TileScale;
+	public const float CameraMinDistance = 400f * TileScale;
+	public const float CameraMaxDistance = 3200f * TileScale;
+	public const float CameraDefaultDistance = 950f * TileScale;
 	public const float CameraRotateSpeed = 90f;
+	/// <summary>Default pan/zoom sensitivity multiplier (persisted on profile/save).</summary>
+	public const float DefaultCameraSensitivity = 1f;
+	public const float MinCameraSensitivity = 0.5f;
+	public const float MaxCameraSensitivity = 2f;
 
 	// --- Bullets ---
-	public const float BulletSpeed = 3600f;
+	public const float BulletSpeed = 3600f * TileScale;
 	public const float BulletLife = 0.7f;
 
 	// --- Zombies ---
@@ -169,10 +207,11 @@ public static class GameConstants
 	public const int ZombieRampFromNight = 3;
 	public const float ZombieExtraHpPerNight = 2.8f;
 	public const float ZombieExtraHpMultPerNight = 0.11f;
-	public const float ZombieBaseSpeed = 95f;
-	public const float ZombieSpeedPerNight = 1.5f;
+	public const float ZombieBaseSpeed = 95f * TileScale;
+	public const float ZombieSpeedPerNight = 1.5f * TileScale;
 	public const float ZombieBaseDamage = 8f;
 	public const float ZombieDamagePerNight = 0.6f;
+	/// <summary>Hit volume — stays near citizen scale (player/zombie bodies are not tile-scaled).</summary>
 	public const float ZombieRadius = 32f;
 	/// <summary>XY pathing radius for humanoids (smaller than <see cref="ZombieRadius"/> hit volume).</summary>
 	public const float UnitCollisionRadius = 10f;
@@ -191,12 +230,18 @@ public static class GameConstants
 	public const float ZombieStuckFailsafeDelay = 6f;
 	/// <summary>After spawns finish, kill any remaining live zombies if none have died for this long.</summary>
 	public const float NightRoundFailsafeDelay = 10f;
+	/// <summary>Rival base raids always field at least this many wall-breakers.</summary>
+	public const int HostileRaidMinBreakers = 2;
+	/// <summary>Melee bash cadence while smashing perimeter walls.</summary>
+	public const float HostileWallBashInterval = 0.55f;
+	/// <summary>If breakers die with no breach, remaining raiders flee after this many seconds.</summary>
+	public const float HostileRaidRetreatDelay = 10f;
 	public const float ZombieStuckMoveThreshold = 0.08f;
 	public const float ZombieAttackInterval = 0.9f;
 	public const float ZombieMeleeRange = 55f;
 	public const float ZombieEngageExitBuffer = 18f;
-	public const float ZombieSeekRadius = 2800f;
-	public const float ZombieSpawnRing = 80f;
+	public const float ZombieSeekRadius = 2800f * TileScale;
+	public const float ZombieSpawnRing = 80f * TileScale;
 
 	/// <summary>
 	/// Wall vault (CanJumpWalls): duration of the climb-over arc in seconds.
@@ -204,13 +249,13 @@ public static class GameConstants
 	/// </summary>
 	public const float ZombieWallJumpDuration = 0.9f;
 	/// <summary>Extra height above WallHeight at vault apex (clears the timber visually).</summary>
-	public const float ZombieWallJumpApexExtra = 55f;
+	public const float ZombieWallJumpApexExtra = 55f * HeightScale;
 	/// <summary>Landing inset past ArenaHalf into the courtyard, in CellSize multiples.</summary>
 	public const float ZombieWallJumpLandInset = 1.6f;
 
 	// --- Recruits ---
 	public const float RecruitMaxHealth = 120f;
-	public const float BarracksHealRadius = 420f;
+	public const float BarracksHealRadius = 420f * RangeScale;
 	public const float BarracksHealPerSec = 14f;
 	public const double ScrapPerKillBase = 2;
 	public const double ScrapPerKillPerNight = 0.11;
@@ -223,12 +268,15 @@ public static class GameConstants
 	public const float SpawnStagger = 0.45f;
 	public const double NightClearBonusBase = 12.5;
 	public const double NightClearBonusPerNight = 2.5;
-	/// <summary>One-time scrap paid after surviving night 1 — funds day-2 tutorial buys (barracks, then recruits).</summary>
+	/// <summary>One-time scrap paid after surviving night 1 — funds day-2 expansion (2nd tower, more recruits, upgrades).</summary>
 	public const double FirstNightSurvivalBonus = 200;
 	/// <summary>One-time scrap paid after surviving night 5 — intended to fund claiming an adjacent plot.</summary>
 	public const double FifthNightPlotBonus = 200;
 	/// <summary>Max defense towers + barracks combined on a single plot (walls excluded).</summary>
+	/// <summary>Base attack towers + barracks per plot (home plot gains +1 per Fortify Command).</summary>
 	public const int MaxPlotStructures = 6;
+	/// <summary>Support pads (Spotlight, Oil, Ammo Depot, …) per plot — separate from attack slots.</summary>
+	public const int MaxPlotSupports = 4;
 
 	// --- Scout expeditions ---
 	public const int ExpeditionMinParty = 1;
@@ -266,6 +314,7 @@ public static class GameConstants
 	public const double LegacyScrapBonusPer = 0.05;         // +5% scrap per legacy point (permanent)
 
 	// --- Economy ---
+	/// <summary>Day-1 scrap — enough for a gun tower and a wall or two before night 1.</summary>
 	public const double StartingScrap = 150;
 	/// <summary>Global scale on scrap earned (kills, bonuses, rewards) — not sell refunds.</summary>
 	public const double ScrapIncomeMult = 0.8;

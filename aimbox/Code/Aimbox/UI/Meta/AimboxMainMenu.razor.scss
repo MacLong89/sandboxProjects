@@ -990,3 +990,97 @@ AimboxMainMenu .leaderboard-stat-value, .aimbox-main-menu .leaderboard-stat-valu
 	font-weight: 800;
 	color: #ff2a6d;
 }
+
+AimboxMainMenu .tip-overlay, .aimbox-main-menu .tip-overlay
+{
+	position: absolute;
+	inset: 0;
+	align-items: center;
+	justify-content: center;
+	background-color: rgba(0, 0, 0, 0.55);
+	pointer-events: all;
+	z-index: 80;
+}
+
+AimboxMainMenu .tip-card, .aimbox-main-menu .tip-card
+{
+	width: 440px;
+	max-width: 92%;
+	flex-direction: column;
+	gap: 10px;
+	padding: 24px 26px 20px 26px;
+	background-color: rgba(12, 16, 24, 0.96);
+	border: 1px solid rgba(255, 42, 109, 0.45);
+	border-radius: 14px;
+	pointer-events: all;
+}
+
+AimboxMainMenu .tip-icon, .aimbox-main-menu .tip-icon
+{
+	font-family: "Material Icons";
+	font-size: 28px;
+	color: #ff2a6d;
+}
+
+AimboxMainMenu .tip-title, .aimbox-main-menu .tip-title
+{
+	font-size: 22px;
+	font-weight: 800;
+	color: #f4f7fb;
+}
+
+AimboxMainMenu .tip-body, .aimbox-main-menu .tip-body
+{
+	font-size: 14px;
+	line-height: 1.45;
+	color: rgba(244, 247, 251, 0.78);
+	white-space: normal;
+}
+
+AimboxMainMenu .tip-actions, .aimbox-main-menu .tip-actions
+{
+	flex-direction: row;
+	justify-content: flex-end;
+	gap: 10px;
+	margin-top: 8px;
+}
+
+AimboxMainMenu .tip-btn, .aimbox-main-menu .tip-btn
+{
+	padding: 10px 18px;
+	border-radius: 8px;
+	font-size: 13px;
+	font-weight: 800;
+	cursor: pointer;
+}
+
+AimboxMainMenu .tip-btn.ghost, .aimbox-main-menu .tip-btn.ghost
+{
+	background-color: transparent;
+	border: 1px solid rgba(255, 255, 255, 0.25);
+	color: rgba(244, 247, 251, 0.7);
+}
+
+AimboxMainMenu .tip-btn.primary, .aimbox-main-menu .tip-btn.primary
+{
+	background-color: #ff2a6d;
+	border: 1px solid #ff2a6d;
+	color: #ffffff;
+}
+
+AimboxMainMenu .tip-toast, .aimbox-main-menu .tip-toast
+{
+	position: absolute;
+	bottom: 96px;
+	left: 50%;
+	transform: translateX(-50%);
+	padding: 10px 16px;
+	border-radius: 10px;
+	background-color: rgba(12, 16, 24, 0.94);
+	border: 1px solid rgba(255, 255, 255, 0.2);
+	color: #f4f7fb;
+	font-size: 13px;
+	font-weight: 700;
+	pointer-events: none;
+	z-index: 90;
+}

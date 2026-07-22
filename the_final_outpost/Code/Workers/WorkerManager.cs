@@ -2,8 +2,8 @@ namespace FinalOutpost;
 
 public enum WorkerRole
 {
-	Forager,   // harvests the resource of its assigned plot
-	Craftsman, // converts stored resources into scrap (Survival)
+	Forager,   // clears plots; Survival scrap / Cure materials
+	Craftsman, // legacy: converts stored materials into scrap
 	Repairman, // slowly repairs the most-damaged base structure (Survival)
 	Farmer,    // steady food income (Cure)
 	Scholar,   // knowledge for tech tree + lab boost (Cure)
@@ -14,7 +14,7 @@ public enum WorkerRole
 
 public static class WorkerInfo
 {
-	public static readonly WorkerRole[] SurvivalRoles = { WorkerRole.Craftsman, WorkerRole.Repairman };
+	public static readonly WorkerRole[] SurvivalRoles = { WorkerRole.Repairman };
 	public static readonly WorkerRole[] CureRoles = { WorkerRole.Farmer, WorkerRole.Scholar, WorkerRole.Operator, WorkerRole.Medic, WorkerRole.Merchant };
 	public static readonly WorkerRole[] Order = { WorkerRole.Forager, WorkerRole.Craftsman, WorkerRole.Repairman, WorkerRole.Farmer, WorkerRole.Scholar, WorkerRole.Operator, WorkerRole.Medic, WorkerRole.Merchant };
 
@@ -50,7 +50,9 @@ public static class WorkerInfo
 
 	public static string Blurb( WorkerRole r ) => r switch
 	{
-		WorkerRole.Forager => "Harvests a claimed resource plot.",
+		WorkerRole.Forager => GameCore.Instance?.IsCure == true
+			? "Harvests a claimed resource plot."
+			: $"Clears land and earns +{GameConstants.ForagerScrapPerSec:0.#} scrap/s.",
 		WorkerRole.Craftsman => "Turns stored resources into scrap.",
 		WorkerRole.Repairman => "Queues and completes repairs during the day. Speeds up the repair queue.",
 		WorkerRole.Farmer => $"+{CureConstants.FarmerFoodPerSec:0.0} food/s.",
@@ -237,6 +239,7 @@ public sealed class WorkerManager : Component
 	{
 		var core = GameCore.Instance;
 		if ( core is null ) return;
+		if ( core.IsUiBlocking ) return;
 		if ( core.Phase != GamePhase.Day && core.Phase != GamePhase.Night ) return;
 
 		var dt = Time.Delta;
@@ -293,7 +296,10 @@ public sealed class WorkerManager : Component
 			return PlotGrid.CenterWorld( sw.PlotX, sw.PlotY );
 
 		// Base-bound workers loiter just outside the command post.
-		return new Vector3( 0f, GameConstants.ArenaHalf * 0.45f, 0f );
+		var hq = OutpostManager.Instance?.CorePosition ?? Vector3.Zero;
+		return WallApproach.ClampInsideCourtyard(
+			hq + new Vector3( 0f, GameConstants.CellSize * 3f, 0f ),
+			WallApproach.RingCenter );
 	}
 
 	private void Clear()
@@ -368,8 +374,6 @@ public sealed class WorkerManager : Component
 			if ( !Go.IsValid() ) return;
 
 			var speed = GameConstants.WorkerMoveSpeed;
-			if ( core.IsCure && TechTreeCatalog.IsUnlocked( core.Save, "tactics" ) )
-				speed *= 1.2f;
 
 			if ( _orderKind == UnitOrderKind.Move && _manualMove )
 			{
@@ -419,14 +423,23 @@ public sealed class WorkerManager : Component
 		{
 			if ( !IsWorking ) return;
 
-			var rate = GameConstants.ForagerHarvestPerSec * dt;
-			if ( core.IsCure )
+			if ( !core.IsCure )
 			{
-				rate *= TeamBonuses.ForagerYieldMult( core );
-				rate *= PlotBoosts.ForagerMult( core.Save );
-				var sickness = core.Save.ColonySickness / CureConstants.MaxSickness;
-				rate *= MathF.Max( 0.4f, 1f - sickness * CureConstants.SicknessWorkerPenalty * 100f );
+				_scrapAccum += GameConstants.ForagerScrapPerSec * dt;
+				if ( _scrapAccum >= 1.0 )
+				{
+					var whole = Math.Floor( _scrapAccum );
+					_scrapAccum -= whole;
+					core.Wallet.Earn( whole );
+				}
+				return;
 			}
+
+			var rate = GameConstants.ForagerHarvestPerSec * dt;
+			rate *= TeamBonuses.ForagerYieldMult( core );
+			rate *= PlotBoosts.ForagerMult( core.Save );
+			var sickness = core.Save.ColonySickness / CureConstants.MaxSickness;
+			rate *= MathF.Max( 0.4f, 1f - sickness * CureConstants.SicknessWorkerPenalty * 100f );
 			_harvestAccum += rate;
 			if ( _harvestAccum >= 1.0 )
 			{
@@ -438,6 +451,7 @@ public sealed class WorkerManager : Component
 
 		private void DoCraft( float dt, GameCore core )
 		{
+			// Survival no longer hires craftsmen; keep conversion for leftover stock on old saves.
 			var want = GameConstants.CraftsmanConvertPerSec * dt;
 			var (kind, taken) = core.Resources.DrainRichest( want );
 			if ( kind == ResourceKind.None || taken <= 0 ) return;

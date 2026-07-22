@@ -9,7 +9,6 @@ public sealed class AimboxBotController : Component, IAimboxCombatActor
 		AimboxWeaponId.M4A1,
 		AimboxWeaponId.Mp5,
 		AimboxWeaponId.Usp,
-		AimboxWeaponId.M700,
 		AimboxWeaponId.SpaghelliM4
 	];
 

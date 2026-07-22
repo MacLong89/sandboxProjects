@@ -49,7 +49,7 @@ public sealed class BuildSystem : Component
 			var lockMsg = def.RequiredPrestige > 0
 				? $"{def.DisplayName} unlocks at level {def.UnlockLevel} with {def.RequiredPrestige} prestige."
 				: $"{def.DisplayName} unlocks at level {def.UnlockLevel}.";
-			Log.Info( $"[Fauna2 Build] Place() blocked — {lockMsg}" );
+			Fauna2Debug.Info( "Build", $"Place() blocked — {lockMsg}" );
 			state.Notify( lockMsg, "lock" );
 			return;
 		}
@@ -60,7 +60,7 @@ public sealed class BuildSystem : Component
 
 		if ( !BuildValidation.CanPlace( def, position, out var error, out var resolvedPosition, yaw ) )
 		{
-			Log.Info( $"[Fauna2 Build] Place() blocked — {error} at {position}" );
+			Fauna2Debug.Info( "Build", $"Place() blocked — {error} at {position}" );
 			state.Notify( error, "block" );
 			return;
 		}
@@ -77,7 +77,7 @@ public sealed class BuildSystem : Component
 		var cost = EffectiveCost( def );
 		if ( !state.TrySpend( cost ) )
 		{
-			Log.Info( $"[Fauna2 Build] Place() blocked — not enough money (${state.Money} < ${cost})." );
+			Fauna2Debug.Info( "Build", $"Place() blocked — not enough money (${state.Money} < ${cost})." );
 			state.Notify( "Not enough money.", "payments" );
 			return;
 		}
@@ -85,7 +85,7 @@ public sealed class BuildSystem : Component
 		if ( def.IsHabitat )
 		{
 			var habitat = SpawnHabitat( def, position );
-			Log.Info( $"[Fauna2 Build] Spawned habitat '{def.DisplayName}' at {position} id={habitat?.HabitatId} category={def.Category}" );
+			Fauna2Debug.Info( "Build", $"Spawned habitat '{def.DisplayName}' at {position} id={habitat?.HabitatId} category={def.Category}" );
 		}
 		else
 		{
@@ -109,7 +109,12 @@ public sealed class BuildSystem : Component
 			GameEvents.RaiseZooModified();
 
 			if ( SaveSystem.Instance is null || !SaveSystem.Instance.IsApplying )
-				ZooSoundNetwork.PlayPlaceForAll();
+			{
+				if ( def.IsPathTile )
+					ZooSoundNetwork.PlayPlaceForAll();
+				else
+					ZooSoundNetwork.PlayBuildForAll();
+			}
 
 			BuildDiagnostics.Write( "Place() complete", def, position, yaw );
 		}
@@ -193,6 +198,10 @@ public sealed class BuildSystem : Component
 		go.NetworkMode = NetworkMode.Object;
 		go.NetworkSpawn();
 		go.Network.SetOrphanedMode( NetworkOrphaned.Host );
+
+		// Register immediately so new-game saves / objective catch-up see the habitat
+		// before OnStart runs (idempotent with HabitatComponent.OnStart).
+		HabitatRegistry.Register( habitat );
 
 		if ( SaveSystem.Instance is null || !SaveSystem.Instance.IsApplying )
 			GameEvents.RaiseHabitatPlaced();

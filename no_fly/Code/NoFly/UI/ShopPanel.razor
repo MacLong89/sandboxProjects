@@ -1,0 +1,88 @@
+@namespace NoFly
+@inherits PanelComponent
+
+<root class="@(Visible ? "mg-root" : "mg-hidden")">
+@if (Visible)
+{
+	<div class="mg-panel shop">
+		<header class="mg-header mg-header-row">
+			<div class="mg-header-main">
+				<div class="mg-kicker">Terminal Shop</div>
+				<div class="mg-title">@ShopCatalog.TitleFor(OpenZone)</div>
+				<div class="mg-sub">@ShopCatalog.SubtitleFor(OpenZone)</div>
+			</div>
+			<button class="mg-btn mg-btn-ghost" onclick="@Close">Close</button>
+		</header>
+
+		<div class="shop-grid">
+			@foreach (var item in ShopCatalog.ItemsFor(OpenZone))
+			{
+				<button class="shop-card" style="border-color: @item.Tint.Hex;" onclick="@(() => Buy(item.Id))">
+					<div class="shop-swatch" style="background: @item.Tint.Hex;"></div>
+					<div class="shop-card-body">
+						<div class="shop-name">@item.Label</div>
+						<div class="shop-blurb">@item.Blurb</div>
+					</div>
+					<div class="shop-price">$@item.Price</div>
+				</button>
+			}
+		</div>
+
+		<footer class="mg-footer">
+			<div class="mg-hint">Click an item to buy · Esc / Close to leave</div>
+		</footer>
+	</div>
+}
+</root>
+
+@code
+{
+	/// <summary>Client-only open shop zone (shop_food / shop_gift).</summary>
+	public static string OpenZone { get; private set; }
+	public static bool IsOpen => !string.IsNullOrEmpty(OpenZone);
+
+	public static void Open(string zoneTag)
+	{
+		if (string.IsNullOrEmpty(zoneTag)) return;
+		OpenZone = zoneTag;
+	}
+
+	public static void Close() => OpenZone = null;
+
+	bool Visible => IsOpen && NoFlyGame.LocalPlayer is not null;
+
+	void Buy(string itemId)
+	{
+		RpcBuy(OpenZone, itemId);
+		Close();
+	}
+
+	[Rpc.Host]
+	public void RpcBuy(string zoneTag, string itemId)
+	{
+		var player = Scene.GetAllComponents<NoFlyPlayer>().FirstOrDefault(p => p.Network.Owner == Rpc.Caller);
+		if (player is null) return;
+
+		var item = ShopCatalog.Find(zoneTag, itemId);
+		var label = item?.Label ?? "something";
+
+		var before = player.Objectives?.Count(o => o.Completed) ?? 0;
+		ObjectiveSystem.TryCompleteZone(player, zoneTag);
+		var after = player.Objectives?.Count(o => o.Completed) ?? 0;
+
+		if (after > before)
+			player.ActivePrompt = $"Bought {label} — objective complete!";
+		else
+		{
+			player.AddScore(10, "objectives");
+			player.ActivePrompt = $"Bought {label}!";
+		}
+	}
+
+	protected override void OnUpdate()
+	{
+		// Close is handled by the Close button / E toggle in PlayerInteractor.
+	}
+
+	protected override int BuildHash() => HashCode.Combine(OpenZone, Visible);
+}

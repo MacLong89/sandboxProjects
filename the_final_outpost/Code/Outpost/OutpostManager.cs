@@ -9,6 +9,9 @@ public sealed class OutpostManager : Component
 	public static OutpostManager Instance { get; private set; }
 
 	public Vector3 CorePosition { get; private set; }
+	/// <summary>Southwest cell of the command post's 2×2 footprint (default -1,-1 → origin).</summary>
+	public int CoreAnchorCellX { get; private set; } = -1;
+	public int CoreAnchorCellY { get; private set; } = -1;
 	public float CoreHealth { get; private set; }
 	public float CoreMaxHealth { get; private set; }
 
@@ -52,6 +55,8 @@ public sealed class OutpostManager : Component
 		if ( save is null ) return;
 
 		save.SavedCoreHealth = CoreHealth;
+		save.CoreCellX = CoreAnchorCellX;
+		save.CoreCellY = CoreAnchorCellY;
 		save.WallHealthByKey ??= new Dictionary<string, float>();
 		save.WallHealthByKey.Clear();
 		foreach ( var w in _walls )
@@ -138,32 +143,7 @@ public sealed class OutpostManager : Component
 		foreach ( var w in _walls )
 			missing += MathF.Max( 0f, w.MaxHealth - w.Health );
 
-		return missing * GameConstants.RepairCostPerHp;
-	}
-
-	/// <summary>
-	/// Dead API — instant free full heal. Prefer <see cref="RepairManager"/> (paid, timed).
-	/// AUDIT note: left in place but do NOT wire to UI; conflicting with paid repairs.
-	/// </summary>
-	public void RepairAll()
-	{
-		CoreHealth = CoreMaxHealth;
-		foreach ( var w in _walls )
-			w.RepairToFull();
-		RefreshCoreVisual();
-	}
-
-	public void RepairCore()
-	{
-		CoreHealth = CoreMaxHealth;
-		RefreshCoreVisual();
-	}
-
-	public void RepairCoreBy( float amount )
-	{
-		if ( amount <= 0f ) return;
-		CoreHealth = MathF.Min( CoreMaxHealth, CoreHealth + amount );
-		RefreshCoreVisual();
+		return RepairCosts.EffectiveScrapCost( RepairCosts.BaseScrapCost( missing ) );
 	}
 
 	public void SetCoreHealth( float hp )
@@ -204,72 +184,77 @@ public sealed class OutpostManager : Component
 
 	private void BuildCore()
 	{
-		CorePosition = Vector3.Zero;
+		var save = GameCore.Instance?.Save;
+		CoreAnchorCellX = save?.CoreCellX ?? -1;
+		CoreAnchorCellY = save?.CoreCellY ?? -1;
+		ApplyCoreTransform();
 		_coreParts.Clear();
 		_coreGo = new GameObject( true, "CommandPost" );
 		_coreGo.WorldPosition = CorePosition;
 
-		var stone = StylizedMaterials.Stone;
-		var wood = StylizedMaterials.Wood;
-		var roof = StylizedMaterials.Roof;
-
-		CorePart( MeshPrimitives.Cylinder, stone, new Vector3( 0, 0, 16 ), new Vector3( 150, 150, 32 ), Color.White, new Color( 0.62f, 0.62f, 0.64f ) );
-		CorePart( MeshPrimitives.Box, stone, new Vector3( 0, 0, 68 ), new Vector3( 110, 110, 72 ), new Color( 0.9f, 0.93f, 1f ), new Color( 0.5f, 0.55f, 0.7f ) );
-		CorePart( MeshPrimitives.Box, wood, new Vector3( 0, 0, 106 ), new Vector3( 118, 118, 10 ), Color.White, new Color( 0.5f, 0.36f, 0.22f ) );
-		CorePart( MeshPrimitives.Pyramid, roof, new Vector3( 0, 0, 134 ), new Vector3( 150, 150, 52 ), Color.White, new Color( 0.78f, 0.28f, 0.16f ) );
+		CommandPostVisual.Build( _coreGo, ( mr, tint ) => _coreParts.Add( (mr, tint) ) );
 	}
 
-	private void CorePart( Model model, Material mat, Vector3 localPos, Vector3 size, Color textured, Color fallback )
+	void ApplyCoreTransform()
 	{
-		var useTexture = mat is not null && mat.IsValid() && mat != MeshPrimitives.Mat;
-		var tint = useTexture ? textured : fallback;
+		CorePosition = BuildGrid.CoreWorldFromAnchor( CoreAnchorCellX, CoreAnchorCellY );
+		if ( _coreGo.IsValid() )
+			_coreGo.WorldPosition = CorePosition;
+	}
 
-		var go = new GameObject( _coreGo, true, "CorePart" );
-		go.LocalPosition = localPos;
-		go.LocalScale = MeshPrimitives.ScaleFor( model, size );
-		var mr = go.Components.Create<ModelRenderer>();
-		mr.Model = model;
-		mr.MaterialOverride = mat;
-		mr.Tint = tint;
-		_coreParts.Add( (mr, tint) );
+	/// <summary>Relocate the command post to a new 2×2 southwest anchor (caller validates).</summary>
+	public bool RelocateCore( int anchorCellX, int anchorCellY )
+	{
+		if ( !_coreGo.IsValid() ) return false;
+		CoreAnchorCellX = anchorCellX;
+		CoreAnchorCellY = anchorCellY;
+		ApplyCoreTransform();
+		RefreshCoreVisual();
+		return true;
+	}
+
+	public void SetCoreHiddenForMove( bool hidden )
+	{
+		if ( _coreGo.IsValid() )
+			_coreGo.Enabled = !hidden;
 	}
 
 	private void BuildWalls( UpgradeSystem upgrades )
 	{
-		var half = GameConstants.ArenaHalf;
-		var segLen = (half * 2f) / GameConstants.SegmentsPerSide;
+		var cell = GameConstants.CellSize;
 		var h = GameConstants.WallHeight;
 		var t = GameConstants.WallThickness;
+		// Ring cells run from -SegmentsPerSide/2 .. SegmentsPerSide/2-1 (e.g. -7..6).
+		// Centers land on WallRingCenter so they match BuildGrid.CellToWorld / placeable walls.
+		var min = -GameConstants.SegmentsPerSide / 2;
+		var max = GameConstants.SegmentsPerSide / 2 - 1;
 
-		for ( var i = 0; i < GameConstants.SegmentsPerSide; i++ )
+		for ( var i = min; i <= max; i++ )
 		{
-			var cx = -half + segLen * 0.5f + i * segLen;
-			SpawnWall( new Vector3( cx, half, h * 0.5f ), new Vector3( segLen, t, h ), upgrades );
+			SpawnWall( CellWallCenter( i, max ), new Vector3( cell, t, h ), upgrades ); // North
+			SpawnWall( CellWallCenter( i, min ), new Vector3( cell, t, h ), upgrades ); // South
 		}
 
-		for ( var i = 0; i < GameConstants.SegmentsPerSide; i++ )
+		// East / west skip corners — already spawned on the north/south runs.
+		for ( var i = min + 1; i <= max - 1; i++ )
 		{
-			var cx = -half + segLen * 0.5f + i * segLen;
-			SpawnWall( new Vector3( cx, -half, h * 0.5f ), new Vector3( segLen, t, h ), upgrades );
-		}
-
-		for ( var i = 0; i < GameConstants.SegmentsPerSide; i++ )
-		{
-			var cy = -half + segLen * 0.5f + i * segLen;
-			SpawnWall( new Vector3( half, cy, h * 0.5f ), new Vector3( t, segLen, h ), upgrades );
-		}
-
-		for ( var i = 0; i < GameConstants.SegmentsPerSide; i++ )
-		{
-			var cy = -half + segLen * 0.5f + i * segLen;
-			SpawnWall( new Vector3( -half, cy, h * 0.5f ), new Vector3( t, segLen, h ), upgrades );
+			SpawnWall( CellWallCenter( max, i ), new Vector3( t, cell, h ), upgrades ); // East
+			SpawnWall( CellWallCenter( min, i ), new Vector3( t, cell, h ), upgrades ); // West
 		}
 
 		// Visual-only corner piers — seal the ring joins (no extra HP / collision segments).
-		SpawnCornerVisual( half, half, 1f, 1f );
-		SpawnCornerVisual( -half, half, -1f, 1f );
-		SpawnCornerVisual( half, -half, 1f, -1f );
-		SpawnCornerVisual( -half, -half, -1f, -1f );
+		var rc = GameConstants.WallRingCenter;
+		SpawnCornerVisual( rc, rc, 1f, 1f );
+		SpawnCornerVisual( -rc, rc, -1f, 1f );
+		SpawnCornerVisual( rc, -rc, 1f, -1f );
+		SpawnCornerVisual( -rc, -rc, -1f, -1f );
+	}
+
+	/// <summary>World center of a perimeter wall cell (XY on the build grid, Z = half wall height).</summary>
+	static Vector3 CellWallCenter( int cellX, int cellY )
+	{
+		var xy = BuildGrid.CellToWorld( cellX, cellY );
+		return new Vector3( xy.x, xy.y, GameConstants.WallHeight * 0.5f );
 	}
 
 	private void SpawnCornerVisual( float x, float y, float outwardX, float outwardY )
@@ -287,11 +272,14 @@ public sealed class OutpostManager : Component
 
 	private void SpawnWall( Vector3 center, Vector3 size, UpgradeSystem upgrades )
 	{
-		var key = $"{(int)MathF.Round( center.x )},{(int)MathF.Round( center.y )}";
+		BuildGrid.WorldToCell( center, out var cellX, out var cellY );
+		var key = $"{cellX},{cellY}";
+		// Legacy keys used rounded world coords before walls sat on cell centers.
+		var legacyKey = $"{(int)MathF.Round( center.x )},{(int)MathF.Round( center.y )}";
 
 		// Skip segments the player has torn down (persisted across reloads).
 		var save = GameCore.Instance?.Save;
-		if ( save is not null && save.RemovedWalls.Contains( key ) )
+		if ( save is not null && (save.RemovedWalls.Contains( key ) || save.RemovedWalls.Contains( legacyKey )) )
 			return;
 
 		center.z += OutpostTerrain.SampleHeight( center.x, center.y );

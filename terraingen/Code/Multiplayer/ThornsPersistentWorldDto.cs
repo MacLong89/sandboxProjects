@@ -21,6 +21,21 @@ public sealed class ThornsPersistentWorldDto
 	public ThornsVictoryPersistentStateDto VictoryState { get; set; } = new();
 	public ThornsPersistentNpcGuildDto NpcGuild { get; set; } = new();
 	public List<ThornsPersistentNpcGuildDto> NpcGuilds { get; set; } = new();
+	public List<ThornsPersistentDeathCrateDto> DeathCrates { get; set; } = new();
+}
+
+/// <summary>Persisted death/loot crate (save v13+).</summary>
+public sealed class ThornsPersistentDeathCrateDto
+{
+	public int Id { get; set; }
+	public float Px { get; set; }
+	public float Py { get; set; }
+	public float Pz { get; set; }
+	public string Title { get; set; } = "Death Crate";
+	public bool EnemyLootTint { get; set; }
+	public float LifetimeSeconds { get; set; }
+	public float RemainingLifetimeSeconds { get; set; }
+	public List<ThornsPersistentItemStackDto> Slots { get; set; } = new();
 }
 
 public sealed class ThornsPersistentNpcGuildDto

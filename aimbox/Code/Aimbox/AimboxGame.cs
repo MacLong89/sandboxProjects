@@ -19,8 +19,10 @@ public sealed class AimboxGame : Component, Component.INetworkListener
 	public bool GunBuilderScene { get; set; }
 	[Property, Title( "TP weapon lab scene — dummy + inspector tuning for third-person world guns" )]
 	public bool ThirdPersonWeaponLabScene { get; set; }
+	/// <summary>Editor-only. Ignored when not running in the s&amp;box editor.</summary>
 	[Property, Title( "Dev only — unlock all weapons, perks, and compatible attachments" )]
 	public bool DebugUnlockAllProgression { get; set; }
+	/// <summary>Editor-only. Ignored when not running in the s&amp;box editor.</summary>
 	[Property, Title( "Dev only — wipe local player + gun mastery save on next boot" )]
 	public bool ResetProgressOnBoot { get; set; }
 	[Property, Title( "Dev only — start with hitbox overlay enabled (H toggles anytime)" )]
@@ -29,6 +31,9 @@ public sealed class AimboxGame : Component, Component.INetworkListener
 	public bool EnableOpticAdsTuners { get; set; }
 	[Property, Title( "Dev only — log M700 draw calls at ADS + PiP vs lens on fire" )]
 	public bool EnableM700ScopeInvestigation { get; set; }
+
+	public bool DevUnlockAllProgressionActive => Application.IsEditor && DebugUnlockAllProgression;
+	public bool DevResetProgressOnBootActive => Application.IsEditor && ResetProgressOnBoot;
 	[Property] public AimboxArenaMap ActiveArenaMap { get; set; }
 
 	public AimboxMatchSystem Match { get; } = new();
@@ -162,7 +167,7 @@ public sealed class AimboxGame : Component, Component.INetworkListener
 
 		_ = FinishBootAfterWeaponPackagesAsync();
 
-		if ( ResetProgressOnBoot )
+		if ( DevResetProgressOnBootActive )
 			ResetLocalProgress();
 	}
 
@@ -469,6 +474,7 @@ public sealed class AimboxGame : Component, Component.INetworkListener
 		ApplyArenaMatchPacing();
 		BeginMatchFreeze( ResolveFreezeTimeSeconds() );
 
+		AimboxOnboardingTips.NotifyMatchStarted();
 		AimboxMetaNavigation.ApplyPresentationState();
 		LogMatchSpawnState();
 	}
@@ -874,8 +880,17 @@ public sealed class AimboxGame : Component, Component.INetworkListener
 			AimboxGameMode.Range => 0,
 			_ when AimboxAimModeRules.IsAimMode( mode ) => 0,
 			AimboxGameMode.TeamDeathmatch => Math.Max( 0, AimboxArenaConfig.TdmRosterPerTeam * 2 - _players.Count ),
-			_ => BotCount
+			_ => ResolveDefaultBotCount()
 		};
+	}
+
+	int ResolveDefaultBotCount()
+	{
+		var local = _players.FirstOrDefault( p => p is not null && p.IsValid() && !p.IsProxy );
+		if ( local?.Data is not null && AimboxXpSystem.IsFirstSession( local.Data ) )
+			return Math.Clamp( Math.Min( BotCount, 2 ), 0, BotCount );
+
+		return BotCount;
 	}
 
 	public void RegisterPlayer( AimboxPlayerController player )
@@ -1155,8 +1170,9 @@ public sealed class AimboxGame : Component, Component.INetworkListener
 
 		KillFeed.Record( attacker, victim, weapon, headshot );
 
-		if ( Networking.IsHost )
-			Match.RegisterKillScores( attacker, victim );
+		// Every peer must update its local Match copy — scores are not [Sync].
+		// Host-only gating left joiners with empty scoreboards for the whole match.
+		Match.RegisterKillScores( attacker, victim );
 
 		// Only human attackers award local XP / mastery (bots use ConfirmKill → RegisterKill offline;
 		// here scores already registered above — avoid double RegisterKill for bots).
@@ -1200,8 +1216,8 @@ public sealed class AimboxGame : Component, Component.INetworkListener
 
 		KillFeed.Record( attacker, bot, weapon, headshot );
 
-		if ( Networking.IsHost )
-			Match.RegisterKillScores( attacker, bot );
+		// Mirror player-kill broadcast: keep every peer's Match scores in sync.
+		Match.RegisterKillScores( attacker, bot );
 
 		if ( attackerPlayer is not null && !attackerPlayer.IsProxy )
 			attackerPlayer.ConfirmKill( bot, weapon, headshot, distance );

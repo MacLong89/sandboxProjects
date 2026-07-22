@@ -3,7 +3,7 @@ namespace Sandbox;
 /// <summary>Loops main-menu music while the lobby / intermission hub is open.</summary>
 public static class AimboxMenuMusic
 {
-	public const string TrackPath = "sounds/neon_dash.mp3";
+	public const string TrackPath = "sounds/neon_dash.sound";
 	public const float Volume = 0.5f;
 
 	static MusicPlayer _player;
@@ -33,7 +33,7 @@ public static class AimboxMenuMusic
 	{
 		if ( _player is not null )
 		{
-			_player.Volume = Volume;
+			_player.Volume = Volume * AimboxClientSettings.EffectiveMusicVolume;
 			return;
 		}
 
@@ -49,7 +49,7 @@ public static class AimboxMenuMusic
 			return;
 		}
 
-		_player.Volume = Volume;
+		_player.Volume = Volume * AimboxClientSettings.EffectiveMusicVolume;
 		_player.Repeat = true;
 		_loggedStartFailure = false;
 	}

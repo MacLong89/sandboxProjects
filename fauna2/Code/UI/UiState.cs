@@ -58,11 +58,29 @@ public static class UiState
 	public static bool CatchMinigameOpen { get; private set; }
 	public static bool ControlsHintVisible { get; private set; }
 	public static bool WelcomeIntroVisible { get; private set; }
-	private static bool _welcomeIntroForNewZoo;
+	public static bool WelcomeIntroIsNewZoo { get; private set; }
 	public static bool StartupToastsSuppressed { get; private set; }
+
+	/// <summary>Active Final Outpost-style onboarding tip card.</summary>
+	public static OnboardingTipDef ActiveOnboardingTip { get; private set; }
+	/// <summary>Tip stashed while Open tool is in use — same card returns when the panel closes.</summary>
+	private static OnboardingTipDef _deferredOnboardingTip;
+	/// <summary>Delay before the first tip after loading — avoids click-through from the loading screen.</summary>
+	private static TimeUntil _onboardingTipReady;
+	private static bool _onboardingTipPending;
+	/// <summary>Got it hides the card until this cooldown elapses (or the goal advances).</summary>
+	private static TimeUntil _onboardingTipSoftDismiss;
+	/// <summary>Goal index the player dismissed with Got it — tip stays down until the goal changes.</summary>
+	private static int _onboardingTipDismissedGoal = -1;
 
 	/// <summary>True while the zoo session is booting — hides gameplay HUD and shows the loading overlay.</summary>
 	public static bool SessionLoading { get; private set; }
+
+	/// <summary>
+	/// True after the first successful session-load finish this playthrough.
+	/// Prevents WorldEnvironment from restarting the loading overlay (which was wiping tips).
+	/// </summary>
+	public static bool SessionLoadCompleted { get; private set; }
 
 	/// <summary>Gameplay chrome may render (top bar, toolbar, inspect panels, etc.).</summary>
 	public static bool GameplayHudVisible =>
@@ -100,7 +118,8 @@ public static class UiState
 		|| !string.IsNullOrEmpty( SelectedObstacleCellKey );
 
 	/// <summary>Inspect panels or debug — not toolbar page menus (Build, Market, etc.).</summary>
-	public static bool HasBlockingModal => DebugVisible || CatchMinigameOpen || WelcomeIntroVisible;
+	public static bool HasBlockingModal =>
+		DebugVisible || CatchMinigameOpen || WelcomeIntroVisible || ActiveOnboardingTip is not null;
 
 	// AUDIT FIX B11: Single gate for walk / zoom / world interact.
 	// Previously ZooPlayerController only checked GameStarted, so players walked
@@ -138,6 +157,7 @@ public static class UiState
 			return;
 		}
 
+		// Retail builds stay closed unless Fauna2Debug is enabled (editor can open freely via HUD gate).
 		ClearPageState();
 		ClearInspectState();
 		BackpackOpen = false;
@@ -426,7 +446,7 @@ public static class UiState
 
 		if ( !BuildValidation.IsUnlocked( def ) )
 		{
-			PushToast( $"{def.DisplayName} unlocks at level {def.UnlockLevel}.", "lock" );
+			PushToast( $"{def.DisplayName}: {BuildValidation.UnlockHint( def )}.", "lock" );
 			OpenBuild( def.Category );
 			return;
 		}
@@ -435,7 +455,7 @@ public static class UiState
 		BuildController.Instance?.BeginPlace( def );
 	}
 
-	/// <summary>Enter placement for the starter-biome small habitat.</summary>
+	/// <summary>Enter placement for a habitat matching the player's catch biome when possible.</summary>
 	public static void BeginPlaceStarterHabitat()
 	{
 		CloseModals();
@@ -444,11 +464,13 @@ public static class UiState
 		if ( habitat is null || !BuildValidation.IsUnlocked( habitat ) )
 		{
 			OpenBuild( BuildCategory.Habitats );
+			PushToast( "Pick any habitat from Build — matching your catch's biome is best.", "fence" );
 			return;
 		}
 
 		Close();
 		BuildController.Instance?.BeginPlace( habitat );
+		PushToast( $"Place a {habitat.DisplayName} — or any habitat from Build.", "fence" );
 	}
 
 	/// <summary>Close menus and enter move mode for an existing animal.</summary>
@@ -488,10 +510,11 @@ public static class UiState
 		{
 			var harms = ZooStatsReport.GetRatingHarms();
 			Log.Info( $"[Fauna2 UI] Opened Stats — placeables={PlaceableRegistry.Count} guests={GuestSystem.Instance?.GuestCount ?? 0} harms={harms.Count}" );
+			ObjectiveSystem.Instance?.MarkGuestRatingsReviewed();
 		}
 	}
 
-	/// <summary>Which build tab to open first — entrance/paths are early objectives.</summary>
+	/// <summary>Which build tab to open first — entrance/paths/amenities are early objectives.</summary>
 	public static BuildCategory SuggestBuildCategory()
 	{
 		if ( !PathNetwork.HasEntrance || !PathNetwork.HasGuestAccess )
@@ -500,6 +523,11 @@ public static class UiState
 		if ( HabitatRegistry.Count == 0 )
 			return BuildCategory.Habitats;
 
+		if ( PlaceableRegistry.RestroomCount == 0
+			|| PlaceableRegistry.RestaurantCount == 0
+			|| PlaceableRegistry.ShopCount == 0 )
+			return BuildCategory.Utility;
+
 		return BuildCategory.Habitats;
 	}
 
@@ -507,7 +535,11 @@ public static class UiState
 	public static void OpenPage( UiPage page )
 	{
 		if ( ActivePage == page && BuildCategoryOverride is null )
+		{
+			if ( page == UiPage.Stats )
+				ObjectiveSystem.Instance?.MarkGuestRatingsReviewed();
 			return;
+		}
 
 		ClearInspectState();
 		DebugVisible = false;
@@ -518,6 +550,9 @@ public static class UiState
 			MarketTab = 0;
 		Revision++;
 		BuildController.Instance?.CancelMode();
+
+		if ( page == UiPage.Stats )
+			ObjectiveSystem.Instance?.MarkGuestRatingsReviewed();
 	}
 
 	/// <summary>Open the market on a specific tab (0 adopt, 1 backpack, 2 owned, 3 tools).</summary>
@@ -643,46 +678,238 @@ public static class UiState
 		BuildController.Instance?.CancelMode();
 	}
 
-	public static void ShowControlsHintIfNeeded()
+	/// <summary>New zoo session — tip system is the only first-run teaching path.</summary>
+	public static void RequestOnboardingForNewZoo()
 	{
-		if ( !GameSettings.Current.ShowControlsHint || WelcomeIntroVisible ) return;
-		ControlsHintVisible = true;
-		Revision++;
+		GameSettings.Current.ShowWelcomeIntro = false;
+		GameSettings.Current.ShowControlsHint = false;
+		GameSettings.Current.OnboardingVersion = 7;
+		GameSettings.Current.HideOnboardingTips = false;
+		GameSettings.Current.OnboardingTipsShown = new List<string>();
+		GameSettings.Save();
 	}
 
-	public static void RequestWelcomeIntroForNewZoo()
+	/// <summary>After loading, start coach tips (no separate welcome / controls cards).</summary>
+	public static void BeginOnboardingTips()
 	{
-		_welcomeIntroForNewZoo = true;
-	}
-
-	public static void ShowWelcomeIntroIfNeeded()
-	{
-		var show = _welcomeIntroForNewZoo || GameSettings.Current.ShowWelcomeIntro;
-		_welcomeIntroForNewZoo = false;
-
-		if ( !show )
-		{
-			FinishStartupPresentation();
-			return;
-		}
-
-		WelcomeIntroVisible = true;
-		_toasts.Clear();
-		Revision++;
-	}
-
-	public static void DismissWelcomeIntro()
-	{
-		if ( !WelcomeIntroVisible && !GameSettings.Current.ShowWelcomeIntro )
-			return;
-
 		WelcomeIntroVisible = false;
+		WelcomeIntroIsNewZoo = false;
 		ControlsHintVisible = false;
 		GameSettings.Current.ShowWelcomeIntro = false;
 		GameSettings.Current.ShowControlsHint = false;
+
+		// Drop any stale tip object left over from hotload / older tip scripts.
+		if ( GameSettings.Current.OnboardingVersion < 7 )
+		{
+			GameSettings.Current.OnboardingVersion = 7;
+			GameSettings.Current.HideOnboardingTips = false;
+			GameSettings.Current.OnboardingTipsShown = new List<string>();
+		}
+
+		// New session always re-enables tips (Hide tips is per-session until H toggles).
+		GameSettings.Current.HideOnboardingTips = false;
+		GameSettings.Current.OnboardingTipsShown ??= new List<string>();
 		GameSettings.Save();
-		Revision++;
+
 		FinishStartupPresentation();
+
+		CloseModals();
+		ActiveOnboardingTip = null;
+		_deferredOnboardingTip = null;
+		_onboardingTipSoftDismiss = 0f;
+		_onboardingTipDismissedGoal = -1;
+		// TimeUntil is true while counting — tip shows once this elapses.
+		_onboardingTipPending = true;
+		_onboardingTipReady = 0.45f;
+		Revision++;
+		Log.Info( "[Fauna2 Tips] Onboarding tips armed — waiting to show coach card." );
+	}
+
+	// Kept for any stale scene/UI hooks — always routes to tip onboarding.
+	public static void RequestWelcomeIntroForNewZoo() => RequestOnboardingForNewZoo();
+	public static void ShowWelcomeIntroIfNeeded() => BeginOnboardingTips();
+	public static void ShowControlsHintIfNeeded() => TryShowOnboardingTip( force: true );
+	public static void DismissWelcomeIntro() => BeginOnboardingTips();
+
+	/// <summary>
+	/// Keep the center modal locked to the current tutorial goal (0–10).
+	/// </summary>
+	public static void TryShowOnboardingTip( bool force = false )
+	{
+		if ( SessionLoading )
+			return;
+
+		// Boot delay: TimeUntil is true while counting down — wait until it elapses.
+		if ( _onboardingTipPending )
+		{
+			if ( _onboardingTipReady )
+				return;
+
+			_onboardingTipPending = false;
+			force = true;
+		}
+
+		if ( CatchMinigameOpen && !force )
+			return;
+		if ( _deferredOnboardingTip is not null )
+			return;
+
+		if ( !OnboardingTips.ShouldRun() )
+		{
+			if ( ActiveOnboardingTip is not null )
+			{
+				ActiveOnboardingTip = null;
+				Revision++;
+			}
+			else if ( force )
+			{
+				Log.Warning( $"[Fauna2 Tips] Tip ready but ShouldRun=false (hide={GameSettings.Current.HideOnboardingTips}, started={GameManager.Instance?.GameStarted}, goal={ObjectiveSystem.Instance?.CurrentIndex})" );
+			}
+			return;
+		}
+
+		var tip = OnboardingTips.TipForCurrentGoal();
+		if ( tip is null )
+			return;
+
+		// Got it — stay hidden for this goal (force / goal advance still shows the next card).
+		if ( !force && tip.GoalIndex == _onboardingTipDismissedGoal )
+			return;
+
+		// Soft-dismiss cooldown — tip stays hidden until the timer elapses (force skips).
+		if ( !force && _onboardingTipSoftDismiss )
+			return;
+
+		// Always re-bind from TipForCurrentGoal so hotload can't leave a stale title/body on screen.
+		var sameId = ActiveOnboardingTip is not null && ActiveOnboardingTip.Id == tip.Id;
+		var sameText = sameId
+			&& ActiveOnboardingTip.Title == tip.Title
+			&& ActiveOnboardingTip.Body == tip.Body;
+		if ( !force && sameText )
+			return;
+
+		if ( !sameId )
+			CloseModals();
+
+		_onboardingTipSoftDismiss = 0f;
+		if ( tip.GoalIndex != _onboardingTipDismissedGoal )
+			_onboardingTipDismissedGoal = -1;
+		ActiveOnboardingTip = tip;
+		Revision++;
+		Log.Info( $"[Fauna2 Tips] Showing coach tip '{tip.Id}' for goal {tip.GoalIndex}: {tip.Title}" );
+	}
+
+	/// <summary>True while a coach tip is on screen and can accept button clicks.</summary>
+	public static bool CanInteractWithOnboardingTip => ActiveOnboardingTip is not null;
+
+	/// <summary>
+	/// Open the tip's linked tool without dismissing or advancing the coach script.
+	/// Tip is stashed and restored when the panel / placement mode closes.
+	/// </summary>
+	public static void OpenOnboardingTipTool()
+	{
+		var tip = ActiveOnboardingTip;
+		if ( tip is null )
+			return;
+		if ( tip.OpenAction == ObjectiveAction.None )
+			return;
+
+		_deferredOnboardingTip = tip;
+		ActiveOnboardingTip = null;
+		Revision++;
+		ObjectiveNavigator.Open( tip.OpenAction );
+	}
+
+	public static void DismissOnboardingTip()
+	{
+		if ( ActiveOnboardingTip is null && _deferredOnboardingTip is null )
+			return;
+
+		// Soft dismiss — stay down for this goal; next goal forces the next card.
+		_onboardingTipDismissedGoal = ActiveOnboardingTip?.GoalIndex
+			?? ObjectiveSystem.Instance?.CurrentIndex
+			?? -1;
+		ActiveOnboardingTip = null;
+		_deferredOnboardingTip = null;
+		_onboardingTipSoftDismiss = 0f;
+		Revision++;
+	}
+
+	/// <summary>
+	/// Goal completed — drop the current tip immediately and show the next step's card.
+	/// </summary>
+	public static void AdvanceOnboardingTipAfterGoal( int completedGoalIndex )
+	{
+		OnboardingTips.MarkTipsForGoal( completedGoalIndex );
+		ActiveOnboardingTip = null;
+		_deferredOnboardingTip = null;
+		_onboardingTipPending = false;
+		_onboardingTipSoftDismiss = 0f;
+		_onboardingTipDismissedGoal = -1;
+		Revision++;
+		TryShowOnboardingTip( force: true );
+	}
+
+	public static void HideOnboardingTips()
+	{
+		ActiveOnboardingTip = null;
+		_deferredOnboardingTip = null;
+		OnboardingTips.HideAllTips();
+		PushToast( "Tips hidden — press H to show again", "visibility_off" );
+		Revision++;
+	}
+
+	/// <summary>H key — hide or re-enable Final Outpost-style coach tips.</summary>
+	public static void ToggleOnboardingTipsHidden()
+	{
+		if ( ActiveOnboardingTip is not null || _onboardingTipPending || _deferredOnboardingTip is not null )
+			return;
+
+		GameSettings.Current.HideOnboardingTips = !GameSettings.Current.HideOnboardingTips;
+		GameSettings.Save();
+
+		if ( GameSettings.Current.HideOnboardingTips )
+		{
+			PushToast( "Tips hidden — press H to show again", "visibility_off" );
+		}
+		else
+		{
+			PushToast( "Tips enabled", "help_outline" );
+			_onboardingTipSoftDismiss = 0f;
+			_onboardingTipDismissedGoal = -1;
+			TryShowOnboardingTip( force: true );
+		}
+
+		Revision++;
+	}
+
+	/// <summary>Bring back the tip stashed by Open tool once Market / placement is done.</summary>
+	private static void TryRestoreDeferredOnboardingTip()
+	{
+		if ( _deferredOnboardingTip is null )
+			return;
+		if ( SessionLoading || CatchMinigameOpen || IsOnboardingToolUiBusy() )
+			return;
+
+		if ( GameSettings.Current.HideOnboardingTips )
+		{
+			_deferredOnboardingTip = null;
+			return;
+		}
+
+		// Prefer the tip for the *current* goal (index may have advanced while the tool was open).
+		_deferredOnboardingTip = null;
+		_onboardingTipSoftDismiss = 0f;
+		TryShowOnboardingTip( force: true );
+	}
+
+	private static bool IsOnboardingToolUiBusy()
+	{
+		if ( IsPageOpen || BackpackOpen )
+			return true;
+
+		var build = BuildController.Instance;
+		return build is not null && build.Mode != BuildMode.None;
 	}
 
 	public static void ReleaseStartupNotifications() => FinishStartupPresentation();
@@ -691,18 +918,14 @@ public static class UiState
 	{
 		StartupToastsSuppressed = false;
 		DailyBonusSystem.Instance?.PresentDeferredBonus();
-
-		if ( Networking.IsHost && ZooMilestones.Instance.IsValid() && !ZooMilestones.Instance.EconomyTutorialShown )
-			ZooMilestones.Instance.EconomyTutorialShown = true;
 	}
 
 	public static void DismissControlsHint()
 	{
-		if ( !ControlsHintVisible && !GameSettings.Current.ShowControlsHint ) return;
-
 		ControlsHintVisible = false;
 		GameSettings.Current.ShowControlsHint = false;
 		GameSettings.Save();
+		TryShowOnboardingTip( force: true );
 		Revision++;
 	}
 
@@ -713,7 +936,13 @@ public static class UiState
 			return;
 
 		SessionLoading = false;
+		SessionLoadCompleted = false;
 		_worldReadyPending = false;
+		_onboardingTipPending = false;
+		ActiveOnboardingTip = null;
+		_deferredOnboardingTip = null;
+		_onboardingTipSoftDismiss = 0f;
+		_onboardingTipDismissedGoal = -1;
 		CloseModals();
 	}
 
@@ -723,15 +952,32 @@ public static class UiState
 		if ( SessionLoading )
 			return;
 
+		// WorldEnvironment used to call this again after the first load finished,
+		// which cleared ActiveOnboardingTip and made tips "instantly disappear".
+		if ( SessionLoadCompleted )
+			return;
+
 		SessionLoading = true;
+		SessionLoadCompleted = false;
 		_worldReadyPending = false;
 		_loadingStarted = 0f;
+		_onboardingTipPending = false;
 		StartupToastsSuppressed = true;
 		WelcomeIntroVisible = false;
-		_welcomeIntroForNewZoo = false;
+		ActiveOnboardingTip = null;
+		_deferredOnboardingTip = null;
+		_onboardingTipSoftDismiss = 0f;
 		_toasts.Clear();
 		CloseModals();
 		Revision++;
+	}
+
+	/// <summary>Force a fresh loading gate (new game / load save from the menu).</summary>
+	public static void BeginSessionLoadingFresh()
+	{
+		SessionLoadCompleted = false;
+		SessionLoading = false;
+		BeginSessionLoading();
 	}
 
 	/// <summary>World visuals finished — release the loading overlay once the minimum display time elapses.</summary>
@@ -750,6 +996,7 @@ public static class UiState
 			return;
 
 		SessionLoading = false;
+		SessionLoadCompleted = true;
 		_worldReadyPending = false;
 		Revision++;
 		GameManager.Instance?.OnSessionLoadingComplete();
@@ -843,6 +1090,9 @@ public static class UiState
 	{
 		if ( StartupToastsSuppressed )
 			return;
+		// Don't cover the center coach tip with a celebration splash.
+		if ( ActiveOnboardingTip is not null || _onboardingTipPending )
+			return;
 
 		_celebration = new Celebration { Title = title, Subtitle = subtitle, Icon = icon, Age = 0 };
 		Revision++;
@@ -859,6 +1109,8 @@ public static class UiState
 		if ( !CatchMinigameOpen ) return;
 		CatchMinigameOpen = false;
 		Revision++;
+		// Catch often completes a goal — surface the next tip once the overlay is gone.
+		TryShowOnboardingTip( force: true );
 	}
 
 	public static void Update()
@@ -886,11 +1138,14 @@ public static class UiState
 
 		TickObstacleClear();
 		TryCompleteSessionLoading();
+		TryShowOnboardingTip();
+		TryRestoreDeferredOnboardingTip();
 
 		if ( SessionLoading && _loadingStarted > MaxLoadingSeconds )
 		{
 			Log.Warning( "[Fauna2 UI] Session loading timed out — releasing HUD." );
 			SessionLoading = false;
+			SessionLoadCompleted = true;
 			_worldReadyPending = false;
 			Revision++;
 			GameManager.Instance?.OnSessionLoadingComplete();

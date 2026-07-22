@@ -50,8 +50,9 @@
 			<div class="section-title">Weekly Showcase</div>
 			<div class="rating-row">
 				<div class="rating-info">@WeeklyTheme</div>
-				<div class="rating-info amenity">Current score @WeeklyScore · best @WeeklyBest</div>
-				<div class="hint-text">@ShareSummary</div>
+				<div class="rating-info amenity">Current score @WeeklyScore · personal best @WeeklyBest</div>
+				<div class="hint-text">@ZooSummary</div>
+				<div class="hint-text">Theme rotates weekly. Your best score for this theme is saved with the zoo.</div>
 			</div>
 		</div>
 	}
@@ -92,7 +93,7 @@
 	private string WeeklyTheme => SocialSystem.Instance?.WeeklyTheme ?? "Weekly Showcase";
 	private int WeeklyScore => SocialSystem.Instance?.WeeklyScore ?? 0;
 	private int WeeklyBest => SocialSystem.Instance?.WeeklyBestScore ?? 0;
-	private string ShareSummary => SocialSystem.Instance?.ShareSummary ?? "";
+	private string ZooSummary => SocialSystem.Instance?.ZooSummary ?? "";
 
 	private long LocalSteamId => Connection.Local?.SteamId.Value ?? 0;
 	private bool AlreadyLiked => SocialSystem.Instance?.HasLiked( LocalSteamId ) ?? false;

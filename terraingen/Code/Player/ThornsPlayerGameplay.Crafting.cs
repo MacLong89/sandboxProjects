@@ -31,27 +31,91 @@ public sealed partial class ThornsPlayerGameplay
 
 	public void HostCraft( ThornsCraftRequest req )
 	{
-		if ( !ThornsMultiplayer.IsHostOrOffline || req is null || HostIsDead() )
+		if ( !ThornsMultiplayer.IsHostOrOffline || req is null )
 			return;
+
+		if ( HostIsDead() )
+		{
+			PushOwnerNotification( "Cannot craft while dead.", "warning" );
+			return;
+		}
 
 		var recipe = ThornsDefinitionRegistry.GetRecipe( req.RecipeId );
 		if ( recipe is null || req.Quantity <= 0 )
+		{
+			PushOwnerNotification( "Unknown recipe.", "warning" );
 			return;
+		}
 
 		if ( !HostMeetsCraftTier( recipe ) )
+		{
+			PushOwnerNotification( "Skill tier too low for this recipe.", "warning" );
 			return;
+		}
 
 		if ( !HostHasIngredients( recipe, req.Quantity ) )
+		{
+			PushOwnerNotification( "Missing ingredients.", "warning" );
 			return;
+		}
 
 		if ( !HostStationAllows( recipe ) )
+		{
+			PushOwnerNotification( "Need the right crafting station nearby.", "warning" );
 			return;
+		}
+
+		if ( !HostCanGuaranteeCraftDelivery( recipe, req.Quantity ) )
+		{
+			PushOwnerNotification( "Inventory full — free space or drop items before crafting.", "warning" );
+			return;
+		}
 
 		HostConsumeIngredients( recipe, req.Quantity );
 		_craftQueue.Enqueue( recipe, req.Quantity );
 		MarkInventorySyncDirty();
 		PushInventoryToOwner();
 		HostPersistPlayerState();
+	}
+
+	bool HostCanGuaranteeCraftDelivery( ThornsRecipeDefinition recipe, int batches )
+	{
+		if ( recipe is null || batches <= 0 )
+			return false;
+
+		var needed = recipe.OutputCount * batches;
+		if ( needed <= 0 )
+			return true;
+
+		// Enough free inventory capacity, or a world drop crate can be spawned as fallback.
+		if ( HostCountFreeInventoryCapacity( recipe.OutputItemId ) >= needed )
+			return true;
+
+		return Terraingen.World.ThornsDeathCrateWorldService.Instance is { IsValid: true };
+	}
+
+	int HostCountFreeInventoryCapacity( string itemId )
+	{
+		if ( string.IsNullOrWhiteSpace( itemId ) || !ThornsItemRegistry.TryGet( itemId, out var def ) || def is null )
+			return 0;
+
+		var free = 0;
+		for ( var i = 0; i < ThornsInventoryContainer.InventorySlotCount; i++ )
+		{
+			var s = _inventory.GetSlot( ThornsContainerKind.Inventory, i );
+			if ( s.IsEmpty )
+			{
+				free += def.MaxStack;
+				continue;
+			}
+
+			if ( s.ItemId != itemId )
+				continue;
+
+			free += Math.Max( 0, def.MaxStack - s.Count );
+		}
+
+		return free;
 	}
 
 	bool HostMeetsCraftTier( ThornsRecipeDefinition recipe )
@@ -111,18 +175,27 @@ public sealed partial class ThornsPlayerGameplay
 			droppedOverflow = Terraingen.World.ThornsDeathCrateWorldService.Instance
 				?.HostTrySpawnPlayerDrop( GameObject, overflow ) == true;
 
-			PushOwnerNotification(
-				droppedOverflow
-					? $"Inventory full — crafted items dropped nearby ({remaining})."
-					: $"Inventory full — lost {remaining} crafted item(s).",
-				droppedOverflow ? "warning" : "error" );
+			if ( !droppedOverflow )
+			{
+				// Hold overflow on the player until inventory space opens — never silently destroy paid crafts.
+				HostEnqueuePendingCraftOverflow( overflow );
+				PushOwnerNotification(
+					$"Inventory full — crafted items held until you free space ({remaining}).",
+					"warning" );
+			}
+			else
+			{
+				PushOwnerNotification(
+					$"Inventory full — crafted items dropped nearby ({remaining}).",
+					"warning" );
+			}
 
 			Log.Warning(
-				$"[Thorns Craft] Grant overflow itemId={recipe.OutputItemId} remaining={remaining} dropped={droppedOverflow} account={AccountKey}" );
+				$"[Thorns Craft] Grant overflow itemId={recipe.OutputItemId} remaining={remaining} dropped={droppedOverflow} held={!droppedOverflow} account={AccountKey}" );
 		}
 
-		// Still credit milestones if anything was granted or safely dropped (ingredients already spent).
-		if ( granted > 0 || droppedOverflow || remaining == 0 )
+		// Still credit milestones if anything was granted, dropped, or held (ingredients already spent).
+		if ( granted > 0 || droppedOverflow || remaining == 0 || remaining > 0 )
 		{
 			ThornsMilestoneTracker.OnCrafted( this, recipe.OutputItemId, recipe.OutputCount );
 			ThornsMilestoneTracker.OnInventoryChanged( this );
@@ -134,6 +207,53 @@ public sealed partial class ThornsPlayerGameplay
 		MarkInventorySyncDirty();
 		PushInventoryToOwner();
 		HostPersistPlayerState();
+	}
+
+	void HostEnqueuePendingCraftOverflow( ThornsItemStack stack )
+	{
+		if ( stack.IsEmpty )
+			return;
+
+		_pendingCraftOverflow.Add( stack );
+	}
+
+	void HostTickPendingCraftOverflow()
+	{
+		if ( !ThornsMultiplayer.IsHostOrOffline || _pendingCraftOverflow.Count == 0 || HostIsDead() )
+			return;
+
+		var changed = false;
+		for ( var i = _pendingCraftOverflow.Count - 1; i >= 0; i-- )
+		{
+			var stack = _pendingCraftOverflow[i];
+			if ( stack.IsEmpty )
+			{
+				_pendingCraftOverflow.RemoveAt( i );
+				continue;
+			}
+
+			var granted = HostTryAddItem( stack.ItemId, stack.Count, out var remaining );
+			if ( granted <= 0 && remaining >= stack.Count )
+				continue;
+
+			changed = true;
+			if ( remaining <= 0 )
+			{
+				_pendingCraftOverflow.RemoveAt( i );
+				continue;
+			}
+
+			stack.Count = remaining;
+			_pendingCraftOverflow[i] = stack;
+		}
+
+		if ( !changed )
+			return;
+
+		MarkInventorySyncDirty();
+		PushInventoryToOwner();
+		HostPersistPlayerState();
+		PushOwnerNotification( "Recovered crafted items into inventory.", "success" );
 	}
 
 	public void SetCraftUiState( bool expanded, string category, string recipeId )

@@ -9,6 +9,10 @@ public sealed class ThornsVictoryPersistentStateDto
 	public Dictionary<string, string> LastPlayerLeaderByPath { get; set; } = new();
 	public Dictionary<string, string> LastGuildLeaderByPath { get; set; } = new();
 	public List<ThornsVictoryLeadershipChangePersistentDto> LeadershipChanges { get; set; } = new();
+	/// <summary>AccountKey → claimed milestone ids ("pathId:milestoneId").</summary>
+	public Dictionary<string, List<string>> ClaimedMilestonesByAccount { get; set; } = new();
+	/// <summary>AccountKey → completed path ids.</summary>
+	public Dictionary<string, List<string>> CompletedPathsByAccount { get; set; } = new();
 }
 
 public sealed class ThornsVictoryLeadershipChangePersistentDto

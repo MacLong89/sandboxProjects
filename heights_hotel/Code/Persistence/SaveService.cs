@@ -104,6 +104,8 @@ public sealed class SaveService
 		}
 
 		state.PeakReputationLevel = Math.Max( state.PeakReputationLevel, state.ReputationLevel );
+		if ( state.HideTutorialTips )
+			state.ActiveTutorial = null;
 		if ( state.WeatherRemaining <= 0f )
 			state.WeatherRemaining = 45f;
 		if ( state.GoalsDay < 1 )

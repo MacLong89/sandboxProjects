@@ -1,0 +1,1114 @@
+@using Sandbox
+@using Sandbox.UI
+@using PawnShop
+@inherits PanelComponent
+@namespace PawnShop.UI
+
+<root>
+@if ( Game is null )
+{
+	<div class="loading">Loading...</div>
+}
+else
+{
+	@* ============================================================ MAIN MENU *@
+	@if ( Game.State == GameState.MainMenu )
+	{
+		<div class="fullscreen menu-screen">
+			<div class="menu-card">
+				<div class="menu-title">BRASS BUCK<span class="accent">PAWN</span></div>
+				<div class="menu-sub">Buy low. Spot fakes. Stay solvent.</div>
+				<div class="menu-buttons">
+					@if ( Game.HasSave )
+					{
+						<div class="btn big gold" onclick=@(() => Game.ContinueGame())>CONTINUE — DAY @Game.Save.Day</div>
+						<div class="btn big" onclick=@(() => Game.NewGame())>NEW GAME</div>
+					}
+					else
+					{
+						<div class="btn big gold" onclick=@(() => Game.NewGame())>NEW GAME</div>
+					}
+				</div>
+				<div class="menu-help">
+					<div class="help-row"><b>WASD</b> move &nbsp; <b>Mouse</b> look &nbsp; <b>E</b> interact &nbsp; <b>TAB</b> manage shop &nbsp; <b>ESC</b> back</div>
+					<div class="help-row dim">Run a pawn shop: haggle with sellers, inspect for fakes, issue pawn loans, price your shelves, and survive the daily bills.</div>
+				</div>
+			</div>
+		</div>
+	}
+
+	@* ============================================================ GAMEPLAY HUD *@
+	@if ( InWorld )
+	{
+		<div class="topbar">
+			<div class="chip day-chip">
+				<i class="icon">calendar_today</i>
+				<span>DAY @Game.Save.Day</span>
+				<span class="divider"></span>
+				<i class="icon">schedule</i>
+				<span>@Game.ClockLabel</span>
+				<span class="divider"></span>
+				<span class="@(Game.ShopIsOpen ? "open-label" : "closed-label")">@(Game.State == GameState.ShopClosing ? "CLOSING" : Game.ShopIsOpen ? "OPEN" : "CLOSED")</span>
+			</div>
+
+			<div class="cash-chip @(Game.Economy.Cash < 100 ? "danger" : "")">@Cash</div>
+
+			<div class="chip rep-chip">
+				<span class="stars">@Game.Reputation.Stars</span>
+				<span>@Game.Reputation.Label</span>
+				@if ( Game.Save.Debt > 0 )
+				{
+					<span class="divider"></span>
+					<span class="debt">DEBT @GameConstants.FormatCash(Game.Save.Debt)</span>
+				}
+				@if ( QueueCount > 0 )
+				{
+					<span class="divider"></span>
+					<i class="icon">groups</i>
+					<span>@QueueCount</span>
+				}
+			</div>
+		</div>
+
+		@* Event sits under the topbar only when the morning card isn't already showing it *@
+		@if ( Game.Events.Today is not null && Game.State != GameState.MorningPrep )
+		{
+			<div class="event-chip @(Game.Events.Today.IsGood ? "good" : "bad")">
+				<i class="icon">@Game.Events.Today.Icon</i>
+				<span>@Game.Events.Today.Name</span>
+			</div>
+		}
+
+		@* Single left rail: goals + duties (hidden during morning / blocking UI) *@
+		@if ( !Game.IsUiBlocking && Game.State != GameState.MorningPrep && (Game.Goals.Today.Any() || Game.Chores is { PendingCount: > 0 }) )
+		{
+			<div class="side-rail">
+				@if ( Game.Goals.Today.Any() )
+				{
+					<div class="rail-block">
+						<div class="rail-title"><i class="icon">flag</i> GOALS</div>
+						@foreach ( var goal in Game.Goals.Today )
+						{
+							var done = Game.Goals.IsComplete( goal );
+							var progress = Math.Min( Game.Goals.Progress( goal ), goal.Target );
+							<div class="rail-row @(done ? "done" : "")">
+								<i class="icon">@(done ? "check_circle" : goal.Icon)</i>
+								<span class="rail-text">@goal.Text</span>
+								<span class="rail-count">@(done ? $"+{GameConstants.FormatCash( goal.Reward )}" : $"{progress}/{goal.Target}")</span>
+							</div>
+						}
+					</div>
+				}
+				@if ( Game.Chores is { PendingCount: > 0 } )
+				{
+					<div class="rail-block">
+						<div class="rail-title"><i class="icon">home_repair_service</i> DUTIES</div>
+						@if ( Game.Chores.PendingSweeps > 0 )
+						{
+							<div class="rail-row"><i class="icon">cleaning_services</i><span class="rail-text">Sweep floor</span><span class="rail-count">@Game.Chores.PendingSweeps</span></div>
+						}
+						@if ( Game.Chores.PendingDust > 0 )
+						{
+							<div class="rail-row"><i class="icon">auto_awesome</i><span class="rail-text">Dust shelves</span><span class="rail-count">@Game.Chores.PendingDust</span></div>
+						}
+						@if ( Game.Chores.PendingOrganize > 0 )
+						{
+							<div class="rail-row"><i class="icon">inventory_2</i><span class="rail-text">Restack boxes</span><span class="rail-count">@Game.Chores.PendingOrganize</span></div>
+						}
+						@if ( Game.Chores.PendingTrash > 0 )
+						{
+							<div class="rail-row"><i class="icon">delete</i><span class="rail-text">@(Game.Chores.CarryingTrash ? "Dump in alley" : "Take out trash")</span><span class="rail-count">1</span></div>
+						}
+						@if ( Game.Chores.PlantNeedsWater )
+						{
+							<div class="rail-row"><i class="icon">local_florist</i><span class="rail-text">Water plant</span><span class="rail-count">!</span></div>
+						}
+						@if ( Game.Chores.CounterNeedsPolish )
+						{
+							<div class="rail-row"><i class="icon">countertops</i><span class="rail-text">Polish counter</span><span class="rail-count">!</span></div>
+						}
+					</div>
+				}
+			</div>
+		}
+
+		@* Toasts — right side only *@
+		@if ( !Game.IsUiBlocking )
+		{
+			<div class="toasts">
+				@foreach ( var toast in Game.Toasts )
+				{
+					<div class="toast"><i class="icon">@toast.Icon</i><span>@toast.Text</span></div>
+				}
+			</div>
+		}
+
+		@* Bottom stack: carry → tutorial → interact (one column, no overlap) *@
+		@if ( !Game.IsUiBlocking )
+		{
+			<div class="bottom-stack">
+				@if ( Game.Chores?.CarryingTrash == true )
+				{
+					<div class="carry-chip trash">
+						<i class="icon">delete</i>
+						<span>Carrying <b>trash bag</b> — E at back door to dump · <b>Q</b> to drop</span>
+					</div>
+				}
+				else if ( Game.CarriedItem is not null )
+				{
+					<div class="carry-chip">
+						<i class="icon">luggage</i>
+						<span>Carrying <b>@Game.CarriedItem.Name</b> — E on shelf to place · <b>Q</b> to drop</span>
+					</div>
+				}
+
+				@if ( FocusPrompt is not null )
+				{
+					<div class="interact-prompt"><b>E</b> @FocusPrompt</div>
+				}
+
+				@if ( !ShowTutorialTip && Game.CarriedItem is null && Game.Chores?.CarryingTrash != true )
+				{
+					<div class="controls-hint">TAB manage · E interact</div>
+				}
+			</div>
+
+			@if ( ShowTutorialTip )
+			{
+				<div class="overlay tip-overlay">
+					<div class="modal confirm tutorial-tip">
+						<i class="icon confirm-icon tip-icon">@Game.Tutorial.CurrentIcon</i>
+						<div class="confirm-title">@Game.Tutorial.CurrentTitle</div>
+						<div class="confirm-body">@TutorialText</div>
+						<div class="btn-row">
+							<div class="btn ghost" onclick=@HideTutorialTips><i class="icon">visibility_off</i><span>Hide tips</span></div>
+							<div class="btn primary" onclick=@DismissTutorialTip><span>Got it</span></div>
+						</div>
+					</div>
+				</div>
+			}
+
+			<div class="crosshair"></div>
+		}
+
+		@* Morning prep card — exclusive left column, no side-rail *@
+		@if ( Game.State == GameState.MorningPrep && !Game.IsUiBlocking )
+		{
+			<div class="morning-card">
+				<div class="mc-title">MORNING — DAY @Game.Save.Day</div>
+				@if ( Game.Events.Today is not null )
+				{
+					<div class="mc-event @(Game.Events.Today.IsGood ? "good" : "bad")">
+						<i class="icon">@Game.Events.Today.Icon</i>
+						<div>
+							<div class="mc-event-name">@Game.Events.Today.Name</div>
+							<div class="mc-event-desc">@Game.Events.Today.Description</div>
+						</div>
+					</div>
+				}
+				<div class="mc-row"><i class="icon">payments</i> Expected bills tonight: <b>@GameConstants.FormatCash(Game.Economy.DailyExpenses())</b></div>
+				@if ( Game.Crate.OfferedToday && !Game.Crate.BoughtToday )
+				{
+					<div class="mc-crate">
+						<i class="icon">package_2</i>
+						<div class="mc-crate-info">
+							<div class="mc-event-name">Wholesaler at the back door — sealed crate, @Game.Crate.ItemCount items</div>
+							<div class="mc-event-desc">@Game.Crate.PitchLine</div>
+						</div>
+						<div class="btn @(Game.Economy.CanAfford(Game.Crate.Cost) ? "gold" : "disabled")" onclick=@(() => Game.Crate.Buy(Game))>BUY @GameConstants.FormatCash(Game.Crate.Cost)</div>
+					</div>
+				}
+				@foreach ( var contract in Game.Pawns.DueSoon )
+				{
+					<div class="mc-row warn"><i class="icon">schedule</i> Pawn due day @contract.DueDay: @(Game.Inventory.Get(contract.ItemId)?.Name ?? "item") — @contract.CustomerName owes @GameConstants.FormatCash(contract.RedemptionAmount)</div>
+				}
+				@if ( Game.Chores is { PendingCount: > 0 } )
+				{
+					<div class="mc-row"><i class="icon">home_repair_service</i> Shop duties waiting: <b>@Game.Chores.PendingCount</b> (sweep, dust, restack, water, polish, trash)</div>
+				}
+				<div class="mc-row dim">Tidy up, stock the shelves, then open at the front door. Backroom is through the staff gap.</div>
+				<div class="mc-buttons">
+					<div class="btn gold" onclick=@(() => Game.OpenShop())><i class="icon">storefront</i> OPEN THE SHOP</div>
+					<div class="btn" onclick=@(() => Game.ToggleManagement())><i class="icon">inventory</i> MANAGE</div>
+				</div>
+			</div>
+		}
+	}
+
+	@* ============================================================ NEGOTIATION *@
+	@if ( Game.Negotiation.Active && Neg.Customer is not null )
+	{
+		<div class="negotiation">
+			<div class="neg-header">
+				<div class="neg-customer">
+					<div class="portrait" style="background-color: @Css(Neg.Customer.Shirt);">
+						<div class="face" style="background-color: @Css(Neg.Customer.Skin);"></div>
+					</div>
+					<div class="neg-who">
+						<div class="neg-name">@Neg.Customer.Name</div>
+						<div class="neg-meta">
+							<span class="neg-pill">@Neg.Customer.Archetype.Label</span>
+							<span class="neg-pill intent">@IntentLabel</span>
+							@if ( Neg.Customer.Relationship is { } rel && rel.Tier != "Unknown" )
+							{
+								<span class="neg-pill soft">@rel.Tier</span>
+							}
+						</div>
+					</div>
+				</div>
+				<div class="neg-status">
+					<div class="mood"><i class="icon">@Neg.Customer.MoodIcon</i><span>@Neg.Customer.MoodLabel</span></div>
+					<div class="patience-wrap">
+						<span class="patience-label">Patience</span>
+						<div class="patience-track"><div class="patience-fill @(PatiencePct < 30 ? "low" : "")" style="width: @(PatiencePct)%;"></div></div>
+					</div>
+				</div>
+			</div>
+
+			<div class="neg-line">"@Neg.CustomerLine"</div>
+
+			@if ( Neg.Item is not null )
+			{
+				<div class="neg-item">
+					<div class="ni-icon">
+						<i class="icon" style="color: @Css(Neg.Item.Def?.Tint ?? Color.White);">@(Neg.Item.Def?.Icon ?? "inventory_2")</i>
+					</div>
+					<div class="neg-item-info">
+						<div class="ni-name">@Neg.Item.Name</div>
+						@if ( Neg.Item.Def?.Brand is { Length: > 0 } brand )
+						{
+							<div class="ni-brand">@brand</div>
+						}
+						<div class="ni-tags">
+							<span class="tag">@(Neg.Item.Def?.Category.Label() ?? "?")</span>
+							<span class="tag">@Neg.Item.Condition.Label()</span>
+							@if ( Neg.Item.RarityKnown && Neg.Item.Rarity > Rarity.Common )
+							{
+								<span class="tag rarity" style="color: @Css(Neg.Item.Rarity.RarityColor());">@Neg.Item.Rarity.Label()</span>
+							}
+							@if ( Neg.Item.KnownAuthenticity == Authenticity.Genuine )
+							{
+								<span class="tag genuine">GENUINE</span>
+							}
+							else if ( Neg.Item.KnownCounterfeit )
+							{
+								<span class="tag fake">@Neg.Item.TrueAuthenticity.ToString().ToUpper()</span>
+							}
+							@if ( Neg.Item.KnownStolen )
+							{
+								<span class="tag fake">STOLEN?</span>
+							}
+							@if ( Neg.Item.Dirtiness > 0.4f )
+							{
+								<span class="tag">Dirty</span>
+							}
+						</div>
+					</div>
+					<div class="ni-value">
+						<div class="ni-value-label">YOUR ESTIMATE</div>
+						<div class="ni-value-range">@EstimateRange</div>
+						<div class="ni-value-conf">@Estimate.Confidence confidence</div>
+					</div>
+					@if ( Neg.Kind is NegotiationKind.Sell or NegotiationKind.Pawn )
+					{
+						<div class="btn gold inspect" onclick=@(() => Game.OpenInspection(Neg.Item))><i class="icon">search</i> INSPECT</div>
+					}
+				</div>
+
+				@if ( Neg.Kind == NegotiationKind.Sell && Neg.Item.DiscoveredDefectDefs.Any( d => !d.IsPositive ) )
+				{
+					<div class="cite-row">
+						<span class="cite-label">Point out:</span>
+						@foreach ( var defect in Neg.Item.DiscoveredDefectDefs.Where( d => !d.IsPositive ) )
+						{
+							var cited = Neg.CitedDefects.Contains( defect.Id );
+							<div class="cite-chip @(cited ? "used" : "")" onclick=@(() => { if (!cited) Neg.CiteFlaw(defect.Id); })>
+								<i class="icon">@defect.Icon</i> @defect.Name
+							</div>
+						}
+					</div>
+				}
+			}
+
+			@* ---------------- SELL controls ---------------- *@
+			@if ( Neg.Kind == NegotiationKind.Sell )
+			{
+				<div class="neg-numbers">
+					<div class="num-block">
+						<div class="num-label">THEIR ASK</div>
+						<div class="num-value">@GameConstants.FormatCash(Neg.CurrentAsk)</div>
+					</div>
+					<div class="num-block offer">
+						<div class="num-label">YOUR OFFER</div>
+						<div class="stepper">
+							<div class="step" onclick=@(() => NudgeOffer(-50))>-50</div>
+							<div class="step" onclick=@(() => NudgeOffer(-10))>-10</div>
+							<div class="num-value offer-amt">@GameConstants.FormatCash(_offer)</div>
+							<div class="step" onclick=@(() => NudgeOffer(10))>+10</div>
+							<div class="step" onclick=@(() => NudgeOffer(50))>+50</div>
+						</div>
+						<div class="presets">
+							<div class="preset" onclick=@(() => SetOffer((int)(EstMid * 0.5f)))>Lowball</div>
+							<div class="preset" onclick=@(() => SetOffer((int)(EstMid * 0.7f)))>Firm</div>
+							<div class="preset" onclick=@(() => SetOffer((int)(EstMid * 0.85f)))>Fair</div>
+						</div>
+					</div>
+				</div>
+				<div class="neg-buttons">
+					<div class="btn gold" onclick=@(() => { Neg.PlayerOffer(_offer); Game.Tutorial.Notify(TutorialTrigger.MadeOffer); })><i class="icon">payments</i> MAKE OFFER</div>
+					<div class="btn @(CanAffordAsk ? "" : "disabled")" onclick=@(() => { if (CanAffordAsk) Neg.AcceptAsk(); })><i class="icon">check</i> PAY ASK (@GameConstants.FormatCash(Neg.CurrentAsk))</div>
+					@if ( !Neg.StoryQuestioned )
+					{
+						<div class="btn" onclick=@(() => Neg.QuestionStory())><i class="icon">help</i> QUESTION STORY</div>
+					}
+					<div class="btn red" onclick=@(() => Neg.Reject())><i class="icon">close</i> NO DEAL</div>
+				</div>
+			}
+
+			@* ---------------- PAWN controls ---------------- *@
+			@if ( Neg.Kind == NegotiationKind.Pawn )
+			{
+				<div class="neg-numbers">
+					<div class="num-block"><div class="num-label">THEY WANT</div><div class="num-value">@GameConstants.FormatCash(Neg.RequestedLoan)</div></div>
+					<div class="num-block offer">
+						<div class="num-label">YOUR LOAN</div>
+						<div class="stepper">
+							<div class="step" onclick=@(() => NudgeLoan(-50))>-50</div>
+							<div class="step" onclick=@(() => NudgeLoan(-10))>-10</div>
+							<div class="num-value">@GameConstants.FormatCash(_loan)</div>
+							<div class="step" onclick=@(() => NudgeLoan(10))>+10</div>
+							<div class="step" onclick=@(() => NudgeLoan(50))>+50</div>
+						</div>
+						<div class="presets">
+							<div class="preset" onclick=@(() => SetLoan(Neg.RequestedLoan / 2))>Half</div>
+							<div class="preset" onclick=@(() => SetLoan((int)(Neg.RequestedLoan * 0.8f)))>Most</div>
+							<div class="preset" onclick=@(() => SetLoan(Neg.RequestedLoan))>Full</div>
+						</div>
+					</div>
+					<div class="num-block">
+						<div class="num-label">FEE</div>
+						<div class="fee-row">
+							@foreach ( var fee in FeeOptions )
+							{
+								<div class="preset @(Math.Abs(_fee - fee) < 0.001f ? "active" : "")" onclick=@(() => SetFee(fee))>@((int)(fee * 100))%</div>
+							}
+						</div>
+						<div class="num-sub">Repay: @GameConstants.FormatCash(_loan + (int)Math.Ceiling(_loan * _fee)) · Due day @(Game.Save.Day + GameConstants.PawnTermDays)</div>
+					</div>
+				</div>
+				<div class="risk-line"><i class="icon">assessment</i> Repayment estimate: <b>@Neg.RiskEstimate</b></div>
+				<div class="neg-buttons">
+					<div class="btn gold" onclick=@(() => Neg.OfferLoan(_loan, _fee))><i class="icon">handshake</i> OFFER LOAN</div>
+					<div class="btn red" onclick=@(() => Neg.Reject())><i class="icon">close</i> NO DEAL</div>
+				</div>
+			}
+
+			@* ---------------- BUYER controls ---------------- *@
+			@if ( Neg.Kind == NegotiationKind.BuyerOffer && Neg.Item is not null )
+			{
+				<div class="neg-numbers">
+					<div class="num-block"><div class="num-label">STICKER</div><div class="num-value">@GameConstants.FormatCash(Neg.Item.SalePrice)</div></div>
+					<div class="num-block"><div class="num-label">THEIR OFFER</div><div class="num-value gold-text">@GameConstants.FormatCash(Neg.CurrentAsk)</div></div>
+					<div class="num-block offer">
+						<div class="num-label">YOUR COUNTER</div>
+						<div class="stepper">
+							<div class="step" onclick=@(() => NudgeCounter(-25))>-25</div>
+							<div class="step" onclick=@(() => NudgeCounter(-5))>-5</div>
+							<div class="num-value">@GameConstants.FormatCash(_counter)</div>
+							<div class="step" onclick=@(() => NudgeCounter(5))>+5</div>
+							<div class="step" onclick=@(() => NudgeCounter(25))>+25</div>
+						</div>
+						<div class="num-sub">You paid @GameConstants.FormatCash(Neg.Item.TotalInvested) total</div>
+					</div>
+				</div>
+				<div class="neg-buttons">
+					<div class="btn gold" onclick=@(() => Neg.AcceptBuyerOffer())><i class="icon">check</i> ACCEPT @GameConstants.FormatCash(Neg.CurrentAsk)</div>
+					<div class="btn" onclick=@(() => Neg.CounterBuyer(_counter))><i class="icon">swap_vert</i> COUNTER</div>
+					<div class="btn" onclick=@(() => Neg.ExplainValue())><i class="icon">campaign</i> TALK IT UP</div>
+					<div class="btn red" onclick=@(() => Neg.Reject())><i class="icon">close</i> REFUSE</div>
+				</div>
+			}
+
+			@* ---------------- REDEEM controls ---------------- *@
+			@if ( Neg.Kind == NegotiationKind.Redeem && Neg.Customer.Contract is not null )
+			{
+				<div class="neg-numbers">
+					<div class="num-block"><div class="num-label">LOAN</div><div class="num-value">@GameConstants.FormatCash(Neg.Customer.Contract.Principal)</div></div>
+					<div class="num-block"><div class="num-label">THEY OWE</div><div class="num-value gold-text">@GameConstants.FormatCash(Neg.Customer.Contract.RedemptionAmount)</div></div>
+					<div class="num-block"><div class="num-label">DUE</div><div class="num-value">DAY @Neg.Customer.Contract.DueDay</div></div>
+				</div>
+				<div class="neg-buttons">
+					@if ( Neg.RedeemerCanPay )
+					{
+						<div class="btn gold" onclick=@(() => Neg.AcceptRedemption())><i class="icon">paid</i> TAKE PAYMENT — RETURN ITEM</div>
+					}
+					else
+					{
+						<div class="btn gold" onclick=@(() => Neg.GrantExtension())><i class="icon">more_time</i> GRANT +@GameConstants.PawnExtensionDays DAYS</div>
+						<div class="btn red" onclick=@(() => Neg.RefuseExtension())><i class="icon">close</i> REFUSE — DEADLINE STANDS</div>
+					}
+				</div>
+			}
+		</div>
+	}
+
+	@* ============================================================ INSPECTION *@
+	@if ( Game.InspectionItem is not null )
+	{
+		var item = Game.InspectionItem;
+		var spots = InspectionModel.SpotsFor( item );
+		<div class="fullscreen dim-bg inspection">
+			<div class="inspect-card">
+				<div class="ic-header">
+					<div class="ic-title"><i class="icon" style="color: @Css(item.Def?.Tint ?? Color.White);">@(item.Def?.Icon ?? "inventory_2")</i> INSPECTING: @item.Name</div>
+					<div class="btn small" onclick=@(() => Game.CloseInspection())><i class="icon">close</i> DONE</div>
+				</div>
+
+				<div class="ic-body">
+					<div class="ic-stage" style="border-color: @Css((item.Def?.Tint ?? Color.White) * 0.6f);">
+						<i class="icon stage-icon" style="color: @Css(item.Def?.Tint ?? Color.White);">@(item.Def?.Icon ?? "inventory_2")</i>
+						@for ( var s = 0; s < spots.Count; s++ )
+						{
+							var idx = s;
+							var spot = spots[s];
+							var done = item.CheckedSpots.Contains( idx );
+							var found = done && spot.DefectId is not null;
+							<div class="hotspot @(done ? (found ? "found" : "clear") : "")" style="left: @(spot.X)%; top: @(spot.Y)%;" onclick=@(() => Game.CheckSpot(idx))>
+								<i class="icon">@(done ? (found ? "priority_high" : "check") : "radio_button_unchecked")</i>
+								<span>@spot.Label</span>
+							</div>
+						}
+					</div>
+
+					<div class="ic-side">
+						<div class="ic-label">TOOLS</div>
+						<div class="tool-list">
+							@foreach ( var tool in ToolCatalog.All )
+							{
+								var owned = Game.Save.OwnsTool( tool.Id );
+								var active = Game.SelectedTool == tool.Id;
+								<div class="tool @(active ? "active" : "") @(owned ? "" : "locked")" onclick=@(() => { if (owned) Game.SelectTool(tool.Id); })>
+									<i class="icon">@tool.Icon</i>
+									<span>@tool.Name</span>
+									@if ( !owned )
+									{
+										<span class="lock"><i class="icon">lock</i> @GameConstants.FormatCash(tool.Cost)</span>
+									}
+								</div>
+							}
+						</div>
+
+						<div class="ic-label">FINDINGS</div>
+						<div class="findings">
+							@if ( !item.DiscoveredDefects.Any() )
+							{
+								<div class="finding dim">Nothing discovered yet.</div>
+							}
+							@foreach ( var defect in item.DiscoveredDefectDefs )
+							{
+								<div class="finding @(defect.IsPositive ? "positive" : defect.CounterfeitSign || defect.StolenSign ? "alarm" : "")">
+									<i class="icon">@defect.Icon</i> @defect.Name
+								</div>
+							}
+						</div>
+
+						<div class="ic-est">
+							<span class="ic-est-range">@($"{GameConstants.FormatCash( Estimate2( item ).Low )} – {GameConstants.FormatCash( Estimate2( item ).High )}")</span>
+							<span class="dim">@Estimate2( item ).Confidence confidence</span>
+						</div>
+					</div>
+				</div>
+
+				<div class="ic-message">@Game.InspectionMessage</div>
+			</div>
+		</div>
+	}
+
+	@* ============================================================ MANAGEMENT *@
+	@if ( Game.ManagementOpen )
+	{
+		<div class="fullscreen dim-bg management">
+			<div class="mgmt-card">
+				<div class="mgmt-header">
+					<div class="mgmt-tabs">
+						@foreach ( var (label, icon, idx) in Tabs )
+						{
+							<div class="mtab @(Game.ManagementTab == idx ? "active" : "")" onclick=@(() => Game.SetManagementTab(idx))>
+								<i class="icon">@icon</i> @label
+							</div>
+						}
+					</div>
+					<div class="btn small" onclick=@(() => Game.ToggleManagement())><i class="icon">close</i></div>
+				</div>
+
+				@* ---------------- INVENTORY TAB ---------------- *@
+				@if ( Game.ManagementTab == 0 )
+				{
+					<div class="mgmt-body">
+						<div class="inv-list">
+							<div class="inv-filters">
+								@foreach ( var (label, idx) in InvFilters )
+								{
+									<div class="filter @(_invFilter == idx ? "active" : "")" onclick=@(() => { _invFilter = idx; Click(); })>@label</div>
+								}
+							</div>
+							<div class="inv-caps">
+								Stock room @Game.Inventory.BackroomCount/@Game.Inventory.StorageCapacity ·
+								Display @Game.Inventory.DisplayCount/@Game.Inventory.DisplayCapacity ·
+								Pawned @Game.Pawns.Count
+							</div>
+							<div class="inv-scroll">
+								@if ( !FilteredInventory.Any() )
+								{
+									<div class="inv-empty">Nothing here yet. Buy items from customers at the counter.</div>
+								}
+								@foreach ( var item in FilteredInventory )
+								{
+									var sel = Game.SelectedInventoryId == item.Id;
+									<div class="inv-row @(sel ? "selected" : "")" onclick=@(() => Game.SelectInventoryItem(item.Id))>
+										<i class="icon" style="color: @Css(item.Def?.Tint ?? Color.White);">@(item.Def?.Icon ?? "inventory_2")</i>
+										<div class="inv-main">
+											<div class="inv-name">@item.Name</div>
+											<div class="inv-sub">@item.Condition.Label() · paid @GameConstants.FormatCash(item.TotalInvested)@(item.Location == ItemLocation.OnDisplay ? $" · listed {GameConstants.FormatCash(item.SalePrice)}" : "")</div>
+										</div>
+										<div class="inv-status @StatusClass(item)">@StatusLabel(item)</div>
+									</div>
+								}
+							</div>
+						</div>
+
+						<div class="inv-detail">
+							@if ( SelectedItem is null )
+							{
+								<div class="inv-empty">Select an item to manage it.</div>
+							}
+							else
+							{
+								var item = SelectedItem;
+								var est = Estimate2( item );
+								<div class="det-name"><i class="icon" style="color: @Css(item.Def?.Tint ?? Color.White);">@(item.Def?.Icon ?? "inventory_2")</i> @item.Name</div>
+								<div class="det-sub">@(item.Def?.Brand is { Length: > 0 } db ? db + " · " : "")@(item.Def?.Category.Label() ?? "?") · @item.Condition.Label()@(item.RarityKnown ? $" · {item.Rarity.Label()}" : "")</div>
+								<div class="det-blurb">@(item.Def?.Blurb ?? "")</div>
+
+								<div class="det-tags">
+									@if ( item.KnownAuthenticity == Authenticity.Genuine ) { <span class="tag genuine">GENUINE</span> }
+									@if ( item.KnownCounterfeit ) { <span class="tag fake">@item.TrueAuthenticity.ToString().ToUpper()</span> }
+									@if ( item.KnownStolen ) { <span class="tag fake">STOLEN</span> }
+									@if ( item.Dirtiness > 0.05f && !item.Cleaned ) { <span class="tag">Dirty</span> }
+									@if ( item.Researched ) { <span class="tag genuine">Researched</span> }
+									@foreach ( var defect in item.DiscoveredDefectDefs )
+									{
+										<span class="tag @(defect.IsPositive ? "genuine" : "")"><i class="icon">@defect.Icon</i>@defect.Name</span>
+									}
+								</div>
+
+								<div class="det-numbers">
+									<div class="det-num"><span>Invested</span><b>@GameConstants.FormatCash(item.TotalInvested)</b></div>
+									<div class="det-num"><span>Estimate</span><b>@($"{GameConstants.FormatCash( est.Low )} – {GameConstants.FormatCash( est.High )}")</b></div>
+									<div class="det-num"><span>Demand</span><b>@DemandLabel(item)</b></div>
+								</div>
+
+								@if ( item.Location is ItemLocation.Backroom or ItemLocation.OnDisplay )
+								{
+									<div class="det-price">
+										<div class="num-label">SALE PRICE</div>
+										<div class="stepper">
+											<div class="step" onclick=@(() => Game.SetSalePrice(item, item.SalePrice - 25))>-25</div>
+											<div class="step" onclick=@(() => Game.SetSalePrice(item, item.SalePrice - 5))>-5</div>
+											<div class="num-value">@GameConstants.FormatCash(item.SalePrice)</div>
+											<div class="step" onclick=@(() => Game.SetSalePrice(item, item.SalePrice + 5))>+5</div>
+											<div class="step" onclick=@(() => Game.SetSalePrice(item, item.SalePrice + 25))>+25</div>
+										</div>
+										<div class="presets">
+											<div class="preset" onclick=@(() => Game.SetSalePrice(item, ItemValue.SuggestedPrice(item, Game)))>Suggested @GameConstants.FormatCash(ItemValue.SuggestedPrice(item, Game))</div>
+											<div class="preset" onclick=@(() => Game.SetSalePrice(item, (int)(ItemValue.SuggestedPrice(item, Game) * 0.85f)))>Quick Sale</div>
+											<div class="preset" onclick=@(() => Game.SetSalePrice(item, (int)(ItemValue.SuggestedPrice(item, Game) * 1.3f)))>Premium</div>
+										</div>
+										@{
+											var margin = item.SalePrice - item.TotalInvested;
+										}
+										<div class="num-sub @(margin >= 0 ? "good-text" : "red-text")">Margin: @(margin >= 0 ? "+" : "")@GameConstants.FormatCash(margin)</div>
+									</div>
+
+									<div class="det-actions">
+										@if ( item.Location == ItemLocation.Backroom )
+										{
+											<div class="btn gold @(Game.Inventory.DisplayFull ? "disabled" : "")" onclick=@(() => Game.DisplayItem(item))><i class="icon">storefront</i> DISPLAY</div>
+										}
+										else
+										{
+											<div class="btn" onclick=@(() => Game.StowItem(item))><i class="icon">inventory</i> STOW</div>
+										}
+										@if ( Game.Workshop.CanClean( item ) )
+										{
+											<div class="btn" onclick=@(() => Game.CleanItem(item))><i class="icon">cleaning_services</i> CLEAN (@GameConstants.FormatCash(WorkshopSystem.CleanCost))</div>
+										}
+										@{
+											var canRepair = Game.Workshop.CanRepair( item, Game, out var repairReason );
+										}
+										@if ( canRepair )
+										{
+											<div class="btn" onclick=@(() => Game.RepairItem(item))><i class="icon">handyman</i> REPAIR (@GameConstants.FormatCash(Game.Workshop.RepairCost(item, Game)))</div>
+										}
+										else if ( repairReason is not null && (item.Condition < Condition.Good || item.DiscoveredDefectDefs.Any( d => d.Repairable )) )
+										{
+											<div class="btn disabled"><i class="icon">handyman</i> @repairReason</div>
+										}
+										@if ( Game.Workshop.CanResearch( item ) )
+										{
+											<div class="btn" onclick=@(() => Game.ResearchItem(item))><i class="icon">science</i> RESEARCH (@GameConstants.FormatCash(Game.Workshop.ResearchCost(item, Game)))</div>
+										}
+										<div class="btn red" onclick=@(() => Game.ScrapItem(item))><i class="icon">recycling</i> SCRAP (+@GameConstants.FormatCash(Game.Workshop.ScrapValue(item, Game)))</div>
+									</div>
+								}
+								else if ( item.Location == ItemLocation.PawnStorage )
+								{
+									<div class="det-blurb warn-text">Held as pawn collateral — not yours to sell (yet).</div>
+								}
+							}
+						</div>
+					</div>
+				}
+
+				@* ---------------- PAWNS TAB ---------------- *@
+				@if ( Game.ManagementTab == 1 )
+				{
+					<div class="mgmt-body column">
+						@if ( !Game.Pawns.Contracts.Any() )
+						{
+							<div class="inv-empty">No active pawn contracts. Offer loans to pawn customers at the counter.</div>
+						}
+						@foreach ( var contract in Game.Pawns.Contracts )
+						{
+							var pawnedItem = Game.Inventory.Get( contract.ItemId );
+							var daysLeft = contract.DueDay - Game.Save.Day;
+							<div class="pawn-row @(daysLeft <= 0 ? "urgent" : "")">
+								<i class="icon">@(pawnedItem?.Def?.Icon ?? "inventory_2")</i>
+								<div class="inv-main">
+									<div class="inv-name">@(pawnedItem?.Name ?? "Missing item")</div>
+									<div class="inv-sub">@contract.CustomerName · loaned @GameConstants.FormatCash(contract.Principal) at @((int)(contract.Fee * 100))%@(contract.Extended ? " · extended" : "")</div>
+								</div>
+								<div class="pawn-due">
+									<div class="inv-name">@GameConstants.FormatCash(contract.RedemptionAmount)</div>
+									<div class="inv-sub">@(daysLeft > 0 ? $"due in {daysLeft} day{(daysLeft == 1 ? "" : "s")}" : daysLeft == 0 ? "DUE TODAY" : "OVERDUE — defaults tonight")</div>
+								</div>
+							</div>
+						}
+						<div class="inv-sub pad">Unredeemed pawns become store property the day after their deadline.</div>
+					</div>
+				}
+
+				@* ---------------- TOOLS TAB ---------------- *@
+				@if ( Game.ManagementTab == 2 )
+				{
+					<div class="mgmt-body column">
+						@foreach ( var tool in ToolCatalog.All )
+						{
+							var owned = Game.Save.OwnsTool( tool.Id );
+							<div class="shop-row @(owned ? "owned" : "")">
+								<i class="icon">@tool.Icon</i>
+								<div class="inv-main">
+									<div class="inv-name">@tool.Name</div>
+									<div class="inv-sub">@tool.Description</div>
+								</div>
+								@if ( owned )
+								{
+									<div class="owned-chip"><i class="icon">check</i> OWNED</div>
+								}
+								else
+								{
+									<div class="btn @(Game.Economy.CanAfford(tool.Cost) ? "gold" : "disabled")" onclick=@(() => Game.BuyTool(tool.Id))>BUY @GameConstants.FormatCash(tool.Cost)</div>
+								}
+							</div>
+						}
+					</div>
+				}
+
+				@* ---------------- UPGRADES TAB ---------------- *@
+				@if ( Game.ManagementTab == 3 )
+				{
+					<div class="mgmt-body column">
+						@foreach ( var upgrade in UpgradeCatalog.All )
+						{
+							var owned = Game.Save.OwnsUpgrade( upgrade.Id );
+							var gated = upgrade.Requires is { } req && !Game.Save.OwnsUpgrade( req );
+							<div class="shop-row @(owned ? "owned" : "")">
+								<i class="icon">@upgrade.Icon</i>
+								<div class="inv-main">
+									<div class="inv-name">@upgrade.Name</div>
+									<div class="inv-sub">@upgrade.Description@(gated ? $" (Requires {UpgradeCatalog.Get(upgrade.Requires.Value).Name})" : "")</div>
+								</div>
+								@if ( owned )
+								{
+									<div class="owned-chip"><i class="icon">check</i> OWNED</div>
+								}
+								else
+								{
+									<div class="btn @(Game.Economy.CanAfford(upgrade.Cost) && !gated ? "gold" : "disabled")" onclick=@(() => { if (!gated) Game.BuyUpgrade(upgrade.Id); })>BUY @GameConstants.FormatCash(upgrade.Cost)</div>
+								}
+							</div>
+						}
+					</div>
+				}
+
+				@* ---------------- FINANCES TAB ---------------- *@
+				@if ( Game.ManagementTab == 4 )
+				{
+					<div class="mgmt-body column">
+						<div class="fin-grid">
+							<div class="fin-card"><div class="fin-label">CASH</div><div class="fin-value">@GameConstants.FormatCash(Game.Economy.Cash)</div></div>
+							<div class="fin-card"><div class="fin-label">INVENTORY VALUE</div><div class="fin-value">@GameConstants.FormatCash(Game.Economy.InventoryValue(Game))</div></div>
+							<div class="fin-card"><div class="fin-label">CASH IN PAWNS</div><div class="fin-value">@GameConstants.FormatCash(Game.Economy.PawnedCapital)</div></div>
+							<div class="fin-card @(Game.Save.Debt > 0 ? "bad" : "")"><div class="fin-label">DEBT</div><div class="fin-value">@GameConstants.FormatCash(Game.Save.Debt)</div></div>
+							<div class="fin-card"><div class="fin-label">TONIGHT'S BILLS</div><div class="fin-value">@GameConstants.FormatCash(Game.Economy.DailyExpenses())</div></div>
+							<div class="fin-card"><div class="fin-label">TODAY SO FAR</div><div class="fin-value @(Game.Economy.Ledger.Profit >= 0 ? "good-text" : "red-text")">@(Game.Economy.Ledger.Profit >= 0 ? "+" : "")@GameConstants.FormatCash(Game.Economy.Ledger.Profit)</div></div>
+						</div>
+						<div class="det-numbers wide">
+							<div class="det-num"><span>Lifetime profit</span><b>@GameConstants.FormatCash(Game.Save.LifetimeProfit)</b></div>
+							<div class="det-num"><span>Total deals</span><b>@Game.Save.TotalDeals</b></div>
+							<div class="det-num"><span>Items sold</span><b>@Game.Save.ItemsSold</b></div>
+							<div class="det-num"><span>Fakes caught</span><b>@Game.Save.FakesCaught</b></div>
+							<div class="det-num"><span>Fakes bought</span><b>@Game.Save.FakesBought</b></div>
+							<div class="det-num"><span>Best flip</span><b>@GameConstants.FormatCash(Game.Save.BestFlip)</b></div>
+						</div>
+						<div class="inv-sub pad">Rent, utilities and insurance are deducted at closing every day. Bills grow as the shop expands. If cash runs dry, an emergency loan kicks in — at brutal interest. @GameConstants.FormatCash(GameConstants.BankruptcyDebtLimit) of debt or @GameConstants.BankruptcyGraceDays underwater days ends the business.</div>
+					</div>
+				}
+
+				@* ---------------- LEDGER TAB ---------------- *@
+				@if ( Game.ManagementTab == 6 )
+				{
+					<div class="mgmt-body column">
+						<div class="inv-sub pad">Flip an item (buy it, then sell it) to stamp it into the ledger. Complete a category and collectors pay a bounty. @Game.Collection.FlippedTotal/@Game.Collection.CatalogTotal stamped.</div>
+						@foreach ( var cat in Enum.GetValues<ItemCategory>() )
+						{
+							var total = Game.Collection.TotalIn( cat );
+							if ( total == 0 ) { continue; }
+							var flipped = Game.Collection.FlippedIn( cat );
+							var rewarded = Game.Collection.CategoryRewarded( cat );
+							<div class="ledger-cat">
+								<div class="ledger-head">
+									<div class="inv-name">@cat.Label() <span class="ledger-count">@flipped/@total</span></div>
+									@if ( rewarded )
+									{
+										<div class="owned-chip"><i class="icon">military_tech</i> BOUNTY PAID</div>
+									}
+									else
+									{
+										<div class="inv-sub">Bounty: @GameConstants.FormatCash(CollectionSystem.CategoryReward(cat))</div>
+									}
+								</div>
+								<div class="ledger-items">
+									@foreach ( var def in ItemCatalog.All.Where( d => d.Category == cat ) )
+									{
+										var stamped = Game.Collection.IsFlipped( def.Id );
+										<div class="ledger-item @(stamped ? "stamped" : "")">
+											<i class="icon" style="color: @(stamped ? Css(def.Tint) : "rgba(255,255,255,0.25)");">@def.Icon</i>
+											<span>@(stamped ? def.Name : "???")</span>
+										</div>
+									}
+								</div>
+							</div>
+						}
+					</div>
+				}
+
+				@* ---------------- PEOPLE TAB ---------------- *@
+				@if ( Game.ManagementTab == 5 )
+				{
+					<div class="mgmt-body column">
+						@if ( !Game.Relationships.All.Any() )
+						{
+							<div class="inv-empty">No regulars yet. Treat named customers well and they'll come back.</div>
+						}
+						@foreach ( var rel in Game.Relationships.All )
+						{
+							<div class="shop-row">
+								<i class="icon">person</i>
+								<div class="inv-main">
+									<div class="inv-name">@rel.Name <span class="tier">@rel.Tier</span></div>
+									<div class="inv-sub">@rel.Deals deals · @GameConstants.FormatCash(rel.TotalValue) exchanged · @rel.PawnsRedeemed redeemed / @rel.PawnsDefaulted defaulted@(rel.Lowballs > 0 ? $" · {rel.Lowballs} lowballs remembered" : "")</div>
+								</div>
+								<div class="trust-track"><div class="trust-fill" style="width: @((int)(rel.Trust * 100))%;"></div></div>
+							</div>
+						}
+					</div>
+				}
+			</div>
+		</div>
+	}
+
+	@* ============================================================ DAILY SUMMARY *@
+	@if ( Game.State == GameState.DailySummary && Game.SummaryLedger is not null )
+	{
+		var ledger = Game.SummaryLedger;
+		<div class="fullscreen dim-bg">
+			<div class="summary-card">
+				<div class="sum-title">DAY @ledger.Day COMPLETE</div>
+				<div class="sum-profit @(ledger.Profit >= 0 ? "good" : "bad")">@(ledger.Profit >= 0 ? "+" : "")@GameConstants.FormatCash(ledger.Profit)</div>
+
+				<div class="sum-grid">
+					<div class="sum-row"><span>Items bought</span><b>@ledger.Purchases (@GameConstants.FormatCash(ledger.PurchaseSpend))</b></div>
+					<div class="sum-row"><span>Items sold</span><b>@ledger.Sales (+@GameConstants.FormatCash(ledger.SaleRevenue))</b></div>
+					<div class="sum-row"><span>Pawns issued</span><b>@ledger.PawnsIssued (@GameConstants.FormatCash(ledger.PawnSpend))</b></div>
+					<div class="sum-row"><span>Redemptions</span><b>@ledger.Redemptions (+@GameConstants.FormatCash(ledger.RedemptionRevenue))</b></div>
+					<div class="sum-row"><span>Repairs / research</span><b>@GameConstants.FormatCash(ledger.RepairCosts)</b></div>
+					<div class="sum-row"><span>Operating expenses</span><b>@GameConstants.FormatCash(ledger.Expenses)</b></div>
+					@if ( ledger.GoalBonuses > 0 )
+					{
+						<div class="sum-row good"><span>Goal bonuses</span><b>+@GameConstants.FormatCash(ledger.GoalBonuses)</b></div>
+					}
+					@if ( ledger.TheftLosses > 0 )
+					{
+						<div class="sum-row bad"><span>Theft losses</span><b>@GameConstants.FormatCash(ledger.TheftLosses)</b></div>
+					}
+					@if ( ledger.Fines > 0 )
+					{
+						<div class="sum-row bad"><span>Fines</span><b>@GameConstants.FormatCash(ledger.Fines)</b></div>
+					}
+					<div class="sum-row"><span>Reputation</span><b>@(ledger.RepChange >= 0 ? "+" : "")@ledger.RepChange.ToString("0.0") → @Game.Reputation.Stars</b></div>
+					@if ( !string.IsNullOrEmpty( ledger.BestDeal ) )
+					{
+						<div class="sum-row good"><span>Best deal</span><b>@ledger.BestDeal (+@GameConstants.FormatCash(ledger.BestDealProfit))</b></div>
+					}
+					@if ( !string.IsNullOrEmpty( ledger.WorstDeal ) && ledger.WorstDealProfit < 0 )
+					{
+						<div class="sum-row bad"><span>Worst deal</span><b>@ledger.WorstDeal (@GameConstants.FormatCash(ledger.WorstDealProfit))</b></div>
+					}
+				</div>
+
+				@foreach ( var note in Game.SummaryNotes )
+				{
+					<div class="sum-note"><i class="icon">info</i> @note</div>
+				}
+
+				<div class="btn big gold" onclick=@(() => Game.NextDay())>START DAY @(Game.Save.Day + 1) →</div>
+			</div>
+		</div>
+	}
+
+	@* ============================================================ BANKRUPTCY *@
+	@if ( Game.State == GameState.Bankruptcy )
+	{
+		<div class="fullscreen dim-bg">
+			<div class="summary-card bankrupt">
+				<div class="sum-title red-text">BANKRUPT</div>
+				<div class="sum-note">The debts finally caught up with Brass Buck Pawn. The bank has taken the keys.</div>
+				<div class="sum-grid">
+					<div class="sum-row"><span>Days survived</span><b>@Game.Save.Day</b></div>
+					<div class="sum-row"><span>Total deals</span><b>@Game.Save.TotalDeals</b></div>
+					<div class="sum-row"><span>Items sold</span><b>@Game.Save.ItemsSold</b></div>
+					<div class="sum-row"><span>Fakes caught</span><b>@Game.Save.FakesCaught</b></div>
+					<div class="sum-row"><span>Fakes bought</span><b>@Game.Save.FakesBought</b></div>
+					<div class="sum-row"><span>Best flip</span><b>@GameConstants.FormatCash(Game.Save.BestFlip)</b></div>
+					<div class="sum-row"><span>Final debt</span><b>@GameConstants.FormatCash(Game.Save.Debt)</b></div>
+				</div>
+				<div class="btn big gold" onclick=@(() => Game.RestartAfterBankruptcy())>START OVER — DAY 1</div>
+			</div>
+		</div>
+	}
+
+	@* ============================================================ PAUSE MENU *@
+	@if ( Game.PauseMenuOpen )
+	{
+		<div class="fullscreen dim-bg">
+			<div class="menu-card small-menu">
+				<div class="menu-title small">PAUSED</div>
+				<div class="menu-buttons">
+					<div class="btn big gold" onclick=@(() => Game.ClosePauseMenu())>RESUME</div>
+					@if ( !Game.Tutorial.Done )
+					{
+						<div class="btn big" onclick=@(() => { Game.Tutorial.Skip(); Game.ClosePauseMenu(); })>HIDE TIPS</div>
+					}
+					<div class="btn big" onclick=@(() => Game.QuitToMenu())>SAVE &amp; QUIT TO MENU</div>
+				</div>
+				<div class="menu-help">
+					<div class="help-row"><b>WASD</b> move &nbsp; <b>E</b> interact &nbsp; <b>TAB</b> manage &nbsp; <b>ESC</b> back</div>
+				</div>
+			</div>
+		</div>
+	}
+}
+</root>
+
+@code {
+	private GameManager Game => GameManager.Instance;
+	private NegotiationSystem Neg => Game.Negotiation;
+
+	private bool InWorld => Game.State is GameState.MorningPrep or GameState.ShopOpen or GameState.ShopClosing;
+	private string Cash => GameConstants.FormatCash( Game?.Economy.Cash ?? 0 );
+	private int QueueCount => Game?.Customers?.QueueCount ?? 0;
+	private string TutorialText => Game?.Tutorial.CurrentText;
+	private bool ShowTutorialTip => Game?.Tutorial.ShouldShow == true;
+	private string FocusPrompt
+	{
+		get
+		{
+			var prompt = ShopPlayer.Instance?.Focused?.Prompt;
+			return string.IsNullOrEmpty( prompt ) ? null : prompt;
+		}
+	}
+
+	private (int Low, int High, string Confidence) Estimate => Neg.Item is not null ? ItemValue.Estimate( Neg.Item, Game ) : (0, 0, "?");
+	private (int Low, int High, string Confidence) Estimate2( ItemInstance item ) => ItemValue.Estimate( item, Game );
+	private string EstimateRange => $"{GameConstants.FormatCash( Estimate.Low )} – {GameConstants.FormatCash( Estimate.High )}";
+	private int EstMid => (Estimate.Low + Estimate.High) / 2;
+	private int PatiencePct => Neg.Customer is null ? 0 : (int)Math.Clamp( Neg.Customer.Patience / Math.Max( 1f, Neg.Customer.PatienceMax ) * 100f, 0f, 100f );
+	private bool CanAffordAsk => Game.Economy.Cash >= Neg.CurrentAsk;
+
+	private string IntentLabel => Neg.Kind switch
+	{
+		NegotiationKind.Sell => "SELLING",
+		NegotiationKind.Pawn => "PAWNING",
+		NegotiationKind.BuyerOffer => "BUYING",
+		NegotiationKind.Redeem => "REDEEMING",
+		_ => "",
+	};
+
+	private static readonly (string Label, string Icon, int Idx)[] Tabs =
+	{
+		("Inventory", "inventory_2", 0),
+		("Pawns", "handshake", 1),
+		("Tools", "build", 2),
+		("Upgrades", "upgrade", 3),
+		("Finances", "account_balance", 4),
+		("People", "groups", 5),
+		("Ledger", "collections_bookmark", 6),
+	};
+
+	private static readonly float[] FeeOptions = { 0.10f, 0.15f, 0.20f, 0.25f, 0.30f, 0.40f };
+
+	private static readonly (string Label, int Idx)[] InvFilters =
+	{
+		("All", 0), ("Stock Room", 1), ("On Display", 2), ("Pawned", 3), ("Sold", 4),
+	};
+
+	private ItemInstance SelectedItem => Game.Inventory.Get( Game.SelectedInventoryId );
+
+	private IEnumerable<ItemInstance> FilteredInventory => _invFilter switch
+	{
+		1 => Game.Inventory.Backroom,
+		2 => Game.Inventory.OnDisplay,
+		3 => Game.Inventory.Pawned,
+		4 => Game.Inventory.SoldHistory,
+		_ => Game.Inventory.All.Where( i => i.Location is ItemLocation.Backroom or ItemLocation.OnDisplay or ItemLocation.PawnStorage or ItemLocation.RepairBench ),
+	};
+
+	private static string StatusLabel( ItemInstance item ) => item.Location switch
+	{
+		ItemLocation.Backroom => "STOCK ROOM",
+		ItemLocation.OnDisplay => "ON DISPLAY",
+		ItemLocation.PawnStorage => "PAWNED",
+		ItemLocation.RepairBench => "REPAIRING",
+		ItemLocation.Sold => "SOLD",
+		ItemLocation.Confiscated => "CONFISCATED",
+		ItemLocation.Scrapped => "SCRAPPED",
+		_ => item.Location.ToString().ToUpper(),
+	};
+
+	private static string StatusClass( ItemInstance item ) => item.Location switch
+	{
+		ItemLocation.OnDisplay => "display",
+		ItemLocation.PawnStorage => "pawned",
+		ItemLocation.Sold => "sold",
+		ItemLocation.Confiscated => "bad",
+		_ => "",
+	};
+
+	private string DemandLabel( ItemInstance item )
+	{
+		var demand = Game.Events.DemandFor( item.Def?.Category ?? default );
+		return demand switch
+		{
+			> 1.25f => "HOT",
+			> 1.05f => "High",
+			< 0.85f => "Weak",
+			_ => "Normal",
+		};
+	}
+
+	// ---- Local input state ----
+	private int _offer = 50;
+	private int _loan = 50;
+	private float _fee = GameConstants.PawnFeeDefault;
+	private int _counter = 50;
+	private object _session;
+	private int _invFilter;
+
+	protected override void OnUpdate()
+	{
+		if ( Game is null ) return;
+
+		// Fresh negotiation session → seed the input fields with sensible defaults.
+		if ( Neg.Active && !ReferenceEquals( _session, Neg.Customer ) )
+		{
+			_session = Neg.Customer;
+			var mid = EstMid;
+			_offer = Math.Max( 5, (int)(mid * 0.65f) / 5 * 5 );
+			_loan = Math.Max( 5, (int)(Neg.RequestedLoan * 0.8f) / 5 * 5 );
+			_fee = GameConstants.PawnFeeDefault;
+			_counter = Neg.Item?.SalePrice > 0 ? Neg.Item.SalePrice : Math.Max( 5, Neg.CurrentAsk + 20 );
+			UiState.Bump();
+		}
+
+		// Escape backs out one layer.
+		if ( Input.EscapePressed && Game.CloseTopmost() )
+			Input.EscapePressed = false;
+
+		// Tab toggles management.
+		if ( Input.Pressed( "Score" ) )
+			Game.ToggleManagement();
+
+		if ( InWorld && !Game.IsUiBlocking && Input.Keyboard.Pressed( "h" ) )
+			Game.Tutorial.ToggleHidden();
+	}
+
+	private void DismissTutorialTip()
+	{
+		Game.Tutorial.Dismiss();
+		Click();
+	}
+
+	private void HideTutorialTips()
+	{
+		Game.Tutorial.Skip();
+		Click();
+	}
+
+	private void NudgeOffer( int delta ) { _offer = Math.Clamp( _offer + delta, 5, Math.Max( 5, Game.Economy.Cash ) ); Click(); }
+	private void SetOffer( int value ) { _offer = Math.Clamp( value / 5 * 5, 5, Math.Max( 5, Game.Economy.Cash ) ); Click(); }
+	private void NudgeLoan( int delta ) { _loan = Math.Clamp( _loan + delta, 5, Math.Max( 5, Game.Economy.Cash ) ); Click(); }
+	private void SetLoan( int value ) { _loan = Math.Clamp( value / 5 * 5, 5, Math.Max( 5, Game.Economy.Cash ) ); Click(); }
+	private void SetFee( float fee ) { _fee = fee; Click(); }
+	private void NudgeCounter( int delta ) { _counter = Math.Max( 5, _counter + delta ); Click(); }
+	private void Click() { Sfx.Play( Sfx.UiClick, 0.3f ); UiState.Bump(); }
+
+	private static string Css( Color c ) => $"rgba({(int)(c.r * 255)}, {(int)(c.g * 255)}, {(int)(c.b * 255)}, {c.a:0.##})";
+
+	protected override int BuildHash()
+	{
+		var game = Game;
+		if ( game is null ) return 0;
+
+		var hash = new HashCode();
+		hash.Add( UiState.Version );
+		hash.Add( (int)game.State );
+		hash.Add( game.Economy.Cash );
+		hash.Add( (int)game.ClockMinutes );
+		hash.Add( game.Toasts.Count );
+		hash.Add( FocusPrompt );
+		hash.Add( game.Tutorial.Step );
+		hash.Add( game.Tutorial.DismissedStep );
+		hash.Add( game.Tutorial.Done );
+		hash.Add( game.Negotiation.Active );
+		hash.Add( PatiencePct / 4 );
+		hash.Add( _offer ); hash.Add( _loan ); hash.Add( _fee ); hash.Add( _counter );
+		hash.Add( _invFilter );
+		hash.Add( game.ManagementOpen ); hash.Add( game.ManagementTab );
+		hash.Add( game.InspectionItemId ); hash.Add( (int)game.SelectedTool );
+		hash.Add( game.PauseMenuOpen );
+		hash.Add( game.SelectedInventoryId );
+		hash.Add( QueueCount );
+		return hash.ToHashCode();
+	}
+}

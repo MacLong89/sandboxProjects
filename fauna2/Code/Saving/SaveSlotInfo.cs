@@ -11,6 +11,7 @@ public sealed class SaveSlotInfo
 	public int Money { get; init; }
 	public string StarterProfileId { get; init; }
 	public long SavedAtUnix { get; init; }
+	public int LoginStreak { get; init; }
 	public bool IsLegacy { get; init; }
 
 	public string SavedAtText

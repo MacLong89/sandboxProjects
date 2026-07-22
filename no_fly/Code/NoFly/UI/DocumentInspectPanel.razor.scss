@@ -1,0 +1,651 @@
+/* Shared minigame chrome — included in each panel stylesheet (PanelComponents don't share CSS). */
+
+.mg-hidden {
+	display: none;
+	pointer-events: none;
+	width: 0;
+	height: 0;
+	overflow: hidden;
+}
+
+.mg-root {
+	position: absolute;
+	left: 0;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 28px;
+	pointer-events: all;
+	background: rgba(8, 12, 20, 0.72);
+	font-family: Poppins, Digibank, sans-serif;
+	color: #f3f6fb;
+	overflow: hidden;
+	z-index: 50;
+}
+
+.mg-panel {
+	width: 920px;
+	max-width: 96%;
+	max-height: 92%;
+	background: #121a28;
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	border-radius: 22px;
+	padding: 22px 24px;
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+	box-shadow: 0 24px 64px rgba(0, 0, 0, 0.45);
+	overflow: hidden;
+}
+
+.mg-panel.inspect {
+	width: 1100px;
+}
+
+.mg-header {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	flex-shrink: 0;
+}
+
+.mg-header-row {
+	flex-direction: row;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 16px;
+}
+
+.mg-header-main {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	min-width: 0;
+}
+
+.mg-kicker {
+	font-size: 11px;
+	font-weight: 800;
+	letter-spacing: 1.4px;
+	text-transform: uppercase;
+	color: #8fa3bd;
+	white-space: nowrap;
+}
+
+.mg-title {
+	font-size: 26px;
+	font-weight: 800;
+	color: #ffffff;
+	white-space: nowrap;
+}
+
+.mg-sub {
+	font-size: 13px;
+	color: #9eb0c8;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.mg-meta-pills {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+	gap: 6px;
+	justify-content: flex-end;
+	flex-shrink: 0;
+	max-width: 420px;
+}
+
+.mg-pill {
+	padding: 6px 10px;
+	border-radius: 999px;
+	background: rgba(255, 255, 255, 0.08);
+	font-size: 11px;
+	font-weight: 700;
+	color: #d5deea;
+	white-space: nowrap;
+}
+
+.mg-pill.accent {
+	background: rgba(255, 138, 61, 0.25);
+	color: #ffd7b0;
+}
+
+.mg-pill.warn {
+	background: rgba(255, 93, 93, 0.22);
+	color: #ffc0c0;
+}
+
+.mg-pill.contraband {
+	color: #121212;
+	font-size: 13px;
+	padding: 8px 14px;
+	border-radius: 12px;
+}
+
+.mg-section {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	flex-shrink: 0;
+}
+
+.mg-section-title {
+	font-size: 13px;
+	font-weight: 800;
+	color: #ffd56a;
+	white-space: nowrap;
+}
+
+.mg-footer {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: center;
+	gap: 10px;
+	flex-shrink: 0;
+	padding-top: 4px;
+}
+
+.mg-footer.actions {
+	justify-content: space-between;
+}
+
+.mg-footer.actions .mg-hint {
+	flex-shrink: 1;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.mg-footer.actions .mg-btn-primary {
+	flex: none;
+}
+
+.mg-hint {
+	font-size: 13px;
+	color: #8fa3bd;
+	white-space: nowrap;
+}
+
+.mg-btn {
+	border: none;
+	border-radius: 12px;
+	padding: 12px 18px;
+	font-size: 14px;
+	font-weight: 800;
+	cursor: pointer;
+	white-space: nowrap;
+	flex: 1;
+}
+
+.mg-btn-primary {
+	background: #ff8a3d;
+	color: #1a1208;
+	flex: none;
+	min-width: 220px;
+}
+
+.mg-btn-ok {
+	background: #2fce7a;
+	color: #0b1a12;
+}
+
+.mg-btn-danger {
+	background: #ff5d5d;
+	color: #1a0808;
+}
+
+.mg-btn-warn {
+	background: #ffb020;
+	color: #1a1208;
+}
+
+.mg-btn-ghost {
+	background: rgba(255, 255, 255, 0.1);
+	color: #d5deea;
+	flex: none;
+	min-width: 100px;
+}
+
+.mg-btn.is-disabled {
+	opacity: 0.4;
+}
+
+/* Shop */
+.mg-panel.shop {
+	width: 720px;
+}
+
+.shop-grid {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	flex-shrink: 0;
+}
+
+.shop-card {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: 14px;
+	padding: 12px 14px;
+	border-radius: 14px;
+	border: 2px solid rgba(255, 255, 255, 0.12);
+	background: rgba(255, 255, 255, 0.05);
+	cursor: pointer;
+	text-align: left;
+	overflow: hidden;
+}
+
+.shop-swatch {
+	width: 42px;
+	height: 42px;
+	border-radius: 10px;
+	flex-shrink: 0;
+}
+
+.shop-card-body {
+	flex: 1;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.shop-name {
+	font-size: 15px;
+	font-weight: 800;
+	color: #ffffff;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.shop-blurb {
+	font-size: 12px;
+	color: #9eb0c8;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.shop-price {
+	font-size: 16px;
+	font-weight: 800;
+	color: #ffd56a;
+	flex-shrink: 0;
+	white-space: nowrap;
+}
+
+/* Document sheet */
+.doc-sheet {
+	background: linear-gradient(180deg, #f8fbff 0%, #e4eefc 100%);
+	border: 3px solid #4aa3ff;
+	border-radius: 16px;
+	padding: 14px;
+	color: #152033;
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	flex-shrink: 1;
+	min-height: 0;
+	overflow: hidden;
+}
+
+.doc-sheet.compact {
+	padding: 10px;
+}
+
+.doc-sheet.locked .field-cell {
+	cursor: default;
+}
+
+.doc-top {
+	display: flex;
+	flex-direction: row;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 12px;
+	flex-shrink: 0;
+}
+
+.doc-country {
+	font-size: 16px;
+	font-weight: 800;
+	white-space: nowrap;
+}
+
+.doc-code {
+	font-size: 11px;
+	font-weight: 800;
+	letter-spacing: 1px;
+	color: #5a6f8c;
+	white-space: nowrap;
+}
+
+.field-grid {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.field-cell {
+	width: 48%;
+	flex-grow: 1;
+	min-width: 140px;
+	background: #ffffff;
+	border: 2px solid #c9d7ea;
+	border-radius: 12px;
+	padding: 8px 10px;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	text-align: left;
+	cursor: pointer;
+	overflow: hidden;
+}
+
+.field-cell.is-static {
+	cursor: default;
+}
+
+.field-cell.is-selected {
+	border-color: #ff8a3d;
+	background: #fff4ea;
+	box-shadow: inset 0 0 0 1px #ff8a3d;
+}
+
+
+.field-label {
+	font-size: 10px;
+	font-weight: 800;
+	letter-spacing: 0.6px;
+	text-transform: uppercase;
+	color: #7a8aa3;
+	white-space: nowrap;
+}
+
+.field-value {
+	font-size: 14px;
+	font-weight: 800;
+	color: #152033;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.opt-row {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.opt-card {
+	flex: 1;
+	min-width: 140px;
+	border: 2px solid transparent;
+	border-radius: 12px;
+	padding: 10px 12px;
+	background: #4aa3ff;
+	color: #041018;
+	cursor: pointer;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	overflow: hidden;
+}
+
+.opt-card.is-selected {
+	border-color: #ffd56a;
+	box-shadow: 0 0 0 2px rgba(255, 213, 106, 0.35);
+}
+
+.opt-name {
+	font-size: 13px;
+	font-weight: 800;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.opt-value {
+	font-size: 11px;
+	font-weight: 600;
+	opacity: 0.85;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+/* Compare */
+.compare-row {
+	display: flex;
+	flex-direction: row;
+	gap: 14px;
+	flex: 1;
+	min-height: 280px;
+	overflow: scroll;
+}
+
+.doc-col {
+	flex: 1;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	overflow: hidden;
+}
+
+.col-head {
+	font-size: 12px;
+	font-weight: 800;
+	letter-spacing: 1px;
+	text-transform: uppercase;
+	white-space: nowrap;
+}
+
+.col-head.submitted { color: #ffb347; }
+.col-head.reference { color: #7ec8ff; }
+
+/* Luggage — natural height rows so the panel never overflows the screen. */
+.suitcase-grid {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+	gap: 10px;
+	background: rgba(255, 255, 255, 0.04);
+	border: 3px solid #4aa3ff;
+	border-radius: 18px;
+	padding: 14px;
+	flex-shrink: 0;
+}
+
+.bag-tile {
+	width: 31%;
+	flex-grow: 1;
+	min-width: 120px;
+	height: 88px;
+	border: 2px solid rgba(0, 0, 0, 0.15);
+	border-radius: 14px;
+	padding: 10px;
+	display: flex;
+	flex-direction: column;
+	justify-content: space-between;
+	gap: 6px;
+	cursor: pointer;
+	overflow: hidden;
+}
+
+.bag-tile.is-selected {
+	border-color: #ffd56a;
+	box-shadow: 0 0 0 2px rgba(255, 213, 106, 0.45);
+}
+
+.bag-tile-name {
+	font-size: 13px;
+	font-weight: 800;
+	color: #121212;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.bag-peek {
+	align-self: flex-end;
+	padding: 4px 8px;
+	border-radius: 8px;
+	font-size: 10px;
+	font-weight: 800;
+	color: #121212;
+	white-space: nowrap;
+	max-width: 100%;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	opacity: 0.92;
+}
+
+/* Scanner board */
+.mg-panel.scan {
+	width: 1100px;
+}
+
+.scan-board {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+	gap: 10px;
+	background: #0d1a14;
+	border: 2px solid #1f3a2e;
+	border-radius: 18px;
+	padding: 14px;
+	flex-shrink: 0;
+}
+
+.scan-board.compare-board {
+	flex: 1;
+	min-height: 0;
+	align-content: flex-start;
+	overflow: scroll;
+}
+
+.scan-board.compare-board.xray {
+	background: #0a1612;
+}
+
+.scan-tile {
+	width: 30%;
+	flex-grow: 1;
+	min-width: 110px;
+	height: 100px;
+	background: rgba(159, 183, 168, 0.12);
+	border: 2px solid rgba(159, 183, 168, 0.35);
+	border-radius: 14px;
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+	position: relative;
+	padding: 0;
+}
+
+.scan-tile.is-static {
+	cursor: default;
+}
+
+.scan-tile.is-selected {
+	border-color: #ffd56a;
+	box-shadow: 0 0 0 2px rgba(255, 213, 106, 0.35);
+}
+
+.scan-peek-corner {
+	position: absolute;
+	right: 5px;
+	bottom: 5px;
+	width: 11px;
+	height: 11px;
+	border-radius: 2px;
+	background: #6a8070;
+	opacity: 0.85;
+	pointer-events: none;
+	z-index: 2;
+}
+
+.scan-main {
+	flex: 1;
+	border: none;
+	background: transparent;
+	padding: 10px;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	cursor: pointer;
+	min-height: 0;
+	width: 100%;
+}
+
+.scan-tile.is-static .scan-main {
+	cursor: default;
+}
+
+.scan-silhouette {
+	width: 42px;
+	height: 28px;
+	border-radius: 8px;
+	background: #9fb7a8;
+	opacity: 0.85;
+	flex-shrink: 0;
+}
+
+.scan-silhouette.dense {
+	width: 48px;
+	height: 34px;
+	border-radius: 10px;
+	opacity: 1;
+	box-shadow: inset 0 0 0 2px rgba(20, 40, 28, 0.45);
+}
+
+.scan-name {
+	font-size: 12px;
+	font-weight: 800;
+	color: #d7e6dc;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	max-width: 100%;
+	text-align: center;
+}
+
+.scan-tag {
+	font-size: 9px;
+	font-weight: 800;
+	letter-spacing: 0.4px;
+	text-transform: uppercase;
+	color: #8fa3bd;
+	white-space: nowrap;
+}
+
+.scan-tag.warn {
+	color: #ffd56a;
+}
+
+.scan-peek {
+	position: absolute;
+	right: 8px;
+	bottom: 8px;
+	border: none;
+	border-radius: 8px;
+	padding: 4px 8px;
+	font-size: 11px;
+	font-weight: 800;
+	color: #121212;
+	cursor: pointer;
+	white-space: nowrap;
+	z-index: 2;
+}

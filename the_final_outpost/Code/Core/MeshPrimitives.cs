@@ -7,7 +7,6 @@ public static class MeshPrimitives
 	private static Model _cylinder;
 	private static Model _pyramid;
 	private static Material _mat;
-	private static bool _loggedDevFallback;
 
 	public static Model Quad => _quad ??= LoadOrBuildPlane();
 	public static Model Box => _box ??= LoadOrBuildBox();
@@ -41,41 +40,26 @@ public static class MeshPrimitives
 
 	private static Model LoadOrBuildBox()
 	{
-		var loaded = AssetSafe.Model( "models/dev/box.vmdl" );
-		if ( loaded is not null )
-			return loaded;
-
-		LogDevFallback( "box" );
+		// Always procedural — models/dev/* is editor-only and must not ship differently
+		// for published players vs the editor preview.
 		return BuildBox();
 	}
 
 	private static Model LoadOrBuildPlane()
 	{
-		var loaded = AssetSafe.Model( "models/dev/plane.vmdl" );
-		if ( loaded is not null )
-			return loaded;
-
-		LogDevFallback( "plane" );
 		return BuildPlane();
 	}
 
 	private static Material LoadOrFlatMaterial()
 	{
-		var loaded = AssetSafe.Material( "materials/default.vmat" );
+		// Prefer engine default; fall back to a project-local flat mat if present.
+		var loaded = AssetSafe.Material( "materials/default.vmat" )
+			?? AssetSafe.Material( "materials/default/default.vmat" );
 		if ( loaded is not null )
 			return loaded;
 
 		Log.Warning( "[FinalOutpost] materials/default.vmat missing — procedural meshes may be untextured." );
 		return null;
-	}
-
-	private static void LogDevFallback( string kind )
-	{
-		if ( _loggedDevFallback )
-			return;
-
-		_loggedDevFallback = true;
-		Log.Info( $"[FinalOutpost] Engine models/dev/{kind} unavailable — using procedural mesh." );
 	}
 
 	// --- Procedural meshes (size 1 cube bounds, centered on origin) ---

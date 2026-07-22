@@ -1,0 +1,28 @@
+{
+  "Title": "Sky Empire",
+  "Type": "game",
+  "Org": "local",
+  "Ident": "sky_empire",
+  "Schema": 1,
+  "IncludeSourceFiles": false,
+  "Resources": "sounds/*\nui/**/*\nfonts/*.ttf",
+  "PackageReferences": [],
+  "EditorReferences": null,
+  "Mounts": null,
+  "IsStandaloneOnly": false,
+  "Metadata": {
+    "MaxPlayers": 12,
+    "MinPlayers": 1,
+    "TickRate": 50,
+    "GameNetworkType": "Multiplayer",
+    "MapSelect": "Hidden",
+    "MapList": [
+      "scenes/sky_isles.scene"
+    ],
+    "RankType": "None",
+    "PerMapRanking": false,
+    "LeaderboardType": "None",
+    "CsProjName": "",
+    "StartupScene": "scenes/sky_isles.scene"
+  }
+}

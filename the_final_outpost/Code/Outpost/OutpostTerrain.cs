@@ -14,8 +14,9 @@ public sealed class OutpostTerrain : Component
 	private static float CellSize => GameConstants.TerrainCellSize;
 	private const float Amplitude = GameConstants.TerrainAmplitude;
 	// Keep the entire home base (walls + build grid) flat; hills only start past it.
-	private const float FlatRadius = GameConstants.ArenaHalf;         // fully flat under the base
-	private const float FlatFalloff = GameConstants.ArenaHalf + 320f; // blend to full hills past this
+	private const float FlatFalloffPad = 320f; // design units at TileScale 1
+	private static float FlatRadius => GameConstants.ArenaHalf;
+	private static float FlatFalloff => GameConstants.ArenaHalf + GameConstants.U( FlatFalloffPad );
 
 	public void Build()
 	{
@@ -54,8 +55,9 @@ public sealed class OutpostTerrain : Component
 	/// <summary>World-space ground height at the given XY. Used for mesh gen and safe spawns.</summary>
 	public static float SampleHeight( float x, float y )
 	{
-		var n = ValueNoise( x * 0.0055f, y * 0.0055f ) * 0.65f
-			+ ValueNoise( x * 0.013f + 41.7f, y * 0.013f + 17.3f ) * 0.35f;
+		var freq = 1f / GameConstants.TileScale;
+		var n = ValueNoise( x * 0.0055f * freq, y * 0.0055f * freq ) * 0.65f
+			+ ValueNoise( x * 0.013f * freq + 41.7f, y * 0.013f * freq + 17.3f ) * 0.35f;
 
 		var h = (n - 0.5f) * 2f * Amplitude;
 

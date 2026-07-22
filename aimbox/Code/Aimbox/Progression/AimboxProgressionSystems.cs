@@ -72,7 +72,8 @@ public sealed class AimboxXpSystem
 			foreach ( var perk in AimboxMw2Catalog.Perks.Where( p => p.UnlockLevel == data.PlayerLevel ) )
 				unlocks.Add( new AimboxUnlock( perk.Name ) );
 
-			foreach ( var streak in AimboxMw2Catalog.Killstreaks.Where( k => k.UnlockLevel == data.PlayerLevel ) )
+			foreach ( var streak in AimboxMw2Catalog.Killstreaks.Where( k =>
+				         k.UnlockLevel == data.PlayerLevel && AimboxMw2Catalog.IsKillstreakImplemented( k.Id ) ) )
 				unlocks.Add( new AimboxUnlock( streak.Name ) );
 		}
 
@@ -260,9 +261,12 @@ public sealed class AimboxChallengeSystem
 
 public sealed class AimboxMedalSystem
 {
-	public List<AimboxMedalId> EvaluateKill( AimboxPlayerController attacker, AimboxPlayerController victim, bool headshot, float distance )
+	public List<AimboxMedalId> EvaluateKill( AimboxPlayerController attacker, IAimboxCombatActor victim, bool headshot, float distance )
 	{
 		var medals = new List<AimboxMedalId>();
+		if ( attacker is null || victim is null )
+			return medals;
+
 		var match = AimboxGame.Instance?.Match;
 
 		if ( match is not null && !match.FirstBloodAwarded )
@@ -275,7 +279,8 @@ public sealed class AimboxMedalSystem
 			medals.Add( AimboxMedalId.Headshot );
 		if ( distance >= 1800f )
 			medals.Add( AimboxMedalId.Longshot );
-		if ( attacker.LastKillerAccountId == victim.AccountId )
+		if ( !string.IsNullOrWhiteSpace( attacker.LastKillerAccountId )
+		     && attacker.LastKillerAccountId == victim.CombatId )
 			medals.Add( AimboxMedalId.Revenge );
 		if ( attacker.RecentKillCount >= 2 )
 			medals.Add( AimboxMedalId.DoubleKill );

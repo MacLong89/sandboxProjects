@@ -7,14 +7,26 @@ public sealed class GameSettingsData
 	public float CameraPanSpeed { get; set; } = 1.1f;
 	public float CameraZoomSpeed { get; set; } = 0.15f;
 	public bool ShowTutorialHints { get; set; } = true;
-	/// <summary>Show the first-session controls overlay once.</summary>
-	public bool ShowControlsHint { get; set; } = true;
-	/// <summary>Show the centered welcome intro once when a zoo session starts.</summary>
-	public bool ShowWelcomeIntro { get; set; } = true;
+	/// <summary>Retired — tip onboarding replaced the controls card. Kept for save migration.</summary>
+	public bool ShowControlsHint { get; set; }
+	/// <summary>Retired — tip onboarding replaced the welcome intro. Kept for save migration.</summary>
+	public bool ShowWelcomeIntro { get; set; }
+	/// <summary>Versioned onboarding migration; lets corrected teaching appear once for existing players.</summary>
+	public int OnboardingVersion { get; set; }
+	/// <summary>Ids of onboarding coach tips the player has already dismissed.</summary>
+	public List<string> OnboardingTipsShown { get; set; } = new();
+	/// <summary>Player chose Hide tips — stop showing onboarding coach cards.</summary>
+	public bool HideOnboardingTips { get; set; }
 	/// <summary>Master volume for music, ambience, and SFX (0–1).</summary>
 	public float MasterVolume { get; set; } = GameSettings.DefaultMasterVolume;
 	/// <summary>Scales guest ticket revenue. 1.0 = original balance.</summary>
 	public float GuestRevenueMultiplier { get; set; } = GameConstants.DefaultGuestRevenueMultiplier;
+	/// <summary>Local reward earned by visiting another player's zoo; claimed next time this player hosts.</summary>
+	public int PendingVisitorCredits { get; set; }
+	/// <summary>UTC day of the last reciprocal visitor reward, preventing lobby-hop farming.</summary>
+	public long LastVisitorRewardUnixDay { get; set; }
+	/// <summary>Retired — living sprites always use Bounce (idle + bob). Kept for save migration.</summary>
+	public string SpriteMotionMode { get; set; } = "Bounce";
 }
 
 /// <summary>Loads and applies local game settings from disk.</summary>
@@ -43,10 +55,14 @@ public static class GameSettings
 				if ( !json.Contains( "MasterVolume", StringComparison.OrdinalIgnoreCase ) )
 					data.MasterVolume = DefaultMasterVolume;
 
-				if ( !json.Contains( "ShowWelcomeIntro", StringComparison.OrdinalIgnoreCase ) && !data.ShowControlsHint )
-					data.ShowWelcomeIntro = false;
+				// Force-retire legacy welcome / controls cards — tips are the only onboarding path.
+				data.ShowWelcomeIntro = false;
+				data.ShowControlsHint = false;
+				// Walk cycle clips were retired; always Bounce (directional idle + bob).
+				data.SpriteMotionMode = "Bounce";
 
 				data.MasterVolume = data.MasterVolume.Clamp( 0f, 1f );
+				data.OnboardingTipsShown ??= new List<string>();
 				Current = data;
 			}
 		}

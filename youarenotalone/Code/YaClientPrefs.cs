@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Text.Json;
 
 namespace Sandbox;
@@ -10,6 +11,9 @@ public static class YaClientPrefs
 
 	static bool _loaded;
 	static bool _hasSeenControlsTutorial;
+	static bool _hideTutorialTips;
+	static List<string> _tutorialTipsShown = new();
+	static List<string> _onboardingGoalsCompleted = new();
 
 	public static bool HasSeenControlsTutorial
 	{
@@ -28,6 +32,67 @@ public static class YaClientPrefs
 		}
 	}
 
+	public static bool HideTutorialTips
+	{
+		get
+		{
+			EnsureLoaded();
+			return _hideTutorialTips;
+		}
+		set
+		{
+			EnsureLoaded();
+			if ( _hideTutorialTips == value )
+				return;
+			_hideTutorialTips = value;
+			Persist();
+		}
+	}
+
+	public static IReadOnlyList<string> TutorialTipsShown
+	{
+		get
+		{
+			EnsureLoaded();
+			return _tutorialTipsShown;
+		}
+	}
+
+	public static IReadOnlyList<string> OnboardingGoalsCompleted
+	{
+		get
+		{
+			EnsureLoaded();
+			return _onboardingGoalsCompleted;
+		}
+	}
+
+	public static void MarkGoalComplete( string goalId )
+	{
+		if ( string.IsNullOrEmpty( goalId ) )
+			return;
+
+		EnsureLoaded();
+		if ( _onboardingGoalsCompleted.Contains( goalId ) )
+			return;
+
+		_onboardingGoalsCompleted.Add( goalId );
+		Persist();
+	}
+
+	public static void MarkTipShown( string id )
+	{
+		if ( string.IsNullOrEmpty( id ) )
+			return;
+
+		EnsureLoaded();
+		if ( _tutorialTipsShown.Contains( id ) )
+			return;
+
+		_tutorialTipsShown.Add( id );
+		Persist();
+	}
+
 	static void EnsureLoaded()
 	{
 		if ( _loaded )
@@ -41,8 +106,39 @@ public static class YaClientPrefs
 
 			using var stream = FileSystem.Data.OpenRead( PrefsPath );
 			var doc = JsonDocument.Parse( stream );
-			if ( doc.RootElement.TryGetProperty( "HasSeenControlsTutorial", out var prop ) && prop.ValueKind == JsonValueKind.True )
+			var root = doc.RootElement;
+
+			if ( root.TryGetProperty( "HasSeenControlsTutorial", out var seen ) && seen.ValueKind == JsonValueKind.True )
 				_hasSeenControlsTutorial = true;
+
+			if ( root.TryGetProperty( "HideTutorialTips", out var hide ) && hide.ValueKind == JsonValueKind.True )
+				_hideTutorialTips = true;
+
+			if ( root.TryGetProperty( "TutorialTipsShown", out var tips ) && tips.ValueKind == JsonValueKind.Array )
+			{
+				foreach ( var item in tips.EnumerateArray() )
+				{
+					if ( item.ValueKind == JsonValueKind.String )
+					{
+						var id = item.GetString();
+						if ( !string.IsNullOrEmpty( id ) && !_tutorialTipsShown.Contains( id ) )
+							_tutorialTipsShown.Add( id );
+					}
+				}
+			}
+
+			if ( root.TryGetProperty( "OnboardingGoalsCompleted", out var goals ) && goals.ValueKind == JsonValueKind.Array )
+			{
+				foreach ( var item in goals.EnumerateArray() )
+				{
+					if ( item.ValueKind == JsonValueKind.String )
+					{
+						var id = item.GetString();
+						if ( !string.IsNullOrEmpty( id ) && !_onboardingGoalsCompleted.Contains( id ) )
+							_onboardingGoalsCompleted.Add( id );
+					}
+				}
+			}
 		}
 		catch ( Exception ex )
 		{
@@ -58,6 +154,15 @@ public static class YaClientPrefs
 			using var writer = new Utf8JsonWriter( stream );
 			writer.WriteStartObject();
 			writer.WriteBoolean( "HasSeenControlsTutorial", _hasSeenControlsTutorial );
+			writer.WriteBoolean( "HideTutorialTips", _hideTutorialTips );
+			writer.WriteStartArray( "TutorialTipsShown" );
+			foreach ( var id in _tutorialTipsShown )
+				writer.WriteStringValue( id );
+			writer.WriteEndArray();
+			writer.WriteStartArray( "OnboardingGoalsCompleted" );
+			foreach ( var id in _onboardingGoalsCompleted )
+				writer.WriteStringValue( id );
+			writer.WriteEndArray();
 			writer.WriteEndObject();
 		}
 		catch ( Exception ex )

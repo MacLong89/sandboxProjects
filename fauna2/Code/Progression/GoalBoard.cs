@@ -31,6 +31,14 @@ public static class GoalBoard
 	/// <summary>Passive HUD — current sequential goal only.</summary>
 	public static IReadOnlyList<HudGoal> HudGoals()
 	{
+		// Center coach tips cover the early tutorial; don't duplicate them top-right.
+		var objectives = ObjectiveSystem.Instance;
+		if ( objectives is not null
+			&& !objectives.AllComplete
+			&& objectives.CurrentIndex >= 0
+			&& objectives.CurrentIndex < ObjectiveSystem.TutorialGoalCount )
+			return Array.Empty<HudGoal>();
+
 		var goal = SequentialGoals().FirstOrDefault();
 		if ( goal.Nav != HudGoalNav.Goal )
 			return Array.Empty<HudGoal>();
@@ -52,6 +60,7 @@ public static class GoalBoard
 	private static IEnumerable<HudGoal> CollectGoals( int sequentialIndex )
 	{
 		foreach ( var goal in SequentialGoals() ) yield return goal;
+		foreach ( var goal in MomentumGoals() ) yield return goal;
 		if ( ShouldSkipPassiveGoals( sequentialIndex ) )
 			yield break;
 
@@ -61,6 +70,28 @@ public static class GoalBoard
 		foreach ( var goal in ZooGrowthGoals() ) yield return goal;
 		foreach ( var goal in EventGoals() ) yield return goal;
 		foreach ( var goal in DailyGoals() ) yield return goal;
+	}
+
+	private static IEnumerable<HudGoal> MomentumGoals()
+	{
+		var momentum = SanctuaryMomentumSystem.Instance;
+		if ( momentum is null )
+			yield break;
+
+		var goal = momentum.CurrentGoal;
+		if ( string.IsNullOrEmpty( goal.Title ) )
+			yield break;
+
+		yield return new HudGoal
+		{
+			Icon = goal.Icon,
+			Category = "Momentum",
+			Title = goal.Title,
+			Detail = goal.Detail,
+			Progress = goal.Progress,
+			ProgressLabel = goal.Label,
+			SortOrder = 1,
+		};
 	}
 
 	private static bool ShouldSkipPassiveGoals( int sequentialIndex )
@@ -206,7 +237,7 @@ public static class GoalBoard
 				yield return new HudGoal
 				{
 					Icon = goal.Icon,
-					Category = "Daily",
+					Category = "Daily mission",
 					Title = goal.Title,
 					Detail = goal.Detail,
 					Progress = goal.Fraction,

@@ -16,29 +16,47 @@ public static class CureConstants
 	public const float SpringThreatInterval = 120f;
 	public const float SummerThreatInterval = 100f;
 	public const float FallThreatInterval = 80f;
-	public const float WinterThreatInterval = 55f;
+	public const float WinterThreatInterval = 70f;
 
 	public const float SpringThreatMult = 0.7f;
 	public const float SummerThreatMult = 0.85f;
 	public const float FallThreatMult = 1f;
 	public const float WinterThreatMult = 1.35f;
 
-	public const int BaseThreatZombies = 10;
-	public const float ThreatZombiesPerYear = 4f;
-	public const float ThreatZombiesPerSeason = 2f;
+	/// <summary>Cure combat scale = 1 + CureThreatIndex * this (end of Y1 ≈ 13).</summary>
+	public const float CombatThreatCompression = 0.2f;
+
+	public const int BaseThreatZombies = 14;
+	public const float ThreatZombiesPerYear = 5f;
+	public const float ThreatZombiesPerSeason = 3f;
 
 	public const float SicknessPerDaySpring = 0.15f;
 	public const float SicknessPerDaySummer = 0.2f;
 	public const float SicknessPerDayFall = 0.35f;
 	public const float SicknessPerDayWinter = 0.5f;
-	public const float SicknessAfterThreatDrop = 8f;
+	/// <summary>Exposure brought home after each repelled threat.</summary>
+	public const float SicknessFromThreat = 2f;
 	public const float MaxSickness = 100f;
 	public const float SicknessWorkerPenalty = 0.004f;
 
 	public const double LabPointsPerSeasonBase = 12;
 	public const double LabPointsPerLevel = 6;
-	public const double LabPointsPerCraftsman = 4;
 	public const double LabPointsPerScholar = 4;
+
+	/// <summary>Real-time length of one full season (lab output is tuned per season).</summary>
+	public static float SeasonDurationSeconds => RealSecondsPerDay * DaysPerSeason;
+
+	/// <summary>1 Supplies offsets this much scrap on paid repairs (when stock is available).</summary>
+	public const double SuppliesScrapValue = 2.0;
+	/// <summary>Supplies may cover at most this fraction of a repair's scrap cost.</summary>
+	public const double SuppliesRepairMaxShare = 0.35;
+
+	/// <summary>Food/s and scrap/s per allied neighboring colony.</summary>
+	public const float AllianceFoodPerSec = 0.25f;
+	public const float AllianceScrapPerSec = 0.2f;
+
+	/// <summary>Max Food→Scrap trades with the same colony per run.</summary>
+	public const int MaxTradesPerColony = 3;
 
 	// Civic building output (per building, per second)
 	public const float FarmFoodPerSec = 1.5f;
@@ -59,17 +77,24 @@ public static class CureConstants
 	public const double PlotClearMaterialBonus = 20;
 
 	/// <summary>Baseline Knowledge drip (Cure) — like Civ science from the palace.</summary>
-	public const float BaseKnowledgePerSec = 0.2f;
-	public const float LibraryKnowledgePerSec = 0.75f;
-	public const float SchoolKnowledgePerSec = 0.45f;
+	public const float BaseKnowledgePerSec = 0.05f;
+	public const float LibraryKnowledgePerSec = 0.25f;
+	public const float SchoolKnowledgePerSec = 0.55f;
+	public const float ObservatoryKnowledgePerSec = 0.4f;
+	public const float UniversityKnowledgePerSec = 0.9f;
+	/// <summary>Each University multiplies Research Lab point output.</summary>
+	public const float UniversityLabOutputMult = 1.12f;
+	/// <summary>Each Library multiplies tech-tree Knowledge costs (stacks multiplicatively, floor at 0.7).</summary>
+	public const float LibraryTechCostMultPer = 0.9f;
+	public const float LibraryTechCostMultFloor = 0.7f;
 	public const double KnowledgeFromPlaceBuilding = 2;
 	public const double KnowledgeFromClaimPlot = 3;
 	public const double KnowledgeFromClearPlot = 5;
-	public const double KnowledgeFromThreatSurvived = 12;
+	public const double KnowledgeFromThreatSurvived = 4;
 	public const double KnowledgeFromHire = 1;
 	public const float HospitalRecruitHealPerSec = 2.5f;
 	public const float HospitalSicknessHealPerSec = 0.02f;
-	public const float HospitalHealRadius = 220f;
+	public const float HospitalHealRadius = 220f * GameConstants.RangeScale;
 
 	/// <summary>Shop income — must beat colony scrap upkeep at scale (Earn applies ScrapIncomeMult).</summary>
 	public const float ShopScrapPerSec = 2.5f;
@@ -87,14 +112,14 @@ public static class CureConstants
 	public const float ScholarKnowledgePerSec = 0.45f;
 	public const float OperatorSuppliesPerSec = 0.55f;
 	public const float MedicRecruitHealPerSec = 2.0f;
-	public const float MedicHealRadius = 180f;
+	public const float MedicHealRadius = 180f * GameConstants.RangeScale;
 	public const float MerchantScrapPerSec = 1.0f;
 
 	public const int ResearchTierCount = 4;
 
 	/// <summary>Cure map is 3× Survival radius (13×13 vs 5×5).</summary>
 	public const int PlotGridRadius = 6;
-	public const float TerrainHalfExtent = 5600f;
+	public const float TerrainHalfExtent = 5600f * GameConstants.TileScale;
 
 	public static string SeasonName( int season ) => ((CureSeason)(season % 4)) switch
 	{
@@ -142,4 +167,11 @@ public static class CureConstants
 
 	public static int ProgressSeason( SaveData save ) =>
 		(save.CurrentYear - 1) * 4 + save.CurrentSeason + 1;
+
+	/// <summary>Compressed Cure combat night used for spawn/kill/expedition scaling.</summary>
+	public static float CureCombatProgression( SaveData save ) =>
+		1f + Math.Max( 0, save?.CureThreatIndex ?? 0 ) * CombatThreatCompression;
+
+	public static int CureCombatProgressionNight( SaveData save ) =>
+		Math.Max( 1, (int)MathF.Round( CureCombatProgression( save ) ) );
 }

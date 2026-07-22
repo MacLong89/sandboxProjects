@@ -17,9 +17,9 @@ public sealed class BreedingRecord
 }
 
 /// <summary>
-/// Host-side breeding. Periodically scans habitats for compatible, happy,
-/// well-housed pairs and produces offspring through the pluggable genetics
-/// service (which also owns variant rolls and the hybrid extension point).
+/// Host-side breeding. Periodically scans habitats for happy, well-housed
+/// same-species pairs and produces offspring through the genetics service
+/// (variant rolls, recessives, bloodlines).
 /// </summary>
 public sealed class BreedingSystem : Component
 {
@@ -29,6 +29,10 @@ public sealed class BreedingSystem : Component
 	public List<BreedingRecord> History { get; } = new();
 
 	[Sync( SyncFlags.FromHost )] public int TotalBredCount { get; set; }
+
+	public static bool FirstBreedPending =>
+		(Instance?.TotalBredCount ?? 0) == 0
+		&& (ZooState.Instance?.TotalAnimalsBred ?? 0) == 0;
 
 	private TimeUntil _nextScan;
 
@@ -48,22 +52,26 @@ public sealed class BreedingSystem : Component
 
 	private void ScanForPairs()
 	{
-		if ( AnimalRegistry.Count >= PlotSystem.Instance.AnimalCap ) return;
+		var plots = PlotSystem.Instance;
+		if ( !plots.IsValid() || AnimalRegistry.Count >= plots.AnimalCap ) return;
 
 		foreach ( var habitat in HabitatRegistry.All )
 		{
-			if ( habitat.Score < GameConstants.BreedMinHabitatScore ) continue;
-
 			var animals = AnimalRegistry.InHabitat( habitat.HabitatId ).ToList();
 
 			foreach ( var group in animals.GroupBy( a => a.DefinitionId ) )
-				TryBreedGroup( habitat, group.ToList() );
+			{
+				var firstBreed = FirstBreedPending;
+				var minimumScore = firstBreed ? 45f : GameConstants.BreedMinHabitatScore;
+				if ( habitat.Score < minimumScore ) continue;
+				TryBreedGroup( habitat, group.ToList(), firstBreed );
+			}
 		}
 	}
 
-	private void TryBreedGroup( HabitatComponent habitat, List<AnimalComponent> animals )
+	private void TryBreedGroup( HabitatComponent habitat, List<AnimalComponent> animals, bool firstBreed )
 	{
-		var eligible = animals.Where( IsEligible ).ToList();
+		var eligible = animals.Where( animal => IsEligible( animal, firstBreed ) ).ToList();
 		if ( eligible.Count < 2 ) return;
 
 		var def = eligible[0].Definition;
@@ -73,11 +81,14 @@ public sealed class BreedingSystem : Component
 		var a = eligible[0];
 		var b = eligible[1];
 
-		var chance = GameConstants.BreedBaseChance;
-		chance *= habitat.Score / 100f;
-		chance *= 1f - def.BreedingDifficulty;
-		chance *= a.Genome.Stat( "fertility" ) * b.Genome.Stat( "fertility" );
-		chance *= 1f + (FranchiseSystem.Instance?.LegacyBreedingBonus ?? 0f);
+		var chance = firstBreed ? 1f : GameConstants.BreedBaseChance;
+		if ( !firstBreed )
+		{
+			chance *= habitat.Score / 100f;
+			chance *= 1f - def.BreedingDifficulty;
+			chance *= a.Genome.Stat( "fertility" ) * b.Genome.Stat( "fertility" );
+			chance *= 1f + (FranchiseSystem.Instance?.LegacyBreedingBonus ?? 0f);
+		}
 
 		if ( Game.Random.Float() >= chance ) return;
 		if ( !habitat.HasRoomFor( def ) ) return;
@@ -85,11 +96,14 @@ public sealed class BreedingSystem : Component
 		Breed( a, b, habitat );
 	}
 
-	private bool IsEligible( AnimalComponent animal )
+	private bool IsEligible( AnimalComponent animal, bool firstBreed )
 	{
 		if ( animal.Definition is null ) return false;
 		if ( !animal.IsAdult || animal.IsElder ) return false;
-		if ( animal.Happiness < animal.Definition.BreedingHappiness ) return false;
+		var requiredHappiness = firstBreed
+			? MathF.Max( 50f, animal.Definition.BreedingHappiness - 10f )
+			: animal.Definition.BreedingHappiness;
+		if ( animal.Happiness < requiredHappiness ) return false;
 		if ( animal.TimeSinceBred < GameConstants.BreedCooldownDuration ) return false;
 		return true;
 	}
@@ -138,8 +152,8 @@ public sealed class BreedingSystem : Component
 		GameEvents.RaiseAnimalBred( baby );
 
 		var variantText = baby.Variant is not null ? $" — a {baby.Variant.DisplayName} variant!" : "!";
-		var hybridText = offspringDef.Rarity == AnimalRarity.Legendary ? " A legendary discovery!" : "";
-		state.Notify( $"{a.AnimalName} & {b.AnimalName} had a baby: {baby.AnimalName}{variantText}{hybridText}", "favorite" );
+		var rarityText = offspringDef.Rarity == AnimalRarity.Legendary ? " A legendary discovery!" : "";
+		state.Notify( $"{a.AnimalName} & {b.AnimalName} had a baby: {baby.AnimalName}{variantText}{rarityText}", "favorite" );
 
 		return baby;
 	}

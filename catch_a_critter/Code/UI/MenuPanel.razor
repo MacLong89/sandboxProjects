@@ -1,0 +1,428 @@
+@namespace CatchACritter
+@inherits PanelComponent
+
+<root class="menu @(Open ? "open" : "hidden")">
+	@if (Open && Progress is not null)
+	{
+		<div class="sheet">
+			<div class="tabs">
+				<div class="tab @(Tab == MenuTab.Shop ? "active" : "")" onclick="@(() => SetTab(MenuTab.Shop))">🥅 Shop</div>
+				<div class="tab @(Tab == MenuTab.Sanctuary ? "active" : "")" onclick="@(() => SetTab(MenuTab.Sanctuary))">🏡 Sanctuary</div>
+				<div class="tab @(Tab == MenuTab.Codex ? "active" : "")" onclick="@(() => SetTab(MenuTab.Codex))">📖 Codex</div>
+				<div class="tab @(Tab == MenuTab.Daily ? "active" : "")" onclick="@(() => SetTab(MenuTab.Daily))">📋 Daily</div>
+				<div class="tab @(Tab == MenuTab.Ascend ? "active" : "")" onclick="@(() => SetTab(MenuTab.Ascend))">👑 Ascend</div>
+				<div class="spacer"></div>
+				<div class="wallet">
+					<span>💰 @Balance.Fmt(Progress.Data.Coins)</span>
+					<span>💎 @Progress.Data.Gems</span>
+				</div>
+				<div class="close" onclick="@CloseMenu">✕</div>
+			</div>
+
+			<div class="body">
+				@if (Tab == MenuTab.Shop) { @ShopTab() }
+				else if (Tab == MenuTab.Sanctuary) { @SanctuaryTab() }
+				else if (Tab == MenuTab.Codex) { @CodexTab() }
+				else if (Tab == MenuTab.Daily) { @DailyTab() }
+				else { @AscendTab() }
+			</div>
+		</div>
+	}
+</root>
+
+@code {
+	PlayerProgress Progress => PlayerProgress.Local;
+	CritterGame GameState => CritterGame.Instance;
+	bool Open => GameState?.MenuOpen == true;
+	MenuTab Tab => GameState?.ActiveTab ?? MenuTab.Shop;
+
+	string _breedA;
+	string _breedB;
+	int _sanctuaryPage; // 0 = backpack, 1 = sanctuary, 2 = eggs
+
+	void SetTab(MenuTab tab) => GameState?.OpenMenu(tab);
+	void CloseMenu() => GameState?.CloseMenu();
+	void SetSanctuaryPage( int page ) => _sanctuaryPage = page;
+
+	// ================= SHOP =================
+	RenderFragment ShopTab() => @<div class="tabpage">
+		<div class="section">
+		<div class="section-title">Nets</div>
+		<div class="rows">
+			@{
+				var owned = Progress.Data.NetPower;
+				var next = owned < NetCatalog.All.Length - 1 ? NetCatalog.All[owned + 1] : null;
+			}
+			<div class="row current">
+				<div class="row-main">
+					<div class="row-name" style="color: @NetCatalog.Get(owned).Color.Hex;">@NetCatalog.Get(owned).Name</div>
+					<div class="row-sub">Equipped · Radius @NetCatalog.Get(owned).Radius.ToString("0") · Power @owned</div>
+				</div>
+			</div>
+			@if (next is not null)
+			{
+				<div class="row">
+					<div class="row-main">
+						<div class="row-name" style="color: @next.Color.Hex;">@next.Name</div>
+						<div class="row-sub">@next.Blurb</div>
+						<div class="row-sub dim">Radius @next.Radius.ToString("0") · Cooldown @next.Cooldown.ToString("0.0")s · Catches critters up to tier @next.Power</div>
+					</div>
+					<div class="buy @(Progress.Data.Coins >= next.Cost ? "" : "cant")" onclick="@(() => Progress.TryBuyNet())">
+						@Balance.Fmt(next.Cost) 💰
+					</div>
+				</div>
+			}
+			else
+			{
+				<div class="row"><div class="row-main"><div class="row-name">🏆 Max net reached!</div></div></div>
+			}
+		</div>
+		</div>
+
+		<div class="section">
+		<div class="section-title">Personal Upgrades</div>
+		<div class="rows">
+			<div class="row">
+				<div class="row-main">
+					<div class="row-name">👟 Speed <span class="lvl">Lv @Progress.Data.SpeedLevel/@Balance.SpeedMaxLevel</span></div>
+					<div class="row-sub">Run faster. Catch more. Live better.</div>
+				</div>
+				@if (Progress.Data.SpeedLevel < Balance.SpeedMaxLevel)
+				{
+					<div class="buy @(Progress.Data.Coins >= Balance.SpeedCost(Progress.Data.SpeedLevel) ? "" : "cant")" onclick="@(() => Progress.TryBuySpeed())">
+						@Balance.Fmt(Balance.SpeedCost(Progress.Data.SpeedLevel)) 💰
+					</div>
+				}
+			</div>
+			<div class="row">
+				<div class="row-main">
+					<div class="row-name">🎒 Backpack <span class="lvl">Lv @Progress.Data.BackpackLevel/@Balance.BackpackMaxLevel</span></div>
+					<div class="row-sub">+@Balance.BackpackPerLevel capacity per level (now @Progress.BackpackCapacity)</div>
+				</div>
+				@if (Progress.Data.BackpackLevel < Balance.BackpackMaxLevel)
+				{
+					<div class="buy @(Progress.Data.Coins >= Balance.BackpackCost(Progress.Data.BackpackLevel) ? "" : "cant")" onclick="@(() => Progress.TryBuyBackpack())">
+						@Balance.Fmt(Balance.BackpackCost(Progress.Data.BackpackLevel)) 💰
+					</div>
+				}
+			</div>
+			<div class="row">
+				<div class="row-main">
+					<div class="row-name">🍀 Luck <span class="lvl">Lv @Progress.Data.LuckLevel/@Balance.LuckMaxLevel</span></div>
+					<div class="row-sub">Rarer spawns and more shinies for everyone in your lobby.</div>
+				</div>
+				@if (Progress.Data.LuckLevel < Balance.LuckMaxLevel)
+				{
+					<div class="buy @(Progress.Data.Coins >= Balance.LuckCost(Progress.Data.LuckLevel) ? "" : "cant")" onclick="@(() => Progress.TryBuyLuck())">
+						@Balance.Fmt(Balance.LuckCost(Progress.Data.LuckLevel)) 💰
+					</div>
+				}
+			</div>
+		</div>
+		</div>
+
+		<div class="section">
+		<div class="section-title">Biomes</div>
+		<div class="rows">
+			@foreach (var biome in BiomeCatalog.All)
+			{
+				var unlocked = Progress.IsZoneUnlocked(biome.Id);
+				<div class="row @(unlocked ? "current" : "")">
+					<div class="row-main">
+						<div class="row-name" style="color: @biome.Accent.Hex;">@(unlocked ? "🌍" : "🔒") @biome.Name</div>
+						<div class="row-sub">@biome.Blurb</div>
+					</div>
+					@if (!unlocked)
+					{
+						<div class="buy @(Progress.Data.Coins >= biome.GateCost ? "" : "cant")" onclick="@(() => Progress.TryUnlockZone(biome.Id))">
+							@Balance.Fmt(biome.GateCost) 💰
+						</div>
+					}
+				</div>
+			}
+		</div>
+		</div>
+	</div>;
+
+	// ================= SANCTUARY =================
+	// One page at a time + full-width item rows. Card grids collapse/overlap in Panel UI.
+	RenderFragment SanctuaryTab() => @<div class="tabpage">
+		<div class="subtabs">
+			<div class="subtab @(_sanctuaryPage == 0 ? "active" : "")" onclick="@(() => SetSanctuaryPage(0))">🎒 Pack @Progress.BackpackCount/@Progress.BackpackCapacity</div>
+			<div class="subtab @(_sanctuaryPage == 1 ? "active" : "")" onclick="@(() => SetSanctuaryPage(1))">🏡 Keep @Progress.Data.Sanctuary.Count/@Progress.SanctuarySlots</div>
+			<div class="subtab @(_sanctuaryPage == 2 ? "active" : "")" onclick="@(() => SetSanctuaryPage(2))">🥚 Eggs @Progress.Data.Eggs.Count/@Progress.EggSlots</div>
+		</div>
+
+		@if (_sanctuaryPage == 0)
+		{
+			<div class="section-hint">Keep favorites here. Sell the rest at the gold SELL stand in the hub plaza.</div>
+			@if (Progress.Data.Backpack.Count == 0)
+			{
+				<div class="empty">Backpack empty — swing that net!</div>
+			}
+			else
+			{
+				<div class="itemlist">
+					@for (int i = 0; i < Progress.Data.Backpack.Count; i++)
+					{
+						var idx = i;
+						var item = Progress.Data.Backpack[i];
+						var def = SpeciesCatalog.Get(item.SpeciesId);
+						if (def is null) continue;
+						var value = Balance.Fmt(def.BaseValue * (item.Shiny ? Balance.ShinyValueMult : 1) * Progress.SellMultiplier);
+						<div class="item @(item.Shiny ? "shiny" : "")">
+							<div class="item-icon" style="background-image: url( '/ui/critters/@(def.Id).png' );"></div>
+							<div class="item-main">
+								<div class="item-name" style="color: @SpeciesCatalog.RarityColor(def.Rarity).Hex;">@(item.Shiny ? "✨ " : "")@def.Name</div>
+								<div class="item-sub">@def.Rarity · Sell for @value 💰</div>
+							</div>
+							<div class="item-actions">
+								<div class="mini-btn" onclick="@(() => Progress.KeepFromBackpack(idx))">Keep</div>
+							</div>
+						</div>
+					}
+				</div>
+			}
+		}
+		else if (_sanctuaryPage == 1)
+		{
+			<div class="section-hint">Earning @Balance.Fmt(Progress.SanctuaryIncomePerSecond) coins/s — even while you're away.</div>
+			@if (_breedA is not null)
+			{
+				<div class="breed-bar">
+					@{
+						var a = Progress.Data.Sanctuary.FirstOrDefault(x => x.Id == _breedA);
+						var b = Progress.Data.Sanctuary.FirstOrDefault(x => x.Id == _breedB);
+					}
+					<div class="breed-label">Breed: @(a?.Def?.Name ?? "?") + @(b?.Def?.Name ?? "pick another")</div>
+					@if (a is not null && b is not null)
+					{
+						<div class="mini-btn on" onclick="@DoBreed">Breed @Balance.Fmt(Progress.BreedCost(a.Def))</div>
+					}
+					<div class="mini-btn danger" onclick="@(() => { _breedA = null; _breedB = null; })">Cancel</div>
+				</div>
+			}
+			@if (Progress.Data.Sanctuary.Count == 0)
+			{
+				<div class="empty">Keep critters from your backpack to build passive income!</div>
+			}
+			else
+			{
+				<div class="itemlist">
+					@foreach (var critter in Progress.Data.Sanctuary)
+					{
+						var c = critter;
+						var def = c.Def;
+						if (def is null) continue;
+						var isFollower = Progress.Data.FollowerIds.Contains(c.Id);
+						var isBreedPick = _breedA == c.Id || _breedB == c.Id;
+						<div class="item @(c.Shiny ? "shiny" : "") @(isBreedPick ? "picked" : "")">
+							<div class="item-icon" style="background-image: url( '/ui/critters/@(def.Id).png' );"></div>
+							<div class="item-main">
+								<div class="item-name" style="color: @SpeciesCatalog.RarityColor(def.Rarity).Hex;">@(c.Shiny ? "✨ " : "")@def.Name</div>
+								<div class="item-sub">Gen @c.Generation · +@Balance.Fmt(c.IncomePerSecond)/s</div>
+							</div>
+							<div class="item-actions">
+								<div class="mini-btn @(isFollower ? "on" : "")" onclick="@(() => Progress.ToggleFollower(c.Id))">@(isFollower ? "Following" : "Follow")</div>
+								<div class="mini-btn @(isBreedPick ? "on" : "")" onclick="@(() => PickBreed(c.Id))">Breed</div>
+								<div class="mini-btn danger" onclick="@(() => Progress.ReleaseFromSanctuary(c.Id))">Sell</div>
+							</div>
+						</div>
+					}
+				</div>
+			}
+		}
+		else
+		{
+			<div class="section-hint">Breed two of the same species — babies have @Balance.BredShinyBonus.ToString("0.#")x shiny odds.</div>
+			@if (Progress.Data.Eggs.Count == 0)
+			{
+				<div class="empty">No eggs yet. Pick two sanctuary critters and hit Breed.</div>
+			}
+			else
+			{
+				<div class="itemlist">
+					@for (int i = 0; i < Progress.Data.Eggs.Count; i++)
+					{
+						var idx = i;
+						var egg = Progress.Data.Eggs[i];
+						var def = SpeciesCatalog.Get(egg.SpeciesId);
+						<div class="item egg">
+							<div class="item-icon egg-face">🥚</div>
+							<div class="item-main">
+								<div class="item-name">@(def?.Name ?? "Critter") Egg</div>
+								<div class="item-sub">Gen @egg.Generation · @(egg.Ready ? "Ready to hatch!" : Balance.FmtTime(egg.SecondsLeft) + " left")</div>
+							</div>
+							<div class="item-actions">
+								@if (egg.Ready)
+								{
+									<div class="mini-btn on">Ready</div>
+								}
+								else
+								{
+									<div class="mini-btn" onclick="@(() => Progress.InstantHatch(idx))">Hatch @Balance.GemInstantHatchCost 💎</div>
+								}
+							</div>
+						</div>
+					}
+				</div>
+			}
+		}
+	</div>;
+
+	// ================= CODEX =================
+	RenderFragment CodexTab() => @<div class="tabpage">
+		<div class="section">
+			<div class="section-title">📖 Critterpedia</div>
+			<div class="section-hint">Catch every species in a biome for a permanent +10% sell bonus.</div>
+		</div>
+		@foreach (var biome in BiomeCatalog.All)
+		{
+			var species = SpeciesCatalog.InBiome(biome.Id).ToList();
+			var found = species.Count(s => Progress.Data.Codex.TryGetValue(s.Id, out var e) && e.Caught > 0);
+			<div class="section">
+				<div class="codex-head" style="color: @biome.Accent.Hex;">@biome.Name <span class="dim">@found/@species.Count @(found == species.Count ? "✅ +10% sell!" : "")</span></div>
+				<div class="grid">
+					@foreach (var row in RowChunks(species, 6))
+					{
+						<div class="grid-row">
+							@foreach (var s in row)
+							{
+								var entry = Progress.Data.Codex.GetValueOrDefault(s.Id);
+								var caught = entry?.Caught > 0;
+								<div class="card card-codex @(caught ? "" : "unknown")">
+									<div class="card-icon" style="background-image: url( '/ui/critters/@(s.Id).png' );"></div>
+									<div class="card-name" style="color: @SpeciesCatalog.RarityColor(s.Rarity).Hex;">@(caught ? s.Name : "???")</div>
+									<div class="card-sub">@s.Rarity</div>
+									@if (caught)
+									{
+										<div class="card-sub dim">Caught @entry.Caught @(entry.ShinyCaught > 0 ? $"· ✨{entry.ShinyCaught}" : "") @(entry.Bred > 0 ? $"· 🥚{entry.Bred}" : "")</div>
+									}
+								</div>
+							}
+						</div>
+					}
+				</div>
+			</div>
+		}
+	</div>;
+
+	// ================= DAILY =================
+	RenderFragment DailyTab() => @<div class="tabpage">
+		<div class="section">
+		<div class="section-title">📋 Daily Quests</div>
+		<div class="section-hint">New quests at midnight UTC · 🔥 Streak day @Progress.Data.StreakCount</div>
+		<div class="rows">
+			@foreach (var quest in Progress.Data.DailyQuests)
+			{
+				var q = quest;
+				<div class="row @(q.Claimed ? "claimed" : "")">
+					<div class="row-main">
+						<div class="row-name">@q.Title</div>
+						<div class="quest-bar"><div class="quest-fill" style="width: @((q.Fraction * 100).ToString("0"))%;"></div></div>
+						<div class="row-sub">@(q.Kind == QuestKind.SellCoins ? Balance.Fmt(q.Progress) : q.Progress.ToString("0"))/@(q.Kind == QuestKind.SellCoins ? Balance.Fmt(q.Target) : q.Target.ToString("0"))</div>
+					</div>
+					@if (q.Claimed)
+					{
+						<div class="buy done">✅ Done</div>
+					}
+					else if (q.Complete)
+					{
+						<div class="buy" onclick="@(() => DailyQuestGen.Claim(Progress, q))">Claim 🎁</div>
+					}
+					else
+					{
+						<div class="buy cant">+@Balance.Fmt(DailyQuestGen.CoinReward(Progress.Data, q)) 💰 +@Balance.DailyGemReward 💎</div>
+					}
+				</div>
+			}
+		</div>
+		</div>
+		<div class="section">
+		<div class="section-title">🔥 Login streak rewards</div>
+		<div class="rows">
+			<div class="row">
+				<div class="row-main">
+					<div class="row-sub">Come back every day for growing gem bonuses: @string.Join(" → ", Balance.StreakGems.Select(g => $"{g}💎")). Miss a day and the streak resets!</div>
+				</div>
+			</div>
+		</div>
+		</div>
+	</div>;
+
+	// ================= ASCEND =================
+	RenderFragment AscendTab() => @<div class="tabpage">
+		<div class="ascend-hero">
+			<div class="asc-title">👑 Ascension @(Progress.Data.Crowns + 1)</div>
+			<div class="asc-sub">Reset coins, nets, upgrades, and biome gates.</div>
+			<div class="asc-sub">Keep your sanctuary, codex, gems, and talents.</div>
+			<div class="asc-gain">Gain: <b>+@((Balance.AscendSellBonus * 100).ToString("0"))% sell price forever</b> · <b>+@Balance.TalentPointsPerAscend talent points</b> · <b>+1 sanctuary slot</b></div>
+			<div class="asc-cost">Costs @Balance.Fmt(Progress.AscendCost) 💰 — you have @Balance.Fmt(Progress.Data.Coins) 💰</div>
+			<div class="buy big @(Progress.CanAscend ? "" : "cant")" onclick="@(() => Progress.Ascend())">ASCEND 👑</div>
+		</div>
+
+		<div class="section">
+		<div class="section-title">🌟 Talents</div>
+		<div class="section-hint">@Progress.Data.TalentPoints talent points available · Earn ⭐ by Ascending</div>
+		@foreach (var branch in new[] { TalentBranch.Hunter, TalentBranch.Fortune, TalentBranch.Keeper })
+		{
+			<div class="codex-head">@(branch == TalentBranch.Hunter ? "🏹 Hunter" : branch == TalentBranch.Fortune ? "🍀 Fortune" : "🏡 Keeper")</div>
+			<div class="rows">
+				@foreach (var talent in TalentCatalog.All.Where(t => t.Branch == branch).OrderBy(t => t.Tier))
+				{
+					var t = talent;
+					var rank = Progress.TalentRank(t.Id);
+					<div class="row @(rank >= t.MaxRank ? "claimed" : "")">
+						<div class="row-main">
+							<div class="row-name">@t.Name <span class="lvl">@rank/@t.MaxRank</span></div>
+							<div class="row-sub">@t.Blurb</div>
+						</div>
+						@if (rank < t.MaxRank)
+						{
+							<div class="buy @(Progress.Data.TalentPoints >= t.CostPerRank ? "" : "cant")" onclick="@(() => Progress.TryBuyTalent(t.Id))">
+								@t.CostPerRank ⭐
+							</div>
+						}
+					</div>
+				}
+			</div>
+		}
+		</div>
+	</div>;
+
+	void PickBreed(string id)
+	{
+		if (_breedA is null) { _breedA = id; return; }
+		if (_breedA == id) { _breedA = _breedB; _breedB = null; return; }
+		if (_breedB == id) { _breedB = null; return; }
+		_breedB = id;
+	}
+
+	void DoBreed()
+	{
+		if (_breedA is null || _breedB is null) return;
+		Progress.Breed(_breedA, _breedB);
+		_breedA = null;
+		_breedB = null;
+	}
+
+	static IEnumerable<List<T>> RowChunks<T>( IReadOnlyList<T> items, int perRow )
+	{
+		for ( int i = 0; i < items.Count; i += perRow )
+		{
+			var row = new List<T>( perRow );
+			for ( int j = i; j < items.Count && j < i + perRow; j++ )
+				row.Add( items[j] );
+			yield return row;
+		}
+	}
+
+	protected override int BuildHash()
+	{
+		var p = Progress;
+		if (p is null) return 0;
+		return HashCode.Combine(Open, Tab, (long)p.Data.Coins, p.Data.Gems,
+			HashCode.Combine(p.BackpackCount, p.Data.Sanctuary.Count, p.Data.Eggs.Count, p.Data.TalentPoints, _breedA, _breedB),
+			HashCode.Combine(p.Data.DailyQuests.Count(q => q.Claimed), p.Data.DailyQuests.Sum(q => q.Progress), _sanctuaryPage, Time.Now.FloorToInt()));
+	}
+}

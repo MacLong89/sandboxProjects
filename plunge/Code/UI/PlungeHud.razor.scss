@@ -1359,3 +1359,34 @@ button.locked,
 	background-color: rgba(30, 95, 110, 0.25);
 	color: $cyan;
 }
+
+.tutorial-tip {
+	align-items: center;
+	text-align: center;
+}
+
+.tip-body {
+	font-size: 16px;
+	line-height: 1.45;
+	color: #b8d4dc;
+	margin: 12px 0 18px;
+	text-align: center;
+}
+
+.tip-actions {
+	justify-content: center;
+}
+
+.tip-toast {
+	position: absolute;
+	bottom: 24px;
+	left: 50%;
+	transform: translateX(-50%);
+	padding: 10px 16px;
+	background-color: rgba(8, 18, 24, 0.92);
+	border: 1px solid rgba(125, 202, 208, 0.45);
+	color: #7dcad0;
+	font-size: 13px;
+	font-weight: 700;
+	pointer-events: none;
+}

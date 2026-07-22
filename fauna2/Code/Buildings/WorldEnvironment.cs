@@ -15,7 +15,7 @@ public sealed class WorldEnvironment : Component
 	private readonly HashSet<string> _grassPlotKeys = new();
 
 	private int _baseBiomeHash = int.MinValue;
-	private const int GroundBuildVersion = 46;
+	private const int GroundBuildVersion = 49;
 	private int _groundBuildVersion;
 
 	private TimeUntil _nextCheck;
@@ -82,7 +82,9 @@ public sealed class WorldEnvironment : Component
 		if ( gameStarted && !_wasGameStarted )
 		{
 			_wasGameStarted = true;
-			if ( !UI.UiState.SessionLoading )
+			// GameManager already opened the loading gate. Never restart it here —
+			// a second BeginSessionLoading() clears onboarding tips mid-card.
+			if ( !UI.UiState.SessionLoading && !UI.UiState.SessionLoadCompleted )
 				UI.UiState.BeginSessionLoading();
 			_sessionBootstrapPending = true;
 			_nextCheck = 0f;

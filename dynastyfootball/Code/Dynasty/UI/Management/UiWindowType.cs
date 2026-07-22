@@ -18,5 +18,6 @@ public enum UiWindowType
 	AdvanceTimeMenu,
 	TeamProfile,
 	SessionSummary,
-	FourthDownDecision
+	FourthDownDecision,
+	TutorialTip
 }

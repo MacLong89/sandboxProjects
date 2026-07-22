@@ -8,8 +8,8 @@ namespace Fauna2;
 /// grants the zoo a "visitor gift" once per player per day, giving both sides
 /// a reason to host and to visit.
 ///
-/// A leaderboard provider interface ships now so a backend (Sandbox.Services
-/// stats, web API, ...) can slot in later without touching game code.
+/// Weekly Showcase is a personal best tracked on this zoo's save — not a
+/// global ranked leaderboard.
 /// </summary>
 public sealed class SocialSystem : Component
 {
@@ -34,16 +34,15 @@ public sealed class SocialSystem : Component
 	private readonly Dictionary<long, TimeSince> _lastEngageBySteamId = new();
 	private const float VisitorEngageCooldownSeconds = 8f;
 
-	public ILeaderboardProvider Leaderboards { get; set; } = new NullLeaderboardProvider();
-	private TimeUntil _nextWeeklySubmit;
+	private TimeUntil _nextWeeklyUpdate;
 
 	protected override void OnAwake() => Instance = this;
 	protected override void OnDestroy() { if ( Instance == this ) Instance = null; }
 
 	protected override void OnFixedUpdate()
 	{
-		if ( IsProxy || GameManager.Instance?.GameStarted != true || !_nextWeeklySubmit ) return;
-		_nextWeeklySubmit = 15f;
+		if ( IsProxy || GameManager.Instance?.GameStarted != true || !_nextWeeklyUpdate ) return;
+		_nextWeeklyUpdate = 15f;
 		UpdateWeeklyCompetition();
 	}
 
@@ -58,8 +57,11 @@ public sealed class SocialSystem : Component
 		_ => Likes.Count * 50 + TotalVisitors * 10 + (GuestSystem.Instance?.PeakGuests ?? 0),
 	};
 
-	public string ShareSummary =>
+	public string ZooSummary =>
 		$"{ZooState.Instance?.ZooName ?? "Fauna Zoo"} · {GuestSystem.Instance?.ZooRating ?? 0f:0.0} stars · {CollectionSystem.Instance?.DiscoveredSpeciesCount ?? 0}/{Defs.Animals.Count()} species · {Likes.Count} likes";
+
+	/// <summary>Legacy alias used by older UI bindings.</summary>
+	public string ShareSummary => ZooSummary;
 
 	// ── Requests ────────────────────────────────────────────
 
@@ -71,7 +73,6 @@ public sealed class SocialSystem : Component
 
 		Likes.Add( steamId );
 		ZooState.Instance?.Notify( $"{Rpc.Caller.DisplayName} liked the zoo! ({Likes.Count} likes)", "thumb_up" );
-		Leaderboards.Submit( "likes", Likes.Count );
 		UpdateWeeklyCompetition();
 	}
 
@@ -82,9 +83,15 @@ public sealed class SocialSystem : Component
 		if ( steamId == 0 ) return;
 
 		if ( Favorites.Contains( steamId ) )
+		{
 			Favorites.Remove( steamId );
+			ZooState.Instance?.Notify( $"{Rpc.Caller.DisplayName} unfavorited the zoo.", "star_border" );
+		}
 		else
+		{
 			Favorites.Add( steamId );
+			ZooState.Instance?.Notify( $"{Rpc.Caller.DisplayName} favorited the zoo!", "star" );
+		}
 
 		UpdateWeeklyCompetition();
 	}
@@ -108,6 +115,7 @@ public sealed class SocialSystem : Component
 			ZooState.Instance?.AddXp( 40 );
 			ZooState.Instance?.Notify(
 				$"{channel.DisplayName} is visiting — visitor gift +${GameConstants.VisitorGiftAmount}!", "card_giftcard" );
+			GrantVisitorReturnCredit( steamId, GameConstants.VisitorGiftAmount );
 		}
 		else
 		{
@@ -115,6 +123,37 @@ public sealed class SocialSystem : Component
 		}
 
 		UpdateWeeklyCompetition();
+	}
+
+	[Rpc.Broadcast]
+	private void GrantVisitorReturnCredit( long visitorSteamId, int amount )
+	{
+		if ( Connection.Local?.SteamId.Value != visitorSteamId || amount <= 0 )
+			return;
+
+		var today = DateTimeOffset.UtcNow.ToUnixTimeSeconds() / 86400;
+		if ( GameSettings.Current.LastVisitorRewardUnixDay >= today )
+			return;
+
+		GameSettings.Current.LastVisitorRewardUnixDay = today;
+		GameSettings.Current.PendingVisitorCredits += amount;
+		GameSettings.Save();
+		UI.UiState.PushToast( $"Visit reward saved: +${amount:n0} for your zoo next time you host.", "card_giftcard" );
+	}
+
+	/// <summary>Claim locally earned visit credits when this player next hosts a zoo.</summary>
+	public static void ClaimPendingVisitorCredits()
+	{
+		if ( !SaveHost.CanStartSession ) return;
+
+		var amount = Math.Max( 0, GameSettings.Current.PendingVisitorCredits );
+		if ( amount <= 0 || !ZooState.Instance.IsValid() ) return;
+
+		GameSettings.Current.PendingVisitorCredits = 0;
+		GameSettings.Save();
+		ZooState.Instance.AddMoney( amount );
+		ZooState.Instance.Notify( $"Community visit reward claimed: +${amount:n0}.", "card_giftcard" );
+		SaveSystem.Instance?.RequestSave();
 	}
 
 	public void OnVisitorLeft( Connection channel )
@@ -165,7 +204,6 @@ public sealed class SocialSystem : Component
 
 		WeeklyTheme = ThemeForWeek();
 		WeeklyBestScore = Math.Max( WeeklyBestScore, WeeklyScore );
-		Leaderboards.Submit( $"weekly:{WeeklyTheme}", WeeklyBestScore );
 	}
 
 	private static string ThemeForWeek()
@@ -180,32 +218,4 @@ public sealed class SocialSystem : Component
 			_ => "Conservation Week",
 		};
 	}
-}
-
-// ── Leaderboard framework ───────────────────────────────────
-
-public readonly struct LeaderboardEntry
-{
-	public string PlayerName { get; init; }
-	public double Value { get; init; }
-	public int Rank { get; init; }
-}
-
-/// <summary>
-/// Future-proof leaderboard seam. Implementations could use Sandbox.Services
-/// stats, a community web API, or local files — game code stays unchanged.
-/// </summary>
-public interface ILeaderboardProvider
-{
-	void Submit( string stat, double value );
-	Task<IReadOnlyList<LeaderboardEntry>> GetTop( string stat, int count );
-}
-
-/// <summary>Placeholder provider until a backend is wired up.</summary>
-public sealed class NullLeaderboardProvider : ILeaderboardProvider
-{
-	public void Submit( string stat, double value ) { }
-
-	public Task<IReadOnlyList<LeaderboardEntry>> GetTop( string stat, int count ) =>
-		Task.FromResult<IReadOnlyList<LeaderboardEntry>>( new List<LeaderboardEntry>() );
 }

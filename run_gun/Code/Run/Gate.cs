@@ -75,6 +75,7 @@ public sealed class Gate : Component
 	{
 		run.ApplyGateEffect( Stat, Op, Value );
 		run.OnGateCross( Op == GateOp.Mult );
+		GameCore.Instance?.NotifyTutorialGateCrossed( Stat, Op, Value );
 		VfxManager.Instance?.SpawnGatePop( WorldPosition, BuildStatPresentation.FormatGateLabel( Stat, Op, Value ), _accent );
 	}
 

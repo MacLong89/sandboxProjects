@@ -403,7 +403,7 @@ public sealed class AmbientGuests : Component
 		var guestSize = GameConstants.Tiles( GameConstants.PlayerSpriteTiles * 0.85f );
 		var renderer = WorldSprites.Spawn(
 			go,
-			PixelArt.GuestSpriteResource( variantIndex ),
+			PixelArt.GuestSpriteResource( variantIndex, PlayerFacing.Down ),
 			guestSize,
 			Vector3.Zero,
 			"Sprite",
@@ -412,6 +412,16 @@ public sealed class AmbientGuests : Component
 			sourcePixels: PixelArt.SuppliedSpriteSourcePixels,
 			movementRoot: go,
 			walkAnimator: true );
+
+		if ( renderer.IsValid() )
+		{
+			var animator = renderer.GameObject.Components.Get<SpriteWalkAnimator>();
+			if ( animator is not null )
+			{
+				animator.DirectionalGuestVariant = variantIndex;
+				animator.FlipFacingHorizontal = false;
+			}
+		}
 
 
 		var guest = new Guest

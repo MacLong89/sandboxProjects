@@ -65,6 +65,21 @@ public static class AudioSettings
 	public static float EffectiveAmbience => Master * Ambience;
 	public static float EffectiveMusic => Master * Music;
 
+	public static float CameraSensitivity
+	{
+		get => _save?.CameraSensitivity > 0f
+			? Math.Clamp( _save.CameraSensitivity, GameConstants.MinCameraSensitivity, GameConstants.MaxCameraSensitivity )
+			: GameConstants.DefaultCameraSensitivity;
+		set
+		{
+			if ( _save is null ) return;
+			var clamped = Math.Clamp( value, GameConstants.MinCameraSensitivity, GameConstants.MaxCameraSensitivity );
+			if ( MathF.Abs( _save.CameraSensitivity - clamped ) < 0.001f ) return;
+			_save.CameraSensitivity = clamped;
+			NotifyChanged();
+		}
+	}
+
 	private static void NotifyChanged()
 	{
 		Changed?.Invoke();

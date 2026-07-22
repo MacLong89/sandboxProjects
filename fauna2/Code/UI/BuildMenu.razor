@@ -98,7 +98,7 @@
 			.OrderBy( p => p.UnlockLevel )
 			.ThenBy( p => p.Cost ),
 		_ => Defs.Placeables
-			.Where( p => p.Category == _category )
+			.Where( p => p.Category == _category && WorldSpriteCatalog.IsBuildMenuReady( p ) )
 			.OrderBy( p => p.UnlockLevel )
 			.ThenBy( p => p.Cost ),
 	};
@@ -111,20 +111,18 @@
 
 	private void Select( PlaceableDefinition def )
 	{
-		if ( !BuildValidation.IsUnlocked( def ) ) return;
+		if ( !BuildValidation.IsUnlocked( def ) )
+		{
+			UiState.PushToast( $"{def.DisplayName}: {BuildValidation.UnlockHint( def )}.", "lock" );
+			return;
+		}
 
 		UiState.CloseModals();
 		UiState.Close();
 		BuildController.Instance?.BeginPlace( def );
 	}
 
-	private static string LockText( PlaceableDefinition def )
-	{
-		if ( def.RequiredPrestige > 0 )
-			return $"Unlocks at level {def.UnlockLevel} · {def.RequiredPrestige} prestige";
-
-		return $"Unlocks at level {def.UnlockLevel}";
-	}
+	private static string LockText( PlaceableDefinition def ) => BuildValidation.UnlockHint( def );
 
 	private string SwatchColor( PlaceableDefinition def )
 	{

@@ -4,7 +4,7 @@
 @inherits PanelComponent
 @namespace FinalOutpost.UI
 
-<root>
+<root class="@(TakeoverPossessing ? "fps-lock" : "")">
 	@if ( Core is null || BootFailed )
 	{
 		<div class="overlay boot-fallback">
@@ -27,6 +27,8 @@
 		@if ( Phase == GamePhase.Day || Phase == GamePhase.Night )
 		{
 			<div class="hud">
+				@if ( !TakeoverPossessing )
+				{
 				<div class="topbar-shell">
 					<div class="topbar">
 						<div class="cluster left">
@@ -58,28 +60,28 @@
 										</div>
 									</div>
 								}
-								<div class="pill res wood" title="Wood — gather by expanding; can pay for buildings instead of scrap">
-									<i class="icon">park</i>
-									<div class="pill-stack">
-										<span class="val">@Wood</span>
-										@if ( WoodRateLabel is not null )
-										{
-											<span class="pill-rate">@WoodRateLabel</span>
-										}
-									</div>
-								</div>
-								<div class="pill res stone" title="Stone — gather by expanding; can pay for buildings instead of scrap">
-									<i class="icon">landscape</i>
-									<div class="pill-stack">
-										<span class="val">@Stone</span>
-										@if ( StoneRateLabel is not null )
-										{
-											<span class="pill-rate">@StoneRateLabel</span>
-										}
-									</div>
-								</div>
 								@if ( IsCure )
 								{
+									<div class="pill res wood" title="Wood — gather by expanding; can pay for buildings instead of scrap">
+										<i class="icon">park</i>
+										<div class="pill-stack">
+											<span class="val">@Wood</span>
+											@if ( WoodRateLabel is not null )
+											{
+												<span class="pill-rate">@WoodRateLabel</span>
+											}
+										</div>
+									</div>
+									<div class="pill res stone" title="Stone — gather by expanding; can pay for buildings instead of scrap">
+										<i class="icon">landscape</i>
+										<div class="pill-stack">
+											<span class="val">@Stone</span>
+											@if ( StoneRateLabel is not null )
+											{
+												<span class="pill-rate">@StoneRateLabel</span>
+											}
+										</div>
+									</div>
 									<div class="pill res pop" title="Population (workers + recruits) — drives food drain">
 										<i class="icon">groups</i>
 										<div class="pill-stack">
@@ -97,7 +99,7 @@
 											}
 										</div>
 									</div>
-									<div class="pill res supplies" title="Supplies">
+									<div class="pill res supplies" title="Supplies — factories and operators produce them; stocked Supplies reduce repair scrap costs">
 										<i class="icon">inventory_2</i>
 										<div class="pill-stack">
 											<span class="val">@Supplies</span>
@@ -107,36 +109,47 @@
 											}
 										</div>
 									</div>
-								}
-								@if ( Phase == GamePhase.Night )
-								{
-									<div class="pill danger">
-										<i class="icon">skull</i>
-										<span class="val">@ZombiesLeft</span>
-										<span class="pill-tag">LEFT</span>
+									<div class="pill res" title="Specimens — recovered by expeditions and ruins; required for cure tiers">
+										<i class="icon">biotech</i>
+										<div class="pill-stack">
+											<span class="val">@Specimens</span>
+											<span class="pill-rate">samples</span>
+										</div>
 									</div>
 								}
 							</div>
 						</div>
 
-						<div class="day-widget @(Phase == GamePhase.Night ? "night" : "")">
-							@if ( IsCure )
+						<div class="day-widget @(IsCure ? "cure" : "survival") @(Phase == GamePhase.Night ? "night" : "")">
+							@if ( Phase == GamePhase.Night && NightController.Instance?.CombatKind is NightCombatKind.RivalBaseAttack or NightCombatKind.RivalPlotAssault )
+							{
+								<span class="day-label">@TakeoverNightLabel</span>
+								<span class="day-sub">@TakeoverEnemySub</span>
+							}
+							else if ( IsCure )
 							{
 								<span class="day-label">@CureDayLabel</span>
-								<span class="day-sub">@CureDaySub</span>
-								<div class="day-track"><div class="day-fill" style="width: @(SeasonDayFraction * 100f)%;"></div></div>
+								@if ( Phase == GamePhase.Night )
+								{
+									<span class="day-sub">@ZombiesLeft zombies remaining</span>
+								}
+								else
+								{
+									<span class="day-sub">@CureDaySub</span>
+									<div class="day-track" title="Progress through this season day">
+										<div class="day-fill" style="width: @(SeasonDayFraction * 100f)%;"></div>
+									</div>
+								}
 							}
 							else if ( Phase == GamePhase.Night )
 							{
 								<span class="day-label">Night @Core.Save.CurrentNight</span>
-								<span class="day-sub">Defending the outpost</span>
-								<div class="day-track"><div class="day-fill" style="width: 100%;"></div></div>
+								<span class="day-sub">@ZombiesLeft zombies remaining</span>
 							}
 							else
 							{
 								<span class="day-label">Day @Core.Save.CurrentNight</span>
 								<span class="day-sub">Prepare for Night @Core.Save.CurrentNight</span>
-								<div class="day-track"><div class="day-fill" style="width: 55%;"></div></div>
 							}
 						</div>
 
@@ -170,8 +183,9 @@
 						</div>
 					</div>
 				</div>
+				}
 
-				@if ( Phase == GamePhase.Night && DefenderCount > 0 )
+				@if ( Phase == GamePhase.Night && DefenderCount > 0 && !TakeoverPossessing )
 				{
 					<div class="night-command-wrap">
 						<div class="night-command-btn @(RecruitCommandMode ? "active" : "")"
@@ -186,6 +200,51 @@
 					</div>
 				}
 
+				@if ( TakeoverPossessing && TakeoverPawn is not null )
+				{
+					<div class="takeover-fp-hud">
+						<div class="takeover-night-banner">
+							<span class="night-title">@TakeoverNightLabel</span>
+							<span class="night-sub">@TakeoverEnemySub</span>
+						</div>
+
+						<div class="takeover-crosshair @(TakeoverHideCrosshair ? "hidden" : "") @(TakeoverShowHit ? (TakeoverHitHeadshot ? "hit headshot" : "hit") : "")">
+							<div class="dot"></div>
+							<div class="hitmarker">
+								<div class="slash tl"></div>
+								<div class="slash tr"></div>
+								<div class="slash bl"></div>
+								<div class="slash br"></div>
+							</div>
+						</div>
+
+						<div class="takeover-arcade-health @(TakeoverHpPercent <= 0 ? "dead" : "")">
+							<div class="accent accent-left"></div>
+							<span class="health-text">+ @((int)TakeoverPawn.Health) / @((int)TakeoverPawn.MaxHealth)</span>
+							<div class="health-slants">
+								@for ( var i = 0; i < 6; i++ )
+								{
+									<div class="health-slant @(i < TakeoverHealthSlants ? "filled" : "")"></div>
+								}
+							</div>
+						</div>
+
+						<div class="takeover-arcade-ammo">
+							<div class="accent accent-right"></div>
+							<span class="ammo-current">@TakeoverPawn.Ammo</span>
+							<span class="ammo-reserve">/ @TakeoverPawn.Reserve</span>
+							<div class="ammo-bullets">
+								@for ( var i = 0; i < 3; i++ )
+								{
+									<div class="ammo-bullet @(i < TakeoverAmmoBullets ? "filled" : "")"></div>
+								}
+							</div>
+						</div>
+					</div>
+				}
+
+				@if ( !TakeoverPossessing )
+				{
 				<div class="left-stack">
 					<div class="status-card card">
 						<div class="panel-head">
@@ -282,19 +341,12 @@
 						</div>
 					}
 
-					@if ( Phase == GamePhase.Night )
-					{
-						<div class="wave-alert">
-							<span class="wave-title">Wave Incoming</span>
-							<div class="wave-row">
-								<span class="wave-timer">@ZombiesLeft</span>
-								<span class="wave-diff">Night @Core.Save.CurrentNight</span>
-							</div>
-							<span class="wave-sub">Zombies remaining in this assault</span>
-						</div>
-					}
 				</div>
 
+				}
+
+				@if ( !TakeoverPossessing )
+				{
 				<div class="right-stack">
 					@if ( Selected is not null && Selected.IsAlive )
 					{
@@ -433,8 +485,9 @@
 					}
 					}
 				</div>
+				}
 
-				@if ( !string.IsNullOrEmpty( ObjectiveToast ) )
+				@if ( !TakeoverPossessing && !string.IsNullOrEmpty( ObjectiveToast ) )
 				{
 					<div class="toast">
 						<i class="icon">check_circle</i>
@@ -445,7 +498,7 @@
 					</div>
 				}
 
-				@if ( TutorialTip is not null )
+				@if ( !TakeoverPossessing && TutorialTip is not null )
 				{
 					var tip = TutorialTip;
 					<div class="overlay tip-overlay">
@@ -466,11 +519,14 @@
 					<div class="dock-wrap">
 						<div class="dock-shell">
 							<div class="dock">
-								<div class="build-tabs">
-									<div class="tab @(_buildTab == BuildDockTab.Defenses ? "active" : "")" onclick=@(() => SetBuildTab(BuildDockTab.Defenses))>Defenses</div>
-									<div class="tab @(_buildTab == BuildDockTab.Production ? "active" : "") @(IsCure ? "" : "disabled")" onclick=@(() => SetBuildTab(BuildDockTab.Production))>Production</div>
-									<div class="tab @(_buildTab == BuildDockTab.Support ? "active" : "")" onclick=@(() => SetBuildTab(BuildDockTab.Support))>Support</div>
-								</div>
+								@if ( IsCure )
+								{
+									<div class="build-tabs">
+										<div class="tab @(_buildTab == BuildDockTab.Defenses ? "active" : "")" onclick=@(() => SetBuildTab(BuildDockTab.Defenses))>Defenses</div>
+										<div class="tab @(_buildTab == BuildDockTab.Production ? "active" : "")" onclick=@(() => SetBuildTab(BuildDockTab.Production))>Production</div>
+										<div class="tab @(_buildTab == BuildDockTab.Support ? "active" : "")" onclick=@(() => SetBuildTab(BuildDockTab.Support))>Support</div>
+									</div>
+								}
 								<div class="dock-tiles">
 									@foreach ( var def in DockBuildables )
 									{
@@ -566,7 +622,35 @@
 						</div>
 					</div>
 
-					<div class="controls-hint">@(IsCure ? "LMB place / select / move units · RMB or Esc cancel · WASD pan · Scroll zoom · H tips" : "LMB place / select · RMB or Esc cancel · WASD pan · Scroll zoom · H tips")</div>
+					<div class="controls-bar">
+						<div class="controls-bar-inner">
+							<div class="ctrl-chip">
+								<span class="ctrl-glyph mouse"><i class="icon">mouse</i><span class="btn-tag">L</span></span>
+								<span class="ctrl-label">@(IsCure ? "Place / select / move" : "Place / select")</span>
+							</div>
+							<div class="ctrl-sep"></div>
+							<div class="ctrl-chip">
+								<span class="ctrl-glyph mouse"><i class="icon">mouse</i><span class="btn-tag">R</span></span>
+								<span class="keycap">Esc</span>
+								<span class="ctrl-label">Cancel</span>
+							</div>
+							<div class="ctrl-sep"></div>
+							<div class="ctrl-chip">
+								<span class="keycap">WASD</span>
+								<span class="ctrl-label">Pan</span>
+							</div>
+							<div class="ctrl-sep"></div>
+							<div class="ctrl-chip">
+								<span class="ctrl-glyph"><i class="icon">swap_vert</i></span>
+								<span class="ctrl-label">Zoom</span>
+							</div>
+							<div class="ctrl-sep"></div>
+							<div class="ctrl-chip">
+								<span class="keycap">H</span>
+								<span class="ctrl-label">Tips</span>
+							</div>
+						</div>
+					</div>
 
 					@if ( Placing is BuildableId placingId )
 					{
@@ -594,11 +678,31 @@
 									</div>
 								}
 							</div>
-							<div class="pp-hint">Click terrain to place · RMB or Esc cancel</div>
+							<div class="pp-hint">R rotate · Click to place · RMB or Esc cancel</div>
 							@if ( BuildManager.CountsTowardPlotStructureLimit( placingId ) )
 							{
-								<div class="pp-hint plot-cap">Max @GameConstants.MaxPlotStructures towers &amp; barracks per plot — claim adjacent land to expand.</div>
+								var homeSlots = GameConstants.MaxPlotStructures + (Core?.Upgrades?.Level( UpgradeId.FortifyCore ) ?? 0);
+								<div class="pp-hint plot-cap">Max @GameConstants.MaxPlotStructures towers &amp; barracks per plot (@homeSlots on home via Fortify Command).</div>
 							}
+							else if ( BuildManager.CountsTowardPlotSupportLimit( placingId ) )
+							{
+								<div class="pp-hint plot-cap">Max @GameConstants.MaxPlotSupports supports per plot · 1 of each type.</div>
+							}
+						</div>
+					}
+					else if ( MovingCore )
+					{
+						<div class="place-preview card">
+							<div class="pp-hero">
+								<div class="pp-icon-wrap">
+									<i class="icon pp-icon">shield</i>
+								</div>
+								<div class="pp-title">
+									<span class="pp-name">Move Command Post</span>
+									<span class="pp-sub">2×2 on the home plot</span>
+								</div>
+							</div>
+							<div class="pp-hint">Click to relocate · RMB or Esc cancel</div>
 						</div>
 					}
 					else if ( Moving is PlacedBuilding moving )
@@ -614,10 +718,15 @@
 									<span class="pp-sub">Relocate this structure</span>
 								</div>
 							</div>
-							<div class="pp-hint">Click terrain to move · RMB or Esc cancel</div>
+							<div class="pp-hint">R rotate · Click to move · RMB or Esc cancel</div>
 							@if ( BuildManager.CountsTowardPlotStructureLimit( moving.Type ) )
 							{
-								<div class="pp-hint plot-cap">Max @GameConstants.MaxPlotStructures towers &amp; barracks per plot — claim adjacent land to expand.</div>
+								var homeSlots = GameConstants.MaxPlotStructures + (Core?.Upgrades?.Level( UpgradeId.FortifyCore ) ?? 0);
+								<div class="pp-hint plot-cap">Max @GameConstants.MaxPlotStructures towers &amp; barracks per plot (@homeSlots on home via Fortify Command).</div>
+							}
+							else if ( BuildManager.CountsTowardPlotSupportLimit( moving.Type ) )
+							{
+								<div class="pp-hint plot-cap">Max @GameConstants.MaxPlotSupports supports per plot · 1 of each type.</div>
 							}
 						</div>
 					}
@@ -644,6 +753,50 @@
 						}
 					</div>
 					<div class="btn primary daily-claim" onclick=@ClaimDaily><i class="icon">redeem</i><span>Claim</span></div>
+				</div>
+			</div>
+		}
+
+		@if ( TakeoverPicking )
+		{
+			<div class="overlay overlay-front takeover-overlay">
+				<div class="modal confirm takeover-modal">
+					<i class="icon confirm-icon tip-icon">sports_esports</i>
+					<div class="confirm-title">Choose a Recruit</div>
+					<div class="confirm-body">Take control in First Person for this fight, or simulate the whole squad.</div>
+					<div class="takeover-list scroll-y">
+						@foreach ( var choice in TakeoverChoices )
+						{
+							var hpPct = choice.MaxHealth > 0f ? (int)(choice.Health / choice.MaxHealth * 100f) : 0;
+							var meta = $"{choice.ShortName}  ·  Train {choice.TrainLevel}  ·  HP {(int)choice.Health}/{(int)choice.MaxHealth}";
+							<div class="takeover-row" onclick=@(() => PossessRecruit(choice.SaveIndex))>
+								<i class="icon takeover-row-icon">@choice.Icon</i>
+								<div class="takeover-row-copy">
+									<span class="takeover-name">@choice.Name</span>
+									<span class="takeover-meta">@meta</span>
+									<div class="takeover-hp-bar"><div class="takeover-hp-fill" style="width: @hpPct%;"></div></div>
+								</div>
+								<span class="takeover-play">PLAY</span>
+							</div>
+						}
+					</div>
+					<div class="btn-row">
+						<div class="btn primary" onclick=@SimulateRecruits><i class="icon">smart_toy</i><span>Simulate Recruits</span></div>
+					</div>
+				</div>
+			</div>
+		}
+
+		@if ( TakeoverDeathPopup )
+		{
+			<div class="overlay overlay-front takeover-overlay">
+				<div class="modal confirm takeover-modal death">
+					<i class="icon confirm-icon tip-icon">sentiment_very_dissatisfied</i>
+					<div class="confirm-title">Recruit Has Died</div>
+					<div class="confirm-body">Click here to watch the rest from above.</div>
+					<div class="btn-row">
+						<div class="btn primary" onclick=@DismissTakeoverDeath><i class="icon">visibility</i><span>Watch from Above</span></div>
+					</div>
 				</div>
 			</div>
 		}
@@ -748,7 +901,7 @@
 			</div>
 		}
 
-		@if ( Core is not null && !SettingsOpen && (Phase == GamePhase.MainMenu || Phase == GamePhase.GameOver || Phase == GamePhase.NightRecap || Phase == GamePhase.SeasonRecap || Phase == GamePhase.Victory) )
+		@if ( Core is not null && !SettingsOpen && !CreditsOpen && (Phase == GamePhase.MainMenu || Phase == GamePhase.GameOver || Phase == GamePhase.NightRecap || Phase == GamePhase.SeasonRecap || Phase == GamePhase.Victory) )
 		{
 			<div class="corner-settings">
 				<div class="meta-btn sm" onclick=@OpenSettings title="Settings">
@@ -757,12 +910,19 @@
 			</div>
 		}
 
-		@if ( Phase == GamePhase.MainMenu && !ShopOpen && !SettingsOpen && !LeaderboardOpen && !ConfirmReset && !TeamPickerOpen && !WelcomePending && !DailyPending )
+		@if ( Phase == GamePhase.MainMenu && !ShopOpen && !SettingsOpen && !CreditsOpen && !LeaderboardOpen && !ConfirmReset && !TeamPickerOpen && !WelcomePending && !DailyPending )
 		{
 			<div class="overlay">
 				<div class="modal menu wide-menu">
 					<div class="brand">
 						<div class="brand-title">THE FINAL OUTPOST</div>
+					</div>
+
+					<div class="controls-blurb">
+						<div class="controls-title">Controls</div>
+						<div class="controls-line">WASD / arrows — pan camera · Mouse wheel — zoom · Shift+drag — pan</div>
+						<div class="controls-line">Left click — place / select · Right click — cancel build</div>
+						<div class="controls-line">Day: build &amp; recruit · Start Night to defend the command post</div>
 					</div>
 
 					<div class="mode-section">
@@ -781,9 +941,9 @@
 					<div class="mode-section">
 						<div class="mode-head">
 							<span>Road to a Cure</span>
-							<span class="mode-dev-warn">- IN DEVELOPMENT!!! THINGS WILL BE VERY BROKEN!</span>
+							<span class="mode-ea-badge">Early Access</span>
 						</div>
-						<div class="mode-sub">Grow your colony through the seasons. Research the cure before winter breaks you.</div>
+						<div class="mode-sub">Grow your colony through the seasons. Research the cure before winter breaks you. Still receiving balance and bug fixes.</div>
 						<div class="btn-col">
 							@if ( CanContinueCure )
 							{
@@ -791,6 +951,11 @@
 							}
 							<div class="btn lg" onclick=@AskStartCure><i class="icon">science</i><span>Start New Road to a Cure</span></div>
 						</div>
+					</div>
+
+					<div class="menu-footer-row">
+						<div class="btn sm" onclick=@OpenCredits><i class="icon">info</i><span>Credits</span></div>
+						<div class="btn sm" onclick=@OpenSettings><i class="icon">settings</i><span>Settings</span></div>
 					</div>
 				</div>
 			</div>
@@ -831,7 +996,7 @@
 			</div>
 		}
 
-		@if ( Phase == GamePhase.GameOver && !ShopOpen && !SettingsOpen && !LeaderboardOpen && !ConfirmReset && !WelcomePending && !DailyPending )
+		@if ( Phase == GamePhase.GameOver && !ShopOpen && !SettingsOpen && !CreditsOpen && !LeaderboardOpen && !ConfirmReset && !WelcomePending && !DailyPending )
 		{
 			<div class="overlay">
 				<div class="modal menu">
@@ -873,7 +1038,7 @@
 			</div>
 		}
 
-		@if ( Phase == GamePhase.Victory && !ShopOpen && !SettingsOpen )
+		@if ( Phase == GamePhase.Victory && !ShopOpen && !SettingsOpen && !CreditsOpen )
 		{
 			<div class="overlay">
 				<div class="modal menu">
@@ -898,7 +1063,7 @@
 			</div>
 		}
 
-		@if ( Phase == GamePhase.SeasonRecap && !ShopOpen && !SettingsOpen )
+		@if ( Phase == GamePhase.SeasonRecap && !ShopOpen && !SettingsOpen && !CreditsOpen )
 		{
 			<div class="overlay">
 				<div class="modal confirm">
@@ -928,11 +1093,11 @@
 		@if ( TechTreeOpen )
 		{
 			<div class="overlay">
-				<div class="modal wide">
+				<div class="modal wide tech-modal">
 					<div class="modal-head">
 						<div class="modal-title-col">
 							<div class="modal-title">Tech Tree</div>
-							<div class="modal-sub">Spend Knowledge to unlock buildings &amp; specialists — like a Civ tech tree. Earn it passively, from builds/plots/threats, and from Libraries.</div>
+							<div class="modal-sub">Three paths left → right (5 → 10 → 20 → 40 Knowledge). In each path, unlock a tech in a column before the next column opens. Libraries cut costs.</div>
 						</div>
 						<div class="pill knowledge sm" title="Knowledge">
 							<i class="icon">school</i>
@@ -940,20 +1105,50 @@
 						</div>
 						<div class="sel-close" onclick=@CloseTechTree><i class="icon">close</i></div>
 					</div>
-					<div class="list">
-						@foreach ( var node in TechTreeCatalog.All )
+					<div class="tech-tree">
+						<div class="tech-col-headers">
+							<div class="tech-track-spacer"></div>
+							@for ( var col = 0; col <= TechTreeCatalog.MaxColumn; col++ )
+							{
+								<div class="tech-col-header">@(col < TechTreeCatalog.ColumnLabels.Count ? TechTreeCatalog.ColumnLabels[col] : $"Tier {col + 1}")</div>
+							}
+						</div>
+						@foreach ( var (track, label, icon) in TechTreeCatalog.Tracks )
 						{
-							var unlocked = TechTreeCatalog.IsUnlocked( Core.Save, node.Id );
-							var canResearch = !unlocked && TechTreeCatalog.CanResearch( Core, node );
-							var status = unlocked ? "DONE" : canResearch ? "Research" : TechTreeCatalog.LockReason( Core, node );
-							<div class="row @(unlocked ? "maxed" : canResearch ? "afford" : "poor")" onclick=@(() => ResearchTech(node.Id))>
-								<div class="row-icon-wrap"><i class="icon">@node.Icon</i></div>
-								<div class="row-text">
-									<div class="row-name">@node.Name</div>
-									<div class="row-desc">@node.Description</div>
-									<div class="row-now">@node.KnowledgeCost.ToString("0") Knowledge</div>
+							<div class="tech-track">
+								<div class="tech-track-label">
+									<i class="icon">@icon</i>
+									<span>@label</span>
 								</div>
-								<div class="row-cost">@status</div>
+								@for ( var col = 0; col <= TechTreeCatalog.MaxColumn; col++ )
+								{
+									var nodes = TechTreeCatalog.NodesIn( track, col ).ToList();
+									<div class="tech-col">
+										@if ( nodes.Count == 0 )
+										{
+											<div class="tech-node empty"></div>
+										}
+										else
+										{
+											@foreach ( var node in nodes )
+											{
+												var unlocked = TechTreeCatalog.IsUnlocked( Core.Save, node.Id );
+												var canResearch = !unlocked && TechTreeCatalog.CanResearch( Core, node );
+												var status = unlocked ? "Done" : canResearch ? "Research" : TechTreeCatalog.LockReason( Core, node );
+												<div class="tech-node @(unlocked ? "maxed" : canResearch ? "afford" : "poor")" onclick=@(() => ResearchTech(node.Id)) title="@node.Description">
+													<div class="tech-node-top">
+														<div class="tech-node-icon"><i class="icon">@node.Icon</i></div>
+														<div class="tech-node-text">
+															<span class="tech-node-name">@node.Name</span>
+															<span class="tech-node-cost">@TechTreeCatalog.EffectiveKnowledgeCost( Core, node ).ToString("0") kn</span>
+														</div>
+													</div>
+													<div class="tech-node-status">@status</div>
+												</div>
+											}
+										}
+									</div>
+								}
 							</div>
 						}
 					</div>
@@ -969,7 +1164,7 @@
 					<div class="modal-head">
 						<div class="modal-title-col">
 							<div class="modal-title">Cure Research</div>
-							<div class="modal-sub">Lab @CureResearch.LabCount(Core) · @CureResearch.LabOutputPerSec(Core).ToString("0.0") pts/s</div>
+							<div class="modal-sub">@Core.Save.CureLabPoints.ToString("0.0") lab pts · @CureResearch.LabCount(Core) labs · @CureResearch.LabOutputPerSec(Core).ToString("0.000") pts/s</div>
 						</div>
 						<div class="sel-close" onclick=@CloseCureProgress><i class="icon">close</i></div>
 					</div>
@@ -979,14 +1174,16 @@
 							var unlocked = Core.Save.CureResearchTier >= tier.Tier;
 							var next = Core.Save.CureResearchTier == tier.Tier - 1;
 							var canUnlock = next && CureResearch.CanUnlockTier( Core, tier.Tier );
+							var status = unlocked ? "Complete" : next ? CureResearch.LockReason( Core, tier.Tier ) : "Locked";
 							<div class="row @(unlocked ? "maxed" : canUnlock ? "afford" : "poor")" onclick=@(() => UnlockTier(tier.Tier))>
 								<div class="row-icon-wrap"><i class="icon">science</i></div>
 								<div class="row-text">
-									<div class="row-name">@tier.Name <span class="row-lvl">Tier @tier.Tier</span></div>
+									<div class="row-name">@tier.Name <span class="row-lvl">Tier @(tier.Tier)</span></div>
 									<div class="row-desc">@tier.Description</div>
-									<div class="row-now">Needs @tier.LabPointsRequired lab pts</div>
+									<div class="row-now">@ResearchCostLabel(tier)</div>
+									<div class="row-now">@ResearchObjectiveLabel(tier.Tier)</div>
 								</div>
-								<div class="row-cost">@(unlocked ? "DONE" : next ? "Unlock" : "Locked")</div>
+								<div class="row-cost">@status</div>
 							</div>
 						}
 					</div>
@@ -1002,7 +1199,7 @@
 					<div class="modal-head">
 						<div class="modal-title-col">
 							<div class="modal-title">Settings</div>
-							<div class="modal-sub">Audio mix — saved to your profile</div>
+							<div class="modal-sub">Audio &amp; camera — saved to your profile</div>
 						</div>
 						<div class="sel-close" onclick=@CloseSettings><i class="icon">close</i></div>
 					</div>
@@ -1055,8 +1252,48 @@
 								<div class="btn sm vol-btn" onclick=@(() => AdjustVolume("music", 0.05f))><span>+</span></div>
 							</div>
 						</div>
+						<div class="vol-row">
+							<div class="vol-head">
+								<i class="icon">mouse</i>
+								<span class="vol-label">Camera Sensitivity</span>
+								<span class="vol-pct">@SensitivityPct%</span>
+							</div>
+							<div class="vol-controls">
+								<div class="btn sm vol-btn" onclick=@(() => AdjustSensitivity( -0.1f ))><span>-</span></div>
+								<div class="vol-track"><div class="vol-fill" style="width: @SensitivityBarPct%;"></div></div>
+								<div class="btn sm vol-btn" onclick=@(() => AdjustSensitivity( 0.1f ))><span>+</span></div>
+							</div>
+						</div>
+						<div class="settings-controls-note">
+							<div class="settings-controls-title">Controls</div>
+							<div>WASD — pan · Mouse wheel — zoom · Shift+drag — pan</div>
+							<div>Left click — place / select · Right click — cancel</div>
+							<div>H — toggle tips · L — leaderboard · U — toggle UI</div>
+						</div>
 					</div>
 					<div class="btn wide-btn" onclick=@CloseSettings><span>Close</span></div>
+				</div>
+			</div>
+		}
+
+		@if ( CreditsOpen )
+		{
+			<div class="overlay">
+				<div class="modal">
+					<div class="modal-head">
+						<div class="modal-title-col">
+							<div class="modal-title">Credits</div>
+							<div class="modal-sub">The Final Outpost</div>
+						</div>
+						<div class="sel-close" onclick=@CloseCredits><i class="icon">close</i></div>
+					</div>
+					<div class="credits-body">
+						<div class="credits-line">A MacL Games production</div>
+						<div class="credits-line">Built with s&amp;box</div>
+						<div class="credits-line muted">Citizen models &amp; weapon packages courtesy of Facepunch</div>
+						<div class="credits-line muted">Thanks for playing — survive the night.</div>
+					</div>
+					<div class="btn wide-btn" onclick=@CloseCredits><span>Close</span></div>
 				</div>
 			</div>
 		}
@@ -1081,7 +1318,7 @@
 							<div class="row @(maxed ? "maxed" : afford ? "afford" : "poor")" onclick=@(() => Buy(def.Id))>
 								<div class="row-icon-wrap"><i class="icon">@def.Icon</i></div>
 								<div class="row-text">
-									<div class="row-name">@def.Name <span class="row-lvl">Lv @level / @def.MaxLevel</span></div>
+									<div class="row-name">@def.Name <span class="row-lvl">Level @(level) / @(def.MaxLevel)</span></div>
 									<div class="row-desc">@UpgradeSystem.PerLevelEffect( def.Id )</div>
 									<div class="row-now">@(Phase == GamePhase.Day ? Upgrades.CurrentBonus( def.Id ) : "Day only — finish the fight first.")</div>
 								</div>
@@ -1113,15 +1350,15 @@
 							var owned = Defenders?.CountOf( type ) ?? 0;
 							var trainLvl = Defenders?.TrainLevelOf( type ) ?? 0;
 							var unlocked = NightUnlocks.IsRecruitUnlocked( Core.Save, type );
-							var recruitCost = def.RecruitCost;
-							var trainCost = Defenders?.TrainCost( type ) ?? 0;
+							var recruitCost = Defenders?.RecruitCost( type ) ?? def.RecruitCost;
+							var trainCost = Defenders?.TrainCost( type ) ?? def.TrainBaseCost;
 							var canRecruit = unlocked && HasBarracks && DefenderCount < MaxRecruitCapacity && Core.Wallet.Scrap >= recruitCost;
 							var canTrain = owned > 0 && Core.Wallet.Scrap >= trainCost;
 							<div class="row recruit-row @(unlocked ? "" : "locked")">
 								<div class="row-icon-wrap"><i class="icon">@(unlocked ? def.Icon : "lock")</i></div>
 								<div class="row-text">
-									<div class="row-name">@def.Name <span class="row-lvl">x@owned · Lv @trainLvl</span></div>
-									<div class="row-desc">@(unlocked ? $"DMG {def.VolleyDamage(trainLvl):0} · RNG {def.Range:0} · {(1f / def.FireInterval):0.0}/s" : RecruitLockLabel(type))</div>
+									<div class="row-name">@def.Name <span class="row-lvl">@(owned) owned · Level @(trainLvl)</span></div>
+									<div class="row-desc">@(unlocked ? $"Damage {def.VolleyDamage(trainLvl):0} · Range {def.Range:0} · {(1f / def.FireInterval):0.0}/s" : RecruitLockLabel(type))</div>
 								</div>
 								<div class="recruit-actions">
 									<div class="btn sm @(canRecruit ? "" : "poor")" onclick=@(() => Recruit(type))>
@@ -1160,7 +1397,7 @@
 							<div class="row recruit-row @(unlocked ? "" : "locked")">
 								<div class="row-icon-wrap"><i class="icon">@(unlocked ? WorkerInfo.Icon( role ) : "lock")</i></div>
 								<div class="row-text">
-									<div class="row-name">@WorkerInfo.Name( role ) <span class="row-lvl">x@(Workers?.CountRole( role ) ?? 0)</span></div>
+									<div class="row-name">@WorkerInfo.Name( role ) <span class="row-lvl">@(Workers?.CountRole( role ) ?? 0) hired</span></div>
 									<div class="row-desc">@(unlocked ? WorkerInfo.Blurb( role ) : WorkerUnlockHint( role ))</div>
 								</div>
 								<div class="recruit-actions">
@@ -1192,7 +1429,7 @@
 						}
 						else
 						{
-							<div class="empty">No workers yet. Hire a crafter or repairman here, or claim a resource plot and hire a forager on it.</div>
+							<div class="empty">@(IsCure ? "No workers yet. Hire specialists here, or claim a resource plot and hire a forager on it." : "No workers yet. Hire a repairman here, or claim a plot and hire a forager to clear it for scrap.")</div>
 						}
 					</div>
 					<div class="btn wide-btn" onclick=@CloseWorkers><span>Close</span></div>
@@ -1238,7 +1475,7 @@
 							{
 								<div class="exp-result">
 									<i class="icon">@(Exp.LastReward.RareFind ? "auto_awesome" : "check_circle")</i>
-									<span>Party returned with @Format(Exp.LastReward.Scrap) scrap@(Exp.LastReward.RareFind ? " — rare find!" : "").@(Exp.LastReward.Lost > 0 ? $" Lost {Exp.LastReward.Lost}." : " Everyone made it back.")</span>
+									<span>@ExpeditionResultLabel</span>
 								</div>
 							}
 
@@ -1341,7 +1578,7 @@
 					<div class="modal-head">
 						<div class="modal-title-col">
 							<div class="modal-title">Zombie Catalog</div>
-							<div class="modal-sub">@CatalogDiscovered / @CatalogTotal encountered · stats shown for Night @CatalogNight</div>
+							<div class="modal-sub">@CatalogDiscovered / @CatalogTotal encountered · stats shown for @(IsCure ? "Threat" : "Night") @CatalogNight</div>
 						</div>
 						<div class="sel-close" onclick=@CloseCatalog><i class="icon">close</i></div>
 					</div>
@@ -1539,6 +1776,7 @@
 	private ISelectable Selected => BuildManager.Instance?.Selected;
 	private BuildableId? Placing => BuildManager.Instance?.PlacementMode;
 	private PlacedBuilding Moving => BuildManager.Instance?.MovingBuilding;
+	private bool MovingCore => BuildManager.Instance?.MovingCore == true;
 	private TutorialTipDef TutorialTip => Core?.ActiveTutorialTip;
 	private bool TutorialTipsHidden => Core?.TutorialTipsHidden ?? false;
 	private bool ShowTipsToggle => Core is not null && (Phase == GamePhase.Day || Phase == GamePhase.Night)
@@ -1548,8 +1786,35 @@
 	private GamePhase Phase => Core?.Phase ?? GamePhase.MainMenu;
 	private NightRecap NightRecap => Core?.PendingNightRecap;
 	private bool RecruitCommandMode => UnitOrderController.Instance?.NightCommandMode ?? false;
+	private RecruitTakeoverController Takeover => RecruitTakeoverController.Instance;
+	private bool TakeoverPicking => Core?.TakeoverPickerOpen == true || Takeover?.IsPicking == true;
+	private bool TakeoverPossessing => Takeover?.IsPossessing == true;
+	private bool TakeoverDeathPopup => Takeover?.ShowDeathPopup == true;
+	private TakeoverPawn TakeoverPawn => Takeover?.Pawn;
+	private bool TakeoverShowHit => TakeoverPawn?.ShowHitFeedback == true;
+	private bool TakeoverHitHeadshot => TakeoverPawn?.HitWasHeadshot == true;
+	private bool TakeoverHideCrosshair => TakeoverPawn?.HideHipCrosshair == true;
+	private int TakeoverHpPercent => TakeoverPawn is null || TakeoverPawn.MaxHealth <= 0f
+		? 0
+		: (int)(TakeoverPawn.Health / TakeoverPawn.MaxHealth * 100f);
+	private int TakeoverHealthSlants => TakeoverPawn is null || TakeoverPawn.MaxHealth <= 0f
+		? 0
+		: Math.Clamp( (int)MathF.Ceiling( TakeoverPawn.Health / TakeoverPawn.MaxHealth * 6f ), 0, 6 );
+	private int TakeoverAmmoBullets
+	{
+		get
+		{
+			if ( TakeoverPawn is null || TakeoverPawn.MagSize <= 0 ) return 0;
+			return Math.Clamp( (int)MathF.Ceiling( TakeoverPawn.Ammo / (float)TakeoverPawn.MagSize * 3f ), 0, 3 );
+		}
+	}
+	private IReadOnlyList<TakeoverRecruitChoice> TakeoverChoices =>
+		TakeoverPicking
+			? Takeover?.BuildChoices() ?? Array.Empty<TakeoverRecruitChoice>()
+			: Array.Empty<TakeoverRecruitChoice>();
 	private bool ShopOpen => Core?.ShopOpen ?? false;
 	private bool SettingsOpen => Core?.SettingsOpen ?? false;
+	private bool CreditsOpen => Core?.CreditsOpen ?? false;
 	private bool LeaderboardOpen => Core?.LeaderboardOpen ?? false;
 	private bool RecruitOpen => Core?.RecruitOpen ?? false;
 	private bool WorkersOpen => Core?.WorkersOpen ?? false;
@@ -1565,7 +1830,9 @@
 	private bool CanContinueCure => Core?.CanContinueCure ?? false;
 	private string SeasonName => CureConstants.SeasonName( Core?.Save.CurrentSeason ?? 0 );
 	private string CureDayLabel => $"Year {Core?.Save.CurrentYear ?? 1} · {SeasonName}";
-	private string CureDaySub => $"Day {Core?.Save.SeasonDay ?? 1} / {CureConstants.DaysPerSeason}";
+	private string CureDaySub =>
+		$"Day {Core?.Save.SeasonDay ?? 1}/{CureConstants.DaysPerSeason} · threat in {FormatTime(Core?.Save.NextThreatTimer ?? 0f)}";
+
 	private int PopulationCount => ColonyEconomy.Population;
 	private string Specimens => $"{Core?.Resources.Get( ResourceKind.Specimens ) ?? 0:0}";
 	private string Food => $"{Core?.Resources.Get( ResourceKind.Food ) ?? 0:0}";
@@ -1574,6 +1841,33 @@
 	private bool WelcomePending => Core?.WelcomePending ?? false;
 	private bool DailyPending => Core?.DailyPending ?? false;
 	private string ObjectiveToast => Core?.ObjectiveToast;
+
+	private int ZombiesLeft =>
+		Phase != GamePhase.Night
+			? 0
+			: NightController.Instance?.CombatKind is NightCombatKind.RivalBaseAttack or NightCombatKind.RivalPlotAssault
+				? (HostileForceSystem.Instance?.AliveCount ?? 0) + (HostileForceSystem.Instance?.SpawnRemaining ?? 0)
+				: (NightController.Instance?.ZombiesRemainingToSpawn ?? 0) + (CombatSystem.Instance?.AliveCount ?? 0);
+
+	private string TakeoverNightLabel
+	{
+		get
+		{
+			var kind = NightController.Instance?.CombatKind ?? NightCombatKind.Zombies;
+			return kind switch
+			{
+				NightCombatKind.RivalBaseAttack => "RIVAL ATTACK",
+				NightCombatKind.RivalPlotAssault => "ASSAULT",
+				_ when IsCure => "THREAT",
+				_ => $"NIGHT {(Core?.Save.CurrentNight ?? 1)}"
+			};
+		}
+	}
+
+	private string TakeoverEnemySub =>
+		NightController.Instance?.CombatKind is NightCombatKind.RivalBaseAttack or NightCombatKind.RivalPlotAssault
+			? $"{ZombiesLeft} hostiles remaining"
+			: $"{ZombiesLeft} zombies remaining";
 
 	private ExpeditionManager Exp => ExpeditionManager.Instance;
 	private bool ExpeditionActive => Exp?.IsActive ?? false;
@@ -1591,6 +1885,23 @@
 	private bool CanStartLongExp => (Exp?.CanStart( ExpSoldiers, ExpCivilians, true ) ?? false) && ExpPartyTotal >= GameConstants.ExpeditionMinParty;
 	private string ExpCountdown => FormatTime( Exp?.SecondsRemaining ?? 0f );
 	private string ExpeditionChipHint => !ExpeditionActive ? "Send a party" : (ExpeditionReady ? "Collect haul" : ExpCountdown);
+	private string ExpeditionResultLabel
+	{
+		get
+		{
+			if ( Exp is null ) return "";
+			var reward = Exp.LastReward;
+			var parts = new List<string> { $"{Format( reward.Scrap )} scrap" };
+			if ( reward.Wood > 0 ) parts.Add( $"{reward.Wood:0} wood" );
+			if ( reward.Stone > 0 ) parts.Add( $"{reward.Stone:0} stone" );
+			if ( reward.Water > 0 ) parts.Add( $"{reward.Water:0} water" );
+			if ( reward.Specimens > 0 ) parts.Add( $"{reward.Specimens:0} specimens" );
+			var result = $"Party returned with {string.Join( ", ", parts )}";
+			if ( reward.RareFind ) result += " — rare find!";
+			result += reward.Lost > 0 ? $" Lost {reward.Lost}." : " Everyone made it back.";
+			return result;
+		}
+	}
 
 	private IEnumerable<ObjectiveDef> NextObjectives => Objectives.All.Where( o => !Objectives.IsDone( Core, o.Id ) ).Take( 3 );
 	private int ObjectivesDone => Objectives.CompletedCount( Core );
@@ -1602,7 +1913,7 @@
 
 	private int CatalogDiscovered => ZombieBestiary.DiscoveredCount( Core?.Save );
 	private int CatalogTotal => ZombieCatalog.All.Count;
-	private int CatalogNight => Core?.Save.CurrentNight ?? 1;
+	private int CatalogNight => Core?.CombatProgressionNight ?? 1;
 	private bool CatalogIsDiscovered( ZombieKind kind ) => ZombieBestiary.IsDiscovered( Core?.Save, kind );
 	private int CatalogKillCount( ZombieKind kind ) => ZombieBestiary.KillCount( Core?.Save, kind );
 	private static string FormatStat( float value ) => value >= 100f ? $"{(int)MathF.Round( value )}" : value.ToString( "0.#" );
@@ -1701,7 +2012,6 @@
 
 	private int WorkersPercent => MaxWorkers <= 0 ? 0 : (int)MathF.Round( WorkerCount / (float)MaxWorkers * 100f );
 	private int SelHpPercent => Selected is null || !Selected.HasHealth || Selected.MaxHealth <= 0f ? 0 : (int)MathF.Round( Selected.Health / Selected.MaxHealth * 100f );
-	private int ZombiesLeft => (NightController.Instance?.ZombiesRemainingToSpawn ?? 0) + (CombatSystem.Instance?.AliveCount ?? 0);
 	private int DefenderCount => Defenders?.Count ?? 0;
 	private int BarracksCount => BuildManager.Instance?.BarracksCount ?? 0;
 	private int MaxRecruitCapacity => BuildManager.Instance?.RecruitCapacity ?? 0;
@@ -1713,9 +2023,7 @@
 		? $"{DefenderCount} / {MaxRecruitCapacity} defenders · {BarracksCount} barracks ({GameConstants.RecruitsPerBarracks} recruits each)"
 		: "Build a Barracks before recruiting soldiers";
 
-	private bool CanRepairAll => (BuildManager.Instance?.RepairAllCost() ?? 0) > 0
-		&& (BuildManager.Instance?.AffordableRepairAllCost() ?? 0) > 0
-		&& Phase == GamePhase.Day;
+	private bool CanRepairAll => BuildManager.Instance?.CanStartRepairAll() == true;
 	private bool RepairBusy => RepairManager.Instance?.IsBusy ?? false;
 	private int RepairProgressPct => (int)MathF.Round( (RepairManager.Instance?.ActiveProgress ?? 0f) * 100f );
 	private readonly List<RepairManager.RepairLine> _repairLines = new();
@@ -1779,11 +2087,18 @@
 		get
 		{
 			if ( Core is null ) return Array.Empty<BuildableDef>();
-			return BuildableCatalog.ForMode( Core.ActiveMode ).Where( d => _buildTab switch
+			var all = BuildableCatalog.ForMode( Core.ActiveMode );
+			if ( !IsCure )
+				return all;
+
+			return all.Where( d => _buildTab switch
 			{
-				BuildDockTab.Defenses => d.Role is BuildingRole.Defense or BuildingRole.Wall,
-				BuildDockTab.Production => d.Role == BuildingRole.Civic,
-				BuildDockTab.Support => d.Role == BuildingRole.Management,
+				// Barracks fights with the towers; Lab feeds the colony economy.
+				BuildDockTab.Defenses => d.Role is BuildingRole.Defense or BuildingRole.Wall
+					|| d.Id == BuildableId.Barracks,
+				BuildDockTab.Production => d.Role == BuildingRole.Civic
+					|| d.Id == BuildableId.Lab,
+				BuildDockTab.Support => d.Role == BuildingRole.Support,
 				_ => false
 			} );
 		}
@@ -1819,8 +2134,20 @@
 	private float AudioSfx => AudioSettings.Sfx;
 	private float AudioAmbience => AudioSettings.Ambience;
 	private float AudioMusic => AudioSettings.Music;
+	private float CameraSensitivity => AudioSettings.CameraSensitivity;
+	private int SensitivityPct => (int)MathF.Round( CameraSensitivity * 100f );
+	private int SensitivityBarPct => (int)MathF.Round(
+		(CameraSensitivity - GameConstants.MinCameraSensitivity)
+		/ (GameConstants.MaxCameraSensitivity - GameConstants.MinCameraSensitivity)
+		* 100f );
 
 	private static int VolumePct( float v ) => (int)MathF.Round( v * 100f );
+
+	private void AdjustSensitivity( float delta )
+	{
+		AudioSettings.CameraSensitivity = AudioSettings.CameraSensitivity + delta;
+		StateHasChanged();
+	}
 
 	private void AdjustVolume( string channel, float delta )
 	{
@@ -1837,6 +2164,9 @@
 
 	private void StartDay() => UiAct( () => Core?.StartDay() );
 	private void StartNight() => UiAct( () => Core?.StartNight() );
+	private void SimulateRecruits() => UiAct( () => Takeover?.ConfirmSimulate() );
+	private void PossessRecruit( int index ) => UiAct( () => Takeover?.ConfirmPossess( index ) );
+	private void DismissTakeoverDeath() => UiAct( () => Takeover?.DismissDeathPopup() );
 	private void GoMenu() => UiAct( () => Core?.ReturnToMenu() );
 	private void RetrySeason() => UiAct( () => Core?.RetrySeason() );
 	private void UiClick() => Sfx.PlayUi();
@@ -1906,68 +2236,53 @@
 		Core?.StartDay();
 	} );
 
-	private void OpenCureProgress()
+	private void OpenCureProgress() => UiAct( () => Core?.OpenCureProgress() );
+
+	private void CloseCureProgress() => UiAct( () => Core?.CloseCureProgress() );
+
+	private void OpenTechTree() => UiAct( () => Core?.OpenTechTree() );
+
+	private void CloseTechTree() => UiAct( () => Core?.CloseTechTree() );
+
+	private void ResearchTech( string id ) => UiAct( () =>
 	{
-		UiClick();
-		Core?.OpenCureProgress();
-	}
+		TechTreeCatalog.TryUnlock( Core, id );
+	} );
 
-	private void CloseCureProgress() => Core?.CloseCureProgress();
-
-	private void OpenTechTree()
+	private void UnlockTier( int tier ) => UiAct( () =>
 	{
-		UiClick();
-		Core?.OpenTechTree();
-	}
+		CureResearch.TryUnlockTier( Core, tier );
+	} );
 
-	private void CloseTechTree() => Core?.CloseTechTree();
+	private void DismissSeasonRecap() => UiAct( () => Core?.DismissSeasonRecap() );
 
-	private void ResearchTech( string id )
+	private void OpenShop() => UiAct( () => Core?.OpenShop() );
+
+	private void CloseShop() => UiAct( () => Core?.CloseShop() );
+
+	private void OpenSettings() => UiAct( () => Core?.OpenSettings() );
+
+	private void CloseSettings() => UiAct( () => Core?.CloseSettings() );
+
+	private void OpenCredits() => UiAct( () => Core?.OpenCredits() );
+
+	private void CloseCredits() => UiAct( () => Core?.CloseCredits() );
+
+	private void OpenLeaderboard() => UiAct( () =>
 	{
-		if ( TechTreeCatalog.TryUnlock( Core, id ) )
-			StateHasChanged();
-	}
-
-	private void UnlockTier( int tier )
-	{
-		if ( CureResearch.TryUnlockTier( Core, tier ) )
-			UiClick();
-	}
-
-	private void DismissSeasonRecap() => Core?.DismissSeasonRecap();
-
-	private void OpenShop()
-	{
-		UiClick();
-		Core?.OpenShop();
-	}
-
-	private void CloseShop() => Core?.CloseShop();
-
-	private void OpenSettings()
-	{
-		UiClick();
-		Core?.OpenSettings();
-	}
-
-	private void CloseSettings() => Core?.CloseSettings();
-
-	private void OpenLeaderboard()
-	{
-		UiClick();
 		Core?.OpenLeaderboard();
 		_lbFetchStarted = false;
 		_lbLoading = false;
 		_lbEntries.Clear();
-	}
+	} );
 
-	private void CloseLeaderboard()
+	private void CloseLeaderboard() => UiAct( () =>
 	{
 		Core?.CloseLeaderboard();
 		_lbFetchStarted = false;
 		_lbLoading = false;
-	}
-	private void Buy( UpgradeId id ) => Core?.BuyUpgrade( id );
+	} );
+	private void Buy( UpgradeId id ) => UiAct( () => Core?.BuyUpgrade( id ) );
 	private void Place( BuildableId id )
 	{
 		if ( Core?.Save is null ) return;
@@ -1975,55 +2290,48 @@
 		{
 			UiClick();
 			var def = BuildableCatalog.Get( id );
-			Core.ShowToast( def.Role == BuildingRole.Civic
-				? $"{def.Name} unlocks via Tech → {def.GateLabel( Core.Save ).Replace( "Tech: ", "" )}"
-				: $"{def.Name} unlocks at {def.GateLabel( Core.Save )}" );
+			var gate = def.GateLabel( Core.Save );
+			Core.ShowToast( IsCure
+				? $"{def.Name} unlocks via {gate}"
+				: $"{def.Name} unlocks at {gate}" );
 			return;
 		}
 		UiClick();
 		BuildManager.Instance?.BeginPlacement( id );
 	}
-	private void Deselect() => BuildManager.Instance?.Deselect();
-	private void DismissTip() => Core?.DismissTutorialTip();
-	private void HideAllTips() => Core?.DismissTutorialTip( hideAll: true );
-	private void ToggleTips() => Core?.ToggleTutorialTipsHidden();
-	private void RepairAll() => BuildManager.Instance?.TryRepairAll();
+	private void Deselect() => UiAct( () => BuildManager.Instance?.Deselect() );
+	private void DismissTip() => UiAct( () => Core?.DismissTutorialTip() );
+	private void HideAllTips() => UiAct( () => Core?.DismissTutorialTip( hideAll: true ) );
+	private void ToggleTips() => UiAct( () => Core?.ToggleTutorialTipsHidden() );
+	private void RepairAll() => UiAct( () => BuildManager.Instance?.TryRepairAll() );
 
-	private void OpenRecruit()
-	{
-		UiClick();
-		Core?.OpenRecruit();
-	}
+	private void OpenRecruit() => UiAct( () => Core?.OpenRecruit() );
 
-	private void CloseRecruit() => Core?.CloseRecruit();
-	private void Recruit( RecruitWeaponType type ) => Defenders?.TryRecruit( type );
-	private void Train( RecruitWeaponType type ) => Defenders?.TryTrain( type );
+	private void CloseRecruit() => UiAct( () => Core?.CloseRecruit() );
+	private void Recruit( RecruitWeaponType type ) => UiAct( () => Defenders?.TryRecruit( type ) );
+	private void Train( RecruitWeaponType type ) => UiAct( () => Defenders?.TryTrain( type ) );
 
-	private void OpenWorkers()
-	{
-		UiClick();
-		Core?.OpenWorkers();
-	}
+	private void OpenWorkers() => UiAct( () => Core?.OpenWorkers() );
 
-	private void CloseWorkers() => Core?.CloseWorkers();
-	private void HireWorker( WorkerRole role ) => Workers?.TryHire( role );
+	private void CloseWorkers() => UiAct( () => Core?.CloseWorkers() );
+	private void HireWorker( WorkerRole role ) => UiAct( () => Workers?.TryHire( role ) );
 
 	private string WorkerUnlockHint( WorkerRole role ) =>
 		IsCure ? CureUnlocks.WorkerUnlockLabel( Core?.Save, role ) : $"Unlocks on Night {WorkerInfo.UnlockNight( role )}";
 
 	private string WorkerUnlockCostHint( WorkerRole role ) =>
-		IsCure ? CureUnlocks.WorkerUnlockLabel( Core?.Save, role ) : $"N{WorkerInfo.UnlockNight( role )}";
+		IsCure ? CureUnlocks.WorkerUnlockLabel( Core?.Save, role ) : $"Night {WorkerInfo.UnlockNight( role )}";
 
 	// AUDIT FIX M3: recruit/expedition locks used Survival night numbers in Cure.
 	private string RecruitLockLabel( RecruitWeaponType type ) =>
 		IsCure
-			? $"Unlocks on {CureUnlocks.RecruitUnlockLabel( Core?.Save, type )}"
+			? $"Unlocks via {CureUnlocks.RecruitUnlockLabel( Core?.Save, type )}"
 			: $"Unlocks on Night {RecruitWeapons.Get( type ).UnlockNight}";
 
 	private string RecruitLockShort( RecruitWeaponType type ) =>
 		IsCure
 			? CureUnlocks.RecruitUnlockLabel( Core?.Save, type )
-			: $"N{RecruitWeapons.Get( type ).UnlockNight}";
+			: $"Night {RecruitWeapons.Get( type ).UnlockNight}";
 
 	private string ShortExpeditionLockLabel =>
 		IsCure
@@ -2035,36 +2343,32 @@
 			? CureUnlocks.LongExpeditionUnlockLabel( Core?.Save )
 			: $"Night {NightUnlocks.LongExpeditionNight}";
 
-	private void DismissWorker( WorkerManager.WorkerUnit u ) => Workers?.Dismiss( u );
+	private void DismissWorker( WorkerManager.WorkerUnit u ) => UiAct( () => Workers?.Dismiss( u ) );
 
-	private void OpenExpeditions()
+	private void OpenExpeditions() => UiAct( () => Core?.OpenExpeditions() );
+
+	private void CloseExpeditions() => UiAct( () => Core?.CloseExpeditions() );
+	private void AdjustSoldiers( int d )
 	{
-		UiClick();
-		Core?.OpenExpeditions();
+		_expSoldiers = Math.Clamp( ExpSoldiers + d, 0, Exp?.AvailableSoldiers ?? 0 );
+		StateHasChanged();
 	}
-
-	private void CloseExpeditions() => Core?.CloseExpeditions();
-	private void AdjustSoldiers( int d ) => _expSoldiers = Math.Clamp( ExpSoldiers + d, 0, Exp?.AvailableSoldiers ?? 0 );
-	private void AdjustCivilians( int d ) => _expCivilians = Math.Clamp( ExpCivilians + d, 0, Exp?.AvailableCivilians ?? 0 );
-	private void StartShort() => Exp?.TryStart( ExpSoldiers, ExpCivilians, false );
-	private void StartLong() => Exp?.TryStart( ExpSoldiers, ExpCivilians, true );
-	private void CollectExp() => Exp?.TryCollect();
-
-	private void OpenMilestones()
+	private void AdjustCivilians( int d )
 	{
-		UiClick();
-		Core?.OpenMilestones();
+		_expCivilians = Math.Clamp( ExpCivilians + d, 0, Exp?.AvailableCivilians ?? 0 );
+		StateHasChanged();
 	}
+	private void StartShort() => UiAct( () => Exp?.TryStart( ExpSoldiers, ExpCivilians, false ) );
+	private void StartLong() => UiAct( () => Exp?.TryStart( ExpSoldiers, ExpCivilians, true ) );
+	private void CollectExp() => UiAct( () => Exp?.TryCollect() );
 
-	private void CloseMilestones() => Core?.CloseMilestones();
+	private void OpenMilestones() => UiAct( () => Core?.OpenMilestones() );
 
-	private void OpenCatalog()
-	{
-		UiClick();
-		Core?.OpenCatalog();
-	}
+	private void CloseMilestones() => UiAct( () => Core?.CloseMilestones() );
 
-	private void CloseCatalog() => Core?.CloseCatalog();
+	private void OpenCatalog() => UiAct( () => Core?.OpenCatalog() );
+
+	private void CloseCatalog() => UiAct( () => Core?.CloseCatalog() );
 	private static string MilestoneProgress( MilestoneDef m )
 	{
 		var s = GameCore.Instance?.Save;
@@ -2072,23 +2376,15 @@
 		return $"{m.Progress( s )} / {m.Goal}";
 	}
 
-	private void OpenLegacy()
-	{
-		UiClick();
-		Core?.OpenLegacy();
-	}
+	private void OpenLegacy() => UiAct( () => Core?.OpenLegacy() );
 
-	private void CloseLegacy() => Core?.CloseLegacy();
-	private void DoPrestige() => Core?.DoPrestige();
+	private void CloseLegacy() => UiAct( () => Core?.CloseLegacy() );
+	private void DoPrestige() => UiAct( () => Core?.DoPrestige() );
 
-	private void ClaimDaily() => Core?.ClaimDaily();
-	private void DismissWelcome() => Core?.DismissWelcome();
-	private void ContinueNightRecap() => Core?.DismissNightRecap();
-	private void ToggleRecruitCommand()
-	{
-		UiClick();
-		UnitOrderController.Instance?.ToggleNightCommandMode();
-	}
+	private void ClaimDaily() => UiAct( () => Core?.ClaimDaily() );
+	private void DismissWelcome() => UiAct( () => Core?.DismissWelcome() );
+	private void ContinueNightRecap() => UiAct( () => Core?.DismissNightRecap() );
+	private void ToggleRecruitCommand() => UiAct( () => UnitOrderController.Instance?.ToggleNightCommandMode() );
 
 	private static string FormatTime( float s )
 	{
@@ -2096,6 +2392,29 @@
 		var m = (int)(s / 60f);
 		var sec = (int)(s % 60f);
 		return m > 0 ? $"{m}m {sec:00}s" : $"{sec}s";
+	}
+
+	private string ResearchCostLabel( CureResearchTierDef tier )
+	{
+		var mult = TeamBonuses.ResearchCostMult( Core );
+		var parts = new List<string>
+		{
+			$"{tier.LabPointsRequired:0} lab pts",
+			$"{tier.ScrapCost * mult:0} scrap",
+			$"{tier.WoodCost * mult:0} wood",
+			$"{tier.StoneCost * mult:0} stone"
+		};
+		if ( tier.SpecimensCost > 0 )
+			parts.Add( $"{tier.SpecimensCost * mult:0} specimens" );
+		return $"Season {tier.MinSeason}+ · {string.Join( " · ", parts )}";
+	}
+
+	private string ResearchObjectiveLabel( int tier )
+	{
+		var objectives = CureObjectives.All.Where( o => o.RequiredTier == tier ).ToList();
+		if ( objectives.Count == 0 ) return "No additional field objectives";
+		return string.Join( " · ", objectives.Select( o =>
+			$"{(CureObjectives.IsDone( Core, o.Id ) ? "✓" : "○")} {o.Title}" ) );
 	}
 
 	private static string WorkerAssignment( WorkerManager.WorkerUnit u )
@@ -2189,6 +2508,16 @@
 			_ = FetchLeaderboardAsync();
 		}
 
+		// No meta hotkeys / clickable HUD while possessed — they re-show the OS cursor.
+		if ( TakeoverPossessing )
+		{
+			if ( Panel is not null && Panel.IsValid )
+				Panel.Style.PointerEvents = PointerEvents.None;
+
+			TakeoverCursor.SyncAfterUi();
+			return;
+		}
+
 		if ( Input.Pressed( "TutorialTips" ) )
 			Core.ToggleTutorialTipsHidden();
 		if ( Input.Pressed( "Score" ) )
@@ -2237,9 +2566,12 @@
 		? GameCore.BootError?.GetHashCode() ?? 0
 		: System.HashCode.Combine(
 		System.HashCode.Combine(
-			System.HashCode.Combine( Phase, ShopOpen, SettingsOpen, LeaderboardOpen, RecruitOpen, WorkersOpen, ConfirmReset, TeamPickerOpen ),
-			HasRunInProgress, (int)_pickedTeam, RecruitCommandMode ),
-		System.HashCode.Combine( Core?.Wallet.Scrap ?? 0, Placing, Moving?.Type, (int)_buildTab ),
+			System.HashCode.Combine(
+				System.HashCode.Combine( Phase, Core?.TakeoverPickerOpen ?? false, ShopOpen, SettingsOpen, CreditsOpen, LeaderboardOpen, RecruitOpen, WorkersOpen ),
+				ConfirmReset ),
+			System.HashCode.Combine( HasRunInProgress, (int)_pickedTeam, RecruitCommandMode, TeamPickerOpen, SensitivityPct ),
+			System.HashCode.Combine( TakeoverPicking, TakeoverPossessing, TakeoverDeathPopup, TakeoverPawn?.Ammo ?? 0, (int)(TakeoverPawn?.Health ?? 0), TakeoverShowHit, TakeoverHitHeadshot, TakeoverHideCrosshair ) ),
+		System.HashCode.Combine( Core?.Wallet.Scrap ?? 0, Placing, Moving?.Type, MovingCore, (int)_buildTab ),
 		System.HashCode.Combine(
 			System.HashCode.Combine( CorePercent, WallPercent, DefensesPercent, RecruitsPercent, WorkersPercent ),
 			ZombiesLeft, Core?.Save.CurrentNight ?? 0, ProgressNight, NightRecap?.ClearedNight ?? 0 ),

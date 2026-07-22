@@ -102,13 +102,13 @@
 					}
 
 					<div class="section-title">Franchise</div>
-					<div class="item unlock @(CanPrestige ? "highlight" : "")">
+					<div class="item unlock @(CanAdvanceFranchise ? "highlight" : "")">
 						<i class="icon">workspace_premium</i>
 						<div class="info">
-							<div class="name">Rank @(FranchiseRank)</div>
-							<div class="desc">@(LegacyTokens) legacy tokens | @(BranchExpansions) branch grants. Prestige at max level, 50% codex, and 4-star rating.</div>
+							<div class="name">Franchise rank @(FranchiseRank)</div>
+							<div class="desc">@(LegacyTokens) legacy tokens | @(BranchExpansions) branch grants. @FranchiseRankHint</div>
 						</div>
-						<div class="mini-button @(CanPrestige ? "" : "disabled")" onclick=@( () => FranchiseSystem.Instance?.RequestFranchisePrestige() )>Prestige</div>
+						<div class="mini-button @(CanAdvanceFranchise ? "" : "disabled")" onclick=@TryAdvanceFranchise>Advance rank</div>
 					</div>
 				}
 				else
@@ -190,7 +190,20 @@
 	private int FranchiseRank => FranchiseSystem.Instance?.FranchiseRank ?? 0;
 	private int LegacyTokens => FranchiseSystem.Instance?.LegacyTokens ?? 0;
 	private int BranchExpansions => FranchiseSystem.Instance?.BranchExpansions ?? 0;
-	private bool CanPrestige => FranchiseSystem.Instance?.CanPrestige() ?? false;
+	private bool CanAdvanceFranchise => FranchiseSystem.Instance?.CanAdvanceRank() ?? false;
+	private string FranchiseRankHint => FranchiseSystem.Instance?.RankRequirementText()
+		?? "Need max level, 50% codex, 4.0★ rating, and 25 prestige.";
+
+	private void TryAdvanceFranchise()
+	{
+		if ( !CanAdvanceFranchise )
+		{
+			UiState.PushToast( FranchiseRankHint, "lock" );
+			return;
+		}
+
+		FranchiseSystem.Instance?.RequestAdvanceRank();
+	}
 
 	private float XpPercent
 	{

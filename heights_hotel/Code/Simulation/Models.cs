@@ -122,6 +122,18 @@ public sealed class DailyGoal
 	public bool Claimed { get; set; }
 }
 
+/// <summary>
+/// A hire the player should make right now. Staff work hotel-wide without room assignment;
+/// these needs fire when a role is missing or the backlog exceeds the crew.
+/// </summary>
+public sealed class StaffingNeed
+{
+	public StaffRole Role { get; init; }
+	public string Reason { get; init; }
+	/// <summary>Higher = more urgent. Used for sorting banners and hire highlights.</summary>
+	public int Urgency { get; init; }
+}
+
 public sealed class HotelState
 {
 	public int SaveVersion { get; set; } = GameBalance.SaveVersion;
@@ -143,7 +155,13 @@ public sealed class HotelState
 	public List<Employee> Employees { get; set; } = new();
 	public List<LedgerEntry> Ledger { get; set; } = new();
 	public List<string> CompletedTutorials { get; set; } = new();
+	public bool HideTutorialTips { get; set; }
 	public string ActiveTutorial { get; set; } = "build_room";
+	/// <summary>
+	/// Tip id the player dismissed with Got it so they can act.
+	/// Cleared when the step completes and the next tip becomes active.
+	/// </summary>
+	public string AcknowledgedTutorial { get; set; }
 	public string StatusMessage { get; set; }
 	public int StatusRevision { get; set; }
 	public long OfflineEarningsAppliedCents { get; set; }

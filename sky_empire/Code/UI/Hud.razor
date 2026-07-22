@@ -1,0 +1,168 @@
+@namespace SkyEmpire
+@inherits PanelComponent
+
+<root class="hud">
+	@if (Progress is null)
+	{
+		<div class="boot">Rising above the clouds…</div>
+	}
+	else
+	{
+		<div class="topbar">
+			<div class="stat cash">
+				<span class="ico">💰</span>
+				<span class="val">@Balance.Fmt(Progress.Data.Cash)</span>
+			</div>
+			<div class="stat rate">
+				<span class="ico">📈</span>
+				<span class="val">+@(Balance.Fmt(Progress.IncomePerSecond))/s</span>
+			</div>
+			<div class="stat gems">
+				<span class="ico">💎</span>
+				<span class="val">@Progress.Data.Gems</span>
+			</div>
+			@if (Progress.Data.Rebirths > 0)
+			{
+				<div class="stat rebirths">
+					<span class="ico">🌟</span>
+					<span class="val">@Progress.Data.Rebirths</span>
+				</div>
+			}
+			<div class="stat streak">
+				<span class="ico">🔥</span>
+				<span class="val">Day @Progress.Data.StreakCount</span>
+			</div>
+		</div>
+
+		@if (Milestone is not null)
+		{
+			<div class="objective">
+				<div class="obj-kicker">⭐ NEXT GOAL</div>
+				<div class="obj-title">@Milestone.Title</div>
+				<div class="obj-detail">@Milestone.Detail</div>
+				<div class="obj-progress">@Milestone.ProgressLabel(Progress)</div>
+			</div>
+		}
+
+		<div class="chips">
+			@if (Progress.OverdriveActive)
+			{
+				<div class="chip overdrive">⚡ Overdrive ×2 — @Balance.FmtTime(Progress.OverdriveSecondsLeft)</div>
+			}
+			@if (Progress.FrenzyActive)
+			{
+				<div class="chip frenzy">🌧️ Orb Frenzy — @Balance.FmtTime(Progress.FrenzyLeft)</div>
+			}
+			@if (Progress.FriendBoostActive)
+			{
+				<div class="chip friend">🤝 Friend Boost +25%</div>
+			}
+		</div>
+
+		<div class="chest @(Progress.ChestClaimable ? "ready" : "")" onclick="@ClaimChest">
+			@if (Progress.ChestClaimable)
+			{
+				<span>🎁 SKY CHEST READY — CLAIM!</span>
+			}
+			else
+			{
+				<span>🎁 Chest in @Balance.FmtTime(Progress.ChestReady)</span>
+			}
+		</div>
+
+		<div class="toasts">
+			@foreach (var toast in Progress.Toasts)
+			{
+				<div class="toast">@toast.Message</div>
+			}
+		</div>
+
+		@if (TutorialTip is null)
+		{
+			<div class="hotkeys">
+				<span><b>WASD</b> Move</span>
+				<span><b>Space</b> Jump</span>
+				<span><b>Tab</b> Boosts · Rebirth · Daily</span>
+				<span>Step on green pads to build!</span>
+			</div>
+		}
+
+		@if (Players.Count() > 1)
+		{
+			<div class="board">
+				<div class="board-title">🏆 Sky Barons</div>
+				@foreach (var p in Players.Take(6))
+				{
+					<div class="board-row @(p == TycoonPlayer.Local ? "me" : "")">
+						<span class="board-name">@(p.Rebirths > 0 ? $"🌟{p.Rebirths} " : "")@p.DisplayName</span>
+						<span class="board-score">@Balance.Fmt(p.SessionEarned)</span>
+					</div>
+				}
+			</div>
+		}
+
+		@if (GameState?.WelcomeOpen == true)
+		{
+			<div class="overlay">
+				<div class="welcome">
+					<div class="wl-title">Welcome back, Baron! ☁️</div>
+					@if (Progress.OfflineCashEarned > 1)
+					{
+						<div class="wl-sub">You were away @Balance.FmtTime(Progress.OfflineSecondsAway)</div>
+						<div class="wl-earn">Your island kept working: <b>+@Balance.Fmt(Progress.OfflineCashEarned) 💰</b></div>
+					}
+					@if (Progress.StreakGemsGranted > 0)
+					{
+						<div class="wl-streak">🔥 Day @Progress.Data.StreakCount streak: +@Progress.StreakGemsGranted 💎</div>
+					}
+					<div class="wl-btn" onclick="@Dismiss">Collect & Build!</div>
+				</div>
+			</div>
+		}
+
+		@if (TutorialTip is not null)
+		{
+			var tip = TutorialTip;
+			<div class="overlay tip-overlay">
+				<div class="welcome tutorial-tip">
+					<div class="wl-title">@tip.Title</div>
+					<div class="wl-sub tip-body">@tip.Body</div>
+					<div class="tip-actions">
+						<div class="wl-btn ghost" onclick="@HideAllTips">Hide tips</div>
+						<div class="wl-btn" onclick="@DismissTip">Got it</div>
+					</div>
+				</div>
+			</div>
+		}
+
+		@if (!string.IsNullOrEmpty(TipToast))
+		{
+			<div class="tip-toast">@TipToast</div>
+		}
+	}
+</root>
+
+@code {
+	PlayerProgress Progress => PlayerProgress.Local;
+	TycoonGame GameState => TycoonGame.Instance;
+	MilestoneDef Milestone => Progress is null ? null : Milestones.Current(Progress);
+	IEnumerable<TycoonPlayer> Players => GameState?.Leaderboard ?? Enumerable.Empty<TycoonPlayer>();
+
+	TutorialTipDef TutorialTip => GameState?.ActiveTutorialTip;
+	string TipToast => GameState?.TipToast ?? "";
+
+	void Dismiss() => GameState?.DismissWelcome();
+	void DismissTip() => GameState?.DismissTutorialTip();
+	void HideAllTips() => GameState?.DismissTutorialTip( hideAll: true );
+	void ClaimChest() => Progress?.ClaimChest();
+
+	protected override int BuildHash()
+	{
+		var p = Progress;
+		if (p is null) return 0;
+		return HashCode.Combine(
+			(long)p.Data.Cash, p.Data.Gems, p.Data.MilestoneIndex, p.ChestClaimable,
+			HashCode.Combine(p.Toasts.Count, GameState?.WelcomeOpen, GameState?.MenuOpen, p.FriendBoostActive),
+			HashCode.Combine(Players.Sum(x => (long)x.SessionEarned), TutorialTip?.Id, TipToast));
+	}
+}

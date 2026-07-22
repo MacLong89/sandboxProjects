@@ -44,6 +44,19 @@ public sealed class SaveData
 	/// <summary>Discovery ids the player has uncovered (persists across jobs).</summary>
 	public List<string> DiscoveredSecrets { get; set; } = new();
 
+	/// <summary>Experienced players can hide first-run coach tips (H toggles).</summary>
+	public bool HideTutorialTips { get; set; }
+	public List<string> TutorialTipsShown { get; set; } = new();
+
+	/// <summary>Tutorial gates — player blasted at least one grime cell.</summary>
+	public bool HasCleanedSomeDirt { get; set; }
+
+	/// <summary>Tutorial gates — player opened the van locker or shop once.</summary>
+	public bool HasOpenedVanOrShop { get; set; }
+
+	/// <summary>Tutorial gates — pests defeated across all jobs.</summary>
+	public int PestsKilled { get; set; }
+
 	public bool HasDiscovery( string id ) => !string.IsNullOrWhiteSpace( id ) && DiscoveredSecrets.Contains( id );
 
 	public void MarkDiscovery( string id )

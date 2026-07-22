@@ -64,7 +64,8 @@ public sealed class Enemy : Component
 
 		_attacksEnabled = core is not null
 			&& core.Jobs.Index >= GameConstants.PestAttackUnlockJob
-			&& _def.Attack != AttackStyle.None;
+			&& _def.Attack != AttackStyle.None
+			&& !core.PestAttacksSuppressed;
 
 		Move();
 

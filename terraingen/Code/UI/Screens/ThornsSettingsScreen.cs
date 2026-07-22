@@ -27,7 +27,7 @@ public sealed class ThornsSettingsScreen : ThornsScreenBase
 		right.Style.FlexDirection = FlexDirection.Column;
 		right.Style.Overflow = OverflowMode.Scroll;
 		ThornsTheme.CreateSectionHeader( right, "GAME INFO" );
-		ThornsTheme.CreateMuted( right, "Thorns — Bloom testing stage." );
+		ThornsTheme.CreateMuted( right, "Thorns — Survive together in the wilderness." );
 		ThornsTheme.CreateHeader( right, "SUPPORT", "settings-support-heading" );
 		ThornsUiFactory.AddClickable( right, "settings-support-btn", "UI SKIN", () =>
 		{

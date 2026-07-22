@@ -1,0 +1,25 @@
+@using Sandbox;
+@using Sandbox.UI;
+@inherits PanelComponent
+@namespace Offshore
+
+<root>
+	<div class="lab">
+		<div class="title">SKY LAB</div>
+		<div class="status">@(Ctrl?.StatusLine ?? "…")</div>
+		<div class="hint">
+			<div><b>A / D</b> scrub time</div>
+			<div><b>Space</b> pause</div>
+			<div><b>1</b> dawn · <b>2</b> noon · <b>3</b> sunset · <b>4</b> night</div>
+			<div><b>5 / 6</b> half / double speed · <b>0</b> reset 10s/day</div>
+		</div>
+		<div class="note">Fixed sky + water. Dock scrolls with world. Full day ≈ 10s.</div>
+	</div>
+</root>
+
+@code
+{
+	SkyLabController Ctrl => Scene?.GetAllComponents<SkyLabController>().FirstOrDefault();
+
+	protected override int BuildHash() => HashCode.Combine( Ctrl?.StatusLine, Ctrl?.Clock.MinuteOfDay, Ctrl?.Clock.Paused );
+}

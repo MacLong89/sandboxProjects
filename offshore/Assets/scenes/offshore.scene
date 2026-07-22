@@ -1,34 +1,47 @@
 {
-  "__guid": "a1b2c3d4-e5f6-4701-8801-000000000001",
+  "__guid": "d4e5f6a7-b8c9-0123-def0-234567890123",
   "GameObjects": [
     {
-      "__guid": "a1b2c3d4-e5f6-4701-8801-000000000010",
+      "__guid": "e5f6a7b8-c9d0-1234-ef01-345678901234",
       "Flags": 0,
-      "Name": "Sun",
-      "Rotation": "-0.0729315,0.4822396,0.1305433,0.8631827",
-      "Tags": "light_directional,light",
+      "Name": "OFFSHORE",
+      "Position": "0,-1000,0",
+      "Rotation": "0,0,0.7071068,0.7071068",
+      "Scale": "1,1,1",
+      "Tags": "maincamera",
       "Enabled": true,
       "Components": [
         {
-          "__type": "Sandbox.DirectionalLight",
-          "__guid": "a1b2c3d4-e5f6-4701-8801-000000000011",
-          "FogMode": "Enabled",
-          "FogStrength": 0.35,
-          "LightColor": "0.95,0.92,0.85,1",
-          "Shadows": false,
-          "SkyColor": "0.45,0.7,0.95,1"
-        }
-      ]
-    },
-    {
-      "__guid": "a1b2c3d4-e5f6-4701-8801-000000000030",
-      "Flags": 0,
-      "Name": "Boot",
-      "Enabled": true,
-      "Components": [
+          "__type": "Sandbox.CameraComponent",
+          "__guid": "f6a7b8c9-d0e1-2345-f012-456789012345",
+          "BackgroundColor": "0.98,0.42,0.22,1",
+          "ClearFlags": "All",
+          "IsMainCamera": true,
+          "Orthographic": true,
+          "OrthographicHeight": 560,
+          "Priority": 1,
+          "RenderExcludeTags": "",
+          "RenderTags": "",
+          "TargetEye": "None",
+          "Viewport": "0,0,1,1",
+          "ZFar": 10000,
+          "ZNear": 1
+        },
         {
-          "__type": "Offshore.GameManager",
-          "__guid": "a1b2c3d4-e5f6-4701-8801-000000000031"
+          "__type": "Sandbox.ScreenPanel",
+          "__guid": "b8c9d0e1-f2a3-4567-8901-234567890abc",
+          "AutoScreenScale": true,
+          "Opacity": 1,
+          "Scale": 1,
+          "ZIndex": 100
+        },
+        {
+          "__type": "Offshore.OffshoreHud",
+          "__guid": "c9d0e1f2-a3b4-5678-9012-34567890abcd"
+        },
+        {
+          "__type": "Offshore.OffshoreGameController",
+          "__guid": "a7b8c9d0-e1f2-3456-0123-567890123456"
         }
       ]
     }
@@ -36,27 +49,13 @@
   "SceneProperties": {
     "FixedUpdateFrequency": 50,
     "MaxFixedUpdates": 5,
-    "NetworkFrequency": 60,
-    "NetworkInterpolation": true,
-    "ThreadedAnimation": true,
-    "TimeScale": 1,
-    "UseFixedUpdate": true,
     "NavMesh": {
       "Enabled": false,
       "IncludeStaticBodies": true,
       "IncludeKeyframedBodies": true,
-      "EditorAutoUpdate": true,
-      "AgentHeight": 64,
-      "AgentRadius": 16,
-      "AgentStepSize": 18,
-      "AgentMaxSlope": 40,
-      "ExcludedBodies": "",
-      "IncludedBodies": ""
+      "EditorAutoUpdate": true
     }
   },
-  "Title": "offshore",
-  "Description": "Offshore — MINIMAL compile (GameManager only)",
-  "ResourceVersion": 1,
-  "__references": [],
-  "__version": 1
+  "Title": "OFFSHORE",
+  "Description": "A cozy side-view coastal fishing game."
 }

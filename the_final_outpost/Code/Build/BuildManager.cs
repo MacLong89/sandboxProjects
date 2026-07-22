@@ -8,25 +8,30 @@ public sealed class BuildManager : Component
 	public ISelectable Selected { get; private set; }
 	public BuildableId? PlacementMode { get; private set; }
 	public PlacedBuilding MovingBuilding { get; private set; }
+	public bool MovingCore { get; private set; }
 
 	private readonly Dictionary<(int x, int y), PlacedBuilding> _cells = new();
 	private int _nextPlaceOrder;
 	private GameObject _ghostGo;
-	private ModelRenderer _ghostRenderer;
+	private List<(ModelRenderer Renderer, Color Base)> _ghostParts = new();
+	private BuildableId? _ghostBuiltType;
+	private bool _ghostIsCore;
 	private int _ghostCellX = int.MinValue;
 	private int _ghostCellY = int.MinValue;
+	/// <summary>Placement facing in 90° steps (0–3). R advances while placing / moving.</summary>
+	private int _placementYawSteps;
+	private bool _placementYawManual;
 
 	public IReadOnlyCollection<PlacedBuilding> Buildings => _cells.Values;
 
-	public int BarracksCount
+	public int BarracksCount => CountAlive( BuildableId.Barracks );
+
+	public int CountAlive( BuildableId type )
 	{
-		get
-		{
-			var n = 0;
-			foreach ( var b in _cells.Values )
-				if ( !b.IsDestroyed && b.Type == BuildableId.Barracks ) n++;
-			return n;
-		}
+		var n = 0;
+		foreach ( var b in _cells.Values )
+			if ( !b.IsDestroyed && b.Type == type ) n++;
+		return n;
 	}
 
 	public int RecruitCapacity => GameConstants.MaxRecruitCapacity( BarracksCount );
@@ -65,9 +70,7 @@ public sealed class BuildManager : Component
 
 	public double PlaceCost( BuildableDef def )
 	{
-		var cost = def.Id == BuildableId.Barracks
-			? CombatEconomy.BarracksPlaceCost( def.BaseHp, BarracksCount )
-			: def.PlaceCost;
+		var cost = CombatEconomy.EscalatedCost( def.BaseCost, CountAlive( def.Id ), def.CostBump );
 		var core = GameCore.Instance;
 		if ( core?.IsCure == true )
 			cost *= TeamBonuses.BuildCostMult( core );
@@ -79,7 +82,7 @@ public sealed class BuildManager : Component
 	protected override void OnDestroy()
 	{
 		if ( Instance == this ) Instance = null;
-		_ghostGo?.Destroy();
+		ClearGhost();
 	}
 
 	public void LoadFromSave( SaveData save )
@@ -95,7 +98,7 @@ public sealed class BuildManager : Component
 					continue;
 
 				var order = entry.PlaceOrder > 0 ? entry.PlaceOrder : ++_nextPlaceOrder;
-				PlaceInternal( def.Id, entry.CellX, entry.CellY, entry.Level, entry.Health, order, fromSave: true, paidPlaceCost: entry.PaidPlaceCost );
+				PlaceInternal( def.Id, entry.CellX, entry.CellY, entry.Level, entry.Health, order, fromSave: true, paidPlaceCost: entry.PaidPlaceCost, yawSteps: entry.YawSteps );
 			}
 			catch ( Exception e )
 			{
@@ -132,15 +135,25 @@ public sealed class BuildManager : Component
 		CancelMove();
 		PlacementMode = id;
 		Selected = null;
-		EnsureGhost();
+		_placementYawSteps = 0;
+		_placementYawManual = false;
 	}
 
 	public void CancelPlacement()
 	{
 		PlacementMode = null;
+		ClearGhost();
+	}
+
+	void ClearGhost()
+	{
 		_ghostGo?.Destroy();
 		_ghostGo = null;
-		_ghostRenderer = null;
+		_ghostParts.Clear();
+		_ghostBuiltType = null;
+		_ghostIsCore = false;
+		_ghostCellX = int.MinValue;
+		_ghostCellY = int.MinValue;
 	}
 
 	public void BeginMove( PlacedBuilding building )
@@ -153,9 +166,25 @@ public sealed class BuildManager : Component
 		CancelMove();
 
 		MovingBuilding = building;
+		_placementYawSteps = building.YawSteps;
+		_placementYawManual = true;
 		building.SetHiddenForMove( true );
 		Selected = null;
-		EnsureGhost();
+	}
+
+	public void BeginMoveCore()
+	{
+		var core = GameCore.Instance;
+		if ( core is null || core.Phase != GamePhase.Day ) return;
+		if ( OutpostManager.Instance is null ) return;
+		if ( RepairManager.Instance?.IsScheduledCore() == true ) return;
+
+		CancelPlacement();
+		CancelMove();
+
+		MovingCore = true;
+		OutpostManager.Instance.SetCoreHiddenForMove( true );
+		Selected = null;
 	}
 
 	public void CancelMove()
@@ -165,6 +194,14 @@ public sealed class BuildManager : Component
 			MovingBuilding.SetHiddenForMove( false );
 			MovingBuilding = null;
 		}
+
+		if ( MovingCore )
+		{
+			OutpostManager.Instance?.SetCoreHiddenForMove( false );
+			MovingCore = false;
+		}
+
+		ClearGhost();
 	}
 
 	public void CancelBuildInteraction()
@@ -181,10 +218,28 @@ public sealed class BuildManager : Component
 
 	public void Deselect() => Selected = null;
 
+	/// <summary>Damaging combat pads — attack towers and barracks (not supports, labs, or civic).</summary>
 	public static bool CountsTowardPlotStructureLimit( BuildableId id )
 	{
-		var role = BuildableCatalog.Get( id ).Role;
-		return role is BuildingRole.Defense or BuildingRole.Management or BuildingRole.Civic;
+		var def = BuildableCatalog.Get( id );
+		return def.Role == BuildingRole.Defense || id == BuildableId.Barracks;
+	}
+
+	public static bool CountsTowardPlotSupportLimit( BuildableId id ) =>
+		BuildableCatalog.Get( id ).Role == BuildingRole.Support;
+
+	/// <summary>
+	/// Attack-slot budget for a plot. Home plot gains +1 per Fortify Command level;
+	/// outer plots stay at the base cap.
+	/// </summary>
+	public static int MaxStructuresForPlot( int plotX, int plotY )
+	{
+		var max = GameConstants.MaxPlotStructures;
+		if ( !PlotGrid.IsHome( plotX, plotY ) )
+			return max;
+
+		var fortify = GameCore.Instance?.Upgrades?.Level( UpgradeId.FortifyCore ) ?? 0;
+		return max + fortify;
 	}
 
 	public bool TryGetPlotAtCell( int cellX, int cellY, out int plotX, out int plotY )
@@ -208,11 +263,83 @@ public sealed class BuildManager : Component
 		return n;
 	}
 
+	public int CountPlotSupports( int plotX, int plotY, PlacedBuilding exclude = null )
+	{
+		var n = 0;
+		foreach ( var b in _cells.Values )
+		{
+			if ( b.IsDestroyed || !CountsTowardPlotSupportLimit( b.Type ) ) continue;
+			if ( exclude is not null && ReferenceEquals( b, exclude ) ) continue;
+			var center = BuildGrid.CellToWorld( b.CellX, b.CellY );
+			if ( PlotGrid.WorldToPlot( center, out var px, out var py ) && px == plotX && py == plotY )
+				n++;
+		}
+		return n;
+	}
+
+	public bool PlotHasSupportType( int plotX, int plotY, BuildableId id, PlacedBuilding exclude = null )
+	{
+		if ( !CountsTowardPlotSupportLimit( id ) ) return false;
+		foreach ( var b in _cells.Values )
+		{
+			if ( b.IsDestroyed || b.Type != id ) continue;
+			if ( exclude is not null && ReferenceEquals( b, exclude ) ) continue;
+			var center = BuildGrid.CellToWorld( b.CellX, b.CellY );
+			if ( PlotGrid.WorldToPlot( center, out var px, out var py ) && px == plotX && py == plotY )
+				return true;
+		}
+		return false;
+	}
+
 	public bool IsPlotStructureLimitReached( int cellX, int cellY, BuildableId id, PlacedBuilding exclude = null )
 	{
 		if ( !CountsTowardPlotStructureLimit( id ) ) return false;
 		if ( !TryGetPlotAtCell( cellX, cellY, out var px, out var py ) ) return false;
-		return CountPlotStructures( px, py, exclude ) >= GameConstants.MaxPlotStructures;
+		return CountPlotStructures( px, py, exclude ) >= MaxStructuresForPlot( px, py );
+	}
+
+	public bool IsPlotSupportLimitReached( int cellX, int cellY, BuildableId id, PlacedBuilding exclude = null )
+	{
+		if ( !CountsTowardPlotSupportLimit( id ) ) return false;
+		if ( !TryGetPlotAtCell( cellX, cellY, out var px, out var py ) ) return false;
+		return CountPlotSupports( px, py, exclude ) >= GameConstants.MaxPlotSupports;
+	}
+
+	public bool IsPlotSupportDuplicate( int cellX, int cellY, BuildableId id, PlacedBuilding exclude = null )
+	{
+		if ( !CountsTowardPlotSupportLimit( id ) ) return false;
+		if ( !TryGetPlotAtCell( cellX, cellY, out var px, out var py ) ) return false;
+		return PlotHasSupportType( px, py, id, exclude );
+	}
+
+	/// <summary>Null when placement is allowed under plot caps; otherwise a player-facing toast.</summary>
+	public string PlotCapToast( int cellX, int cellY, BuildableId id, PlacedBuilding exclude = null )
+	{
+		if ( !TryGetPlotAtCell( cellX, cellY, out var px, out var py ) )
+			return null;
+
+		if ( CountsTowardPlotSupportLimit( id ) )
+		{
+			if ( PlotHasSupportType( px, py, id, exclude ) )
+				return $"Already have a {BuildableCatalog.Get( id ).Name} on this plot.";
+			if ( CountPlotSupports( px, py, exclude ) >= GameConstants.MaxPlotSupports )
+				return $"Plot support full ({GameConstants.MaxPlotSupports}/{GameConstants.MaxPlotSupports}).";
+			return null;
+		}
+
+		if ( CountsTowardPlotStructureLimit( id ) )
+		{
+			var max = MaxStructuresForPlot( px, py );
+			if ( CountPlotStructures( px, py, exclude ) >= max )
+			{
+				var hint = PlotGrid.IsHome( px, py ) && max > GameConstants.MaxPlotStructures
+					? " Fortify Command adds slots on the home plot."
+					: " Claim an adjacent plot to expand.";
+				return $"Plot full ({max}/{max} towers & barracks).{hint}";
+			}
+		}
+
+		return null;
 	}
 
 	public bool CanPlaceAt( int cellX, int cellY, BuildableId? id = null, PlacedBuilding ignoreOccupied = null )
@@ -245,8 +372,15 @@ public sealed class BuildManager : Component
 			// Defenses may sit on perimeter wall tiles even when that cell's plot isn't cleared yet.
 			if ( !plotOk && !wallMount ) return false;
 
-			if ( plotOk && id is { } buildingId && IsPlotStructureLimitReached( cellX, cellY, buildingId, ignoreOccupied ) )
-				return false;
+			if ( plotOk && id is { } buildingId )
+			{
+				if ( IsPlotStructureLimitReached( cellX, cellY, buildingId, ignoreOccupied ) )
+					return false;
+				if ( IsPlotSupportLimitReached( cellX, cellY, buildingId, ignoreOccupied ) )
+					return false;
+				if ( IsPlotSupportDuplicate( cellX, cellY, buildingId, ignoreOccupied ) )
+					return false;
+			}
 		}
 
 		if ( id is not { } placeId )
@@ -256,8 +390,47 @@ public sealed class BuildManager : Component
 		if ( OverlapsAnyBuilding( cellX, cellY, footprint, ignoreOccupied ) )
 			return false;
 
-		if ( BuildGrid.FootprintsOverlap( center, footprint, Vector3.Zero, BuildGrid.CommandPostFootprint ) )
+		var corePos = OutpostManager.Instance?.CorePosition ?? Vector3.Zero;
+		if ( !MovingCore && BuildGrid.FootprintsOverlap( center, footprint, corePos, BuildGrid.CommandPostFootprint ) )
 			return false;
+
+		return true;
+	}
+
+	/// <summary>
+	/// Valid southwest anchor for the command post's 2×2 — home courtyard only, clear of walls/buildings.
+	/// </summary>
+	public bool CanPlaceCoreAt( int anchorX, int anchorY )
+	{
+		for ( var dx = 0; dx <= 1; dx++ )
+		for ( var dy = 0; dy <= 1; dy++ )
+		{
+			var cx = anchorX + dx;
+			var cy = anchorY + dy;
+
+			if ( TileOccupancy.IsWallCell( cx, cy ) )
+				return false;
+
+			if ( _cells.ContainsKey( (cx, cy) ) )
+				return false;
+
+			var cellCenter = BuildGrid.CellToWorld( cx, cy );
+			if ( !PlotGrid.WorldToPlot( cellCenter, out var px, out var py ) || !PlotGrid.IsHome( px, py ) )
+				return false;
+
+			var plots = PlotManager.Instance;
+			if ( plots is not null && !plots.IsBuildable( px, py ) )
+				return false;
+		}
+
+		var world = BuildGrid.CoreWorldFromAnchor( anchorX, anchorY );
+		foreach ( var b in _cells.Values )
+		{
+			if ( b.IsDestroyed ) continue;
+			var otherCenter = BuildGrid.CellToWorld( b.CellX, b.CellY );
+			if ( BuildGrid.FootprintsOverlap( world, BuildGrid.CommandPostFootprint, otherCenter, b.Def.VisualSize ) )
+				return false;
+		}
 
 		return true;
 	}
@@ -309,10 +482,14 @@ public sealed class BuildManager : Component
 			&& TileOccupancy.IsWallCell( cellX, cellY )
 			&& BuildableCatalog.Get( id ).Role == BuildingRole.Defense;
 
-		if ( !wallMount && IsPlotStructureLimitReached( cellX, cellY, id ) )
+		if ( !wallMount )
 		{
-			core.ShowToast( $"Plot full ({GameConstants.MaxPlotStructures}/{GameConstants.MaxPlotStructures} towers & barracks). Claim an adjacent plot to build more." );
-			return false;
+			var capToast = PlotCapToast( cellX, cellY, id );
+			if ( capToast is not null )
+			{
+				core.ShowToast( capToast );
+				return false;
+			}
 		}
 
 		if ( !wallMount && TryGetPlotAtCell( cellX, cellY, out var plotX, out var plotY ) )
@@ -346,7 +523,7 @@ public sealed class BuildManager : Component
 		}
 
 		// AUDIT FIX M1: record what was actually paid (barracks escalates).
-		PlaceInternal( id, cellX, cellY, 1, def.MaxHp( 1 ), placeOrder: 0, fromSave: false, paidPlaceCost: cost );
+		PlaceInternal( id, cellX, cellY, 1, def.MaxHp( 1 ), placeOrder: 0, fromSave: false, paidPlaceCost: cost, yawSteps: _placementYawSteps );
 		KnowledgeGain.OnBuildingPlaced( core );
 		Sfx.Play( Sfx.Purchase );
 		core.SaveManagerTouch();
@@ -371,10 +548,14 @@ public sealed class BuildManager : Component
 			&& TileOccupancy.IsWallCell( cellX, cellY )
 			&& building.Def.Role == BuildingRole.Defense;
 
-		if ( !wallMount && IsPlotStructureLimitReached( cellX, cellY, building.Type, building ) )
+		if ( !wallMount )
 		{
-			core.ShowToast( $"Plot full ({GameConstants.MaxPlotStructures}/{GameConstants.MaxPlotStructures} towers & barracks). Claim an adjacent plot to build more." );
-			return false;
+			var capToast = PlotCapToast( cellX, cellY, building.Type, building );
+			if ( capToast is not null )
+			{
+				core.ShowToast( capToast );
+				return false;
+			}
 		}
 
 		if ( !wallMount && TryGetPlotAtCell( cellX, cellY, out var plotX, out var plotY ) )
@@ -398,15 +579,44 @@ public sealed class BuildManager : Component
 
 		_cells.Remove( (building.CellX, building.CellY) );
 		TileOccupancy.UnmarkBuilding( building );
-		building.Relocate( cellX, cellY );
+		building.Relocate( cellX, cellY, _placementYawSteps );
 		_cells[(cellX, cellY)] = building;
 		TileOccupancy.MarkBuilding( building );
 		building.SetHiddenForMove( false );
 		MovingBuilding = null;
-		_ghostGo?.Destroy();
-		_ghostGo = null;
-		_ghostRenderer = null;
+		ClearGhost();
 		Select( building );
+		core.SaveManagerTouch();
+		return true;
+	}
+
+	public bool TryMoveCore( int anchorCellX, int anchorCellY )
+	{
+		var core = GameCore.Instance;
+		var outpost = OutpostManager.Instance;
+		if ( core is null || core.Phase != GamePhase.Day || !MovingCore || outpost is null )
+			return false;
+
+		if ( outpost.CoreAnchorCellX == anchorCellX && outpost.CoreAnchorCellY == anchorCellY )
+		{
+			CancelMove();
+			Select( new CoreSelectable( outpost ) );
+			return true;
+		}
+
+		if ( !CanPlaceCoreAt( anchorCellX, anchorCellY ) )
+		{
+			core.ShowToast( "Cannot move command post here — need a clear 2×2 on the home plot." );
+			return false;
+		}
+
+		if ( !outpost.RelocateCore( anchorCellX, anchorCellY ) )
+			return false;
+
+		MovingCore = false;
+		outpost.SetCoreHiddenForMove( false );
+		ClearGhost();
+		Select( new CoreSelectable( outpost ) );
 		core.SaveManagerTouch();
 		return true;
 	}
@@ -448,28 +658,62 @@ public sealed class BuildManager : Component
 		foreach ( var b in _cells.Values )
 		{
 			if ( b.IsDestroyed || rm?.IsScheduled( b ) == true ) continue;
-			total += b.MissingRepairCost();
+			total += b.Def.RepairCost( b.MaxHealth - b.Health );
 		}
 
 		var outpost = OutpostManager.Instance;
 		if ( outpost is not null )
 		{
 			if ( outpost.CoreHealth < outpost.CoreMaxHealth && rm?.IsScheduledCore() != true )
-				total += (outpost.CoreMaxHealth - outpost.CoreHealth) * GameConstants.RepairCostPerHp;
+				total += RepairCosts.BaseScrapCost( outpost.CoreMaxHealth - outpost.CoreHealth );
 
 			foreach ( var w in outpost.Walls )
 			{
 				if ( w.Health >= w.MaxHealth || rm?.IsScheduled( w ) == true ) continue;
-				total += (w.MaxHealth - w.Health) * GameConstants.RepairCostPerHp;
+				total += RepairCosts.BaseScrapCost( w.MaxHealth - w.Health );
 			}
 		}
 
-		return total;
+		return RepairCosts.EffectiveScrapCost( total );
 	}
 
 	/// <summary>What Repair All will actually charge given current scrap (may be a partial spend).</summary>
-	public double AffordableRepairAllCost() =>
-		SelectHelp.AffordableRepairSpend( RepairAllCost() );
+	public double AffordableRepairAllCost()
+	{
+		var cost = RepairAllCost();
+		return cost <= 0.001 ? 0 : SelectHelp.AffordableRepairSpend( cost );
+	}
+
+	public bool CanStartRepairAll()
+	{
+		if ( !SelectHelp.IsDay || !HasUnscheduledDamage() ) return false;
+		var cost = RepairAllCost();
+		return cost <= 0.001 || SelectHelp.AffordableRepairSpend( cost ) > 0;
+	}
+
+	public bool HasUnscheduledDamage()
+	{
+		var rm = RepairManager.Instance;
+		foreach ( var b in _cells.Values )
+		{
+			if ( !b.IsDestroyed && b.Health < b.MaxHealth && rm?.IsScheduled( b ) != true )
+				return true;
+		}
+
+		var outpost = OutpostManager.Instance;
+		if ( outpost is not null )
+		{
+			if ( outpost.CoreHealth < outpost.CoreMaxHealth && rm?.IsScheduledCore() != true )
+				return true;
+			foreach ( var w in outpost.Walls )
+			{
+				if ( w.Health < w.MaxHealth && rm?.IsScheduled( w ) != true )
+					return true;
+			}
+		}
+
+		return false;
+	}
 
 	public bool TryRepairAll() =>
 		RepairManager.Instance?.TryRepairAll( _cells.Values ) ?? false;
@@ -562,7 +806,7 @@ public sealed class BuildManager : Component
 	{
 		foreach ( var b in _cells.Values )
 		{
-			if ( b is null || b.IsDestroyed || !b.IsDefense ) continue;
+			if ( b is null || b.IsDestroyed || (!b.IsDefense && !b.IsSupport) ) continue;
 			b.RefreshMountHeight();
 		}
 	}
@@ -656,6 +900,7 @@ public sealed class BuildManager : Component
 			Selected = null;
 
 		if ( core.IsUiBlocking ) return;
+		if ( RecruitTakeoverController.Instance?.IsPossessing == true ) return;
 
 		// Night: only recruit focus / area orders. Towers keep firing on their own.
 		if ( core.Phase == GamePhase.Night )
@@ -692,6 +937,12 @@ public sealed class BuildManager : Component
 
 	private void HandleInput()
 	{
+		if ( (PlacementMode is not null || MovingBuilding is not null) && Input.Pressed( "Reload" ) )
+		{
+			_placementYawSteps = (_placementYawSteps + 1) % 4;
+			_placementYawManual = true;
+		}
+
 		var cam = OutpostCamera.Instance;
 		if ( cam is null || !cam.ScreenToGround( Mouse.Position, out var ground ) )
 			return;
@@ -707,6 +958,11 @@ public sealed class BuildManager : Component
 			{
 				if ( BuildGrid.WorldToCell( ground, out var cx, out var cy ) )
 					TryMove( cx, cy );
+			}
+			else if ( MovingCore )
+			{
+				if ( BuildGrid.WorldToCell( ground, out var cx, out var cy ) )
+					TryMoveCore( cx, cy );
 			}
 			else
 			{
@@ -724,7 +980,7 @@ public sealed class BuildManager : Component
 		{
 			if ( PlacementMode is not null )
 				CancelPlacement();
-			else if ( MovingBuilding is not null )
+			else if ( MovingBuilding is not null || MovingCore )
 				CancelMove();
 			else
 				Deselect();
@@ -734,16 +990,18 @@ public sealed class BuildManager : Component
 	private void UpdateGhost()
 	{
 		var moving = MovingBuilding;
-		if ( PlacementMode is null && moving is null )
+		if ( PlacementMode is null && moving is null && !MovingCore )
 		{
-			_ghostGo?.Destroy();
-			_ghostGo = null;
-			_ghostCellX = int.MinValue;
-			_ghostCellY = int.MinValue;
+			ClearGhost();
 			return;
 		}
 
-		EnsureGhost();
+		if ( MovingCore )
+		{
+			UpdateCoreGhost();
+			return;
+		}
+
 		var cam = OutpostCamera.Instance;
 		if ( cam is null || !cam.ScreenToGround( Mouse.Position, out var ground ) )
 			return;
@@ -752,31 +1010,96 @@ public sealed class BuildManager : Component
 			return;
 
 		var id = PlacementMode ?? moving.Type;
-		var def = BuildableCatalog.Get( id );
 		var mount = TileOccupancy.WallMountWorldPosition( cx, cy );
-		var ghostPos = mount.WithZ( mount.z + def.VisualSize.z * 0.5f );
 		var valid = CanPlaceAt( cx, cy, id, moving );
 		var afford = PlacementMode is not null
-			? BuildPayment.CanAfford( GameCore.Instance, PlaceCost( def ) )
+			? BuildPayment.CanAfford( GameCore.Instance, PlaceCost( BuildableCatalog.Get( id ) ) )
 			: true;
+
+		if ( !_placementYawManual && id == BuildableId.WallPiece
+		     && (_ghostCellX != cx || _ghostCellY != cy || !_ghostGo.IsValid()) )
+			_placementYawSteps = AutoWallYawSteps( mount );
+
+		var needRebuild = !_ghostGo.IsValid()
+			|| _ghostBuiltType != id;
+
+		if ( needRebuild )
+			RebuildGhost( id, mount );
 
 		_ghostCellX = cx;
 		_ghostCellY = cy;
-		_ghostGo.WorldPosition = ghostPos;
-		_ghostGo.LocalScale = MeshPrimitives.BoxScale( def.VisualSize );
-		_ghostRenderer.Tint = valid && afford == true
-			? def.Tint.WithAlpha( 0.55f )
-			: new Color( 1f, 0.2f, 0.2f, 0.45f );
+		if ( _ghostGo.IsValid() )
+		{
+			_ghostGo.WorldPosition = mount;
+			_ghostGo.WorldRotation = Rotation.FromYaw( _placementYawSteps * 90f );
+		}
+
+		var ok = valid && afford == true;
+		foreach ( var (mr, baseTint) in _ghostParts )
+		{
+			if ( !mr.IsValid() ) continue;
+			mr.Tint = ok
+				? baseTint.WithAlpha( 0.55f )
+				: new Color( 1f, 0.25f, 0.2f, 0.5f );
+		}
 	}
 
-	private void EnsureGhost()
+	void UpdateCoreGhost()
 	{
-		if ( _ghostGo.IsValid() ) return;
+		var cam = OutpostCamera.Instance;
+		if ( cam is null || !cam.ScreenToGround( Mouse.Position, out var ground ) )
+			return;
 
+		if ( !BuildGrid.WorldToCell( ground, out var ax, out var ay ) )
+			return;
+
+		var world = BuildGrid.CoreWorldFromAnchor( ax, ay );
+		var valid = CanPlaceCoreAt( ax, ay );
+
+		if ( !_ghostGo.IsValid() || !_ghostIsCore )
+			RebuildCoreGhost( world );
+
+		_ghostCellX = ax;
+		_ghostCellY = ay;
+		if ( _ghostGo.IsValid() )
+			_ghostGo.WorldPosition = world;
+
+		foreach ( var (mr, baseTint) in _ghostParts )
+		{
+			if ( !mr.IsValid() ) continue;
+			mr.Tint = valid
+				? baseTint.WithAlpha( 0.55f )
+				: new Color( 1f, 0.25f, 0.2f, 0.5f );
+		}
+	}
+
+	void RebuildCoreGhost( Vector3 worldPos )
+	{
+		ClearGhost();
+		_ghostGo = new GameObject( true, "CoreMoveGhost" );
+		_ghostGo.WorldPosition = worldPos;
+		_ghostParts = new List<(ModelRenderer Renderer, Color Base)>();
+		CommandPostVisual.Build( _ghostGo, ( mr, tint ) => _ghostParts.Add( (mr, tint) ) );
+		_ghostIsCore = true;
+	}
+
+	void RebuildGhost( BuildableId id, Vector3 worldPos )
+	{
+		ClearGhost();
 		_ghostGo = new GameObject( true, "PlacementGhost" );
-		_ghostRenderer = _ghostGo.Components.Create<ModelRenderer>();
-		_ghostRenderer.Model = MeshPrimitives.Box;
-		_ghostRenderer.MaterialOverride = MeshPrimitives.Mat;
+		_ghostGo.WorldPosition = worldPos;
+		_ghostGo.WorldRotation = Rotation.FromYaw( _placementYawSteps * 90f );
+		var built = BuildingVisual.Build( _ghostGo, id, worldPos, includeRubble: false );
+		_ghostParts = built.Parts;
+		_ghostBuiltType = id;
+	}
+
+	/// <summary>Default wall facing so the ghost joins the nearest perimeter side flush.</summary>
+	static int AutoWallYawSteps( Vector3 worldPos )
+	{
+		var side = WallApproach.FromWorldPosition( worldPos, Vector3.Zero );
+		// Local wall mesh runs along +X; 90° aims it along +Y for east/west sides.
+		return side is WallApproachSide.East or WallApproachSide.West ? 1 : 0;
 	}
 
 	private void RemoveBuilding( PlacedBuilding building )
@@ -786,7 +1109,7 @@ public sealed class BuildManager : Component
 		building.GameObject.Destroy();
 	}
 
-	private void PlaceInternal( BuildableId id, int cellX, int cellY, int level, float health, int placeOrder, bool fromSave, double paidPlaceCost = 0 )
+	private void PlaceInternal( BuildableId id, int cellX, int cellY, int level, float health, int placeOrder, bool fromSave, double paidPlaceCost = 0, int yawSteps = 0 )
 	{
 		if ( placeOrder <= 0 )
 			placeOrder = ++_nextPlaceOrder;
@@ -795,7 +1118,7 @@ public sealed class BuildManager : Component
 
 		var go = new GameObject( true, $"Building_{id}_{cellX}_{cellY}" );
 		var building = go.Components.Create<PlacedBuilding>();
-		building.Setup( id, cellX, cellY, level, health, placeOrder, paidPlaceCost );
+		building.Setup( id, cellX, cellY, level, health, placeOrder, paidPlaceCost, yawSteps );
 		_cells[(cellX, cellY)] = building;
 		TileOccupancy.MarkBuilding( building );
 	}

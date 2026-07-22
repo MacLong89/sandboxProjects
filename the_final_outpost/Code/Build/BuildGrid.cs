@@ -31,7 +31,7 @@ public static class BuildGrid
 	}
 
 	/// <summary>Command post footprint used to block building overlap near the core.</summary>
-	public static readonly Vector3 CommandPostFootprint = new( 120f, 120f, 0f );
+	public static Vector3 CommandPostFootprint => new( GameConstants.CellSize * 2f, GameConstants.CellSize * 2f, 0f );
 
 	/// <summary>Tighter command-post blocker for unit pathing.</summary>
 	public static Vector3 CommandPostCollisionFootprint => new(
@@ -51,9 +51,33 @@ public static class BuildGrid
 		       && MathF.Abs( centerA.y - centerB.y ) < halfA.y + halfB.y;
 	}
 
-	/// <summary>Command post occupies the four cells around the world origin.</summary>
-	public static bool IsCoreCell( int cellX, int cellY ) =>
-		(cellX == -1 || cellX == 0) && (cellY == -1 || cellY == 0);
+	/// <summary>Southwest (min) corner of the command post's 2×2 footprint.</summary>
+	public static void GetCoreAnchor( out int anchorX, out int anchorY )
+	{
+		var o = OutpostManager.Instance;
+		anchorX = o?.CoreAnchorCellX ?? -1;
+		anchorY = o?.CoreAnchorCellY ?? -1;
+	}
+
+	/// <summary>World center of a command-post 2×2 whose southwest cell is <paramref name="anchorX"/>,<paramref name="anchorY"/>.</summary>
+	public static Vector3 CoreWorldFromAnchor( int anchorX, int anchorY )
+	{
+		var a = CellToWorld( anchorX, anchorY );
+		var b = CellToWorld( anchorX + 1, anchorY + 1 );
+		var mid = (a + b) * 0.5f;
+		mid.z = OutpostTerrain.SampleHeight( mid.x, mid.y );
+		return mid;
+	}
+
+	/// <summary>Command post occupies a 2×2 block from the live (or default origin) anchor.</summary>
+	public static bool IsCoreCell( int cellX, int cellY )
+	{
+		GetCoreAnchor( out var ax, out var ay );
+		return (cellX == ax || cellX == ax + 1) && (cellY == ay || cellY == ay + 1);
+	}
+
+	public static bool IsCoreCellAt( int cellX, int cellY, int anchorX, int anchorY ) =>
+		(cellX == anchorX || cellX == anchorX + 1) && (cellY == anchorY || cellY == anchorY + 1);
 
 	/// <summary>Visits every grid cell whose area intersects an axis-aligned XY footprint.</summary>
 	public static void ForEachCellInFootprint( Vector3 center, Vector3 footprintSize, Action<int, int> visit )

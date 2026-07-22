@@ -41,8 +41,13 @@ public sealed class GameCore : Component
 	public double LastMissionReward { get; private set; }
 	public double LastPayoutBonus { get; private set; }
 
+	public TutorialTipDef ActiveTutorialTip { get; private set; }
+	public string TipToast { get; private set; } = "";
+
 	private TimeUntil _nextAutosave;
+	private TimeUntil _tipToastHide;
 	private bool _bootstrapped;
+	private bool _tutorialDistanceGateChecked;
 
 	protected override void OnAwake()
 	{
@@ -80,10 +85,7 @@ public sealed class GameCore : Component
 		_bootstrapped = true;
 
 		if ( !Save.HasCompletedTutorialRun )
-		{
-			ShowBanner( "PICK A LANE — bigger MOB wins · red gates KILL crew", 4.5f );
 			StartRun();
-		}
 	}
 
 	protected override void OnUpdate()
@@ -95,9 +97,18 @@ public sealed class GameCore : Component
 		if ( DistrictAnnounceTime > 0f )
 			DistrictAnnounceTime = MathF.Max( 0f, DistrictAnnounceTime - Time.Delta );
 
+		RefreshTutorialTips();
+
+		if ( _tipToastHide )
+			TipToast = "";
+
+		if ( Input.Keyboard.Pressed( "h" ) || Input.Keyboard.Pressed( "H" ) )
+			ToggleTutorialTipsHidden();
+
 		if ( Phase == GamePhase.Running && Run.Active )
 		{
 			TickDistrictAnnounce();
+			TickTutorialDistanceGate();
 
 			if ( Run.Squad < 1f )
 				EndRun();
@@ -136,9 +147,8 @@ public sealed class GameCore : Component
 		Run.Begin( 0f );
 		Track?.ResetRun( 0f );
 		Phase = GamePhase.Running;
-
-		if ( !Save.HasCompletedTutorialRun )
-			ShowBanner( "A / D strafe · take the BIGGER gate · dodge RED walls", 5f );
+		_tutorialDistanceGateChecked = false;
+		RefreshTutorialTips();
 	}
 
 	private void EndRun()
@@ -291,6 +301,75 @@ public sealed class GameCore : Component
 		StatusBannerTime = seconds;
 	}
 
+	public void RefreshTutorialTips()
+	{
+		if ( Save.HideTutorialTips || Phase != GamePhase.Running || ShopOpen || CharacterSelectOpen
+		     || (PowerPicks?.IsOpen ?? false) )
+		{
+			ActiveTutorialTip = null;
+			return;
+		}
+
+		if ( ActiveTutorialTip is not null )
+			return;
+
+		ActiveTutorialTip = TutorialTips.PickNext( this );
+	}
+
+	public void DismissTutorialTip( bool hideAll = false )
+	{
+		if ( ActiveTutorialTip is not null )
+		{
+			TutorialTips.MarkShown( Save, ActiveTutorialTip.Id );
+			ActiveTutorialTip = null;
+		}
+
+		if ( hideAll )
+		{
+			Save.HideTutorialTips = true;
+			TipToast = "Tips hidden — press H to show again";
+			_tipToastHide = 3f;
+		}
+
+		SaveManager.Save( Save );
+	}
+
+	/// <summary>Gate crossed during the first tutorial run — unlocks later tip gates.</summary>
+	public void NotifyTutorialGateCrossed( BuildStat stat, GateOp op, float value )
+	{
+		if ( Save.HasCompletedTutorialRun || Phase != GamePhase.Running )
+			return;
+
+		var isTrap = stat == BuildStat.Squad && op == GateOp.Add && value < 0f;
+
+		if ( !isTrap && stat == BuildStat.Squad )
+			Save.TutorialGreenGatePassed = true;
+
+		if ( isTrap && Run.Squad >= 1f )
+			Save.TutorialRedSurvived = true;
+
+		RefreshTutorialTips();
+	}
+
+	public void ToggleTutorialTipsHidden()
+	{
+		Save.HideTutorialTips = !Save.HideTutorialTips;
+
+		if ( Save.HideTutorialTips )
+		{
+			ActiveTutorialTip = null;
+			TipToast = "Tips hidden — press H to show again";
+		}
+		else
+		{
+			TipToast = "Tips enabled";
+		}
+
+		_tipToastHide = 3f;
+		SaveManager.Save( Save );
+		RefreshTutorialTips();
+	}
+
 	private void TickDistrictAnnounce()
 	{
 		var track = Track;
@@ -301,5 +380,17 @@ public sealed class GameCore : Component
 		DistrictAnnounce = DistrictTheme.Name( idx );
 		DistrictAnnounceTime = 2.8f;
 		ShowBanner( $"{DistrictTheme.Name( idx )} — {DistrictTheme.Tagline( idx )}", 2.6f );
+	}
+
+	private void TickTutorialDistanceGate()
+	{
+		if ( Save.HasCompletedTutorialRun || _tutorialDistanceGateChecked )
+			return;
+
+		if ( Run.DistanceMeters < TutorialTips.RedTipDistanceMeters )
+			return;
+
+		_tutorialDistanceGateChecked = true;
+		RefreshTutorialTips();
 	}
 }

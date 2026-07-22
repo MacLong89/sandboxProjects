@@ -36,6 +36,8 @@ public static class ColonyIncomeRates
 		var libraries = 0;
 		var schools = 0;
 		var shops = 0;
+		var observatories = 0;
+		var universities = 0;
 
 		foreach ( var b in BuildManager.Instance?.Buildings ?? Array.Empty<PlacedBuilding>() )
 		{
@@ -47,6 +49,8 @@ public static class ColonyIncomeRates
 				case BuildableId.Library: libraries++; break;
 				case BuildableId.School: schools++; break;
 				case BuildableId.Shop: shops++; break;
+				case BuildableId.Observatory: observatories++; break;
+				case BuildableId.University: universities++; break;
 			}
 		}
 
@@ -62,10 +66,19 @@ public static class ColonyIncomeRates
 			knowledge += CureConstants.BaseKnowledgePerSec * labMult;
 			knowledge += libraries * CureConstants.LibraryKnowledgePerSec * labMult;
 			knowledge += schools * CureConstants.SchoolKnowledgePerSec * labMult;
+			knowledge += observatories * CureConstants.ObservatoryKnowledgePerSec * labMult;
+			knowledge += universities * CureConstants.UniversityKnowledgePerSec * labMult;
 			scrap += shops * CureConstants.ShopScrapPerSec * incomeMult;
 			scrap += PlotBoosts.ScrapPerSec( core.Save );
 			food += PlotBoosts.FoodPerSec( core.Save );
 			knowledge += PlotBoosts.KnowledgePerSec( core.Save );
+
+			var allies = PlotCivActions.AlliedCount( core.Save );
+			if ( allies > 0 )
+			{
+				food += allies * CureConstants.AllianceFoodPerSec;
+				scrap += allies * CureConstants.AllianceScrapPerSec * incomeMult;
+			}
 
 			food -= ColonyEconomy.FoodDrainPerSec();
 			scrap -= ColonyEconomy.ScrapUpkeepPerSec();
@@ -76,12 +89,18 @@ public static class ColonyIncomeRates
 			switch ( u.Role )
 			{
 				case WorkerRole.Forager:
-					AddForagerRate( core, u, ref wood, ref stone, ref water );
+					if ( !core.IsCure )
+					{
+						if ( u.HasPlot && u.IsWorking )
+							scrap += GameConstants.ForagerScrapPerSec * incomeMult;
+					}
+					else
+					{
+						AddForagerRate( core, u, ref wood, ref stone, ref water );
+					}
 					break;
 				case WorkerRole.Craftsman:
-					if ( !core.IsCure )
-						scrap += GameConstants.CraftsmanConvertPerSec
-							* (float)GameConstants.CraftsmanScrapPerResource * incomeMult;
+					// Legacy Survival craftsmen only — no new hires in scrap-only economy.
 					break;
 				case WorkerRole.Farmer:
 					if ( TechTreeCatalog.IsUnlocked( core.Save, "agriculture" ) )

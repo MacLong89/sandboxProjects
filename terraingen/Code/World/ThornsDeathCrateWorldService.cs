@@ -137,7 +137,7 @@ public sealed class ThornsDeathCrateWorldService : Component
 			return;
 		}
 
-		_crates[id] = new DeathCrateEntry( id, obj, worldPos, items );
+		_crates[id] = new DeathCrateEntry( id, obj, worldPos, items, 0f, "Death Crate", false );
 		ThornsWorldLootContainerService.Instance?.HostRegisterDeathCrate( id, items );
 		if ( Networking.IsActive && Networking.IsHost )
 			HostBroadcastSpawnVisual( id, worldPos );
@@ -191,7 +191,7 @@ public sealed class ThornsDeathCrateWorldService : Component
 		if ( !obj.IsValid() )
 			return false;
 
-		_crates[id] = new DeathCrateEntry( id, obj, worldPos, items, lifetimeSeconds );
+		_crates[id] = new DeathCrateEntry( id, obj, worldPos, items, lifetimeSeconds, title, enemyLootTint );
 		ThornsWorldLootContainerService.Instance?.HostRegisterDeathCrate( id, items, title );
 		if ( Networking.IsActive && Networking.IsHost )
 			HostBroadcastSpawnVisual( id, worldPos );
@@ -237,7 +237,7 @@ public sealed class ThornsDeathCrateWorldService : Component
 			return false;
 
 		var items = new List<ThornsItemStack> { stack };
-		_crates[id] = new DeathCrateEntry( id, obj, worldPos, items );
+		_crates[id] = new DeathCrateEntry( id, obj, worldPos, items, 0f, "Dropped Item", false );
 		ThornsWorldLootContainerService.Instance?.HostRegisterDeathCrate( id, items, "Dropped Item" );
 		if ( Networking.IsActive && Networking.IsHost )
 			HostBroadcastSpawnVisual( id, worldPos );
@@ -445,6 +445,164 @@ public sealed class ThornsDeathCrateWorldService : Component
 	void HostBroadcastDespawn( int crateId, Vector3 worldPosition )
 		=> ThornsNetInterest.HostBroadcastNear( worldPosition, () => RpcDespawnCrate( crateId ) );
 
+	public List<ThornsPersistentDeathCrateDto> HostExportSnapshots()
+	{
+		var list = new List<ThornsPersistentDeathCrateDto>();
+		if ( !ThornsMultiplayer.IsHostOrOffline )
+			return list;
+
+		var containers = ThornsWorldLootContainerService.Instance;
+		foreach ( var (id, entry) in _crates )
+		{
+			if ( _looted.Contains( id ) || !entry.Object.IsValid() )
+				continue;
+
+			var dto = new ThornsPersistentDeathCrateDto
+			{
+				Id = id,
+				Px = entry.WorldPosition.x,
+				Py = entry.WorldPosition.y,
+				Pz = entry.WorldPosition.z,
+				Title = entry.Title,
+				EnemyLootTint = entry.EnemyLootTint,
+				LifetimeSeconds = entry.LifetimeSeconds,
+				RemainingLifetimeSeconds = entry.LifetimeSeconds > 0f
+					? MathF.Max( 0.5f, entry.LifetimeSeconds - entry.Age )
+					: 0f,
+				Slots = new List<ThornsPersistentItemStackDto>()
+			};
+
+			if ( containers is not null
+			     && containers.TryGet( ThornsWorldLootContainerService.DeathCrateKey( id ), out var record )
+			     && record?.Slots is not null )
+			{
+				for ( var i = 0; i < record.Slots.Length; i++ )
+				{
+					var stack = record.Slots[i];
+					if ( stack.IsEmpty )
+						continue;
+
+					dto.Slots.Add( new ThornsPersistentItemStackDto
+					{
+						SlotIndex = i,
+						ItemId = stack.ItemId,
+						Count = stack.Count,
+						ItemTier = stack.ItemTier,
+						StatRoll = stack.StatRoll,
+						Durability = stack.Durability,
+						HasDurability = stack.HasDurability
+					} );
+				}
+			}
+			else
+			{
+				for ( var i = 0; i < entry.Items.Count; i++ )
+				{
+					var stack = entry.Items[i];
+					if ( stack.IsEmpty )
+						continue;
+
+					dto.Slots.Add( new ThornsPersistentItemStackDto
+					{
+						SlotIndex = i,
+						ItemId = stack.ItemId,
+						Count = stack.Count,
+						ItemTier = stack.ItemTier,
+						StatRoll = stack.StatRoll,
+						Durability = stack.Durability,
+						HasDurability = stack.HasDurability
+					} );
+				}
+			}
+
+			if ( dto.Slots.Count == 0 )
+				continue;
+
+			list.Add( dto );
+		}
+
+		return list;
+	}
+
+	public void HostImportSnapshots( IReadOnlyList<ThornsPersistentDeathCrateDto> crates )
+	{
+		if ( !ThornsMultiplayer.IsHostOrOffline || crates is null or { Count: 0 } )
+			return;
+
+		EnsureSpawnAssets();
+		foreach ( var saved in crates )
+		{
+			if ( saved is null || saved.Id <= 0 || saved.Slots is null or { Count: 0 } )
+				continue;
+
+			if ( _crates.ContainsKey( saved.Id ) )
+				continue;
+
+			var items = new List<ThornsItemStack>();
+			foreach ( var slot in saved.Slots.OrderBy( s => s.SlotIndex ) )
+			{
+				if ( slot is null || string.IsNullOrWhiteSpace( slot.ItemId ) || slot.Count <= 0 )
+					continue;
+
+				items.Add( new ThornsItemStack
+				{
+					ItemId = slot.ItemId,
+					Count = slot.Count,
+					ItemTier = slot.ItemTier,
+					StatRoll = slot.StatRoll,
+					Durability = slot.Durability,
+					HasDurability = slot.HasDurability
+				} );
+			}
+
+			if ( items.Count == 0 )
+				continue;
+
+			var worldPos = new Vector3( saved.Px, saved.Py, saved.Pz );
+			var lifetime = saved.RemainingLifetimeSeconds > 0f
+				? saved.RemainingLifetimeSeconds
+				: saved.LifetimeSeconds;
+			var obj = CreateCrateVisual( saved.Id, worldPos, saved.EnemyLootTint );
+			if ( !obj.IsValid() )
+				continue;
+
+			_crates[saved.Id] = new DeathCrateEntry(
+				saved.Id, obj, worldPos, items, lifetime, saved.Title, saved.EnemyLootTint );
+			ThornsWorldLootContainerService.Instance?.HostRegisterDeathCrate( saved.Id, items, saved.Title );
+			_nextId = Math.Max( _nextId, saved.Id + 1 );
+
+			if ( Networking.IsActive && Networking.IsHost )
+				HostBroadcastSpawnVisual( saved.Id, worldPos );
+		}
+
+		Log.Info( $"[Thorns Death Crates] Restored {_crates.Count} crate(s) from save." );
+	}
+
+	/// <summary>Late joiners request current crate visuals from the host.</summary>
+	public static void RequestSyncFromHostIfNeeded()
+	{
+		if ( !ThornsMultiplayer.IsRemoteJoinClient || !Networking.IsActive || Networking.IsHost )
+			return;
+
+		Instance?.RpcRequestDeathCrateSync();
+	}
+
+	[Rpc.Host]
+	void RpcRequestDeathCrateSync()
+	{
+		if ( Rpc.Caller is null || !ThornsMultiplayer.IsHostOrOffline )
+			return;
+
+		foreach ( var (id, entry) in _crates )
+		{
+			if ( _looted.Contains( id ) || !entry.Object.IsValid() )
+				continue;
+
+			// Full broadcast (not interest-limited) so late joiners always receive visuals.
+			RpcSpawnVisual( id, entry.WorldPosition );
+		}
+	}
+
 	bool TryPickFromTrace( Vector3 origin, Vector3 forward, float maxRange, GameObject ignoreRoot, out int crateId, out DeathCrateEntry entry )
 	{
 		crateId = 0;
@@ -560,13 +718,17 @@ public sealed class ThornsDeathCrateWorldService : Component
 		public List<ThornsItemStack> Items { get; }
 		public float LifetimeSeconds { get; }
 		public TimeSince Age { get; }
+		public string Title { get; }
+		public bool EnemyLootTint { get; }
 
 		public DeathCrateEntry(
 			int id,
 			GameObject obj,
 			Vector3 worldPosition,
 			List<ThornsItemStack> items,
-			float lifetimeSeconds = 0f )
+			float lifetimeSeconds = 0f,
+			string title = "Death Crate",
+			bool enemyLootTint = false )
 		{
 			Id = id;
 			Object = obj;
@@ -574,6 +736,8 @@ public sealed class ThornsDeathCrateWorldService : Component
 			Items = items ?? new List<ThornsItemStack>();
 			LifetimeSeconds = Math.Max( 0f, lifetimeSeconds );
 			Age = 0f;
+			Title = string.IsNullOrWhiteSpace( title ) ? "Death Crate" : title;
+			EnemyLootTint = enemyLootTint;
 		}
 	}
 }

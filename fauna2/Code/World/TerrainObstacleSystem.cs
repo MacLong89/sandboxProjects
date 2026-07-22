@@ -101,6 +101,12 @@ public sealed class TerrainObstacleSystem : Component
 				var owned = plots.IsOwned( px, py );
 				if ( owned ) ownedCells++;
 
+				// The starter profile's setup fee includes a prepared entrance,
+				// path, and habitat worksite. Keep this zone clear so new players
+				// can meet their first animal immediately.
+				if ( owned && StarterZooLayout.IsReservedWorksite( center ) )
+					continue;
+
 				if ( !WildernessBiomeMap.IsDryLandAt( center, biome ) )
 					continue;
 

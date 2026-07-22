@@ -68,6 +68,10 @@ public sealed class ZooPlayerVisual : Component
 				sourcePixels: PixelArt.SuppliedSpriteSourcePixels,
 				movementRoot: GameObject,
 				walkAnimator: true );
+
+			var animator = _sprite.GameObject.Components.Get<SpriteWalkAnimator>();
+			if ( animator is not null )
+				animator.PlayerOwnedFacing = true;
 		}
 		else
 		{

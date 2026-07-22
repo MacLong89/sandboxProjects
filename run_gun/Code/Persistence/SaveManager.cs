@@ -57,6 +57,11 @@ public static class SaveManager
 			data.Version = 3;
 		}
 
+		data.TutorialTipsShown ??= new List<string>();
+
+		if ( data.Version < 4 )
+			data.Version = 4;
+
 		return data;
 	}
 }

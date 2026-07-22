@@ -1,0 +1,67 @@
+@namespace NoFly
+@inherits PanelComponent
+
+<root class="@(Visible ? "mg-root" : "mg-hidden")">
+@if (Visible)
+{
+	<div class="mg-panel luggage">
+		<header class="mg-header mg-header-row">
+			<div class="mg-header-main">
+				<div class="mg-kicker">Smuggler Prep · Step 2 of 2</div>
+				<div class="mg-title">Hide your contraband</div>
+				<div class="mg-sub">Pick one item in the suitcase to hide it behind. A corner stays visible.</div>
+			</div>
+			<div class="mg-meta-pills">
+				<div class="mg-pill contraband" style="background: @Contraband.Color.Hex;">@Contraband.Label</div>
+			</div>
+		</header>
+
+		<div class="suitcase-grid" style="border-color: @Layout.SuitcaseColor.Hex;">
+			@foreach (var slot in Layout.Slots)
+			{
+				var item = LuggageCatalog.GetItem(slot.ItemId);
+				var isSelected = Selected == slot.ItemId;
+				<button class="bag-tile @(isSelected ? "is-selected" : "")" style="background: @item.Color.Hex;" onclick="@(() => Selected = slot.ItemId)">
+					<div class="bag-tile-name">@item.Label</div>
+					@if (isSelected)
+					{
+						<div class="bag-peek" style="background: @Contraband.Color.Hex;">@Contraband.Label peeks out</div>
+					}
+				</button>
+			}
+		</div>
+
+		<footer class="mg-footer actions">
+			<div class="mg-hint">@(string.IsNullOrEmpty(Selected) ? "1. Click a hiding spot above" : $"Hiding behind: {LuggageCatalog.GetItem(Selected).Label}")</div>
+			<button class="mg-btn mg-btn-primary @(string.IsNullOrEmpty(Selected) ? "is-disabled" : "")" onclick="@Confirm">Confirm Hiding Spot</button>
+		</footer>
+	</div>
+}
+</root>
+
+@code
+{
+	NoFlyPlayer Local => NoFlyGame.LocalPlayer;
+	BagInstance Bag => Local?.Bag;
+	SuitcaseLayoutDef Layout => Bag is null ? LuggageCatalog.Layouts[0] : LuggageCatalog.GetLayout(Bag.LayoutId);
+	ContrabandDef Contraband => Bag?.HasContraband == true ? LuggageCatalog.GetContraband(Bag.ContrabandId) : LuggageCatalog.Contraband[0];
+	bool Visible => NoFlyGame.Instance?.State == RoundState.Preparation && Local?.Role == RoleType.Smuggler && Local?.ForgeryComplete == true && Local?.HideComplete != true && Bag is not null;
+
+	string Selected;
+
+	void Confirm()
+	{
+		if (string.IsNullOrEmpty(Selected)) return;
+		RpcConfirm(Selected);
+	}
+
+	[Rpc.Host]
+	public void RpcConfirm(string itemId)
+	{
+		var player = Scene.GetAllComponents<NoFlyPlayer>().FirstOrDefault(p => p.Network.Owner == Rpc.Caller);
+		if (player is null) return;
+		LuggageHideSystem.HideBehind(player, itemId);
+	}
+
+	protected override int BuildHash() => HashCode.Combine(Visible, Selected, Local?.HideComplete, NoFlyGame.Instance?.State);
+}

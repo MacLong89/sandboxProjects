@@ -75,6 +75,7 @@ public static class SaveManager
 		}
 
 		data.DiscoveredSecrets ??= new List<string>();
+		data.TutorialTipsShown ??= new List<string>();
 		data.Version = SaveData.CurrentVersion;
 		return data;
 	}

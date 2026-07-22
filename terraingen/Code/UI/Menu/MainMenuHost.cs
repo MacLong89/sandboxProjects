@@ -217,7 +217,7 @@ public sealed class MainMenuHost : PanelComponent
 		ThornsUiFactory.AddLabel( _leftRail, "SURVIVE TOGETHER", "mainmenu-tagline" );
 
 		_rootNav = ThornsUiFactory.AddPanel( _leftRail, "mainmenu-nav" );
-		AddDisabledNavItem( "STORY COMING SOON" );
+		AddDisabledNavItem( "HOST A WORLD TO PLAY" );
 		AddNavButton( "HOST / JOIN", false, OnServersClicked );
 		AddNavButton( "SETTINGS", false, OnSettingsClicked );
 		AddNavButton( "CREDITS", false, OnCreditsClicked );

@@ -434,7 +434,8 @@ public static class ThornsGuildPanelBuilders
 		ref TextEntry noticeEntry,
 		Action onRenameCommitted,
 		Action onNoticeCommitted,
-		Action toggleManagement )
+		Action toggleManagement,
+		ThornsPlayerGameplay player = null )
 	{
 		parent.DeleteChildren( true );
 
@@ -509,7 +510,8 @@ public static class ThornsGuildPanelBuilders
 		}
 
 		ThornsUiFactory.AddClickable( parent, "guild-concept-btn guild-concept-btn-primary", "MANAGE GUILD", toggleManagement );
-		ThornsUiFactory.AddClickable( parent, "guild-concept-btn guild-concept-btn-leave", "LEAVE GUILD", () => { } );
+		if ( player is not null )
+			ThornsUiFactory.AddClickable( parent, "guild-concept-btn guild-concept-btn-leave", "LEAVE GUILD", () => player.RequestGuildLeave() );
 	}
 
 	public static void BuildVictoryPathsPanelConcept(
@@ -580,8 +582,6 @@ public static class ThornsGuildPanelBuilders
 		scroll.Style.FlexDirection = FlexDirection.Column;
 		foreach ( var act in feed.Take( 3 ) )
 			AddActivityRowConcept( scroll, act );
-
-		ThornsUiFactory.AddClickable( parent, "guild-concept-link-btn", "VIEW ALL ACTIVITY", () => { } );
 	}
 
 	public static void BuildMembersPanelConcept(
@@ -706,8 +706,6 @@ public static class ThornsGuildPanelBuilders
 				ThornsUiFactory.AddPassiveLabel( scoreCell, row.ScoreText, "guild-leaderboard-score" );
 			}
 		}
-
-		ThornsUiFactory.AddClickable( parent, "guild-concept-link-btn", "VIEW FULL LEADERBOARD", () => { } );
 	}
 
 	public static void BuildManagementPanel( Panel parent, ThornsGuildSnapshotDto snap, string accountKey, ThornsPlayerGameplay player )

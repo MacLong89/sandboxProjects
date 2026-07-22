@@ -84,6 +84,17 @@ public readonly struct AmbientPedestrianDensity
 			WalkSpeedMin = 30f,
 			WalkSpeedMax = 42f,
 		},
+		// Nobody wanders through crime scenes, tunnels, rooftops, or firefights.
+		MapTheme.Underground or MapTheme.Interior or MapTheme.Rooftop
+			or MapTheme.Snowfield or MapTheme.Highway or MapTheme.Dam or MapTheme.Waterfront => new()
+		{
+			MaxActive = 0,
+			InitialBurst = 0,
+			SpawnIntervalMin = 999f,
+			SpawnIntervalMax = 999f,
+			WalkSpeedMin = 34f,
+			WalkSpeedMax = 46f,
+		},
 		_ => new()
 		{
 			MaxActive = 3,

@@ -5,12 +5,23 @@ public enum WallApproachSide { North, South, East, West }
 /// <summary>Perimeter wall side helpers for zombie breach behavior.</summary>
 public static class WallApproach
 {
-	static float Half => GameConstants.ArenaHalf;
+	/// <summary>
+	/// Center of the home wall ring. Walls stay at world origin even if the command post moves.
+	/// Pass this into outside/clamp/breach helpers — not <see cref="OutpostManager.CorePosition"/>.
+	/// </summary>
+	public static Vector3 RingCenter => Vector3.Zero;
+
+	/// <summary>Outer face of the perimeter ring (plot / spawn boundary).</summary>
+	static float OuterHalf => GameConstants.ArenaHalf;
+	/// <summary>Cell-center line where starter + placeable walls sit.</summary>
+	static float Half => GameConstants.WallRingCenter;
 	static float SideEpsilon => GameConstants.WallThickness * 0.75f;
 
 	public static WallApproachSide FromWorldPosition( Vector3 pos, Vector3 corePos )
 	{
-		var d = pos - corePos;
+		// Ring is fixed at origin; ignore HQ offset so approach sides stay correct after relocating the post.
+		_ = corePos;
+		var d = pos - RingCenter;
 		if ( MathF.Abs( d.y ) >= MathF.Abs( d.x ) )
 			return d.y >= 0f ? WallApproachSide.North : WallApproachSide.South;
 		return d.x >= 0f ? WallApproachSide.East : WallApproachSide.West;
@@ -129,14 +140,14 @@ public static class WallApproach
 		{
 			case WallApproachSide.North:
 			case WallApproachSide.South:
-				land.x = Math.Clamp( from.x, -Half + GameConstants.CellSize, Half - GameConstants.CellSize );
+				land.x = Math.Clamp( from.x, -OuterHalf + GameConstants.CellSize, OuterHalf - GameConstants.CellSize );
 				break;
 			default:
-				land.y = Math.Clamp( from.y, -Half + GameConstants.CellSize, Half - GameConstants.CellSize );
+				land.y = Math.Clamp( from.y, -OuterHalf + GameConstants.CellSize, OuterHalf - GameConstants.CellSize );
 				break;
 		}
 
-		return ClampInsideCourtyard( land, corePos );
+		return ClampInsideCourtyard( land, RingCenter );
 	}
 
 	/// <summary>Outside takeoff just before the perimeter face for a vault.</summary>
@@ -148,10 +159,10 @@ public static class WallApproach
 		{
 			case WallApproachSide.North:
 			case WallApproachSide.South:
-				face.x = Math.Clamp( from.x, -Half + GameConstants.CellSize, Half - GameConstants.CellSize );
+				face.x = Math.Clamp( from.x, -OuterHalf + GameConstants.CellSize, OuterHalf - GameConstants.CellSize );
 				break;
 			default:
-				face.y = Math.Clamp( from.y, -Half + GameConstants.CellSize, Half - GameConstants.CellSize );
+				face.y = Math.Clamp( from.y, -OuterHalf + GameConstants.CellSize, OuterHalf - GameConstants.CellSize );
 				break;
 		}
 
@@ -160,9 +171,10 @@ public static class WallApproach
 
 	public static bool IsOutsideWalls( Vector3 pos, Vector3 corePos )
 	{
-		var p = (pos - corePos).WithZ( 0f );
-		// Square ring — outside once past the outer face of the perimeter cells.
-		var outer = GameConstants.ArenaHalf + GameConstants.WallThickness * 0.5f;
+		_ = corePos;
+		var p = (pos - RingCenter).WithZ( 0f );
+		// Square ring — outside once past the outer face (ArenaHalf) of the perimeter cells.
+		var outer = OuterHalf;
 		return MathF.Abs( p.x ) >= outer || MathF.Abs( p.y ) >= outer;
 	}
 
@@ -176,9 +188,9 @@ public static class WallApproach
 		if ( IsOutsideWalls( pos, corePos ) )
 			return true;
 
-		var p = (pos - corePos).WithZ( 0f );
-		var ring = GameConstants.ArenaHalf;
-		var band = GameConstants.WallPathDepth + GameConstants.ZombiePathRadius + 10f;
+		var p = (pos - RingCenter).WithZ( 0f );
+		var ring = Half;
+		var band = GameConstants.WallPathDepth + GameConstants.ZombiePathRadius + GameConstants.U( 10f );
 		var ax = MathF.Abs( p.x );
 		var ay = MathF.Abs( p.y );
 		return ax >= ring - band || ay >= ring - band;
@@ -192,25 +204,27 @@ public static class WallApproach
 	{
 		if ( agentRadius < 0.01f )
 			agentRadius = GameConstants.ZombiePathRadius;
-		return GameConstants.ArenaHalf - GameConstants.CellSize - agentRadius - 4f;
+		return GameConstants.ArenaHalf - GameConstants.CellSize - agentRadius - GameConstants.U( 4f );
 	}
 
 	/// <summary>True while still close enough that path radius overlaps a perimeter wall cell.</summary>
 	public static bool OverlapsPerimeterPath( Vector3 pos, Vector3 corePos, float agentRadius = -1f )
 	{
+		_ = corePos;
 		var clear = CourtyardClearHalf( agentRadius );
-		var p = (pos - corePos).WithZ( 0f );
+		var p = (pos - RingCenter).WithZ( 0f );
 		return MathF.Abs( p.x ) > clear || MathF.Abs( p.y ) > clear;
 	}
 
 	/// <summary>Pull a point into open courtyard so goals never sit on the interior wall face.</summary>
 	public static Vector3 ClampInsideCourtyard( Vector3 pos, Vector3 corePos, float agentRadius = -1f )
 	{
+		_ = corePos;
 		var clear = CourtyardClearHalf( agentRadius );
-		var p = (pos - corePos).WithZ( 0f );
+		var p = (pos - RingCenter).WithZ( 0f );
 		p.x = Math.Clamp( p.x, -clear, clear );
 		p.y = Math.Clamp( p.y, -clear, clear );
-		return (corePos + p).WithZ( 0f );
+		return (RingCenter + p).WithZ( 0f );
 	}
 
 	/// <summary>True once the agent has crossed the inward breach waypoint toward the core.</summary>

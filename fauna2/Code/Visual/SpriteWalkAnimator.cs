@@ -1,9 +1,7 @@
 namespace Fauna2;
 
 /// <summary>
-/// Switches a <see cref="SpriteRenderer"/> between Idle and Walk clips based on movement,
-/// with a subtle procedural bob when walk frames are not available yet.
-/// Optional horizontal flip mirrors art that faces right by default when moving left.
+/// Directional facing swaps plus Bounce motion (procedural bob on idle) while moving.
 /// </summary>
 public sealed class SpriteWalkAnimator : Component
 {
@@ -19,31 +17,40 @@ public sealed class SpriteWalkAnimator : Component
 	public float ProceduralBobSpeed { get; set; } = 14f;
 
 	/// <summary>
-	/// When true, negate local X so sprites that face right by default flip when moving left
-	/// (mirror across the sprite Y axis). Zoo/wild animals enable this; player uses facing dirs instead.
+	/// When true (and no 4-dir pack is wired), negate local X so right-facing art flips when moving left.
 	/// </summary>
 	public bool FlipFacingHorizontal { get; set; }
 
 	/// <summary>Ignore tiny X jitter when deciding facing.</summary>
 	public float FacingFlipDeadzone { get; set; } = 0.35f;
 
+	/// <summary>Animal stem for facing-aware <see cref="PixelArt.CritterSprite"/> swaps.</summary>
+	public string DirectionalCritterKey { get; set; }
+
+	/// <summary>Guest variant index for facing-aware guest sprite swaps; -1 = unused.</summary>
+	public int DirectionalGuestVariant { get; set; } = -1;
+
+	/// <summary>When true, player visuals own facing swaps (ZooPlayerVisual); animator only applies Bounce.</summary>
+	public bool PlayerOwnedFacing { get; set; }
+
 	private SpriteRenderer _renderer;
 	private Vector3 _lastSamplePosition;
 	private Vector3 _baseLocalPosition;
 	private bool _moving;
-	private bool _hasWalkClip;
+	private bool _hasIdleClip;
 	private bool _faceLeft;
+	private PlayerFacing _facing = PlayerFacing.Down;
 
 	protected override void OnStart()
 	{
 		_renderer = Components.Get<SpriteRenderer>();
 		_baseLocalPosition = GameObject.LocalPosition;
-		_hasWalkClip = HasWalkAnimation( _renderer );
 
 		var root = MovementRoot.IsValid() ? MovementRoot : GameObject.Parent;
 		_lastSamplePosition = root.IsValid() ? root.WorldPosition : GameObject.WorldPosition;
 
-		if ( _hasWalkClip )
+		RefreshClipPresence();
+		if ( _hasIdleClip )
 			_renderer.PlayAnimation( IdleAnimation );
 
 		ApplyFacingScale( 1f );
@@ -60,48 +67,76 @@ public sealed class SpriteWalkAnimator : Component
 
 		var pos = root.WorldPosition;
 		var delta = pos.WithZ( 0f ) - _lastSamplePosition.WithZ( 0f );
-		var moved = delta.Length;
 		_lastSamplePosition = pos;
 
-		UpdateFacing( delta.x );
+		UpdateFacing( delta );
 
-		var speed = moved / MathF.Max( Time.Delta, 0.0001f );
+		var speed = delta.Length / MathF.Max( Time.Delta, 0.0001f );
 		var walking = speed >= MoveSpeedThreshold;
-
-		if ( _hasWalkClip )
-			UpdateClipAnimation( walking, speed );
-		else
-			UpdateProceduralBob( walking );
+		UpdateProceduralBob( walking );
 	}
 
-	private void UpdateFacing( float deltaX )
+	private bool UsesDirectionalSprites =>
+		!PlayerOwnedFacing
+		&& (!string.IsNullOrEmpty( DirectionalCritterKey ) || DirectionalGuestVariant >= 0);
+
+	private void UpdateFacing( Vector3 delta )
 	{
+		if ( PlayerOwnedFacing )
+			return;
+
+		if ( UsesDirectionalSprites )
+		{
+			if ( delta.Length < FacingFlipDeadzone )
+				return;
+
+			var next = PlayerFacingExtensions.FromMove( delta );
+			if ( next == _facing )
+				return;
+
+			_facing = next;
+			ApplyDirectionalSprite();
+			return;
+		}
+
 		if ( !FlipFacingHorizontal )
 			return;
 
-		if ( deltaX < -FacingFlipDeadzone )
+		// Screen-left/right is ±Y under the zoo camera (see PlayerFacingExtensions.FromMove).
+		if ( delta.y > FacingFlipDeadzone )
 			_faceLeft = true;
-		else if ( deltaX > FacingFlipDeadzone )
+		else if ( delta.y < -FacingFlipDeadzone )
 			_faceLeft = false;
 	}
 
-	private void UpdateClipAnimation( bool walking, float speed )
+	private void ApplyDirectionalSprite()
 	{
-		if ( walking )
-			_renderer.PlaybackSpeed = WalkPlaybackSpeed * (speed / GameConstants.PlayerWalkSpeed).Clamp( 0.75f, 1.35f );
-
-		ApplyFacingScale( 1f );
-
-		if ( walking == _moving )
+		if ( !_renderer.IsValid() )
 			return;
 
-		_moving = walking;
-		_renderer.PlaybackSpeed = walking ? WalkPlaybackSpeed : 1f;
-		_renderer.PlayAnimation( walking ? WalkAnimation : IdleAnimation );
+		Sprite sprite = null;
+		if ( !string.IsNullOrEmpty( DirectionalCritterKey ) )
+			sprite = PixelArt.CritterSprite( DirectionalCritterKey, _facing );
+		else if ( DirectionalGuestVariant >= 0 )
+			sprite = PixelArt.GuestSpriteResource( DirectionalGuestVariant, _facing );
+
+		if ( sprite is null || !sprite.IsValid() )
+			return;
+
+		_renderer.Sprite = sprite;
+		_renderer.StartingAnimationName = IdleAnimation;
+		RefreshClipPresence();
+
+		if ( _hasIdleClip )
+			_renderer.PlayAnimation( IdleAnimation );
+
+		GameObject.LocalScale = new Vector3( 1f, 1f, GameObject.LocalScale.z );
 	}
 
 	private void UpdateProceduralBob( bool walking )
 	{
+		_renderer.PlaybackSpeed = 1f;
+
 		if ( !walking )
 		{
 			_moving = false;
@@ -119,14 +154,41 @@ public sealed class SpriteWalkAnimator : Component
 
 	private void ApplyFacingScale( float squashZ )
 	{
+		if ( PlayerOwnedFacing )
+		{
+			GameObject.LocalScale = new Vector3( 1f, 1f, squashZ );
+			return;
+		}
+
+		if ( UsesDirectionalSprites )
+		{
+			var mirrorLeft = _facing == PlayerFacing.Left && NeedsLeftMirror();
+			GameObject.LocalScale = new Vector3( mirrorLeft ? -1f : 1f, 1f, squashZ );
+			return;
+		}
+
 		var sx = FlipFacingHorizontal && _faceLeft ? -1f : 1f;
 		GameObject.LocalScale = new Vector3( sx, 1f, squashZ );
 	}
 
-	private static bool HasWalkAnimation( SpriteRenderer renderer ) =>
+	private bool NeedsLeftMirror()
+	{
+		if ( !string.IsNullOrEmpty( DirectionalCritterKey ) )
+			return !PixelArt.HasDedicatedAnimalFacing( DirectionalCritterKey, PlayerFacing.Left );
+
+		if ( DirectionalGuestVariant >= 0 )
+			return !PixelArt.HasDedicatedGuestFacing( DirectionalGuestVariant, PlayerFacing.Left );
+
+		return false;
+	}
+
+	private void RefreshClipPresence() =>
+		_hasIdleClip = HasIdleAnimation( _renderer );
+
+	private static bool HasIdleAnimation( SpriteRenderer renderer ) =>
 		renderer.IsValid()
 		&& renderer.Sprite.IsValid()
-		&& renderer.Sprite.Animations.Any( a => a.Name == WalkAnimation && a.IsAnimated );
+		&& renderer.Sprite.Animations.Any( a => a.Name == IdleAnimation );
 
 	public void ForceIdle()
 	{
@@ -134,7 +196,7 @@ public sealed class SpriteWalkAnimator : Component
 		GameObject.LocalPosition = _baseLocalPosition;
 		ApplyFacingScale( 1f );
 
-		if ( !_renderer.IsValid() || !_hasWalkClip )
+		if ( !_renderer.IsValid() || !_hasIdleClip )
 			return;
 
 		_renderer.PlaybackSpeed = 1f;

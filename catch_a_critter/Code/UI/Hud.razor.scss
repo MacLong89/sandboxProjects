@@ -1,0 +1,357 @@
+// Screen slots (center column) — never share a band:
+//   top 14        topbar
+//   top 62        tip-toast OR sellhint (exclusive)
+//   bottom 14     hotkeys
+//   bottom 64     interact prompt
+//   bottom 120+   toasts (lifted higher when prompt is up)
+// Modals own the full screen and suppress chrome/toasts.
+
+.hud {
+	position: absolute;
+	inset: 0;
+	font-family: 'Poppins', 'Segoe UI', sans-serif;
+	color: white;
+	pointer-events: none;
+
+	.boot {
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		transform: translateX(-50%) translateY(-50%);
+		font-size: 28px;
+		text-shadow: 0 2px 8px rgba(black, 0.6);
+	}
+
+	.topbar {
+		position: absolute;
+		top: 14px;
+		left: 50%;
+		transform: translateX(-50%);
+		flex-direction: row;
+		flex-wrap: wrap;
+		justify-content: center;
+		gap: 10px;
+		max-width: 96%;
+		z-index: 5;
+
+		.stat {
+			flex-direction: row;
+			align-items: center;
+			flex-shrink: 0;
+			gap: 7px;
+			background: rgba(#1b2b34, 0.82);
+			border: 2px solid rgba(white, 0.12);
+			border-radius: 14px;
+			padding: 6px 14px;
+			font-size: 17px;
+			font-weight: 700;
+			text-shadow: 0 1px 3px rgba(black, 0.5);
+
+			.ico { font-size: 18px; flex-shrink: 0; }
+			.val { white-space: nowrap; max-width: 190px; overflow: hidden; text-overflow: ellipsis; }
+			.worth { color: rgba(#ffe08a, 0.85); font-size: 13px; white-space: nowrap; }
+
+			&.coins .val { color: #ffe08a; }
+			&.gems .val { color: #8ae0ff; }
+			&.pack.full {
+				border-color: #ff8a6b;
+				background: rgba(#5c2b1e, 0.9);
+			}
+			&.crowns .val { color: #ffd24a; }
+			&.streak .val { color: #ff9d5c; }
+		}
+	}
+
+	// Shared top-center band (tip toast XOR sell hint).
+	.sellhint,
+	.tip-toast {
+		position: absolute;
+		top: 62px;
+		left: 50%;
+		transform: translateX(-50%);
+		max-width: min(640px, 92%);
+		border-radius: 10px;
+		padding: 6px 16px;
+		font-size: 13px;
+		font-weight: 700;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		z-index: 6;
+	}
+
+	.sellhint {
+		background: rgba(#3d3315, 0.88);
+		border: 2px solid rgba(#ffd24a, 0.45);
+		color: #ffe08a;
+	}
+
+	.tip-toast {
+		background: rgba(#14201a, 0.94);
+		border: 2px solid rgba(#6fd06f, 0.45);
+		color: #a9f2a9;
+	}
+
+	.objective {
+		position: absolute;
+		top: 104px;
+		left: 18px;
+		width: 300px;
+		max-width: 34%;
+		background: rgba(#1b2b34, 0.85);
+		border: 2px solid rgba(#ffd24a, 0.4);
+		border-radius: 14px;
+		padding: 14px 16px 12px 16px;
+		flex-direction: column;
+		gap: 6px;
+		overflow: hidden;
+		z-index: 4;
+
+		.obj-kicker {
+			font-size: 11px;
+			color: #ffd24a;
+			letter-spacing: 1px;
+			flex-shrink: 0;
+			white-space: nowrap;
+		}
+		.obj-title {
+			font-size: 17px;
+			font-weight: 800;
+			flex-shrink: 0;
+			overflow: hidden;
+			white-space: nowrap;
+			text-overflow: ellipsis;
+		}
+		.obj-detail {
+			font-size: 12px;
+			color: rgba(white, 0.75);
+			flex-shrink: 0;
+		}
+		.obj-progress {
+			font-size: 13px;
+			color: #8ae0ff;
+			font-weight: 700;
+			flex-shrink: 0;
+			margin-top: 2px;
+		}
+	}
+
+	// Right column stacks so passive + leaderboard never overlap.
+	.right-rail {
+		position: absolute;
+		top: 104px;
+		right: 18px;
+		width: 210px;
+		max-width: 28%;
+		flex-direction: column;
+		align-items: stretch;
+		gap: 10px;
+		z-index: 4;
+	}
+
+	.passive {
+		background: rgba(#173321, 0.85);
+		border: 2px solid rgba(#6fd06f, 0.35);
+		border-radius: 12px;
+		padding: 6px 12px;
+		font-size: 14px;
+		font-weight: 700;
+		color: #a9f2a9;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		flex-shrink: 0;
+	}
+
+	.board {
+		background: rgba(#1b2b34, 0.8);
+		border-radius: 12px;
+		padding: 10px 12px;
+		flex-direction: column;
+		gap: 4px;
+		flex-shrink: 0;
+		overflow: hidden;
+
+		.board-title {
+			font-size: 13px;
+			font-weight: 800;
+			color: #ffd24a;
+			margin-bottom: 2px;
+			white-space: nowrap;
+		}
+		.board-row {
+			flex-direction: row;
+			align-items: center;
+			justify-content: space-between;
+			gap: 10px;
+			font-size: 13px;
+
+			.board-name {
+				flex-shrink: 1;
+				min-width: 0;
+				overflow: hidden;
+				text-overflow: ellipsis;
+				white-space: nowrap;
+			}
+			&.me .board-name { color: #8ae0ff; }
+			.board-score { color: #ffe08a; font-weight: 700; flex-shrink: 0; }
+		}
+	}
+
+	.hotkeys {
+		position: absolute;
+		bottom: 14px;
+		left: 50%;
+		transform: translateX(-50%);
+		flex-direction: row;
+		align-items: center;
+		gap: 22px;
+		font-size: 14px;
+		color: rgba(white, 0.8);
+		background: rgba(#101c22, 0.72);
+		border-radius: 12px;
+		padding: 10px 22px;
+		z-index: 5;
+
+		span { white-space: nowrap; flex-shrink: 0; }
+		b { color: #ffe08a; margin-right: 4px; }
+	}
+
+	.prompt {
+		position: absolute;
+		bottom: 64px;
+		left: 50%;
+		transform: translateX(-50%);
+		max-width: min(640px, 92%);
+		background: rgba(#2b3e1b, 0.94);
+		border: 2px solid rgba(#a9f2a9, 0.5);
+		border-radius: 12px;
+		padding: 9px 20px;
+		font-size: 17px;
+		font-weight: 800;
+		text-align: center;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		z-index: 6;
+	}
+
+	.toasts {
+		position: absolute;
+		bottom: 120px;
+		left: 50%;
+		transform: translateX(-50%);
+		flex-direction: column;
+		align-items: center;
+		gap: 6px;
+		max-width: min(620px, 92%);
+		z-index: 7;
+
+		// Clear the interact prompt band.
+		&.lifted { bottom: 168px; }
+
+		// Menu sheet occupies the middle — park toasts under it.
+		&.menu-safe { bottom: 18px; }
+
+		.toast {
+			flex-direction: row;
+			align-items: center;
+			gap: 8px;
+			width: 100%;
+			max-width: 620px;
+			background: rgba(#1b2b34, 0.92);
+			border: 2px solid rgba(#ffd24a, 0.3);
+			border-radius: 12px;
+			padding: 8px 16px;
+			font-size: 15px;
+			font-weight: 700;
+			text-shadow: 0 1px 3px rgba(black, 0.5);
+			overflow: hidden;
+			flex-shrink: 0;
+
+			.toast-ico { flex-shrink: 0; }
+			.toast-msg {
+				flex-shrink: 1;
+				min-width: 0;
+				overflow: hidden;
+				text-overflow: ellipsis;
+				white-space: nowrap;
+				text-align: left;
+			}
+		}
+	}
+
+	.overlay {
+		position: absolute;
+		inset: 0;
+		background: rgba(#0a141a, 0.78);
+		align-items: center;
+		justify-content: center;
+		pointer-events: all;
+		z-index: 50;
+
+		.welcome {
+			width: 520px;
+			max-width: 92%;
+			background: linear-gradient(180deg, #24404d, #1b2b34);
+			border: 3px solid rgba(#ffd24a, 0.5);
+			border-radius: 22px;
+			padding: 30px 34px;
+			flex-direction: column;
+			align-items: center;
+			gap: 14px;
+			overflow: hidden;
+
+			.wl-title {
+				font-size: 28px;
+				font-weight: 900;
+				color: #ffe08a;
+				text-align: center;
+				width: 100%;
+			}
+			.wl-sub {
+				font-size: 15px;
+				color: rgba(white, 0.7);
+				text-align: center;
+				width: 100%;
+			}
+			.wl-earn { font-size: 20px; text-align: center; b { color: #ffe08a; } }
+			.wl-streak { font-size: 16px; color: #ff9d5c; font-weight: 700; text-align: center; }
+
+			.wl-btn {
+				background: linear-gradient(180deg, #6fd06f, #4da84d);
+				border-radius: 14px;
+				padding: 12px 40px;
+				font-size: 20px;
+				font-weight: 900;
+				cursor: pointer;
+				transition: transform 0.08s ease;
+				flex-shrink: 0;
+
+				&:hover { transform: scale(1.06); }
+
+				&.ghost {
+					background: transparent;
+					border: 2px solid rgba(255, 255, 255, 0.35);
+					color: rgba(255, 255, 255, 0.85);
+				}
+			}
+
+			&.tutorial-tip {
+				.tip-body {
+					text-align: left;
+					line-height: 1.45;
+					max-width: 420px;
+				}
+
+				.tip-actions {
+					flex-direction: row;
+					gap: 12px;
+					justify-content: center;
+					margin-top: 8px;
+					flex-shrink: 0;
+				}
+			}
+		}
+	}
+}

@@ -3,7 +3,7 @@ namespace Fauna2;
 /// <summary>
 /// An individual animal's heritable data. Designed to grow: stat modifiers and
 /// traits are open-ended string-keyed data so future genetics (recessive genes,
-/// hybrids, mutations) can extend it without breaking saves.
+/// mutations) can extend it without breaking saves.
 /// </summary>
 public sealed class AnimalGenome
 {
@@ -37,7 +37,7 @@ public sealed class AnimalGenome
 
 /// <summary>
 /// Pluggable genetics service. Swap the implementation to change how offspring
-/// inherit stats, roll variants or produce hybrids.
+/// inherit stats and roll variants.
 /// </summary>
 public interface IGeneticsService
 {
@@ -45,9 +45,7 @@ public interface IGeneticsService
 	AnimalGenome Breed( AnimalComponent parentA, AnimalComponent parentB );
 
 	/// <summary>
-	/// Extension point: given two (possibly different) species, return the
-	/// species the offspring should be. Default returns parent A's species.
-	/// Hybrids/cryptids/mythicals plug in here.
+	/// Species for offspring. Same-species only — returns null when parents differ.
 	/// </summary>
 	AnimalDefinition ResolveOffspringSpecies( AnimalDefinition a, AnimalDefinition b );
 }
@@ -135,13 +133,8 @@ public sealed class StandardGenetics : IGeneticsService
 		return genome;
 	}
 
-	public AnimalDefinition ResolveOffspringSpecies( AnimalDefinition a, AnimalDefinition b )
-	{
-		if ( a == b ) return a;
-
-		var hybrid = HybridSystem.Resolve( a, b );
-		return hybrid;
-	}
+	public AnimalDefinition ResolveOffspringSpecies( AnimalDefinition a, AnimalDefinition b ) =>
+		HybridSystem.Resolve( a, b );
 
 	private static string RollVariant( AnimalDefinition def, float chance )
 	{

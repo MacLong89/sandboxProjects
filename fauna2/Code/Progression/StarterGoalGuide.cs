@@ -1,24 +1,43 @@
 namespace Fauna2;
 
-/// <summary>Starter-biome habitat + species pairing for early goals.</summary>
+/// <summary>Early-goal helpers: habitat recommendations from catch biome, tutorial checks.</summary>
 public static class StarterGoalGuide
 {
 	public static Biome StarterBiome => ZooState.Instance?.StarterBiome ?? Biome.Grassland;
 
+	/// <summary>Biome to build for — prefer carried catch, else starter pack biome.</summary>
+	public static Biome RecommendedHabitatBiome()
+	{
+		var carried = PlayerInventory.Local?.FirstCarriedSpecies();
+		if ( !string.IsNullOrEmpty( carried ) )
+		{
+			var def = Defs.Animal( carried );
+			if ( def is not null )
+				return def.Biome;
+		}
+
+		return StarterBiome;
+	}
+
 	public static PlaceableDefinition RecommendedHabitat( Biome? biome = null )
 	{
-		biome ??= StarterBiome;
+		biome ??= RecommendedHabitatBiome();
 		return Defs.Placeables
 			.Where( p => p.IsHabitat && p.HabitatBiome == biome )
 			.Where( p => AnimalHabitatRules.GetSizeTier( p.HabitatSize ) == HabitatSizeTier.Small )
 			.OrderBy( p => p.Cost )
-			.FirstOrDefault();
+			.FirstOrDefault()
+			?? Defs.Placeables
+				.Where( p => p.IsHabitat )
+				.Where( p => AnimalHabitatRules.GetSizeTier( p.HabitatSize ) == HabitatSizeTier.Small )
+				.OrderBy( p => p.Cost )
+				.FirstOrDefault();
 	}
 
-	/// <summary>Canonical early small-habitat species for a starter biome.</summary>
+	/// <summary>Canonical early small-habitat species for a biome.</summary>
 	public static AnimalDefinition RecommendedAnimal( Biome? biome = null )
 	{
-		biome ??= StarterBiome;
+		biome ??= RecommendedHabitatBiome();
 		return Defs.Animals
 			.Where( a => a.Biome == biome && a.MinHabitatSize == HabitatSizeTier.Small )
 			.OrderBy( a => a.UnlockLevel )
@@ -29,7 +48,7 @@ public static class StarterGoalGuide
 	/// <summary>Species the player can adopt right now for this biome.</summary>
 	public static AnimalDefinition RecommendedAdoptableAnimal( Biome? biome = null )
 	{
-		biome ??= StarterBiome;
+		biome ??= RecommendedHabitatBiome();
 		return Defs.Animals
 			.Where( a => a.Biome == biome && a.MinHabitatSize == HabitatSizeTier.Small )
 			.Where( a => BuildValidation.IsUnlocked( a ) )
@@ -44,60 +63,72 @@ public static class StarterGoalGuide
 		if ( def is null )
 			return false;
 
-		biome ??= StarterBiome;
+		biome ??= RecommendedHabitatBiome();
 		return def.Biome == biome
 			&& def.MinHabitatSize == HabitatSizeTier.Small
 			&& BuildValidation.IsUnlocked( def );
 	}
 
-	public static bool HasStarterSmallHabitat( Biome? biome = null )
-	{
-		biome ??= StarterBiome;
-		foreach ( var habitat in HabitatRegistry.All )
-		{
-			if ( habitat.Biome != biome )
-				continue;
+	/// <summary>Tutorial habitat goal — any placed habitat counts.</summary>
+	public static bool HasTutorialHabitat() => HabitatRegistry.Count > 0;
 
-			if ( AnimalHabitatRules.GetSizeTier( habitat.Size ) == HabitatSizeTier.Small )
+	/// <summary>Tutorial place goal — any animal living in a habitat.</summary>
+	public static bool HasAnimalInHabitat()
+	{
+		foreach ( var animal in AnimalRegistry.All )
+		{
+			if ( animal.IsValid() && animal.Habitat is not null )
 				return true;
 		}
 
 		return false;
 	}
 
-	public static bool HasStarterAnimalPlaced( Biome? biome = null )
+	/// <summary>Find goal — near a wild animal, or already caught (skip ahead).</summary>
+	public static bool HasSpottedWildAnimal()
 	{
-		biome ??= StarterBiome;
-		foreach ( var animal in AnimalRegistry.All )
-		{
-			var def = animal.Definition;
-			if ( def is null )
-				continue;
-
-			var habitat = animal.Habitat;
-			if ( habitat is null )
-				continue;
-
-			if ( habitat.Biome != biome )
-				continue;
-
-			if ( AnimalHabitatRules.GetSizeTier( habitat.Size ) != HabitatSizeTier.Small )
-				continue;
-
-			if ( !AnimalHabitatRules.CanHouse( habitat, def, out _ ) )
-				continue;
-
+		if ( (ZooState.Instance?.TotalAnimalsCaught ?? 0) > 0 )
 			return true;
+
+		var player = PlayerState.Local;
+		if ( player is null || !player.IsValid() )
+			return false;
+
+		var pos = player.FeetPosition;
+		var range = GameConstants.WildAnimalInteractRange * 1.75f;
+
+		foreach ( var wild in WildAnimalRegistry.All )
+		{
+			if ( !wild.IsValid() || wild.Fled )
+				continue;
+
+			if ( (wild.GameObject.WorldPosition - pos).Length <= range )
+				return true;
 		}
 
 		return false;
 	}
 
-	public static string BiomeLabel( Biome? biome = null ) =>
-		Fauna2.UI.UiFormat.BiomeLabel( biome ?? StarterBiome );
+	public static bool HasStarterSmallHabitat( Biome? biome = null ) => HasTutorialHabitat();
 
-	public static string HabitatGoalTitle() =>
-		$"Build a small {BiomeLabel()} habitat";
+	public static bool HasStarterAnimalPlaced( Biome? biome = null ) => HasAnimalInHabitat();
+
+	public static string BiomeLabel( Biome? biome = null ) =>
+		Fauna2.UI.UiFormat.BiomeLabel( biome ?? RecommendedHabitatBiome() );
+
+	public static string HabitatGoalTitle()
+	{
+		var biome = RecommendedHabitatBiome();
+		var carried = PlayerInventory.Local?.FirstCarriedSpecies();
+		if ( !string.IsNullOrEmpty( carried ) )
+		{
+			var animal = Defs.Animal( carried );
+			if ( animal is not null )
+				return $"Build a habitat for your {animal.DisplayName}";
+		}
+
+		return $"Build a {BiomeLabel( biome )} habitat";
+	}
 
 	public static string AnimalGoalTitle() =>
 		$"Adopt a {BiomeLabel()} animal";
@@ -105,13 +136,16 @@ public static class StarterGoalGuide
 	public static string HabitatGoalDescription()
 	{
 		var habitat = RecommendedHabitat();
-		var animal = RecommendedAdoptableAnimal();
-		var example = animal is not null ? $" A {animal.DisplayName} fits well." : "";
+		var carried = PlayerInventory.Local?.FirstCarriedSpecies();
+		var animal = !string.IsNullOrEmpty( carried ) ? Defs.Animal( carried ) : null;
 
-		if ( habitat is null )
-			return $"Open Build (B) and place any small {BiomeLabel()} habitat.{example}";
+		if ( animal is not null && habitat is not null )
+			return $"Open Build (B) and place a {BiomeLabel( animal.Biome )} habitat — {habitat.DisplayName} fits your {animal.DisplayName}.";
 
-		return $"Open Build (B) and place a small {BiomeLabel()} habitat — {habitat.DisplayName} works.{example}";
+		if ( habitat is not null )
+			return $"Open Build (B) and place a habitat — {habitat.DisplayName} is a good start. Any habitat completes this goal.";
+
+		return "Open Build (B) and place any habitat for your animals.";
 	}
 
 	public static string AnimalGoalDescription()
@@ -130,19 +164,9 @@ public static class StarterGoalGuide
 		return $"Open Animals (N) and adopt a {BiomeLabel()} animal (e.g. {animal.DisplayName}).{freeLine}{habitatLine}";
 	}
 
-	public static string HabitatProgressLabel()
-	{
-		if ( HasStarterSmallHabitat() )
-			return $"Small {BiomeLabel()} habitat placed";
+	public static string HabitatProgressLabel() =>
+		HasTutorialHabitat() ? "Habitat placed" : "Not placed";
 
-		return "Not placed";
-	}
-
-	public static string AnimalProgressLabel()
-	{
-		if ( HasStarterAnimalPlaced() )
-			return "Animal in habitat";
-
-		return "0/1 in starter habitat";
-	}
+	public static string AnimalProgressLabel() =>
+		HasAnimalInHabitat() ? "Animal in habitat" : "Not housed yet";
 }

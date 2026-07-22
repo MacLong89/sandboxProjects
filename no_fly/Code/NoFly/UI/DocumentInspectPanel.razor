@@ -1,0 +1,150 @@
+@namespace NoFly
+@inherits PanelComponent
+
+<root class="@(Visible ? "mg-root" : "mg-hidden")">
+@if (Visible)
+{
+	<div class="mg-panel inspect">
+		<header class="mg-header mg-header-row">
+			<div class="mg-header-main">
+				<div class="mg-kicker">Passenger at your desk</div>
+				<div class="mg-title">Compare documents</div>
+				<div class="mg-sub">Click the field that looks wrong, then Reject — Approve if everything matches — or Call Security to detain.</div>
+			</div>
+			<div class="mg-meta-pills">
+				<div class="mg-pill">Queue @Station.QueueCount</div>
+				<div class="mg-pill">@PassengerName</div>
+				<div class="mg-pill @(Selected is null ? "" : "accent")">@(Selected is null ? "Click a field first" : $"Selected: {UiLabels.Field(Selected.Value)}")</div>
+			</div>
+		</header>
+
+		@if (Submitted is null || Reference is null)
+		{
+			<div class="mg-hint" style="text-align: center; padding: 40px;">Loading documents…</div>
+		}
+		else
+		{
+			<div class="compare-row">
+				<section class="doc-col">
+					<div class="col-head submitted">Submitted (passenger)</div>
+					@{
+						var st = DocumentCatalog.GetTemplate(Submitted.TemplateId);
+					}
+					<div class="doc-sheet compact" style="border-color: @st.AccentColor.Hex;">
+						<div class="doc-top">
+							<div class="doc-country">@st.CountryName</div>
+							<div class="doc-code">@st.CountryCode</div>
+						</div>
+						<div class="field-grid">
+							@foreach (DocumentFieldType field in Enum.GetValues(typeof(DocumentFieldType)))
+							{
+								var f = field;
+								<button class="field-cell @(Selected == f ? "is-selected" : "")" onclick="@(() => SelectField(f))">
+									<div class="field-label">@UiLabels.Field(f)</div>
+									<div class="field-value">@Submitted.Values.GetValueOrDefault(f, "—")</div>
+								</button>
+							}
+						</div>
+					</div>
+				</section>
+
+				<section class="doc-col">
+					<div class="col-head reference">Reference (system)</div>
+					@{
+						var rt = DocumentCatalog.GetTemplate(Reference.TemplateId);
+					}
+					<div class="doc-sheet compact locked" style="border-color: @rt.AccentColor.Hex;">
+						<div class="doc-top">
+							<div class="doc-country">@rt.CountryName</div>
+							<div class="doc-code">@rt.CountryCode</div>
+						</div>
+						<div class="field-grid">
+							@foreach (DocumentFieldType field in Enum.GetValues(typeof(DocumentFieldType)))
+							{
+								<div class="field-cell is-static">
+									<div class="field-label">@UiLabels.Field(field)</div>
+									<div class="field-value">@Reference.Values.GetValueOrDefault(field, "—")</div>
+								</div>
+							}
+						</div>
+					</div>
+				</section>
+			</div>
+		}
+
+		<footer class="mg-footer actions">
+			<button class="mg-btn mg-btn-ok" onclick="@Approve">Approve</button>
+			<button class="mg-btn mg-btn-danger" onclick="@Reject">Reject</button>
+			<button class="mg-btn mg-btn-warn" onclick="@CallSec">Call Security</button>
+		</footer>
+	</div>
+}
+</root>
+
+@code
+{
+	DocumentStation Station => NoFlyGame.Instance?.Scene?.GetAllComponents<DocumentStation>().FirstOrDefault();
+	NoFlyPlayer Local => NoFlyGame.LocalPlayer;
+	bool Visible => Local?.Role == RoleType.DocumentAgent && Station?.Busy == true;
+	DocumentInstance Submitted => Station?.ActiveSubmitted;
+	DocumentInstance Reference => Station?.ActiveReference;
+	string PassengerName => NoFlyGame.Instance?.FindPlayer(Station?.CurrentPassengerId)?.DisplayName ?? "Passenger";
+	DocumentFieldType? Selected;
+
+	void SelectField(DocumentFieldType field) => Selected = field;
+
+	void Approve() => RpcApprove();
+
+	void Reject()
+	{
+		if (Selected is null)
+		{
+			if (Local is not null)
+				Local.ActivePrompt = "Select the mismatched field on the left, then Reject.";
+			return;
+		}
+		RpcReject(Selected.Value);
+		Selected = null;
+	}
+
+	void CallSec()
+	{
+		Selected = null;
+		RpcCallSecurity();
+	}
+
+	// RPCs live on this panel (networked UI) — calling Rpc on DocumentStation was unreliable.
+	[Rpc.Host]
+	public void RpcApprove()
+	{
+		var station = Scene.GetAllComponents<DocumentStation>().FirstOrDefault();
+		station?.Approve(ResolveAgent());
+	}
+
+	[Rpc.Host]
+	public void RpcReject(DocumentFieldType field)
+	{
+		var station = Scene.GetAllComponents<DocumentStation>().FirstOrDefault();
+		station?.Reject(ResolveAgent(), field);
+	}
+
+	[Rpc.Host]
+	public void RpcCallSecurity()
+	{
+		var station = Scene.GetAllComponents<DocumentStation>().FirstOrDefault();
+		station?.CallSecurity(ResolveAgent());
+	}
+
+	NoFlyPlayer ResolveAgent() =>
+		Scene.GetAllComponents<NoFlyPlayer>().FirstOrDefault(p => p.Network.Owner == Rpc.Caller)
+		?? NoFlyGame.Instance?.FindLocalPlayer();
+
+	protected override int BuildHash() => HashCode.Combine(
+		Visible,
+		Station?.CurrentPassengerId,
+		Station?.Busy,
+		Station?.QueueCount,
+		Station?.SubmittedJson,
+		Station?.ReferenceJson,
+		Selected);
+}

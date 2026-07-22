@@ -279,6 +279,7 @@ public static class ThornsUiManager
 				or ThornsUiWindowKind.Workbench
 				or ThornsUiWindowKind.BuildMenu
 				or ThornsUiWindowKind.VictoryIntro
+				or ThornsUiWindowKind.FirstSessionTutorial
 				or ThornsUiWindowKind.SessionRecap );
 
 	static void CloseIncompatible( ThornsUiWindowKind incoming )

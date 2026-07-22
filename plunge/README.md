@@ -1,6 +1,9 @@
 # PLUNGE
 
-Standalone s&box project for a cozy, pixel-art incremental diving game.
+Standalone s&box project for a cozy incremental diving game with detailed
+Stardew/Terraria-style art. This is the consolidated survivor of the
+`deep` → `deep_dive` → `plunge` line; the retired projects' art lives on
+under `ArtSource/`.
 
 ## Open
 
@@ -32,6 +35,16 @@ short expeditions.
 
 ## Art pipeline
 
-`tools/generate_pixel_art.py` generates every game sprite and animation frame.
-All actor, prop, icon, and particle PNGs are RGBA and normalize fully transparent
-pixels to `(0, 0, 0, 0)`. Backgrounds are intentionally opaque.
+`tools/import_real_art.py` builds every runtime PNG in `Assets/` from the
+source art in `ArtSource/`:
+
+- `ArtSource/deep_textures/` — high-detail standalone sprites salvaged from
+  the retired `deep` project
+- `ArtSource/generated/` — magenta-keyed atlases from the retired `deep_dive`
+  project (sliced + keyed by the script)
+- `ArtSource/generated_agent/` — generated fills for sprites the old projects
+  lacked (shark, drone, crystal, crate, some icons, reef/abyss backgrounds)
+
+Animated actors (`diver`, `fish_*`, `jelly`, `shark`, `sub`) get a synthesized
+4-frame bob loop from a single pose. Rerun the script after changing anything
+in `ArtSource/`.

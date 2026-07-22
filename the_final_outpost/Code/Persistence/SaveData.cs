@@ -15,6 +15,9 @@ public sealed class SavedBuilding
 	/// 0 = legacy save → SellRefund falls back to Def.PlaceCost.
 	/// </summary>
 	public double PaidPlaceCost { get; set; }
+
+	/// <summary>Yaw in 90° steps (0–3). Legacy saves omit this → 0.</summary>
+	public int YawSteps { get; set; }
 }
 
 public sealed class SavedWorker
@@ -27,6 +30,12 @@ public sealed class SavedWorker
 	public bool HasPlot => PlotX != int.MinValue && PlotY != int.MinValue;
 }
 
+public sealed class SavedBossThreat
+{
+	public float ThreatMult { get; set; } = 1f;
+	public string BossLabel { get; set; }
+}
+
 public sealed class SavedRunRecord
 {
 	public int Nights { get; set; }
@@ -35,8 +44,8 @@ public sealed class SavedRunRecord
 
 public sealed class SaveData
 {
-	/// <summary>Bump when adding persisted fields. Current: 19 = world map rivals + plot boosts.</summary>
-	public int Version { get; set; } = 19;
+	/// <summary>Bump when adding persisted fields. Current: 22 = camera sensitivity.</summary>
+	public int Version { get; set; } = 23;
 
 	public double Scrap { get; set; } = GameConstants.StartingScrap;
 	public double LifetimeEarned { get; set; }
@@ -79,6 +88,9 @@ public sealed class SaveData
 	// WallHealthByKey uses the same "x,y" keys as RemovedWalls / WallSegment.Key.
 	// -------------------------------------------------------------------------
 	public float SavedCoreHealth { get; set; } = -1f;
+	/// <summary>Southwest cell of the command post 2×2 (default -1,-1 → world origin).</summary>
+	public int CoreCellX { get; set; } = -1;
+	public int CoreCellY { get; set; } = -1;
 	public Dictionary<string, float> WallHealthByKey { get; set; } = new();
 
 	// AUDIT FIX M7 (v18): mid-clear forager progress ("x,y" → 0..1). ClearedPlots still means done.
@@ -133,6 +145,8 @@ public sealed class SaveData
 	public float AudioSfx { get; set; } = GameConstants.DefaultAudioVolume;
 	public float AudioAmbience { get; set; } = GameConstants.DefaultAudioVolume;
 	public float AudioMusic { get; set; } = GameConstants.DefaultAudioVolume;
+	/// <summary>Pan/zoom multiplier (0.5–2). Profile mirrors this across modes.</summary>
+	public float CameraSensitivity { get; set; } = GameConstants.DefaultCameraSensitivity;
 
 	public long LastPlayedUnix { get; set; }
 
@@ -163,7 +177,10 @@ public sealed class SaveData
 	public List<string> UnlockedTech { get; set; } = new();
 	public List<string> AlliedCivPlots { get; set; } = new();
 	public List<string> RaidedCivPlots { get; set; } = new();
+	public Dictionary<string, int> CivTradeCounts { get; set; } = new();
 	public List<string> ClearedBossPlots { get; set; } = new();
+	public List<SavedBossThreat> PendingBossThreats { get; set; } = new();
+	public bool PendingBossThreatInFlight { get; set; }
 	public List<string> RivalSeeds { get; set; } = new();
 	public List<string> RivalOwnedPlots { get; set; } = new();
 	/// <summary>Plot key → PlotBoostKind name for cleared rare-boost tiles.</summary>
@@ -231,6 +248,8 @@ public sealed class SaveData
 		DiscoveredZombies ??= new List<string>();
 		ZombieKills ??= new Dictionary<string, int>();
 		CureObjectivesDone ??= new List<string>();
+		CivTradeCounts ??= new Dictionary<string, int>();
+		PendingBossThreats ??= new List<SavedBossThreat>();
 
 		// The home plot is always owned.
 		if ( !OwnedPlots.Contains( "0,0" ) )
@@ -330,7 +349,27 @@ public sealed class SaveData
 			ClaimedPlotBoosts ??= new Dictionary<string, string>();
 		}
 
-		Version = 19;
+		if ( Version < 20 )
+			CivTradeCounts ??= new Dictionary<string, int>();
+
+		if ( Version < 21 )
+			PendingBossThreats ??= new List<SavedBossThreat>();
+
+		if ( Version < 22 )
+		{
+			if ( CameraSensitivity <= 0f )
+				CameraSensitivity = GameConstants.DefaultCameraSensitivity;
+			CameraSensitivity = Math.Clamp( CameraSensitivity, GameConstants.MinCameraSensitivity, GameConstants.MaxCameraSensitivity );
+		}
+
+		if ( Version < 23 )
+		{
+			// Legacy saves keep the command post on the origin 2×2 (-1,-1)..(0,0).
+			CoreCellX = -1;
+			CoreCellY = -1;
+		}
+
+		Version = 23;
 
 		while ( RecruitHealth.Count < Recruits.Count )
 			RecruitHealth.Add( GameConstants.RecruitMaxHealth );
@@ -396,6 +435,8 @@ public sealed class SaveData
 		ClearedPlots = new List<string>();
 		RemovedWalls = new List<string>();
 		SavedCoreHealth = -1f;
+		CoreCellX = -1;
+		CoreCellY = -1;
 		WallHealthByKey = new Dictionary<string, float>();
 		PlotClearProgress = new Dictionary<string, float>();
 		Resources = new Dictionary<string, double>();
@@ -443,6 +484,8 @@ public sealed class SaveData
 		ClearedPlots = new List<string>();
 		RemovedWalls = new List<string>();
 		SavedCoreHealth = -1f;
+		CoreCellX = -1;
+		CoreCellY = -1;
 		WallHealthByKey = new Dictionary<string, float>();
 		PlotClearProgress = new Dictionary<string, float>();
 		Resources = new Dictionary<string, double>();
@@ -481,6 +524,8 @@ public sealed class SaveData
 		ClearedPlots = new List<string>();
 		RemovedWalls = new List<string>();
 		SavedCoreHealth = -1f;
+		CoreCellX = -1;
+		CoreCellY = -1;
 		WallHealthByKey = new Dictionary<string, float>();
 		PlotClearProgress = new Dictionary<string, float>();
 		Resources = new Dictionary<string, double>();
@@ -525,7 +570,10 @@ public sealed class SaveData
 		UnlockedTech = new List<string>();
 		AlliedCivPlots = new List<string>();
 		RaidedCivPlots = new List<string>();
+		CivTradeCounts = new Dictionary<string, int>();
 		ClearedBossPlots = new List<string>();
+		PendingBossThreats = new List<SavedBossThreat>();
+		PendingBossThreatInFlight = false;
 		RivalSeeds = new List<string>();
 		RivalOwnedPlots = new List<string>();
 		ClaimedPlotBoosts = new Dictionary<string, string>();

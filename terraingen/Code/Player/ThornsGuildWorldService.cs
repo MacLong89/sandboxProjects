@@ -540,6 +540,16 @@ public sealed class ThornsGuildWorldService : Component
 		FinishGuildMutation( player );
 	}
 
+	public void HostRequestLeaveGuild( ThornsPlayerGameplay player )
+	{
+		if ( !ThornsMultiplayer.IsHostOrOffline || player is null || string.IsNullOrWhiteSpace( player.AccountKey ) )
+			return;
+
+		HostLeaveGuild( player.AccountKey, createPersonalGuildIfHomeless: true );
+		FinishGuildMutation( player );
+		player.PushClientToastToOwner( "You left the guild.", "info" );
+	}
+
 	public void HostInviteToGuild( ThornsPlayerGameplay inviter, string targetAccountKey )
 	{
 		if ( !ThornsMultiplayer.IsHostOrOffline || inviter is null || string.IsNullOrWhiteSpace( targetAccountKey ) )

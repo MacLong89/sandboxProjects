@@ -148,9 +148,7 @@ public sealed class HotelSimulation
 			else if ( def.Category == RoomCategory.Amenity )
 			{
 				var seats = GameBalance.CapacityAtLevel( def, cell.Level );
-				if ( seats <= 0 )
-					continue;
-				if ( cell.Type == RoomType.Restaurant && !KitchenIsStaffed( cell ) )
+				if ( seats <= 0 || !IsAmenityOpen( cell ) )
 					continue;
 				var fill = Math.Clamp( (float)cell.OccupantGuestIds.Count / seats, 0.05f, 1f );
 				var expectedVisitsPerMin = seats * fill * 0.35f;
@@ -205,16 +203,158 @@ public sealed class HotelSimulation
 		return baseBonus * (1f + GameBalance.UpgradeRateBonusPerLevel * (level - 1));
 	}
 
-	bool KitchenIsStaffed( GridCell kitchen )
+	/// <summary>
+	/// Café self-serves. Other amenities open once the preferred role is hired —
+	/// staff work hotel-wide automatically (no room assignment required).
+	/// </summary>
+	public bool IsAmenityOpen( GridCell cell )
 	{
-		if ( kitchen.Type == RoomType.Cafe )
-			return true; // starter café self-serves
-		return State.Employees.Any( e =>
-			e.Role == StaffRole.Cook
-			&& !kitchen.Broken
-			&& (e.AssignedRoomX == kitchen.X && e.AssignedRoomY == kitchen.Y
-				|| (e.Task == EmployeeTask.Cook && e.TargetRoomX == kitchen.X && e.TargetRoomY == kitchen.Y)
-				|| (e.Task == EmployeeTask.Idle && MathF.Abs( e.PosX - kitchen.X ) < 0.4f && MathF.Abs( e.PosY - kitchen.Y ) < 0.4f)) );
+		if ( cell is null || cell.UnderConstruction || cell.Broken )
+			return false;
+		if ( GameBalance.GetRoom( cell.Type ).Category != RoomCategory.Amenity )
+			return true;
+		if ( cell.Type == RoomType.Cafe )
+			return true;
+		return HasStaffRole( GameBalance.PreferredStaffRole( cell.Type ) );
+	}
+
+	public string AmenityClosedReason( GridCell cell )
+	{
+		if ( cell is null || IsAmenityOpen( cell ) )
+			return null;
+		if ( cell.Broken )
+			return "Needs maintenance";
+		if ( cell.UnderConstruction )
+			return "Under construction";
+		var role = GameBalance.PreferredStaffRole( cell.Type );
+		return $"Closed — hire a {GameBalance.GetStaff( role ).DisplayName}";
+	}
+
+	public bool IsUnderstaffed => GetStaffingNeeds().Count > 0;
+
+	/// <summary>
+	/// Roles the player should hire now. Empty when the crew can cover current work.
+	/// </summary>
+	public IReadOnlyList<StaffingNeed> GetStaffingNeeds()
+	{
+		var needs = new List<StaffingNeed>();
+		var dirtyRooms = State.Cells.Count( c =>
+			GameBalance.GetRoom( c.Type ).Category == RoomCategory.Lodging
+			&& !c.UnderConstruction
+			&& c.Cleanliness < 0.65f );
+		var brokenRooms = State.Cells.Count( c => c.Broken && !c.UnderConstruction );
+		var waitingGuests = State.Guests.Count( g => g.Phase == GuestPhase.CheckingIn );
+		var housekeepers = State.Employees.Count( e => e.Role == StaffRole.Housekeeper );
+		var maintenance = State.Employees.Count( e => e.Role == StaffRole.MaintenanceWorker );
+		var receptionists = State.Employees.Count( e => e.Role == StaffRole.Receptionist );
+
+		if ( dirtyRooms > 0 && housekeepers == 0 )
+		{
+			needs.Add( new StaffingNeed
+			{
+				Role = StaffRole.Housekeeper,
+				Reason = dirtyRooms == 1
+					? "1 room needs cleaning — hire a Housekeeper"
+					: $"{dirtyRooms} rooms need cleaning — hire a Housekeeper",
+				Urgency = 90 + dirtyRooms
+			} );
+		}
+		else if ( dirtyRooms > housekeepers * 2 )
+		{
+			needs.Add( new StaffingNeed
+			{
+				Role = StaffRole.Housekeeper,
+				Reason = $"Understaffed: {dirtyRooms} dirty rooms, only {housekeepers} housekeeper{(housekeepers == 1 ? "" : "s")}",
+				Urgency = 70 + dirtyRooms - housekeepers
+			} );
+		}
+
+		if ( brokenRooms > 0 && maintenance == 0 )
+		{
+			needs.Add( new StaffingNeed
+			{
+				Role = StaffRole.MaintenanceWorker,
+				Reason = brokenRooms == 1
+					? "1 room is broken — hire Maintenance"
+					: $"{brokenRooms} rooms are broken — hire Maintenance",
+				Urgency = 95 + brokenRooms
+			} );
+		}
+		else if ( brokenRooms > maintenance )
+		{
+			needs.Add( new StaffingNeed
+			{
+				Role = StaffRole.MaintenanceWorker,
+				Reason = $"Understaffed: {brokenRooms} broken rooms, only {maintenance} maintenance",
+				Urgency = 75 + brokenRooms - maintenance
+			} );
+		}
+
+		if ( waitingGuests > 0 && receptionists == 0 )
+		{
+			needs.Add( new StaffingNeed
+			{
+				Role = StaffRole.Receptionist,
+				Reason = waitingGuests == 1
+					? "Guest waiting at lobby — hire a Receptionist"
+					: $"{waitingGuests} guests waiting — hire a Receptionist",
+				Urgency = 100
+			} );
+		}
+		else if ( waitingGuests > receptionists * 3 && receptionists > 0 )
+		{
+			needs.Add( new StaffingNeed
+			{
+				Role = StaffRole.Receptionist,
+				Reason = $"Front desk backlog: {waitingGuests} guests, {receptionists} receptionist{(receptionists == 1 ? "" : "s")}",
+				Urgency = 80 + waitingGuests
+			} );
+		}
+
+		foreach ( var amenity in State.Cells.Where( c =>
+			GameBalance.GetRoom( c.Type ).Category == RoomCategory.Amenity
+			&& c.Type != RoomType.Cafe
+			&& !c.UnderConstruction
+			&& !c.Broken ) )
+		{
+			var role = GameBalance.PreferredStaffRole( amenity.Type );
+			if ( HasStaffRole( role ) )
+				continue;
+			if ( needs.Any( n => n.Role == role ) )
+				continue;
+			var name = GameBalance.GetRoom( amenity.Type ).DisplayName;
+			var roleName = GameBalance.GetStaff( role ).DisplayName;
+			needs.Add( new StaffingNeed
+			{
+				Role = role,
+				Reason = $"{name} is closed — hire a {roleName}",
+				Urgency = 85
+			} );
+		}
+
+		// First lodging with zero front-desk or housekeeping coverage.
+		var hasLodging = State.Cells.Any( c =>
+			GameBalance.GetRoom( c.Type ).Category == RoomCategory.Lodging && !c.UnderConstruction );
+		if ( hasLodging && receptionists == 0 && !needs.Any( n => n.Role == StaffRole.Receptionist ) )
+		{
+			needs.Add( new StaffingNeed
+			{
+				Role = StaffRole.Receptionist,
+				Reason = "Lodging is open — hire a Receptionist for check-in",
+				Urgency = 60
+			} );
+		}
+		if ( hasLodging && housekeepers == 0 && !needs.Any( n => n.Role == StaffRole.Housekeeper ) )
+		{
+			needs.Add( new StaffingNeed
+			{
+				Role = StaffRole.Housekeeper,
+				Reason = "Lodging is open — hire a Housekeeper to keep rooms clean",
+				Urgency = 55
+			} );
+		}
+
+		return needs.OrderByDescending( n => n.Urgency ).ToList();
 	}
 
 	public void SetSpeed( int index )
@@ -270,7 +410,7 @@ public sealed class HotelSimulation
 			{
 				cell.UnderConstruction = false;
 				cell.ConstructionRemaining = 0;
-				CompleteTutorial( "build_room", "hire_staff" );
+				CompleteTutorial( "build_room" );
 			}
 		}
 	}
@@ -485,7 +625,7 @@ public sealed class HotelSimulation
 		{
 			guest.Satisfaction = Math.Clamp( guest.Satisfaction - 0.12f, 0.05f, 1f );
 			guest.Phase = GuestPhase.Staying;
-			CompleteTutorial( "first_guest", null );
+			CompleteTutorial( "first_guest" );
 		}
 	}
 
@@ -530,9 +670,7 @@ public sealed class HotelSimulation
 			.Where( c =>
 			{
 				var d = GameBalance.GetRoom( c.Type );
-				if ( d.Category != RoomCategory.Amenity || c.UnderConstruction || c.Broken )
-					return false;
-				if ( c.Type == RoomType.Restaurant && !KitchenIsStaffed( c ) )
+				if ( d.Category != RoomCategory.Amenity || !IsAmenityOpen( c ) )
 					return false;
 				var cap = GameBalance.CapacityAtLevel( d, c.Level );
 				return c.OccupantGuestIds.Count < cap;
@@ -633,7 +771,7 @@ public sealed class HotelSimulation
 		guest.TargetX = -1.5f;
 		guest.TargetY = 0;
 		State.TotalGuestsServed++;
-		CompleteTutorial( "earn_money", "upgrade_room" );
+		CompleteTutorial( "earn_money" );
 	}
 
 	bool HasStaffRole( StaffRole role ) => State.Employees.Any( e => e.Role == role );
@@ -818,7 +956,7 @@ public sealed class HotelSimulation
 					{
 						guest.Phase = GuestPhase.Staying;
 						guest.Satisfaction = Math.Clamp( guest.Satisfaction + 0.05f, 0.05f, 1f );
-						CompleteTutorial( "first_guest", null );
+						CompleteTutorial( "first_guest" );
 					}
 					emp.ServingGuestId = null;
 					emp.Task = EmployeeTask.Idle;
@@ -838,7 +976,6 @@ public sealed class HotelSimulation
 						cell.Cleanliness = Math.Max( cell.Cleanliness, 0.95f );
 						emp.Task = EmployeeTask.Idle;
 						emp.TargetRoomX = emp.TargetRoomY = null;
-						CompleteTutorial( "hire_staff", "first_guest" );
 					}
 				}
 				else
@@ -970,7 +1107,7 @@ public sealed class HotelSimulation
 		State.DayRepairsDone = 0;
 		State.DailyGoals = GenerateDailyGoals();
 		if ( !force )
-			Notify( "New daily goals are ready." );
+			Notify();
 	}
 
 	List<DailyGoal> GenerateDailyGoals()
@@ -1132,7 +1269,7 @@ public sealed class HotelSimulation
 			UnderConstruction = true,
 			ConstructionRemaining = 2.5f
 		} );
-		Notify( $"Building {def.DisplayName}" );
+		Notify();
 		return SimCommandResult.Success();
 	}
 
@@ -1212,7 +1349,7 @@ public sealed class HotelSimulation
 
 		ApplyExpense( cost, $"Upgrade {GameBalance.GetRoom( cell.Type ).DisplayName}" );
 		cell.Level++;
-		CompleteTutorial( "upgrade_room", null );
+		CompleteTutorial( "upgrade_room" );
 		Notify( $"Upgraded to level {cell.Level}" );
 		return SimCommandResult.Success();
 	}
@@ -1237,8 +1374,8 @@ public sealed class HotelSimulation
 			TargetY = 0
 		};
 		State.Employees.Add( emp );
-		CompleteTutorial( "hire_staff", "first_guest" );
-		Notify( $"Hired {emp.Name} ({def.DisplayName})" );
+		MaybeCompleteHireTutorial();
+		Notify( $"Hired {emp.Name} ({def.DisplayName}) — they work hotel-wide automatically." );
 		return SimCommandResult.Success();
 	}
 
@@ -1374,7 +1511,12 @@ public sealed class HotelSimulation
 			.OrderBy( e => MathF.Abs( e.PosX - x ) + MathF.Abs( e.PosY - y ) )
 			.FirstOrDefault();
 		if ( employee is null )
-			return SimCommandResult.Fail( $"No available {GameBalance.GetStaff( role ).DisplayName}. Hire one or wait until they finish." );
+		{
+			var roleName = GameBalance.GetStaff( role ).DisplayName;
+			if ( !HasStaffRole( role ) )
+				return SimCommandResult.Fail( $"UNDERSTAFFED — hire a {roleName}." );
+			return SimCommandResult.Fail( $"All {roleName}s are busy. Hire another or wait." );
+		}
 
 		var workTime = task switch
 		{
@@ -1388,24 +1530,109 @@ public sealed class HotelSimulation
 		return SimCommandResult.Success();
 	}
 
-	void CompleteTutorial( string id, string next )
+	void CompleteTutorial( string id )
 	{
+		if ( State.HideTutorialTips )
+			return;
+
 		if ( !State.CompletedTutorials.Contains( id ) )
 			State.CompletedTutorials.Add( id );
-		if ( State.ActiveTutorial == id )
-			State.ActiveTutorial = next;
+
+		if ( State.ActiveTutorial != id )
+			return;
+
+		State.AcknowledgedTutorial = null;
+		State.ActiveTutorial = NextTutorialAfter( id );
+		Notify();
 	}
 
+	void MaybeCompleteHireTutorial()
+	{
+		if ( State.ActiveTutorial != "hire_staff" )
+			return;
+		if ( !HasStaffRole( StaffRole.Receptionist ) || !HasStaffRole( StaffRole.Housekeeper ) )
+			return;
+		CompleteTutorial( "hire_staff" );
+	}
+
+	/// <summary>
+	/// Got it — hide the modal so the player can act. The tip stays active until
+	/// the step is completed in gameplay (except ratings, which finishes here).
+	/// </summary>
 	public void DismissTutorial()
 	{
-		if ( State.ActiveTutorial is not null )
+		if ( State.HideTutorialTips || State.ActiveTutorial is null )
+			return;
+
+		if ( State.ActiveTutorial == "ratings" )
 		{
-			if ( !State.CompletedTutorials.Contains( State.ActiveTutorial ) )
-				State.CompletedTutorials.Add( State.ActiveTutorial );
-			State.ActiveTutorial = null;
-			Notify();
+			CompleteTutorial( "ratings" );
+			return;
 		}
+
+		State.AcknowledgedTutorial = State.ActiveTutorial;
+		Notify();
 	}
+
+	public void HideAllTutorialTips()
+	{
+		State.HideTutorialTips = true;
+		State.ActiveTutorial = null;
+		State.AcknowledgedTutorial = null;
+		foreach ( var id in TutorialSequence )
+		{
+			if ( !State.CompletedTutorials.Contains( id ) )
+				State.CompletedTutorials.Add( id );
+		}
+		Notify();
+	}
+
+	public void ToggleTutorialTipsHidden()
+	{
+		State.HideTutorialTips = !State.HideTutorialTips;
+		if ( State.HideTutorialTips )
+		{
+			State.ActiveTutorial = null;
+			State.AcknowledgedTutorial = null;
+		}
+		else
+		{
+			State.AcknowledgedTutorial = null;
+			State.ActiveTutorial = PickNextTutorial();
+		}
+		Notify();
+	}
+
+	static readonly string[] TutorialSequence =
+	{
+		"build_room",
+		"hire_staff",
+		"first_guest",
+		"earn_money",
+		"upgrade_room",
+		"ratings",
+	};
+
+	static string NextTutorialAfter( string id )
+	{
+		var index = Array.IndexOf( TutorialSequence, id );
+		if ( index < 0 || index >= TutorialSequence.Length - 1 )
+			return null;
+		return TutorialSequence[index + 1];
+	}
+
+	static string PickNextTutorial( IEnumerable<string> completed )
+	{
+		foreach ( var id in TutorialSequence )
+		{
+			if ( !completed.Contains( id ) )
+				return id;
+		}
+
+		return null;
+	}
+
+	string PickNextTutorial() => PickNextTutorial( State.CompletedTutorials );
 
 	public long ApplyOfflineProgress()
 	{

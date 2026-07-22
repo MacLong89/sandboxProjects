@@ -92,17 +92,16 @@ public sealed class RepairManager : Component
 		if ( core is null || core.Phase != GamePhase.Day || building is null ) return false;
 		if ( building.Health >= building.MaxHealth || IsScheduled( building ) ) return false;
 
-		var fullCost = building.MissingRepairCost();
-		var spend = SelectHelp.AffordableRepairSpend( fullCost );
-		if ( spend <= 0 || !core.Wallet.TrySpend( spend ) ) return false;
+		var baseCost = building.Def.RepairCost( building.MaxHealth - building.Health );
+		if ( !TryPayRepair( core, baseCost, out var spend, out var frac ) ) return false;
 
 		var missingHp = building.MaxHealth - building.Health;
-		var targetHp = spend >= fullCost - 0.001
+		var targetHp = frac >= 0.999f
 			? building.MaxHealth
-			: building.Health + (float)(missingHp * (spend / fullCost));
+			: building.Health + missingHp * frac;
 
 		Enqueue( RepairJob.ForBuilding( building, spend, building.Health, targetHp ) );
-		core.ShowToast( spend >= fullCost - 0.001 ? "Repairs underway…" : "Partial repair underway…" );
+		core.ShowToast( frac >= 0.999f ? "Repairs underway…" : "Partial repair underway…" );
 		Sfx.Play( Sfx.Purchase );
 		core.SaveManagerTouch();
 		return true;
@@ -115,16 +114,15 @@ public sealed class RepairManager : Component
 		if ( wall.Health >= wall.MaxHealth || IsScheduled( wall ) ) return false;
 
 		var missingHp = wall.MaxHealth - wall.Health;
-		var fullCost = missingHp * GameConstants.RepairCostPerHp;
-		var spend = SelectHelp.AffordableRepairSpend( fullCost );
-		if ( spend <= 0 || !core.Wallet.TrySpend( spend ) ) return false;
+		var baseCost = RepairCosts.BaseScrapCost( missingHp );
+		if ( !TryPayRepair( core, baseCost, out var spend, out var frac ) ) return false;
 
-		var targetHp = spend >= fullCost - 0.001
+		var targetHp = frac >= 0.999f
 			? wall.MaxHealth
-			: wall.Health + (float)(missingHp * (spend / fullCost));
+			: wall.Health + missingHp * frac;
 
 		Enqueue( RepairJob.ForWall( wall, spend, wall.Health, targetHp ) );
-		core.ShowToast( spend >= fullCost - 0.001 ? "Repairs underway…" : "Partial repair underway…" );
+		core.ShowToast( frac >= 0.999f ? "Repairs underway…" : "Partial repair underway…" );
 		Sfx.Play( Sfx.Purchase );
 		core.SaveManagerTouch();
 		return true;
@@ -138,16 +136,15 @@ public sealed class RepairManager : Component
 		if ( outpost.CoreHealth >= outpost.CoreMaxHealth || _coreScheduled ) return false;
 
 		var missingHp = outpost.CoreMaxHealth - outpost.CoreHealth;
-		var fullCost = missingHp * GameConstants.RepairCostPerHp;
-		var spend = SelectHelp.AffordableRepairSpend( fullCost );
-		if ( spend <= 0 || !core.Wallet.TrySpend( spend ) ) return false;
+		var baseCost = RepairCosts.BaseScrapCost( missingHp );
+		if ( !TryPayRepair( core, baseCost, out var spend, out var frac ) ) return false;
 
-		var targetHp = spend >= fullCost - 0.001
+		var targetHp = frac >= 0.999f
 			? outpost.CoreMaxHealth
-			: outpost.CoreHealth + (float)(missingHp * (spend / fullCost));
+			: outpost.CoreHealth + missingHp * frac;
 
 		Enqueue( RepairJob.ForCore( spend, outpost.CoreHealth, targetHp ) );
-		core.ShowToast( spend >= fullCost - 0.001 ? "Repairs underway…" : "Partial repair underway…" );
+		core.ShowToast( frac >= 0.999f ? "Repairs underway…" : "Partial repair underway…" );
 		Sfx.Play( Sfx.Purchase );
 		core.SaveManagerTouch();
 		return true;
@@ -159,6 +156,28 @@ public sealed class RepairManager : Component
 	/// <summary>Repairmen queue damaged structures for free — same timed jobs as paid repairs.</summary>
 	public bool TryEnqueueFreeRepairs( IEnumerable<PlacedBuilding> buildings ) =>
 		EnqueueDamagedRepairs( buildings, requirePayment: false );
+
+	private static bool TryPayRepair( GameCore core, double baseScrapCost, out double scrapSpend, out float frac )
+	{
+		scrapSpend = 0;
+		frac = 0f;
+		if ( core is null || baseScrapCost <= 0 ) return false;
+
+		var scrapDue = RepairCosts.EffectiveScrapCost( baseScrapCost );
+		var spend = SelectHelp.AffordableRepairSpend( scrapDue );
+		if ( spend <= 0 ) return false;
+
+		var paidFraction = (float)(spend / scrapDue);
+		if ( !core.Wallet.TrySpend( spend ) ) return false;
+
+		var suppliesPart = RepairCosts.SuppliesToSpend( baseScrapCost ) * paidFraction;
+		if ( suppliesPart > 0 )
+			core.Resources.TrySpend( ResourceKind.Supplies, suppliesPart );
+
+		frac = paidFraction;
+		scrapSpend = spend;
+		return true;
+	}
 
 	private bool EnqueueDamagedRepairs( IEnumerable<PlacedBuilding> buildings, bool requirePayment )
 	{
@@ -172,7 +191,7 @@ public sealed class RepairManager : Component
 		{
 			var missing = outpost.CoreMaxHealth - outpost.CoreHealth;
 			pending.Add( (RepairTargetKind.Core, null, null, outpost.CoreHealth, outpost.CoreMaxHealth,
-				missing * GameConstants.RepairCostPerHp) );
+				RepairCosts.BaseScrapCost( missing )) );
 		}
 
 		if ( outpost is not null )
@@ -182,14 +201,15 @@ public sealed class RepairManager : Component
 				if ( w.Health >= w.MaxHealth || IsScheduled( w ) ) continue;
 				var missing = w.MaxHealth - w.Health;
 				pending.Add( (RepairTargetKind.Wall, null, w, w.Health, w.MaxHealth,
-					missing * GameConstants.RepairCostPerHp) );
+					RepairCosts.BaseScrapCost( missing )) );
 			}
 		}
 
 		foreach ( var b in buildings )
 		{
 			if ( b is null || b.IsDestroyed || b.Health >= b.MaxHealth || IsScheduled( b ) ) continue;
-			pending.Add( (RepairTargetKind.Building, b, null, b.Health, b.MaxHealth, b.MissingRepairCost()) );
+			pending.Add( (RepairTargetKind.Building, b, null, b.Health, b.MaxHealth,
+				b.Def.RepairCost( b.MaxHealth - b.Health )) );
 		}
 
 		if ( pending.Count == 0 )
@@ -205,26 +225,42 @@ public sealed class RepairManager : Component
 
 		foreach ( var item in pending )
 		{
-			if ( budget <= 0.001 ) break;
 			if ( item.Cost <= 0 ) continue;
 
 			double pieceSpend;
+			double suppliesSpend = 0;
 			float targetHp;
-			if ( !requirePayment || budget + 0.001 >= item.Cost )
+			if ( !requirePayment )
 			{
 				pieceSpend = item.Cost;
 				targetHp = item.Full;
 			}
 			else
 			{
-				pieceSpend = budget;
-				var missing = item.Full - item.Start;
-				targetHp = item.Start + (float)(missing * (pieceSpend / item.Cost));
-				anyPartial = true;
+				var scrapDue = RepairCosts.EffectiveScrapCost( item.Cost );
+				if ( scrapDue > 0.001 && budget <= 0.001 ) break;
+
+				if ( budget + 0.001 >= scrapDue )
+				{
+					suppliesSpend = RepairCosts.SuppliesToSpend( item.Cost );
+					pieceSpend = scrapDue;
+					targetHp = item.Full;
+				}
+				else
+				{
+					pieceSpend = budget;
+					var frac = pieceSpend / scrapDue;
+					suppliesSpend = RepairCosts.SuppliesToSpend( item.Cost ) * frac;
+					var missing = item.Full - item.Start;
+					targetHp = item.Start + (float)(missing * frac);
+					anyPartial = true;
+				}
 			}
 
-			if ( requirePayment && !core.Wallet.TrySpend( pieceSpend ) )
+			if ( requirePayment && pieceSpend > 0 && !core.Wallet.TrySpend( pieceSpend ) )
 				break;
+			if ( requirePayment && suppliesSpend > 0 )
+				core.Resources.TrySpend( ResourceKind.Supplies, suppliesSpend );
 
 			budget -= pieceSpend;
 			spent += pieceSpend;
@@ -244,7 +280,7 @@ public sealed class RepairManager : Component
 				_ => RepairTarget.ForBuilding( item.Building, item.Start, targetHp )
 			};
 
-			Enqueue( new RepairJob( new List<RepairTarget> { target }, pieceSpend, label ) );
+			Enqueue( new RepairJob( new List<RepairTarget> { target }, Math.Max( pieceSpend, item.Cost * 0.25 ), label ) );
 			queued++;
 		}
 
@@ -253,7 +289,7 @@ public sealed class RepairManager : Component
 
 		if ( requirePayment )
 		{
-			core.ShowToast( anyPartial || spent + 0.001 < pending.Sum( p => p.Cost )
+			core.ShowToast( anyPartial || queued < pending.Count
 				? "Partial repairs underway…"
 				: "Repairs underway…" );
 			Sfx.Play( Sfx.Purchase );
@@ -462,7 +498,11 @@ public sealed class RepairManager : Component
 			Targets = targets;
 			Label = label;
 			var repairBoost = WorkerManager.Instance?.RepairSpeedContributors() ?? 0;
-			Duration = GameConstants.RepairDurationForCost( cost, repairBoost );
+			var duration = GameConstants.RepairDurationForCost( cost, repairBoost );
+			var core = GameCore.Instance;
+			if ( core?.IsCure == true )
+				duration /= MathF.Max( 0.1f, TeamBonuses.WorkerRepairMult( core ) );
+			Duration = duration;
 		}
 
 		public static RepairJob ForBuilding( PlacedBuilding building, double cost, float startHp, float targetHp ) =>

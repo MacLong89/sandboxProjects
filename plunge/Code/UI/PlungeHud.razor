@@ -22,12 +22,34 @@
 	{
 		@Hub()
 	}
+
+	@if ( TutorialTip is not null && Game?.Screen != GameScreen.Results )
+	{
+		var tip = TutorialTip;
+		<div class="results-overlay tip-overlay">
+			<div class="results-card panel tutorial-tip">
+				<div class="panel-title">@tip.Title</div>
+				<p class="tip-body">@tip.Body</p>
+				<div class="dive-actions tip-actions">
+					<button class="sub-dive" onclick="@HideAllTips">Hide tips</button>
+					<button class="primary" onclick="@DismissTip">Got it</button>
+				</div>
+			</div>
+		</div>
+	}
+
+	@if ( !string.IsNullOrEmpty( TipToast ) )
+	{
+		<div class="tip-toast">@TipToast</div>
+	}
 </root>
 
 @code
 {
 	private PlungeGame Game => PlungeGame.Instance;
 	private PlungeSaveData Save => Game?.Save;
+	private TutorialTipDef TutorialTip => Game?.ActiveTutorialTip;
+	private string TipToast => Game?.TipToast ?? "";
 	private string RootClass => Game?.Screen.ToString().ToLowerInvariant() ?? "loading";
 
 	private RenderFragment DiveHud() => @<div class="dive-layer">
@@ -522,6 +544,9 @@
 	private float CurrentSubOxygen() => Catalog.SubById(Save.EquippedSub).Oxygen + Game.UpgradeLevel("O2 Tank") * 20;
 	private float CurrentSubCargo() => Catalog.SubById(Save.EquippedSub).Cargo + Game.UpgradeLevel("Storage") * 2;
 
+	private void DismissTip() => Game?.DismissTutorialTip();
+	private void HideAllTips() => Game?.DismissTutorialTip( true );
+
 	protected override int BuildHash() => HashCode.Combine(
 		Game?.Screen,
 		Game?.Tab,
@@ -530,6 +555,6 @@
 		Game?.Depth,
 		Game?.Haul.Count,
 		Game?.LatestNotice,
-		HashCode.Combine(Game?.SelectedGearId, Game?.SelectedSubId, Save?.DiveHistory.Count, SelectedHistoryNumber)
+		HashCode.Combine(Game?.SelectedGearId, Game?.SelectedSubId, Save?.DiveHistory.Count, SelectedHistoryNumber, TutorialTip?.Id, TipToast)
 	);
 }

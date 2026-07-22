@@ -30,7 +30,13 @@ public sealed class GameCore : Component
 
 	/// <summary>Any modal UI that needs the cursor and should pause look/movement input.</summary>
 	public bool IsUiBlocking => ShopOpen || VanMenuOpen || ShowDailyPopup || ShowHitmanBriefing
-		|| ShowKnockoutPopup || IsKnockedOut || IsDeparting || ShowMissionBriefing || ShowDiscoveryPopup;
+		|| ShowKnockoutPopup || IsKnockedOut || IsDeparting || ShowMissionBriefing || ShowDiscoveryPopup
+		|| ActiveTutorialTip is not null;
+
+	public TutorialTipDef ActiveTutorialTip { get; private set; }
+	public bool TutorialTipsHidden => Save?.HideTutorialTips ?? false;
+	public string TipToast { get; private set; } = "";
+	private TimeUntil _tipToastHide;
 
 	/// <summary>Menus that pause fixer locomotion — not mission briefing or departure fade.</summary>
 	public bool IsFixerApproachBlocked => ShopOpen || VanMenuOpen || ShowHitmanBriefing
@@ -38,7 +44,8 @@ public sealed class GameCore : Component
 
 	/// <summary>True while any dismissable overlay is up (for Escape-to-close).</summary>
 	public bool AnyMenuOpen => ShopOpen || VanMenuOpen || ShowDailyPopup || ShowHitmanBriefing
-		|| ShowKnockoutPopup || ShowMissionBriefing || ShowDiscoveryPopup;
+		|| ShowKnockoutPopup || ShowMissionBriefing || ShowDiscoveryPopup
+		|| ActiveTutorialTip is not null;
 
 	public bool ShowCompletion { get; private set; }
 	public string CompletedJobName { get; private set; } = "";
@@ -64,6 +71,10 @@ public sealed class GameCore : Component
 	public int PestHitCount { get; private set; }
 	public bool IsKnockedOut { get; private set; }
 	public bool ShowKnockoutPopup { get; private set; }
+
+	/// <summary>True while pests must leave the player alone: out cold, reading the
+	/// wake-up popup, or inside the post-knockout grace window.</summary>
+	public bool PestAttacksSuppressed => IsKnockedOut || ShowKnockoutPopup || !_postKnockoutGrace;
 	public string KnockoutContext { get; private set; } = "";
 	public double KnockoutPenalty { get; private set; }
 
@@ -93,6 +104,7 @@ public sealed class GameCore : Component
 	private bool _perfectAwarded;
 	private TimeUntil _harassmentTimer;
 	private TimeUntil _knockoutBlackoutTimer;
+	private TimeUntil _postKnockoutGrace;
 	private string _lastAttacker = "the pests";
 	private TimeUntil _nextAutosave;
 	private bool _dailyGrantedPending;
@@ -149,6 +161,13 @@ public sealed class GameCore : Component
 
 		TickCompletion();
 		TickDeparture();
+		RefreshTutorialTips();
+
+		if ( _tipToastHide )
+			TipToast = "";
+
+		if ( Input.Keyboard.Pressed( "h" ) || Input.Keyboard.Pressed( "H" ) )
+			ToggleTutorialTipsHidden();
 
 		if ( _nextAutosave )
 		{
@@ -244,8 +263,19 @@ public sealed class GameCore : Component
 	}
 
 	// --- HUD actions ---
-	public void SetShopOpen( bool open ) => ShopOpen = open;
-	public void ToggleShop() => ShopOpen = !ShopOpen;
+	public void SetShopOpen( bool open )
+	{
+		ShopOpen = open;
+		if ( open )
+			NotifyVanOrShopOpened();
+	}
+
+	public void ToggleShop()
+	{
+		if ( !ShopOpen )
+			NotifyVanOrShopOpened();
+		ShopOpen = !ShopOpen;
+	}
 
 	/// <summary>
 	/// Close the topmost open overlay, one press at a time (daily → shop).
@@ -254,6 +284,7 @@ public sealed class GameCore : Component
 	/// </summary>
 	public bool CloseTopmostMenu()
 	{
+		if ( ActiveTutorialTip is not null ) { DismissTutorialTip(); return true; }
 		if ( ShowDailyPopup ) { DismissDailyPopup(); return true; }
 		if ( ShowKnockoutPopup ) { DismissKnockoutPopup(); return true; }
 		if ( ShowDiscoveryPopup ) { DismissDiscoveryPopup(); return true; }
@@ -264,11 +295,91 @@ public sealed class GameCore : Component
 		return false;
 	}
 
+	public void RefreshTutorialTips()
+	{
+		if ( Save.HideTutorialTips || ShowMissionBriefing || ShowDailyPopup || ShowHitmanBriefing
+			|| ShowKnockoutPopup || ShowDiscoveryPopup || IsDeparting || ShopOpen || VanMenuOpen )
+		{
+			ActiveTutorialTip = null;
+			return;
+		}
+
+		if ( ActiveTutorialTip is not null )
+			return;
+
+		ActiveTutorialTip = TutorialTips.PickNext( this );
+	}
+
+	public void DismissTutorialTip( bool hideAll = false )
+	{
+		if ( ActiveTutorialTip is not null )
+		{
+			TutorialTips.MarkShown( Save, ActiveTutorialTip.Id );
+			ActiveTutorialTip = null;
+		}
+
+		if ( hideAll )
+		{
+			Save.HideTutorialTips = true;
+			TipToast = "Tips hidden — press H to show again";
+			_tipToastHide = 3f;
+		}
+
+		SaveManager.Save( Save );
+	}
+
+	/// <summary>First grime cleaned — unlocks van/shop tip gate.</summary>
+	public void NotifyDirtCleaned()
+	{
+		if ( Save.HasCleanedSomeDirt )
+			return;
+
+		Save.HasCleanedSomeDirt = true;
+		RefreshTutorialTips();
+	}
+
+	/// <summary>Van locker or shop opened — unlocks later tip gates.</summary>
+	public void NotifyVanOrShopOpened()
+	{
+		if ( Save.HasOpenedVanOrShop )
+			return;
+
+		Save.HasOpenedVanOrShop = true;
+		RefreshTutorialTips();
+	}
+
+	/// <summary>Pest defeated — unlocks pests / done tip gates.</summary>
+	public void NotifyPestKilled()
+	{
+		Save.PestsKilled++;
+		RefreshTutorialTips();
+	}
+
+	public void ToggleTutorialTipsHidden()
+	{
+		Save.HideTutorialTips = !Save.HideTutorialTips;
+
+		if ( Save.HideTutorialTips )
+		{
+			ActiveTutorialTip = null;
+			TipToast = "Tips hidden — press H to show again";
+		}
+		else
+		{
+			TipToast = "Tips enabled";
+		}
+
+		_tipToastHide = 3f;
+		SaveManager.Save( Save );
+		RefreshTutorialTips();
+	}
+
 	// --- Van locker (tool swap + departure) ---
 	public void OpenVanMenu()
 	{
 		ShopOpen = false;
 		VanMenuOpen = true;
+		NotifyVanOrShopOpened();
 	}
 
 	public void CloseVanMenu() => VanMenuOpen = false;
@@ -318,6 +429,10 @@ public sealed class GameCore : Component
 		{
 			ShowDailyPopup = true;
 			_dailyGrantedPending = false;
+		}
+		else
+		{
+			RefreshTutorialTips();
 		}
 	}
 
@@ -451,6 +566,7 @@ public sealed class GameCore : Component
 		OpenMissionBriefing();
 		_departPhase = DepartPhase.Briefing;
 		DepartBlackout = 1f;
+		RefreshTutorialTips();
 	}
 
 	private void TickDepartureFadeIn()
@@ -506,6 +622,7 @@ public sealed class GameCore : Component
 	{
 		if ( ShowDailyPopup ) Sfx.Play( Sfx.Reward );
 		ShowDailyPopup = false;
+		RefreshTutorialTips();
 	}
 
 	public void StartHitmanBriefing()
@@ -557,7 +674,7 @@ public sealed class GameCore : Component
 	/// <summary>Record a pest hit, show feedback, and knock the player out after too many.</summary>
 	public void RegisterPestHit( string message, string attackerName )
 	{
-		if ( IsKnockedOut || ShowKnockoutPopup )
+		if ( PestAttacksSuppressed )
 			return;
 
 		_lastAttacker = attackerName;
@@ -574,7 +691,14 @@ public sealed class GameCore : Component
 			BeginKnockout();
 	}
 
-	public void DismissKnockoutPopup() => ShowKnockoutPopup = false;
+	public void DismissKnockoutPopup()
+	{
+		if ( !ShowKnockoutPopup )
+			return;
+
+		ShowKnockoutPopup = false;
+		_postKnockoutGrace = GameConstants.PostKnockoutGraceDuration;
+	}
 
 	/// <summary>Dev/cheat: wipe all progress and restart from level 1.</summary>
 	public void ResetAllProgress()
@@ -601,6 +725,7 @@ public sealed class GameCore : Component
 		PestHitCount = 0;
 		IsKnockedOut = false;
 		ShowKnockoutPopup = false;
+		_postKnockoutGrace = 0f;
 		IsDeparting = false;
 		DepartBlackout = 0f;
 		ShowMissionBriefing = false;
@@ -663,6 +788,7 @@ public sealed class GameCore : Component
 		PestHitCount = 0;
 		IsKnockedOut = false;
 		ShowKnockoutPopup = false;
+		_postKnockoutGrace = 0f;
 		IsDeparting = false;
 		DepartBlackout = 0f;
 		ShowMissionBriefing = false;

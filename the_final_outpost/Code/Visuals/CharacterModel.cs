@@ -48,6 +48,16 @@ public sealed class CharacterModel : Component
 		return WorldPosition + Vector3.Up * 52f + aim.Forward * 24f;
 	}
 
+	public void SetVisible( bool visible )
+	{
+		if ( _skin.IsValid() )
+			_skin.Enabled = visible;
+		if ( _weaponRenderer.IsValid() )
+			_weaponRenderer.Enabled = visible;
+		if ( _weapon.IsValid() )
+			_weapon.Enabled = visible;
+	}
+
 	public void Setup( Color tint, string weaponModel, CitizenAnimationHelper.HoldTypes hold, float weaponScale = 1.5f )
 	{
 		_hold = hold;

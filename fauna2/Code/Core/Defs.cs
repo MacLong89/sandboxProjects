@@ -1,8 +1,8 @@
 namespace Fauna2;
 
 /// <summary>
-/// Data-driven definition lookups. All content (animals, variants, placeables,
-/// hybrids) is defined as GameResources on disk — no hardcoded IDs anywhere.
+/// Data-driven definition lookups. All content (animals, variants, placeables)
+/// is defined as GameResources on disk — no hardcoded IDs anywhere.
 /// IDs are stored as short resource stems (e.g. "habitat_grassland_s").
 /// </summary>
 public static class Defs

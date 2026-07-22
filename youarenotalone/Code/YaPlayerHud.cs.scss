@@ -209,6 +209,69 @@ $ya-text-muted: rgba(120, 130, 138, 0.92);
 	color: $ya-text;
 }
 
+.ya-onboarding-tip {
+	background-color: rgba(8, 10, 12, 0.72);
+}
+
+.ya-onboarding-tip__card {
+	min-width: 520px;
+	max-width: 640px;
+	background-color: $ya-panel;
+	border: 1px solid $ya-teal-strong;
+	padding: 22px 24px;
+	flex-direction: column;
+	align-items: center;
+}
+
+.ya-onboarding-tip__title {
+	font-size: 30px;
+	font-weight: 800;
+	color: $ya-text;
+	margin-bottom: 10px;
+	text-align: center;
+}
+
+.ya-onboarding-tip__body {
+	font-size: 17px;
+	font-weight: 600;
+	line-height: 1.45;
+	color: $ya-text-secondary;
+	margin-bottom: 18px;
+	text-align: center;
+	max-width: 560px;
+}
+
+.ya-onboarding-tip__row {
+	flex-direction: row;
+	align-items: center;
+	justify-content: center;
+}
+
+.ya-onboarding-tip__btn {
+	min-width: 130px;
+	margin: 0 6px;
+	padding: 10px 14px;
+	background-color: $ya-panel-deep;
+	border: 1px solid $ya-teal-strong;
+	align-items: center;
+	justify-content: center;
+}
+
+.ya-onboarding-tip__btn:hover {
+	background-color: rgba(18, 26, 28, 0.98);
+	border: 1px solid $ya-teal;
+}
+
+.ya-onboarding-tip__btn-label {
+	font-size: 14px;
+	font-weight: 700;
+	color: $ya-text-secondary;
+}
+
+.ya-onboarding-tip__btn-label--primary {
+	color: $ya-teal;
+}
+
 .ya-practice-choice {
 	background-color: rgba(8, 10, 12, 0.55);
 }

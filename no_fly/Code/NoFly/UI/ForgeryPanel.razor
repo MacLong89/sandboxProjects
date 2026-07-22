@@ -1,0 +1,105 @@
+@namespace NoFly
+@inherits PanelComponent
+
+<root class="@(Visible ? "mg-root" : "mg-hidden")">
+@if (Visible)
+{
+	<div class="mg-panel forge">
+		<header class="mg-header">
+			<div class="mg-kicker">Smuggler Prep · Step 1 of 2</div>
+			<div class="mg-title">Alter one part of your document</div>
+			<div class="mg-sub">Pick a field, choose a fake value, then confirm.</div>
+		</header>
+
+		<div class="doc-sheet" style="border-color: @Template.AccentColor.Hex;">
+			<div class="doc-top">
+				<div class="doc-country">@Template.CountryName</div>
+				<div class="doc-code">@Template.CountryCode PASSPORT</div>
+			</div>
+			<div class="field-grid">
+				@foreach (var field in Fields)
+				{
+					<button class="field-cell @(SelectedField == field ? "is-selected" : "")" onclick="@(() => SelectField(field))">
+						<div class="field-label">@UiLabels.Field(field)</div>
+						<div class="field-value">@Doc.Values.GetValueOrDefault(field, "—")</div>
+					</button>
+				}
+			</div>
+		</div>
+
+		@if (SelectedField is not null)
+		{
+			<section class="mg-section">
+				<div class="mg-section-title">Fake @UiLabels.Field(SelectedField.Value)</div>
+				<div class="opt-row">
+					@foreach (var opt in CurrentOptions.Where(o => !o.IsCorrect))
+					{
+						<button class="opt-card @(PendingValue == opt.DisplayValue ? "is-selected" : "")" onclick="@(() => PickOption(opt))">
+							<div class="opt-name">@opt.Label</div>
+							<div class="opt-value">@opt.DisplayValue</div>
+						</button>
+					}
+				</div>
+			</section>
+		}
+
+		<footer class="mg-footer actions">
+			<div class="mg-hint">@FooterHint</div>
+			<button class="mg-btn mg-btn-primary @(CanConfirm ? "" : "is-disabled")" onclick="@Confirm">Confirm Forgery</button>
+		</footer>
+	</div>
+}
+</root>
+
+@code
+{
+	NoFlyPlayer Local => NoFlyGame.LocalPlayer;
+	DocumentInstance Doc => Local?.Document;
+	DocumentTemplate Template => Doc is null ? DocumentCatalog.Templates[0] : DocumentCatalog.GetTemplate(Doc.TemplateId);
+	bool Visible => NoFlyGame.Instance?.State == RoundState.Preparation && Local?.Role == RoleType.Smuggler && Local?.ForgeryComplete != true && Doc is not null;
+
+	static readonly DocumentFieldType[] Fields =
+	{
+		DocumentFieldType.Photo, DocumentFieldType.Name, DocumentFieldType.Date, DocumentFieldType.PassportNumber,
+		DocumentFieldType.CountrySymbol, DocumentFieldType.SecuritySeal, DocumentFieldType.Destination, DocumentFieldType.BackgroundPattern
+	};
+
+	bool CanConfirm => SelectedField is not null && !string.IsNullOrEmpty(PendingValue);
+	string FooterHint => SelectedField is null
+		? "1. Click the field you want to fake"
+		: string.IsNullOrEmpty(PendingValue) ? "2. Pick a fake value below" : $"Faking {UiLabels.Field(SelectedField.Value)}";
+
+	DocumentFieldType? SelectedField;
+	string PendingValue;
+	DiscrepancyDifficulty PendingDifficulty;
+	List<DocumentFieldOption> CurrentOptions = new();
+
+	void SelectField(DocumentFieldType field)
+	{
+		SelectedField = field;
+		PendingValue = null;
+		CurrentOptions = ForgerySystem.GetOptionsForField(Doc, field);
+	}
+
+	void PickOption(DocumentFieldOption opt)
+	{
+		PendingValue = opt.DisplayValue;
+		PendingDifficulty = opt.Difficulty;
+	}
+
+	void Confirm()
+	{
+		if (SelectedField is null || string.IsNullOrEmpty(PendingValue)) return;
+		RpcConfirm(SelectedField.Value, PendingValue, PendingDifficulty);
+	}
+
+	[Rpc.Host]
+	public void RpcConfirm(DocumentFieldType field, string value, DiscrepancyDifficulty difficulty)
+	{
+		var player = Scene.GetAllComponents<NoFlyPlayer>().FirstOrDefault(p => p.Network.Owner == Rpc.Caller);
+		if (player is null) return;
+		ForgerySystem.ApplyForgery(player, field, value, difficulty);
+	}
+
+	protected override int BuildHash() => HashCode.Combine(Visible, SelectedField, PendingValue, Local?.ForgeryComplete, Local?.DocumentJson, NoFlyGame.Instance?.State);
+}

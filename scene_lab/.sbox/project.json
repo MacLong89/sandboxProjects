@@ -1,37 +1,47 @@
 {
   "LocalAssetBrowser.History": {
-    "Value": "[\u0022C:\\\\Users\\\\Macra\\\\Projects\\\\sandboxProjects\\\\scene_lab\\\\Assets\u0022]",
-    "Timeout": 1786646303,
+    "Value": "[\u0022C:\\\\Users\\\\Macra\\\\Projects\\\\sandboxProjects\\\\scene_lab\\\\Assets\u0022,\u0022C:\\\\Users\\\\Macra\\\\Projects\\\\sandboxProjects\\\\scene_lab\\\\Assets\\\\models\u0022,\u0022C:\\\\Users\\\\Macra\\\\Projects\\\\sandboxProjects\\\\scene_lab\\\\Assets\\\\models\\\\alligator_scratch_v6_realistic\u0022,\u0022C:\\\\Users\\\\Macra\\\\Projects\\\\sandboxProjects\\\\scene_lab\\\\Assets\\\\models\u0022,\u0022C:\\\\Users\\\\Macra\\\\Projects\\\\sandboxProjects\\\\scene_lab\\\\Assets\\\\models\\\\eagle_scratch_v6_realistic\u0022,\u0022C:\\\\Users\\\\Macra\\\\Projects\\\\sandboxProjects\\\\scene_lab\\\\Assets\\\\models\\\\deer_scratch_v6_realistic\u0022,\u0022C:\\\\Users\\\\Macra\\\\Projects\\\\sandboxProjects\\\\scene_lab\\\\Assets\\\\models\\\\donkey_scratch_v6_realistic\u0022,\u0022C:\\\\Users\\\\Macra\\\\Projects\\\\sandboxProjects\\\\scene_lab\\\\Assets\\\\models\\\\eagle_scratch_v6_realistic\u0022]",
+    "Timeout": 1787257281,
     "DeleteAt": 0
   },
   "LocalAssetBrowser.HistoryIdx": {
-    "Value": "0",
-    "Timeout": 1786646303,
+    "Value": "7",
+    "Timeout": 1787257281,
     "DeleteAt": 0
   },
   "Window.SboxSceneEditor.Dock": {
-    "Value": "{\u0022floatingWindows\u0022:[],\u0022mainWrapper\u0022:{\u0022geometry\u0022:\u0022AdnQywADAAAAAAAAAAAAAAAABfUAAALpAAAAAAAAAAAAAAX1AAAC6QAAAAAAAAAABgAAAAAAAAAAAAAABfUAAALp\u0022,\u0022splitter\u0022:{\u0022items\u0022:[{\u0022currentIndex\u0022:0,\u0022objects\u0022:[{\u0022data\u0022:null,\u0022managedType\u0022:\u0022SceneTreeWidget\u0022,\u0022name\u0022:\u0022Hierarchy\u0022},{\u0022data\u0022:null,\u0022managedType\u0022:\u0022PanelInspectorWidget\u0022,\u0022name\u0022:\u0022UI Panels\u0022}],\u0022type\u0022:\u0022area\u0022},{\u0022items\u0022:[{\u0022items\u0022:[{\u0022currentIndex\u0022:0,\u0022objects\u0022:[{\u0022data\u0022:null,\u0022managedType\u0022:\u0022SceneDock\u0022,\u0022name\u0022:\u0022SceneDock:scenes/workbench.scene\u0022}],\u0022type\u0022:\u0022area\u0022},{\u0022currentIndex\u0022:1,\u0022objects\u0022:[{\u0022data\u0022:null,\u0022managedType\u0022:\u0022MainAssetBrowser\u0022,\u0022name\u0022:\u0022Asset Browser\u0022},{\u0022data\u0022:null,\u0022managedType\u0022:\u0022ConsoleWidget\u0022,\u0022name\u0022:\u0022Console\u0022},{\u0022data\u0022:null,\u0022managedType\u0022:\u0022MixerDock\u0022,\u0022name\u0022:\u0022Mixer\u0022},{\u0022data\u0022:null,\u0022managedType\u0022:\u0022LibraryManagerDock\u0022,\u0022name\u0022:\u0022Library Manager\u0022}],\u0022type\u0022:\u0022area\u0022}],\u0022state\u0022:\u0022AAAA/wAAAAEAAAACAAADpQAAAhYA/////wEAAAACAA==\u0022,\u0022type\u0022:\u0022splitter\u0022},{\u0022items\u0022:[{\u0022currentIndex\u0022:0,\u0022objects\u0022:[{\u0022data\u0022:null,\u0022managedType\u0022:\u0022Inspector\u0022,\u0022name\u0022:\u0022Inspector\u0022}],\u0022type\u0022:\u0022area\u0022},{\u0022currentIndex\u0022:0,\u0022objects\u0022:[{\u0022data\u0022:null,\u0022managedType\u0022:\u0022PerformanceDock\u0022,\u0022name\u0022:\u0022Performance\u0022}],\u0022type\u0022:\u0022area\u0022}],\u0022state\u0022:\u0022AAAA/wAAAAEAAAACAAAEuQAAAVEA/////wEAAAACAA==\u0022,\u0022type\u0022:\u0022splitter\u0022}],\u0022state\u0022:\u0022AAAA/wAAAAEAAAACAAAGuwAAAdsA/////wEAAAABAA==\u0022,\u0022type\u0022:\u0022splitter\u0022}],\u0022state\u0022:\u0022AAAA/wAAAAEAAAACAAABmwAACjQA/////wEAAAABAA==\u0022,\u0022type\u0022:\u0022splitter\u0022}},\u0022toolWindowManagerStateFormat\u0022:1}",
-    "Timeout": 1786666453,
+    "Value": "AAAEV3jajZRRU4JAEMff\u002BxQ3vBuYljWDOGRjOZNlIfV8wkY3HnfO3WnZ9OFbxBREqQcGbvd//9/useD2PlNOlqA0k6JrNU8di4CIZMxE0rXCyaBxafU898n48ZKKCOIbGc0wF6y0gZS8bDdaJNSgiuu\u002BFIYygZF8CcIoyl9ZnIDpWqWl5blbNRlwSc0a72A8mHNmDIYfFcMtmMnsvzP7hUCfFmp8BZRM6HQDWigFWeqOgaIqel\u002BhJOeQB5pCMUH6XGqIM5TtuXZmdAzZ\u002BA\u002By3BW2QpO1Yq\u002BAPdmhIgqAswLA1xpdrpX8wNPety0ny7ZlvhRacviTfFUgj\u002BSSARnRWZUbDsmYCuB6Z9isMH3OZbQ\u002By1rZ7Tgkz6DlQkVQKxyDepMqzYayTjZin8WzqAru2RSHYYWdCZrUSwPgEGUdkABMbXGhiGVtVYXDLMt\u002BZ5B9gfZaHYdkl0NcO4/gfTOdR2dwKPQcy5SV17RLHB77HOm0SOeiTdrnzYNQe/uh4vOR34J38gMxcWpy",
+    "Timeout": 1787257572,
     "DeleteAt": 0
   },
   "scenes/workbench.scene.Viewport0": {
     "Value": "{\u0022CameraPosition\u0022:\u0022-0.00499999896,-0.00499999989,0.00707106804\u0022,\u0022CameraRotation\u0022:\u0022-0.14644663,0.353553414,0.353553414,0.853553355\u0022,\u0022CameraOrthoHeight\u0022:1000}",
-    "Timeout": 1786666452,
+    "Timeout": 1787257571,
     "DeleteAt": 0
   },
   "SceneView.Viewport0.Settings": {
     "Value": "{\u0022CameraPosition\u0022:\u0022-0.00499999896,-0.00499999989,0.00707106804\u0022,\u0022CameraRotation\u0022:\u0022-0.14644663,0.353553414,0.353553414,0.853553355\u0022,\u0022View\u0022:0,\u0022RenderMode\u0022:0,\u0022WireframeMode\u0022:false,\u0022EnablePostProcessing\u0022:true,\u0022EnablePrefabLighting\u0022:true,\u0022ShowSkyIn2D\u0022:true,\u0022ShowGrid\u0022:true,\u0022GridOpacity\u0022:0.2,\u0022GridAxis\u0022:0,\u0022CameraOrthoHeight\u0022:1000}",
-    "Timeout": 1786666452,
+    "Timeout": 1787257571,
     "DeleteAt": 0
   },
   "gizmo.settings": {
     "Value": "{\u0022EditMode\u0022:\u0022position\u0022,\u0022Selection\u0022:true,\u0022ViewMode\u0022:\u00223d\u0022,\u0022GizmosEnabled\u0022:true,\u0022GizmoScale\u0022:1,\u0022WorldSpaceGizmos\u0022:false,\u0022GizmoDepthTest\u0022:false,\u0022GizmoRenderDistance\u0022:0,\u0022GridSpacing\u0022:32,\u0022SnapToGrid\u0022:false,\u0022SnapToAngles\u0022:true,\u0022AngleSpacing\u0022:15,\u0022GlobalSpace\u0022:false,\u0022DebugActionGraphs\u0022:false,\u0022DisabledGizmos\u0022:{}}",
-    "Timeout": 1786666453,
+    "Timeout": 1787257572,
     "DeleteAt": 0
   },
   "SceneView.Layout": {
     "Value": "{\u0022Layout\u0022:0,\u0022SplitterState\u0022:[]}",
-    "Timeout": 1786666453,
+    "Timeout": 1787257572,
+    "DeleteAt": 0
+  },
+  "editor.openscenes": {
+    "Value": "[\u0022scenes/workbench.scene\u0022]",
+    "Timeout": 1787257572,
+    "DeleteAt": 0
+  },
+  "editor.activescene": {
+    "Value": "\u0022scenes/workbench.scene\u0022",
+    "Timeout": 1787257572,
     "DeleteAt": 0
   }
 }

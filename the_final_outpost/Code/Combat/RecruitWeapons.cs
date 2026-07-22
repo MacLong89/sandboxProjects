@@ -35,18 +35,50 @@ public sealed class RecruitWeaponDef
 
 	// --- Combat ---
 	public float Damage { get; init; }
-	public float Range { get; init; }
+	/// <summary>Design-unit range. Physical reach is <see cref="Range"/>.</summary>
+	public float RangeDesign { get; init; }
 	public float FireInterval { get; init; }
 	public int Pellets { get; init; } = 1;
 	public float SpreadDegrees { get; init; }
-
-	// --- Economy (derived from combat stats) ---
 	public float DamagePerTrain { get; init; }
 
 	public float BaseDps => CombatEconomy.Dps( Damage, FireInterval, Pellets );
 	public float TrainDpsGain => CombatEconomy.Dps( DamagePerTrain, FireInterval, Pellets );
-	public double RecruitCost => CombatEconomy.RecruitPlaceCost( BaseDps, Range );
-	public double TrainBaseCost => CombatEconomy.TrainCost( TrainDpsGain );
+	/// <summary>World-space engagement range.</summary>
+	public float Range => RangeDesign * GameConstants.RangeScale;
+
+	/// <summary>Scrap for the first recruit of this weapon — fixed table.</summary>
+	public double BaseCost => Type switch
+	{
+		RecruitWeaponType.Pistol => 50,
+		RecruitWeaponType.Smg => 80,
+		RecruitWeaponType.AssaultRifle => 90,
+		RecruitWeaponType.Shotgun => 85,
+		RecruitWeaponType.Sniper => 110,
+		_ => 50
+	};
+
+	/// <summary>Extra scrap for each recruit you already own with this weapon.</summary>
+	public double CostBump => Type switch
+	{
+		RecruitWeaponType.Pistol => 10,
+		RecruitWeaponType.Smg or RecruitWeaponType.AssaultRifle or RecruitWeaponType.Shotgun => 12,
+		RecruitWeaponType.Sniper => 15,
+		_ => CombatEconomy.DefaultRepeatBump
+	};
+
+	/// <summary>Base train upgrade cost (grows with train level separately).</summary>
+	public double TrainBaseCost => Type switch
+	{
+		RecruitWeaponType.Pistol => 35,
+		RecruitWeaponType.Smg or RecruitWeaponType.Shotgun => 45,
+		RecruitWeaponType.AssaultRifle => 50,
+		RecruitWeaponType.Sniper => 60,
+		_ => 40
+	};
+
+	/// <summary>First-copy recruit price. Live buy price is <see cref="DefenderManager.RecruitCost"/>.</summary>
+	public double RecruitCost => BaseCost;
 
 	/// <summary>Total per-shot damage a fully-fired volley deals (all pellets), for HUD/DPS hints.</summary>
 	public float VolleyDamage( int trainLevel ) => (Damage + trainLevel * DamagePerTrain) * Pellets;
@@ -82,7 +114,7 @@ public static class RecruitWeapons
 				TracerColor = new Color( 1f, 0.95f, 0.7f ),
 				WeaponScale = 1.15f,
 				Damage = 7f,
-				Range = 290f,
+				RangeDesign = 290f,
 				FireInterval = 0.42f,
 				Pellets = 1,
 				DamagePerTrain = 2f
@@ -100,7 +132,7 @@ public static class RecruitWeapons
 				TracerColor = new Color( 0.75f, 1f, 1f ),
 				WeaponScale = 1.4f,
 				Damage = 4.5f,
-				Range = 300f,
+				RangeDesign = 300f,
 				FireInterval = 0.12f,
 				Pellets = 1,
 				SpreadDegrees = 2.5f,
@@ -119,7 +151,7 @@ public static class RecruitWeapons
 				TracerColor = new Color( 1f, 0.9f, 0.45f ),
 				WeaponScale = 1.5f,
 				Damage = 9f,
-				Range = 370f,
+				RangeDesign = 370f,
 				FireInterval = 0.26f,
 				Pellets = 1,
 				SpreadDegrees = 1.2f,
@@ -138,7 +170,7 @@ public static class RecruitWeapons
 				TracerColor = new Color( 1f, 0.6f, 0.25f ),
 				WeaponScale = 1.5f,
 				Damage = 4f,
-				Range = 210f,
+				RangeDesign = 210f,
 				FireInterval = 0.85f,
 				Pellets = 7,
 				SpreadDegrees = 9f,
@@ -157,7 +189,7 @@ public static class RecruitWeapons
 				TracerColor = new Color( 0.85f, 0.95f, 1f ),
 				WeaponScale = 1.65f,
 				Damage = 42f,
-				Range = 560f,
+				RangeDesign = 560f,
 				FireInterval = 1.35f,
 				Pellets = 1,
 				SpreadDegrees = 0.2f,

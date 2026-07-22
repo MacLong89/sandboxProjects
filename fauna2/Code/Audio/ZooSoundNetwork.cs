@@ -28,6 +28,11 @@ public sealed class ZooSoundNetwork : Component
 
 	public static void PlayPlaceForAll() => PlayForAll( "place", ZooSoundEffects.PlaceVolume );
 
+	public static void PlayBuildForAll() => PlayForAll( "build", ZooSoundEffects.PlaceVolume );
+
+	public static void PlayAnimalPlacedForAll( string definitionId, Vector3 position ) =>
+		Play3DForAll( ZooSoundEffects.AnimalPlacementStem( definitionId ), position, 0.475f );
+
 	public static void Play3DForAll( string stem, Vector3 position, float volume = 0.5f, float maxDistance = 6000f )
 	{
 		ZooSoundEffects.Play3D( stem, position, volume, maxDistance );

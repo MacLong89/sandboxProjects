@@ -1,0 +1,122 @@
+.menu {
+	position: absolute;
+	inset: 0;
+	font-family: 'Poppins', 'Segoe UI', sans-serif;
+	color: white;
+	pointer-events: none;
+	align-items: center;
+	justify-content: center;
+
+	&.open {
+		background: rgba(black, 0.45);
+		pointer-events: all;
+	}
+
+	.window {
+		width: 620px;
+		max-height: 80%;
+		background: rgba(#1b2434, 0.97);
+		border: 3px solid rgba(white, 0.15);
+		border-radius: 20px;
+		flex-direction: column;
+		overflow: hidden;
+
+		.tabs {
+			flex-direction: row;
+			background: rgba(black, 0.25);
+			padding: 10px 14px;
+			gap: 8px;
+
+			.tab {
+				padding: 8px 16px;
+				border-radius: 12px;
+				font-size: 15px;
+				font-weight: 700;
+				cursor: pointer;
+				color: rgba(white, 0.65);
+
+				&:hover { color: white; background: rgba(white, 0.08); }
+				&.active { color: #1b2434; background: #ffd24a; }
+			}
+
+			.close {
+				margin-left: auto;
+				padding: 8px 14px;
+				border-radius: 12px;
+				cursor: pointer;
+				font-weight: 900;
+				color: rgba(white, 0.6);
+
+				&:hover { color: white; background: rgba(#ff5c5c, 0.4); }
+			}
+		}
+
+		.content {
+			flex-direction: column;
+			padding: 18px 22px;
+			gap: 12px;
+			overflow-y: scroll;
+
+			.section-title { font-size: 15px; color: rgba(white, 0.85); }
+			.gems-owned { font-size: 14px; color: #8ae0ff; }
+			.fine { font-size: 12px; color: rgba(white, 0.55); }
+
+			.card {
+				background: rgba(white, 0.06);
+				border: 2px solid rgba(white, 0.1);
+				border-radius: 14px;
+				padding: 14px 16px;
+				flex-direction: column;
+				gap: 8px;
+
+				.card-head { font-size: 16px; font-weight: 800; }
+				.card-sub { font-size: 13px; color: rgba(white, 0.7); }
+
+				&.quest.claimed { opacity: 0.55; }
+
+				.q-bar {
+					height: 10px;
+					background: rgba(black, 0.4);
+					border-radius: 6px;
+					overflow: hidden;
+
+					.q-fill { height: 100%; background: #8ae0ff; border-radius: 6px; }
+				}
+
+				.q-progress { font-size: 13px; color: #8ae0ff; font-weight: 700; }
+				.q-done { font-size: 13px; color: #a9f2a9; font-weight: 700; }
+			}
+
+			.rebirth-now {
+				flex-direction: column;
+				gap: 4px;
+				font-size: 14px;
+
+				.rb-mult { color: #ffb0f0; font-weight: 700; }
+			}
+
+			.btn {
+				background: #ffd24a;
+				color: #1b2434;
+				font-size: 15px;
+				font-weight: 800;
+				border-radius: 12px;
+				padding: 9px 20px;
+				cursor: pointer;
+				align-self: flex-start;
+
+				&:hover { background: #ffe08a; }
+				&.big { font-size: 18px; padding: 12px 28px; }
+				&.disabled {
+					background: rgba(white, 0.15);
+					color: rgba(white, 0.5);
+					cursor: default;
+
+					&:hover { background: rgba(white, 0.15); }
+				}
+			}
+
+			.help-line { font-size: 14px; color: rgba(white, 0.85); }
+		}
+	}
+}

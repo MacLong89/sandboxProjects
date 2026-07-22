@@ -42,7 +42,7 @@ public sealed class ThornsLeftHudColumn
 		var dayCol = ThornsUiFactory.AddPanel( _root, "hud-day-col" );
 		dayCol.Style.FlexDirection = FlexDirection.Column;
 		dayCol.Style.JustifyContent = Justify.Center;
-		_dayLabel = ThornsUiFactory.AddLabel( dayCol, "DAY 1", "hud-day-label" );
+		_dayLabel = ThornsUiFactory.AddLabel( dayCol, "LEVEL 1", "hud-day-label" );
 		_timeLabel = ThornsUiFactory.AddLabel( dayCol, "12:00 PM", "hud-time-label" );
 
 		UpdateDayTime();
@@ -58,7 +58,7 @@ public sealed class ThornsLeftHudColumn
 			return;
 
 		var level = Math.Max( 1, ThornsUiClientState.Snapshot?.Skills?.PlayerLevel ?? 1 );
-		_dayLabel.Text = $"DAY {level}";
+		_dayLabel.Text = $"LEVEL {level}";
 
 		if ( !ThornsTimeOfDaySystem.TryGet( Game.ActiveScene, out var time ) || !time.IsValid() )
 		{

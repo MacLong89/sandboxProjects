@@ -14,13 +14,6 @@
 			<i class="icon">park</i>
 			<div class="title">FAUNA2</div>
 			<div class="zooname">@ZooName</div>
-			<div class="calendar-chip">
-				<i class="icon">@WeatherIcon</i>
-				<div class="calendar-main">
-					<div class="calendar-title">@SeasonDayText</div>
-					<div class="calendar-sub">@TimeWeatherText</div>
-				</div>
-			</div>
 		</div>
 
 		<div class="topbar-end">
@@ -55,17 +48,6 @@
 					}
 				</div>
 
-				<div class="stat prestige">
-					<i class="icon">workspace_premium</i>
-					<div class="value">@Prestige</div>
-					<div class="sub">Prestige</div>
-				</div>
-
-				<div class="stat guests">
-					<i class="icon">groups</i>
-					<div class="value">@Guests</div>
-					<div class="sub">@StarsText</div>
-				</div>
 			</div>
 
 			<div class="settings-anchor">
@@ -102,6 +84,7 @@
 								}
 							</div>
 						</div>
+
 					</div>
 				}
 			</div>
@@ -111,24 +94,6 @@
 
 	@if ( !UiState.HideSecondaryHud )
 	{
-	@if ( UpcomingUnlocks.Count > 0 )
-	{
-		<div class="unlock-card">
-			<div class="unlock-header">
-				<i class="icon">upgrade</i>
-				<span>Next unlocks</span>
-			</div>
-			@foreach ( var unlock in UpcomingUnlocks )
-			{
-				<div class="unlock-row">
-					<span class="unlock-kind">@UnlockKindLabel( unlock.Kind )</span>
-					<span class="unlock-name">@unlock.Name</span>
-					<span class="unlock-level">Lv @unlock.Level</span>
-				</div>
-			}
-		</div>
-	}
-
 	@if ( GuestAlert != null )
 	{
 		<div class="guest-alert" onclick=@OpenGuestAlert>
@@ -161,7 +126,7 @@
 						<div class="goal-desc">@goal.Detail</div>
 						@if ( goal.Clickable && IsZooOwner )
 						{
-							<div class="goal-action">CLICK HERE TO COMPLETE</div>
+							<div class="goal-action">OPEN TOOL</div>
 						}
 					</div>
 				</div>
@@ -175,25 +140,6 @@
 		<div class="visitor-banner">
 			<i class="icon">directions_walk</i>
 			<div class="text">Visiting — explore the zoo, like exhibits, and cheer on the owner.</div>
-		</div>
-	}
-
-	@if ( UiState.ControlsHintVisible && IsZooOwner && !UiState.WelcomeIntroVisible )
-	{
-		<div class="controls-hint">
-			<div class="title"><i class="icon">sports_esports</i> Controls</div>
-			<div class="line">
-				<span class="key">WASD</span><span>Move</span><span>·</span>
-				<span class="key">Shift</span><span>Run</span><span>·</span>
-				<span class="key">Wheel</span><span>Zoom</span>
-			</div>
-			<div class="line">
-				<span class="key">E</span><span>Interact</span><span>·</span>
-				<span class="key">Click</span><span>Inspect</span><span>·</span>
-				<span class="key">B/N/C/P/I</span><span>Menus</span>
-			</div>
-			<div class="line">Click a goal on the right to jump to the right tool.</div>
-			<div class="dismiss" onclick=@DismissControlsHint>Got it</div>
 		</div>
 	}
 
@@ -266,6 +212,7 @@
 	</div>
 	}
 	}
+
 </root>
 
 @code
@@ -278,7 +225,6 @@
 
 	private string ZooName => ZooState.Instance?.ZooName ?? "Loading zoo...";
 	private int Level => ZooState.Instance?.Level ?? 1;
-	private int Prestige => ZooState.Instance?.Prestige ?? 0;
 	private int Guests => GuestSystem.Instance?.GuestCount ?? 0;
 	private string MoneyText => $"{ZooState.Instance?.Money ?? 0:n0}";
 	private string CodexPercentText => $"{CollectionSystem.Instance?.CompletionPercent ?? 0f:0}%";
@@ -325,6 +271,12 @@
 			if ( !PathNetwork.HasGuestAccess )
 				return "Setup — revenue starts when gates open";
 
+			var guests = GuestSystem.Instance?.GuestCount ?? 0;
+			if ( AnimalRegistry.Count <= 0 )
+				return "Waiting for first animal…";
+			if ( guests <= 0 )
+				return "Guests arriving…";
+
 			var income = EconomySystem.Instance?.IncomePerMinute ?? 0f;
 			var rate = income >= 0f ? $"+${income:0}" : $"−${Math.Abs( income ):0}";
 			return $"{rate}/min";
@@ -336,6 +288,8 @@
 		get
 		{
 			if ( !PathNetwork.HasGuestAccess ) return "setup";
+			if ( AnimalRegistry.Count <= 0 || (GuestSystem.Instance?.GuestCount ?? 0) <= 0 )
+				return "setup";
 			return (EconomySystem.Instance?.IncomePerMinute ?? 0f) < 0f ? "negative" : "positive";
 		}
 	}
@@ -380,9 +334,6 @@
 
 	private IReadOnlyList<HudGoal> ActiveGoals => GoalBoard.HudGoals();
 
-	private IReadOnlyList<UnlockEntry> UpcomingUnlocks =>
-		ProgressionHelper.UpcomingUnlocks( 3 ).ToList();
-
 	private GuestInsight? GuestAlert
 	{
 		get
@@ -408,8 +359,6 @@
 		}
 	}
 
-	private void DismissControlsHint() => UiState.DismissControlsHint();
-
 	private void OpenGuestAlert()
 	{
 		if ( GuestAlert is null ) return;
@@ -425,18 +374,6 @@
 	}
 
 	private void CloseSettings() => _settingsOpen = false;
-
-	private static string UnlockKindLabel( string kind ) => kind switch
-	{
-		"Animal" => "Pet",
-		"Shop" => "Shop",
-		"Dining" => "Food",
-		"Habitats" => "Habitat",
-		"Paths" => "Path",
-		"Nature" => "Nature",
-		"Services" => "Service",
-		_ => kind,
-	};
 
 	private void TogglePage( UiPage page )
 	{
@@ -521,8 +458,14 @@
 		if ( Input.Pressed( "ExpandLand" ) ) BeginExpand();
 		if ( Input.Pressed( "Demolish" ) ) BeginDemolish();
 		if ( Input.Pressed( "Cancel" ) ) HandleCancelInput();
-		if ( Input.Pressed( "DebugPanel" ) ) UiState.ToggleDebug();
+		if ( Input.Pressed( "DebugPanel" ) && CanOpenDebugPanel )
+			UiState.ToggleDebug();
+		if ( Input.Keyboard.Pressed( "h" ) || Input.Keyboard.Pressed( "H" ) )
+			UiState.ToggleOnboardingTipsHidden();
 	}
+
+	private bool CanOpenDebugPanel =>
+		Fauna2Debug.Enabled || GameObject.Scene.IsEditor;
 
 	protected override int BuildHash()
 	{
@@ -537,20 +480,22 @@
 		hash.Add( ZooState.Instance?.Money );
 		hash.Add( ZooState.Instance?.Xp );
 		hash.Add( ZooState.Instance?.Level );
-		hash.Add( ZooState.Instance?.Prestige );
 		hash.Add( Guests );
 		hash.Add( UiState.Revision );
 		hash.Add( UiState.XpPulse );
-		hash.Add( UiState.WelcomeIntroVisible );
-		hash.Add( UiState.ControlsHintVisible );
+		hash.Add( UiState.ActiveOnboardingTip?.Id );
+		hash.Add( UiState.CanInteractWithOnboardingTip );
 		hash.Add( (int)(EconomySystem.Instance?.IncomePerMinute ?? 0f) );
 		hash.Add( PathNetwork.HasGuestAccess );
+		hash.Add( AnimalRegistry.Count );
 		hash.Add( PathNetwork.HasEntrance );
 		hash.Add( HintText );
 		hash.Add( ObjectiveSystem.Instance?.CurrentIndex ?? -1 );
 		hash.Add( ObjectiveSystem.Instance?.GetProgressLabel() ?? "" );
 		hash.Add( PlaceableRegistry.RestroomCount );
 		hash.Add( PlaceableRegistry.RestaurantCount );
+		hash.Add( PlaceableRegistry.ShopCount );
+		hash.Add( ObjectiveSystem.Instance?.GuestRatingsReviewed ?? false );
 		hash.Add( HabitatRegistry.Count );
 		hash.Add( AnimalRegistry.Count );
 		hash.Add( PlotSystem.Instance?.PlotCount ?? 1 );
@@ -562,9 +507,6 @@
 		hash.Add( LandClearActive );
 		hash.Add( (int)(UiState.ObstacleClearPercent * 100f) );
 		hash.Add( DailyBonusSystem.Instance?.LoginStreak ?? 0 );
-		hash.Add( SeasonDayText );
-		hash.Add( PlayerBiomeHash );
-		hash.Add( TimeWeatherText );
 		hash.Add( ZooState.Instance?.Xp ?? 0 );
 		hash.Add( _settings.MasterVolume );
 		hash.Add( _settings.GuestRevenueMultiplier );

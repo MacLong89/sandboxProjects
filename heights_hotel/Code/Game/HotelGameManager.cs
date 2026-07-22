@@ -30,7 +30,6 @@ public sealed class HotelGameManager : Component
 			Sim.ShowStatus( warning );
 		else if ( !string.IsNullOrEmpty( Sim.State.StatusMessage ) )
 			Sim.ShowStatus( Sim.State.StatusMessage );
-		Sim.Changed += OnSimChanged;
 		Log.Info( $"[HeightsHotel] Sim ready. rooms={Sim.RoomCount} cash={Sim.State.CashCents}" );
 	}
 
@@ -47,10 +46,7 @@ public sealed class HotelGameManager : Component
 		if ( Instance == this )
 			Instance = null;
 		if ( Sim is not null )
-		{
-			Sim.Changed -= OnSimChanged;
 			TrySave();
-		}
 	}
 
 	protected override void OnUpdate()
@@ -157,16 +153,6 @@ public sealed class HotelGameManager : Component
 			screen.TargetCamera = cam;
 	}
 
-	void OnSimChanged()
-	{
-		// Opportunistic save after meaningful changes is handled by UI commands calling SaveSoon.
-	}
-
-	public void SaveSoon()
-	{
-		_autosaveTimer = AutosaveInterval;
-	}
-
 	public void TrySave()
 	{
 		try
@@ -256,10 +242,7 @@ public sealed class HotelGameManager : Component
 
 	public void StartNewGame()
 	{
-		Sim.Changed -= OnSimChanged;
 		Sim = new HotelSimulation( HotelSimulation.CreateNewGame( Random.Shared.Next() ) );
-		Sim.Changed += OnSimChanged;
 		TrySave();
-		Sim.ShowStatus( "New hotel opened. Good luck, manager." );
 	}
 }

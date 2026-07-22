@@ -10,7 +10,7 @@
         "projectUniqueName": "C:\\Users\\Macra\\Projects\\sandboxProjects\\heights_hotel\\UnitTests\\heights_hotel.tests.csproj",
         "projectName": "heights_hotel.tests",
         "projectPath": "C:\\Users\\Macra\\Projects\\sandboxProjects\\heights_hotel\\UnitTests\\heights_hotel.tests.csproj",
-        "packagesPath": "C:\\Users\\Macra\\AppData\\Local\\Temp\\cursor-sandbox-cache\\8aa26ee6b261f1312ea7db16f2b16acd\\nuget",
+        "packagesPath": "C:\\Users\\Macra\\.nuget\\packages\\",
         "outputPath": "C:\\Users\\Macra\\Projects\\sandboxProjects\\heights_hotel\\UnitTests\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [

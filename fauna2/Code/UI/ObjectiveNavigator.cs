@@ -9,13 +9,16 @@ public static class ObjectiveNavigator
 	{
 		switch ( action )
 		{
+			case ObjectiveAction.FindWildlife:
+				UiState.CloseModals();
+				UiState.PushToast( "Walk into the wilderness and get close to a wild animal.", "travel_explore" );
+				break;
 			case ObjectiveAction.ClearLand:
 				UiState.CloseModals();
 				UiState.PushToast( "Click a tree or rock on your land, then press Clear in the panel.", "forest" );
 				break;
 			case ObjectiveAction.BuildHabitats:
 				UiState.BeginPlaceStarterHabitat();
-				UiState.PushToast( $"Place a small {StarterGoalGuide.BiomeLabel()} habitat.", "fence" );
 				break;
 			case ObjectiveAction.BuildEntrance:
 				UiState.BeginPlace( "entrance" );
@@ -31,12 +34,41 @@ public static class ObjectiveNavigator
 			case ObjectiveAction.BuildRestaurant:
 				UiState.BeginPlace( "restaurant" );
 				break;
+			case ObjectiveAction.BuildShop:
+				UiState.BeginPlace( "kiosk" );
+				break;
 			case ObjectiveAction.Market:
 				UiState.OpenMarketForStarterAnimal();
 				var animal = StarterGoalGuide.RecommendedAdoptableAnimal();
 				if ( animal is not null )
 					UiState.PushToast( $"Adopt a {BiomeLabel()} animal — {animal.DisplayName} is a good fit.", "pets" );
 				break;
+			case ObjectiveAction.PlaceAnimal:
+			{
+				var inv = PlayerState.Local?.Components.Get<PlayerInventory>();
+				if ( !StarterGoalGuide.HasTutorialHabitat() )
+				{
+					UiState.BeginPlaceStarterHabitat();
+					UiState.PushToast( "Place a habitat first, then release your catch with E.", "fence" );
+				}
+				else if ( inv is not null && inv.CarriedCount > 0 )
+				{
+					UiState.CloseModals();
+					UiState.OpenMarketTab( 1 );
+					UiState.PushToast( "Walk to your habitat and press E — or place from the Backpack tab.", "pets" );
+				}
+				else if ( (ZooState.Instance?.TotalAnimalsCaught ?? 0) <= 0 )
+				{
+					UiState.CloseModals();
+					UiState.PushToast( "Catch a wild animal first, then bring it home to your habitat.", "forest" );
+				}
+				else
+				{
+					UiState.CloseModals();
+					UiState.PushToast( "Stand next to your habitat and press E to release a carried animal.", "fence" );
+				}
+				break;
+			}
 			case ObjectiveAction.Codex:
 				UiState.OpenPage( UiPage.Codex );
 				break;
@@ -55,6 +87,8 @@ public static class ObjectiveNavigator
 					UiState.BeginPlace( "restroom" );
 				else if ( PlaceableRegistry.RestaurantCount == 0 )
 					UiState.BeginPlace( "restaurant" );
+				else if ( PlaceableRegistry.ShopCount == 0 )
+					UiState.BeginPlace( "kiosk" );
 				else
 					UiState.OpenPage( UiPage.Stats );
 				break;
@@ -62,21 +96,29 @@ public static class ObjectiveNavigator
 				UiState.OpenPage( UiPage.Stats );
 				break;
 			case ObjectiveAction.StatsOverview:
-				var harm = ZooStatsReport.GetRatingHarms().FirstOrDefault();
-				if ( harm.Title is not null )
-					InsightNavigator.Open( harm );
-				else
-					UiState.OpenPage( UiPage.Stats );
+				UiState.OpenPage( UiPage.Stats );
+				UiState.PushToast( "Stats — check your rating and guest wants on Overview / Guests.", "star" );
 				break;
 			case ObjectiveAction.BreedHelp:
-				UiState.OpenPage( UiPage.Market );
-				UiState.OpenMarketTab( 2 );
-				UiState.PushToast( "Place two happy adults of the same species in one habitat to breed.", "pets" );
+				var starter = StarterGoalGuide.RecommendedAdoptableAnimal();
+				var starterId = starter is null ? "" : Defs.IdOf( starter );
+				var matchingAdults = AnimalRegistry.All.Count( a =>
+					a.DefinitionId == starterId && a.IsAdult && !a.IsElder );
+				if ( starter is not null && matchingAdults < 2 )
+				{
+					UiState.OpenMarketForStarterAnimal();
+					UiState.PushToast( $"Adopt a second {starter.DisplayName} and place it with the first. Your first pair breeds quickly.", "pets" );
+				}
+				else
+				{
+					UiState.OpenPage( UiPage.Market );
+					UiState.OpenMarketTab( 2 );
+					UiState.PushToast( "Keep two happy adults of the same species together. Your first pair breeds quickly.", "pets" );
+				}
 				break;
 			case ObjectiveAction.CatchHelp:
-				UiState.CloseModals();
 				UiState.OpenMarketTab( 3 );
-				UiState.PushToast( "Stock catch tools, then head into the wilderness and press E on wildlife.", "forest" );
+				UiState.PushToast( "Catch Tools — buy a Tranquilizer, then walk into the wild and press E near an animal.", "shopping_bag" );
 				break;
 		}
 	}

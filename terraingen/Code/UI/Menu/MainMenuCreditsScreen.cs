@@ -22,7 +22,7 @@ public sealed class MainMenuCreditsScreen : Panel
 		ThornsUiFactory.AddLabel( head, "CREDITS", "mainmenu-overlay-title" );
 		ThornsUiFactory.AddClickable( head, "mainmenu-back", "← Back", () => MenuBackPressed?.Invoke() );
 
-		AddSection( "Team", "Thorns — Terraingen survival prototype." );
+		AddSection( "Team", "Thorns — Survive together." );
 		AddSection( "Libraries", "s&box · Sandbox engine · Poppins UI font" );
 		AddSection( "Special Thanks", "Playtesters, concept artists, and the s&box community." );
 	}

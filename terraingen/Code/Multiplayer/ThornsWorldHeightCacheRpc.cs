@@ -129,6 +129,7 @@ public sealed class ThornsWorldHeightCacheRpc : Component
 		ThornsTerrainHeightCache.Save( _bootstrap.Config, _receiveField );
 		_bootstrap.ApplyCachedField( _receiveField );
 		ThornsWorldBuildingSyncRpc.RequestFromHostIfNeeded();
+		Terraingen.World.ThornsDeathCrateWorldService.RequestSyncFromHostIfNeeded();
 		Log.Info( "[Thorns World] Client assembled height cache from host." );
 	}
 }

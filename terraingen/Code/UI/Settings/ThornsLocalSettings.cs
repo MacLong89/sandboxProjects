@@ -71,8 +71,11 @@ public static class ThornsLocalSettings
 
 	public static void ApplyRuntime()
 	{
-		// UI scale applied by menu host stylesheet root multiplier.
+		// Keep exposed Master Volume driving SFX until a separate SFX control ships.
+		Current.SfxVolume = Math.Clamp( Current.MasterVolume, 0f, 1f );
+		Current.MusicVolume = Math.Clamp( Current.MasterVolume, 0f, 1f );
 		ThornsCrosshairSettings.Apply( Current );
+		ThornsAudioSettings.Apply( Current );
 	}
 }
 

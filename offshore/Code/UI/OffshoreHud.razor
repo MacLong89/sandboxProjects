@@ -1,0 +1,644 @@
+@namespace Offshore
+@using System
+@using System.Collections.Generic
+@using System.Linq
+@using Sandbox
+@using Sandbox.UI
+@inherits PanelComponent
+@attribute [Title( "OFFSHORE HUD" )]
+
+<root class="offshore-root scale-@UiScaleClass" style="position:absolute;left:0;top:0;right:0;bottom:0;">
+@if ( G is null )
+{
+	<div class="boot" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#1a2740;color:#f4f1e8;font-size:48px;">OFFSHORE</div>
+}
+else if ( G.State.Phase == GamePhase.MainMenu )
+{
+	@MainMenu()
+}
+else
+{
+	@if ( ShowGameplayHud )
+	{
+		@GameplayHud()
+	}
+
+	@if ( G.State.Phase == GamePhase.Shop ) { @ShopPanel() }
+	@if ( G.State.Phase == GamePhase.Selling ) { @SellPanel() }
+	@if ( G.State.Phase == GamePhase.CatchResult ) { @CatchPanel() }
+	@if ( G.State.Phase == GamePhase.FishLog ) { @FishLogPanel() }
+	@if ( G.State.Phase == GamePhase.Objectives ) { @ObjectivesPanel() }
+	@if ( G.State.Phase == GamePhase.Pause ) { @PausePanel() }
+	@if ( G.State.Phase == GamePhase.Settings ) { @SettingsPanel() }
+	@if ( G.State.Phase == GamePhase.EmergencyTow )
+	{
+		<div class="tow-banner"><div>EMERGENCY TOW</div><span>@G.Notice</span></div>
+	}
+}
+</root>
+
+@code
+{
+	OffshoreGameController G => OffshoreGameController.Instance;
+	SaveData Save => G?.Save;
+	InventoryService Inv => G?.Inventory;
+	ShopTab Tab { get => G?.Shop?.Tab ?? ShopTab.Bait; set { if ( G?.Shop is not null ) G.Shop.Tab = value; } }
+	string SelectedId { get => G?.Shop?.SelectedId ?? "worm"; set { if ( G?.Shop is not null ) G.Shop.SelectedId = value; } }
+	HashSet<int> SelectedSell = new();
+	float _pulse;
+
+	bool ShowGameplayHud => G.State.Phase is not GamePhase.MainMenu;
+
+	string UiScaleClass => Save is null ? "100" : ((int)(Save.UiScale * 100)).ToString();
+
+	protected override void OnUpdate()
+	{
+		_pulse += Time.Delta;
+		if ( G is null ) return;
+		if ( Input.Keyboard.Pressed( "ESCAPE" ) && G.State.Phase == GamePhase.MainMenu )
+			return;
+	}
+
+	RenderFragment MainMenu() => @<div class="menu-screen" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(180deg,#ff7a3a 0%,#c44b8a 42%,#2a3d6e 70%,#102038 100%);pointer-events:all;">
+		<div class="menu-brand" style="text-align:center;margin-bottom:36px;">
+			<img class="logo" src="textures/ui/logo_offshore.png" style="width:120px;height:120px;" />
+			<div class="title" style="font-size:72px;font-weight:800;letter-spacing:12px;color:#f4f1e8;">OFFSHORE</div>
+			<div class="tagline" style="margin-top:8px;font-size:20px;color:#f4f1e8;">Cast far. Reel deeper.</div>
+		</div>
+		<div class="menu-actions" style="display:flex;flex-direction:column;gap:12px;width:280px;">
+			<button class="btn primary" style="padding:14px 18px;border:2px solid #8fd4a8;border-radius:10px;background:rgba(36,110,82,0.9);color:#f7efe0;font-size:18px;font-weight:700;" @onclick="@(() => G.ContinueGame())">Play</button>
+			<button class="btn" style="padding:14px 18px;border:2px solid #d4a25a;border-radius:10px;background:rgba(12,24,36,0.82);color:#f7efe0;font-size:18px;font-weight:700;" @onclick="@(() => G.NewGame())">New Game</button>
+			<button class="btn" style="padding:14px 18px;border:2px solid #d4a25a;border-radius:10px;background:rgba(12,24,36,0.82);color:#f7efe0;font-size:18px;font-weight:700;" @onclick="@(() => G.State.Force(GamePhase.Settings))">Settings</button>
+			<button class="btn danger" style="padding:14px 18px;border:2px solid #d46a6a;border-radius:10px;background:rgba(80,24,28,0.85);color:#f7efe0;font-size:18px;font-weight:700;" @onclick="@QuitGame">Quit</button>
+		</div>
+	</div>;
+
+	RenderFragment GameplayHud() => @<div class="hud-layer">
+		<div class="top-left">
+			<div class="chip"><img src="textures/ui/weather_clear.png" /><label>Day @Save.Day</label><b>@G.Clock.ClockText</b></div>
+			<div class="chip coin"><img src="textures/ui/coin.png" /><b>@(((int)G.DisplayCoins).ToString("N0"))</b></div>
+			<div class="chip"><img src="textures/ui/hook_icon.png" /><b>@Inv.StorageUsed/@Inv.StorageCapacity</b></div>
+			<div class="chip objective"><img src="textures/ui/clipboard.png" /><label>@G.Objectives.HudText</label></div>
+		</div>
+
+		<div class="top-right">
+			<div class="panel conditions">
+				<label class="cond-title">WATER CONDITIONS</label>
+				<div class="row"><label>Depth</label><b>@G.WaterDepth.ToString("0")m</b></div>
+				<div class="row"><label>@G.DistanceBand</label><b class="good">@G.Weather.Label</b></div>
+				<div class="row"><label>Temp</label><b>@G.Weather.Temperature.ToString("0")°C</b></div>
+				@if ( G.Boat.Aboard && Inv.Boat is not null )
+				{
+					<div class="row"><label>Distance</label><b>@G.Boat.OffshoreDistance.ToString("0")m</b></div>
+					<div class="row"><label>Fuel</label><b>@G.Boat.Fuel.ToString("0")/@Inv.Boat.FuelCapacity.ToString("0")</b></div>
+					<div class="row"><label>Return</label><b>@G.Boat.ReturnRangeEstimate(Inv.Boat).ToString("0")m</b></div>
+				}
+			</div>
+		</div>
+
+		@if ( G.NoticeAge < 4.5f && !string.IsNullOrEmpty( G.Notice ) )
+		{
+			<div class="notice">@G.Notice</div>
+		}
+
+		@if ( G.ActiveTutorialTip is not null )
+		{
+			var tip = G.ActiveTutorialTip;
+			<div class="tip-overlay">
+				<div class="tip-card">
+					<div class="tip-title">@tip.Title</div>
+					<div class="tip-body">@tip.Body</div>
+					<div class="tip-actions">
+						<button class="tip-btn ghost" @onclick="@(() => G.DismissTutorialTip( hideAll: true ))">Hide tips</button>
+						<button class="tip-btn primary" @onclick="@(() => G.DismissTutorialTip())">Got it</button>
+					</div>
+				</div>
+			</div>
+		}
+
+		@if ( G.State.Phase == GamePhase.Casting && G.Fishing.Charging )
+		{
+			<div class="cast-meter">
+				<div class="fill" style="width:@(G.Fishing.CastPower * 100)%;"></div>
+				<span>CAST POWER</span>
+			</div>
+		}
+
+		@if ( G.State.Phase == GamePhase.Reeling && G.Fishing.PendingFish is not null )
+		{
+			<div class="stardew-fish @(G.Fishing.BarOnFish ? "on-fish" : "off-fish")">
+				<div class="track">
+					<div class="water"></div>
+					<div class="green" style="bottom:@(G.Fishing.BarBottom * 100)%;height:@(G.Fishing.BarHeight * 100)%;"></div>
+					<img class="fish-icon" src="@($"textures/fish/{G.Fishing.PendingFish.Sprite}.png")" style="bottom:@(G.Fishing.FishY * 100)%;" />
+				</div>
+				<div class="catch-meter">
+					<div class="fill" style="height:@(G.Fishing.CatchProgress * 100)%;"></div>
+				</div>
+			</div>
+		}
+
+		@if ( G.State.Phase == GamePhase.Hooking )
+		{
+			<div class="hook-flash">!</div>
+		}
+
+		<div class="bottom-left">
+			@if ( G.State.Phase == GamePhase.Shop )
+			{
+				<div class="keychip">TAB Close Shop</div>
+			}
+			else
+			{
+				<div class="keychip">TAB Fish Log</div>
+			}
+			<div class="keychip">M Quests</div>
+		</div>
+
+		<div class="prompt-bar">
+			@if ( !string.IsNullOrEmpty( G.PromptText )
+				&& G.Prompt != InteractPrompt.Cast
+				&& G.Prompt != InteractPrompt.StopCast )
+			{
+				<div class="keychip action">@G.PromptText</div>
+			}
+			@if ( G.State.Phase == GamePhase.WaitingBite )
+			{
+				<div class="keychip">W/S Lure Depth @G.Fishing.LureDepth.ToString("0")m</div>
+				<div class="keychip">F Retrieve</div>
+			}
+			@if ( G.State.Phase == GamePhase.Casting && !G.Fishing.Charging )
+			{
+				<div class="keychip">F Cancel</div>
+			}
+		</div>
+
+		@if ( G.State.CanCast )
+		{
+			<div class="cast-hint">
+				<img class="mouse" src="textures/ui/icon_mouse_lmb.png" />
+				<label class="cast-label">LMB CAST</label>
+			</div>
+		}
+
+		<div class="hotbar">
+			@{
+				var hot = Inv.GetHotbarEntries();
+				var selected = Inv.SelectedHotbarIndex;
+			}
+			@for ( var i = 0; i < 8; i++ )
+			{
+				var idx = i;
+				if ( idx < hot.Count )
+				{
+					var e = hot[idx];
+					var on = idx == selected;
+					var (src, tip, qty) = HotbarVisual( e );
+					<button class="slot @(on ? "selected" : "")" @onclick="@(() => EquipHotbarSlot(idx))">
+						<span class="key">@(idx + 1)</span>
+						<img src="@src" />
+						@if ( qty >= 0 ) { <span class="qty">@($"x{qty}")</span> }
+						<span class="tip">@tip</span>
+					</button>
+				}
+				else
+				{
+					<div class="slot empty">
+						<span class="key">@(idx + 1)</span>
+					</div>
+				}
+			}
+		</div>
+	</div>;
+
+	(string src, string tip, int qty) HotbarVisual( InventoryService.HotbarEntry e )
+	{
+		if ( e.Kind == "bait" )
+		{
+			var bait = Catalog.BaitById( e.Id );
+			return ( $"textures/ui/{bait?.Icon ?? "icon_bait_worm"}.png", bait?.Name ?? e.Id, Inv.GetBait( e.Id ) );
+		}
+		var hook = Catalog.HookById( e.Id );
+		return ( $"textures/ui/{hook?.Icon ?? "icon_hook"}.png", hook?.Name ?? e.Id, -1 );
+	}
+
+	void EquipHotbarSlot( int index )
+	{
+		var before = Inv.SelectedHotbarIndex;
+		var msg = G.Inventory.TryEquipHotbar( index );
+		if ( msg is not null )
+		{
+			G.ShowNotice( msg );
+			G.Audio.PlayUi( "ui_click" );
+			G.Autosave();
+		}
+		else if ( Inv.SelectedHotbarIndex != before || Inv.SelectedHotbarIndex == index )
+		{
+			G.Audio.PlayUi( "ui_hover" );
+		}
+	}
+
+	RenderFragment ShopPanel() => @<div class="shop-overlay">
+		<div class="modal shop">
+			<button class="shop-sell" @onclick="@(() => G.OpenSell())" title="Sell fish">SELL FISH</button>
+			<button class="shop-close" @onclick="@(() => { G.Audio.PlayUi("ui_click"); CloseOverlay(); })" title="Close">×</button>
+			<div class="shop-sign">
+				<img class="sign-icon" src="textures/ui/icon_boat.png" />
+				<label>BAIT &amp; TACKLE</label>
+			</div>
+			<div class="shop-main">
+				<div class="shop-body">
+					<div class="tabs">
+						@TabBtn( ShopTab.Bait, "BAIT" )
+						@TabBtn( ShopTab.Rods, "RODS" )
+						@TabBtn( ShopTab.Hooks, "HOOKS" )
+						@TabBtn( ShopTab.Reels, "REELS" )
+						@TabBtn( ShopTab.Lines, "LINES" )
+					</div>
+					<div class="grid">
+						@foreach ( var card in ShopCards() )
+						{
+							var id = card.id;
+							<button class="card @(SelectedId == id ? "selected" : "") @(card.owned ? "owned" : "") @(card.equipped ? "equipped" : "")" @onclick="@(() => SelectedId = id)">
+								<label class="name">@card.name.ToUpperInvariant()</label>
+								<img src="@card.icon" />
+								@if ( card.qty >= 0 )
+								{
+									<label class="qty">@($"x{card.qty}")</label>
+								}
+								<div class="price">
+									<img src="textures/ui/coin.png" />
+									<label>@card.price</label>
+								</div>
+								@if ( card.equipped )
+								{
+									<label class="badge eq">EQUIPPED</label>
+								}
+								else if ( card.owned )
+								{
+									<label class="badge">OWNED</label>
+								}
+							</button>
+						}
+					</div>
+					<div class="detail">
+						@DetailBody()
+					</div>
+				</div>
+				<div class="shop-boats-aside">
+					<label class="boats-title">BOATS</label>
+					@foreach ( var b in Catalog.Boats )
+					{
+						var id = b.Id;
+						var owned = Save.OwnedBoats.Contains( id );
+						var equipped = Save.EquippedBoat == id;
+						<button class="boat-row @(SelectedId == id && Tab == ShopTab.Boats ? "selected" : "")" @onclick="@(() => { Tab = ShopTab.Boats; SelectedId = id; })">
+							<img src="@($"textures/boats/{b.Sprite}.png")" />
+							<div class="boat-meta">
+								<label class="boat-name">@b.Name</label>
+								<label class="boat-stats">@BoatStatLine(b)</label>
+							</div>
+							<div class="boat-price">
+								@if ( owned )
+								{
+									<label class="badge eq">@(equipped ? "ACTIVE" : "OWNED")</label>
+								}
+								else
+								{
+									<img src="textures/ui/coin.png" />
+									<label>@b.Price.ToString("0")</label>
+								}
+							</div>
+						</button>
+					}
+				</div>
+			</div>
+		</div>
+	</div>;
+
+	RenderFragment TabBtn( ShopTab t, string label ) => @<button class="tab @(Tab == t ? "on" : "")" @onclick="@(() => { Tab = t; SelectDefault(); G.Audio.PlayUi("ui_hover"); })">@label</button>;
+
+	RenderFragment DetailBody()
+	{
+		switch ( Tab )
+		{
+			case ShopTab.Bait:
+				var bait = Catalog.BaitById( SelectedId );
+				if ( bait is null ) return @<div />;
+				return @<div class="detail-inner">
+					<img class="big" src="@($"textures/ui/{bait.Icon}.png")" />
+					<div class="detail-copy">
+						<h2>@bait.Name</h2>
+						<p>@bait.Description</p>
+						<p class="owned">You Own: @Inv.GetBait(bait.Id)</p>
+					</div>
+					<div class="row-btns">
+						<button class="btn primary" @onclick="@Buy">BUY</button>
+						<button class="btn" @onclick="@Equip">EQUIP</button>
+					</div>
+				</div>;
+			case ShopTab.Rods:
+				var rod = Catalog.RodById( SelectedId );
+				if ( rod is null ) return @<div />;
+				return ItemDetail( rod.Name, rod.Description, rod.Icon, rod.Price, Save.OwnedRods.Contains( rod.Id ), Save.EquippedRod == rod.Id,
+					$"Cast {rod.CastDistance:0.0}x  ·  Hold {rod.MaxTension:0}  ·  Max {rod.MaxFishWeight:0}kg" );
+			case ShopTab.Reels:
+				var reel = Catalog.ReelById( SelectedId );
+				if ( reel is null ) return @<div />;
+				return ItemDetail( reel.Name, reel.Description, reel.Icon, reel.Price, Save.OwnedReels.Contains( reel.Id ), Save.EquippedReel == reel.Id,
+					$"Retrieve {reel.ReelSpeed:0.0}x  ·  Drag {reel.MaxDrag:0}  ·  Depth {reel.RetrievalDepth:0.0}x" );
+			case ShopTab.Hooks:
+				var hook = Catalog.HookById( SelectedId );
+				if ( hook is null ) return @<div />;
+				return ItemDetail( hook.Name, hook.Description, hook.Icon, hook.Price, Save.OwnedHooks.Contains( hook.Id ), Save.EquippedHook == hook.Id,
+					$"Hook {hook.HookSuccess:0.0}x  ·  Window {hook.HookWindow:0.0}s  ·  Max {hook.MaxFishSize:0}kg" );
+			case ShopTab.Lines:
+				var line = Catalog.LineById( SelectedId );
+				if ( line is null ) return @<div />;
+				return ItemDetail( line.Name, line.Description, line.Icon, line.Price, Save.OwnedLines.Contains( line.Id ), Save.EquippedLine == line.Id,
+					$"Strength {line.MaxTension:0}  ·  Stealth {1f - line.Visibility:0.0}  ·  Depth {line.DeepCapability:0.0}x" );
+			case ShopTab.Boats:
+				var boat = Catalog.BoatById( SelectedId );
+				if ( boat is null ) return @<div />;
+				return @<div class="detail-inner">
+					<img class="big boat" src="@($"textures/boats/{boat.Sprite}.png")" />
+					<div class="detail-copy">
+						<h2>@boat.Name</h2>
+						<p>@boat.Description</p>
+						<p class="stats">@BoatStatLine(boat)</p>
+					</div>
+					<div class="row-btns">
+						@if ( !Save.OwnedBoats.Contains( boat.Id ) )
+						{
+							<button class="btn primary" @onclick="@Buy">BUY</button>
+						}
+						else
+						{
+							<button class="btn primary" @onclick="@Equip">@(Save.EquippedBoat == boat.Id ? "ACTIVE" : "EQUIP")</button>
+						}
+					</div>
+				</div>;
+		}
+		return @<div />;
+	}
+
+	RenderFragment ItemDetail( string name, string desc, string icon, int price, bool owned, bool equipped, string stats ) => @<div class="detail-inner">
+		<img class="big" src="@($"textures/ui/{icon}.png")" />
+		<div class="detail-copy">
+			<h2>@name</h2>
+			<p>@desc</p>
+			<p class="stats">@stats</p>
+		</div>
+		<div class="row-btns">
+			@if ( !owned )
+			{
+				<button class="btn primary" @onclick="@Buy">BUY</button>
+			}
+			else
+			{
+				<button class="btn primary" @onclick="@Equip">@(equipped ? "EQUIPPED" : "EQUIP")</button>
+			}
+		</div>
+	</div>;
+
+	RenderFragment SellPanel() => @<div class="modal sell">
+		<h2>SELL CATCH</h2>
+		<div class="sell-grid">
+			@for ( var i = 0; i < Save.Storage.Count; i++ )
+			{
+				var idx = i;
+				var f = Save.Storage[i];
+				<button class="card @(SelectedSell.Contains(idx) ? "selected" : "")" @onclick="@(() => ToggleSell(idx))">
+					<img src="@($"textures/fish/{f.SpeciesId}.png")" />
+					<div class="name">@f.SpeciesName</div>
+					<div>@f.Weight.ToString("0.0") kg · @f.Rarity</div>
+					<div class="price"><img src="textures/ui/coin.png" /> @f.Value</div>
+					@if ( f.PersonalBest ) { <div class="badge eq">PB</div> }
+				</button>
+			}
+		</div>
+		<div class="modal-actions">
+			<button class="btn primary" @onclick="@(() => { G.SellSelected(SelectedSell.ToList()); SelectedSell.Clear(); })">Sell Selected</button>
+			<button class="btn primary" @onclick="@(() => { G.SellAll(); SelectedSell.Clear(); })">Sell All</button>
+			<button class="btn" @onclick="@CloseOverlay">Cancel</button>
+		</div>
+	</div>;
+
+	RenderFragment CatchPanel() => @<div class="modal catch">
+		<div class="catch-label">NEW CATCH</div>
+		@if ( G.PendingCatch is not null )
+		{
+			<img class="fish" src="@($"textures/fish/{G.PendingCatch.SpeciesId}.png")" />
+			<h2>@G.PendingCatch.SpeciesName</h2>
+			<div class="rarity @G.PendingCatch.Rarity.ToString().ToLower()">@G.PendingCatch.Rarity</div>
+			<div class="stats">@G.PendingCatch.Length.ToString("0.0") cm · @G.PendingCatch.Weight.ToString("0.00") kg · @G.PendingCatch.Value coins</div>
+			@if ( G.PendingCatch.NewSpecies ) { <div class="badge eq">NEW SPECIES</div> }
+			@if ( G.PendingCatch.PersonalBest ) { <div class="badge">PERSONAL BEST</div> }
+			@if ( G.ReplaceMode )
+			{
+				<div class="hint">Storage full — choose a fish to replace, or release.</div>
+				<div class="sell-grid tiny">
+					@for ( var i = 0; i < Save.Storage.Count; i++ )
+					{
+						var idx = i;
+						<button class="card" @onclick="@(() => { G.ReplaceIndex = idx; G.ReplaceAndKeep(); })">
+							<img src="@($"textures/fish/{Save.Storage[i].SpeciesId}.png")" />
+							<span>Replace</span>
+						</button>
+					}
+				</div>
+			}
+			<div class="modal-actions">
+				@if ( !G.ReplaceMode )
+				{
+					<button class="btn primary" @onclick="@(() => G.KeepCatch())">Keep</button>
+				}
+				<button class="btn" @onclick="@(() => G.ReleaseCatch())">Release</button>
+			</div>
+		}
+	</div>;
+
+	RenderFragment FishLogPanel() => @<div class="modal log">
+		<h2>FISH LOG — @Completion()%</h2>
+		<div class="log-grid">
+			@foreach ( var fish in Catalog.Fish )
+			{
+				var known = Save.FishLog.ContainsKey( fish.Id );
+				<div class="log-card @(known ? "known" : "unknown")">
+					<img src="@(known ? $"textures/fish/{fish.Id}.png" : "textures/fish/fish_silhouette.png")" />
+					<div class="name">@(known ? fish.Name : "???")</div>
+					@if ( known )
+					{
+						var e = Save.FishLog[fish.Id];
+						<div>Best @e.BestLength.ToString("0.0")cm / @e.BestWeight.ToString("0.00")kg</div>
+						<div>Caught @e.TimesCaught · @fish.Rarity</div>
+						<div class="tiny">@fish.PreferredBait · @fish.MinDepth–@fish.MaxDepth m · @fish.MinDistance–@fish.MaxDistance m offshore</div>
+					}
+					else
+					{
+						<div class="tiny">Undiscovered · @fish.Rarity</div>
+					}
+				</div>
+			}
+		</div>
+		<div class="modal-actions"><button class="btn" @onclick="@CloseOverlay">Close</button></div>
+	</div>;
+
+	RenderFragment ObjectivesPanel() => @<div class="modal objectives">
+		<h2>OBJECTIVES</h2>
+		@for ( var i = 0; i < Catalog.Objectives.Count; i++ )
+		{
+			var o = Catalog.Objectives[i];
+			var done = i < G.Objectives.Index;
+			var cur = i == G.Objectives.Index;
+			<div class="obj-row @(done ? "done" : "") @(cur ? "current" : "")">
+				<b>@(done ? "✓" : cur ? "►" : "○") @o.Title</b>
+				<span>@o.Description</span>
+			</div>
+		}
+		<div class="modal-actions"><button class="btn" @onclick="@CloseOverlay">Close</button></div>
+	</div>;
+
+	RenderFragment PausePanel() => @<div class="modal pause">
+		<h2>PAUSED</h2>
+		<button class="btn primary" @onclick="@(() => G.State.CloseOverlay())">Resume</button>
+		<button class="btn" @onclick="@(() => G.State.Force(GamePhase.Settings))">Settings</button>
+		<button class="btn" @onclick="@(() => G.ReturnToDockFromPause())">Return to Dock</button>
+		<button class="btn" @onclick="@(() => G.QuitToMenu())">Save and Quit</button>
+	</div>;
+
+	RenderFragment SettingsPanel() => @<div class="modal settings">
+		<h2>SETTINGS</h2>
+		@Vol( "Master", G.Audio.Master, v => G.Audio.Master = v )
+		@Vol( "Music", G.Audio.Music, v => G.Audio.Music = v )
+		@Vol( "Effects", G.Audio.Effects, v => G.Audio.Effects = v )
+		@Vol( "Ambient", G.Audio.Ambient, v => G.Audio.Ambient = v )
+		<div class="vol"><span>UI Scale</span>
+			<button class="btn" @onclick="@(() => Save.UiScale = Math.Clamp(Save.UiScale - 0.1f, 0.75f, 1.5f))">-</button>
+			<b>@Save.UiScale.ToString("0.0")</b>
+			<button class="btn" @onclick="@(() => Save.UiScale = Math.Clamp(Save.UiScale + 0.1f, 0.75f, 1.5f))">+</button>
+		</div>
+		<button class="btn danger" @onclick="@ResetSave">Reset Save</button>
+		<div class="modal-actions">
+			<button class="btn primary" @onclick="@(() => { G.Autosave(); G.State.CloseOverlay(); })">Back</button>
+		</div>
+	</div>;
+
+	RenderFragment Vol( string label, float value, Action<float> set ) => @<div class="vol">
+		<span>@label</span>
+		<button class="btn" @onclick="@(() => set(Math.Clamp(value - 0.1f, 0f, 1f)))">-</button>
+		<b>@((int)(value * 100))%</b>
+		<button class="btn" @onclick="@(() => set(Math.Clamp(value + 0.1f, 0f, 1f)))">+</button>
+	</div>;
+
+	IEnumerable<(string id, string name, string icon, int price, bool owned, bool equipped, int qty)> ShopCards()
+	{
+		switch ( Tab )
+		{
+			case ShopTab.Bait:
+				foreach ( var b in Catalog.Baits )
+					yield return (b.Id, b.Name, $"textures/ui/{b.Icon}.png", b.Price, false, Save.EquippedBait == b.Id, b.BundleCount);
+				break;
+			case ShopTab.Rods:
+				foreach ( var r in Catalog.Rods )
+					yield return (r.Id, r.Name, $"textures/ui/{r.Icon}.png", r.Price, Save.OwnedRods.Contains(r.Id), Save.EquippedRod == r.Id, -1);
+				break;
+			case ShopTab.Reels:
+				foreach ( var r in Catalog.Reels )
+					yield return (r.Id, r.Name, $"textures/ui/{r.Icon}.png", r.Price, Save.OwnedReels.Contains(r.Id), Save.EquippedReel == r.Id, -1);
+				break;
+			case ShopTab.Hooks:
+				foreach ( var h in Catalog.Hooks )
+					yield return (h.Id, h.Name, $"textures/ui/{h.Icon}.png", h.Price, Save.OwnedHooks.Contains(h.Id), Save.EquippedHook == h.Id, -1);
+				break;
+			case ShopTab.Lines:
+				foreach ( var l in Catalog.Lines )
+					yield return (l.Id, l.Name, $"textures/ui/{l.Icon}.png", l.Price, Save.OwnedLines.Contains(l.Id), Save.EquippedLine == l.Id, -1);
+				break;
+			case ShopTab.Boats:
+				// Boats live in the aside list only.
+				yield break;
+		}
+	}
+
+	void SelectDefault()
+	{
+		SelectedId = Tab switch
+		{
+			ShopTab.Bait => "worm",
+			ShopTab.Rods => Save.EquippedRod,
+			ShopTab.Reels => Save.EquippedReel,
+			ShopTab.Hooks => Save.EquippedHook,
+			ShopTab.Lines => Save.EquippedLine,
+			ShopTab.Boats => string.IsNullOrEmpty( Save.EquippedBoat ) ? "dinghy" : Save.EquippedBoat,
+			_ => "worm"
+		};
+	}
+
+	void Buy()
+	{
+		var err = G.Shop.BuySelected();
+		if ( err is not null ) G.ShowNotice( err );
+		else G.Audio.PlayEffect( "purchase" );
+	}
+
+	void Equip()
+	{
+		var err = G.Shop.EquipSelected();
+		if ( err is not null ) G.ShowNotice( err );
+		else { G.ShowNotice( "Equipped." ); G.Audio.PlayUi( "ui_click" ); }
+	}
+
+	void CloseOverlay()
+	{
+		G.State.CloseOverlay();
+		G.Audio.PlayUi( "ui_click" );
+	}
+
+	void ToggleSell( int idx )
+	{
+		if ( !SelectedSell.Add( idx ) ) SelectedSell.Remove( idx );
+	}
+
+	int Completion()
+	{
+		if ( Catalog.Fish.Count == 0 ) return 0;
+		return Save.FishLog.Count * 100 / Catalog.Fish.Count;
+	}
+
+	string SpeedPips( BoatDefinition b )
+	{
+		var n = (int)Math.Clamp( MathF.Round( b.TopSpeed / 35f ), 1, 4 );
+		return $"{n}/4";
+	}
+
+	string BoatStatLine( BoatDefinition b ) =>
+		$"Speed {SpeedPips( b )}   Depth {b.MaxDepth:0}m   Hold {b.Storage}";
+
+	void ResetSave()
+	{
+		SaveService.Delete();
+		G.NewGame();
+		G.QuitToMenu();
+	}
+
+	void QuitGame()
+	{
+		try
+		{
+			G.Autosave();
+			Game.Close();
+		}
+		catch
+		{
+			G.ShowNotice( "Save written. Close the editor play session to quit." );
+		}
+	}
+
+	protected override int BuildHash() => HashCode.Combine(
+		HashCode.Combine( G?.PromptText, G?.State.Phase, G?.Player.DockX, G?.Boat.Aboard ),
+		HashCode.Combine( G?.Clock.MinuteOfDay, Tab, SelectedId, Save?.Coins ),
+		HashCode.Combine( Inv?.BaitCount, G?.Fishing.CatchProgress, G?.Fishing.FishY, G?.Fishing.BarBottom ),
+		HashCode.Combine( G?.Fishing.BarOnFish, Save?.EquippedBait, Save?.EquippedHook, Inv?.SelectedHotbarIndex ),
+		G?.ActiveTutorialTip?.Id );
+}

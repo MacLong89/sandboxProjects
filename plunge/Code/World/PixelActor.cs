@@ -73,7 +73,8 @@ public sealed class PixelActor : Component
 		renderer.Lighting = false;
 		renderer.Opaque = false;
 		renderer.Billboard = SpriteRenderer.BillboardMode.Always;
-		renderer.TextureFilter = Sandbox.Rendering.FilterMode.Point;
+		// High-detail art downscales at runtime; bilinear keeps it smooth.
+		renderer.TextureFilter = Sandbox.Rendering.FilterMode.Bilinear;
 	}
 
 	public static Sprite LoadSprite( string path )

@@ -149,6 +149,19 @@ public static class UiWindowRegistry
 			Region = UiScreenRegion.CenterModal,
 			InputContext = DynastyUiInputContext.Modal,
 			DismissOnBackdrop = false
+		},
+		[UiWindowType.TutorialTip] = new UiWindowDefinition
+		{
+			Type = UiWindowType.TutorialTip,
+			LayerId = "modal.tutorialTip",
+			Priority = DynastyUiPriority.Confirmation,
+			Group = UiWindowGroup.StandardDialog,
+			Region = UiScreenRegion.CenterModal,
+			InputContext = DynastyUiInputContext.Modal,
+			DismissOnBackdrop = false,
+			DismissOnEscape = false,
+			IsModal = true,
+			BlocksHudInput = true
 		}
 	};
 }

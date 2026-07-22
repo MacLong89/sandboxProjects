@@ -4,3 +4,10 @@
 # Python
 **/__pycache__/
 *.py[cod]
+
+# Tripo API staging downloads (use --sbox-dest for project assets)
+/tools/tripo_output/
+
+# Generated shared asset library (rebuild with consolidate_shared_assets.ps1)
+/shared_assets/Assets/
+/shared_assets/source/

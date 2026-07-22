@@ -12,13 +12,35 @@ public static class PlotCivActions
 	public static bool IsRaided( SaveData save, int x, int y ) =>
 		save?.RaidedCivPlots?.Contains( PlotGrid.Key( x, y ) ) == true;
 
+	public static int TradeCount( SaveData save, int x, int y )
+	{
+		if ( save?.CivTradeCounts is null ) return 0;
+		return save.CivTradeCounts.TryGetValue( PlotGrid.Key( x, y ), out var n ) ? n : 0;
+	}
+
+	/// <summary>Colony still exists for diplomacy (not permanently burned by a raid).</summary>
 	public static bool CanInteract( SaveData save, int x, int y ) =>
 		IsNeutralCiv( x, y ) && !IsRaided( save, x, y );
 
+	public static bool CanTrade( SaveData save, int x, int y ) =>
+		CanInteract( save, x, y )
+		&& TradeCount( save, x, y ) < CureConstants.MaxTradesPerColony;
+
+	public static bool CanAlly( SaveData save, int x, int y ) =>
+		CanInteract( save, x, y ) && !IsAllied( save, x, y );
+
+	public static bool CanRaid( SaveData save, int x, int y ) =>
+		CanInteract( save, x, y ) && !IsAllied( save, x, y );
+
 	public static bool TryTrade( GameCore core, int x, int y )
 	{
-		if ( core?.Save is null || !CanInteract( core.Save, x, y ) ) return false;
+		if ( core?.Save is null || !CanTrade( core.Save, x, y ) ) return false;
 		if ( !core.Resources.TrySpend( ResourceKind.Food, 20 ) ) return false;
+
+		var key = PlotGrid.Key( x, y );
+		core.Save.CivTradeCounts ??= new Dictionary<string, int>();
+		core.Save.CivTradeCounts.TryGetValue( key, out var n );
+		core.Save.CivTradeCounts[key] = n + 1;
 
 		var scrap = TechTreeCatalog.IsUnlocked( core.Save, "diplomacy" ) ? 90.0 : 60.0;
 		core.Wallet.Earn( scrap );
@@ -30,8 +52,7 @@ public static class PlotCivActions
 
 	public static bool TryAlly( GameCore core, int x, int y )
 	{
-		if ( core?.Save is null || !CanInteract( core.Save, x, y ) ) return false;
-		if ( IsAllied( core.Save, x, y ) ) return false;
+		if ( core?.Save is null || !CanAlly( core.Save, x, y ) ) return false;
 
 		core.Save.AlliedCivPlots ??= new List<string>();
 		var key = PlotGrid.Key( x, y );
@@ -48,7 +69,7 @@ public static class PlotCivActions
 
 	public static bool TryRaid( GameCore core, int x, int y )
 	{
-		if ( core?.Save is null || !CanInteract( core.Save, x, y ) ) return false;
+		if ( core?.Save is null || !CanRaid( core.Save, x, y ) ) return false;
 
 		core.Save.RaidedCivPlots ??= new List<string>();
 		var key = PlotGrid.Key( x, y );
@@ -64,4 +85,7 @@ public static class PlotCivActions
 		Sfx.Play( Sfx.Purchase );
 		return true;
 	}
+
+	public static int AlliedCount( SaveData save ) =>
+		save?.AlliedCivPlots?.Count ?? 0;
 }

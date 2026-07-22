@@ -11,12 +11,18 @@ namespace Fauna2;
 /// and left a large camera-clear "hole" around/between pens (dark blue void). Do NOT
 /// reintroduce grass punch-out.
 ///
-/// Current approach: one flat XY floor quad sized exactly to the interior, depth
-/// anchored in HabitatGroundLayer (behind enrichment/animals). Surrounding OwnedTiles
-/// stay enabled. Search "HABITAT GROUND FIX" / "LAYER / PRIORITY" for related code.
+/// Current approach: one flat XY pad sized to the interior (slight underlap into the fence
+/// ring), depth-anchored in HabitatGroundLayer. Surrounding OwnedTiles stay enabled.
+/// Search "HABITAT GROUND FIX" / "LAYER / PRIORITY" for related code.
 /// </summary>
 public static class HabitatGround
 {
+	/// <summary>
+	/// How far the floor tucks under the fence rails (each side). Enough to hide grass
+	/// at the rail line without spilling outside the enclosure.
+	/// </summary>
+	private static float FenceUnderlap => GameConstants.TileSize * 0.4f;
+
 	/// <summary>
 	/// Attach biome floor under <paramref name="parent"/>.
 	/// Ghosts pass alpha &lt; 1; placed habitats use full opacity.
@@ -41,11 +47,11 @@ public static class HabitatGround
 		var habitatRoot = parent.Parent.IsValid() ? parent.Parent : parent;
 		var habitatWorld = habitatRoot.WorldPosition.WithZ( 0f );
 
-		// Interior = area inside the fence rails (matches HabitatSizing / Small=512).
-		// Exact interior size — TileCoverage oversize bled into the fence ring and
-		// compounded depth-clip of enrichments near walls.
 		var interior = HabitatSizing.InteriorSize( footprint );
-		var draw = interior;
+		var underlap = FenceUnderlap * 2f;
+		var draw = new Vector2(
+			MathF.Min( footprint.x, interior.x + underlap ),
+			MathF.Min( footprint.y, interior.y + underlap ) );
 
 		var groundRoot = new GameObject( parent, true, "Ground" );
 		var pad = WorldSprites.SpawnHabitatGroundTile(
@@ -63,10 +69,12 @@ public static class HabitatGround
 				renderer.Color = renderer.Color.WithAlpha( alpha );
 		}
 
-		Log.Info(
-			$"[Fauna2 HabitatGround] pad biome={biome} footprint={footprint.x:0}x{footprint.y:0} " +
-			$"interior={interior.x:0}x{interior.y:0} center=({habitatWorld.x:0},{habitatWorld.y:0}) " +
-			$"tiles=1 flatFloor=True groundBand=True alpha={alpha:0.##} " +
+		Fauna2Debug.Info(
+			"HabitatGround",
+			$"pad biome={biome} footprint={footprint.x:0}x{footprint.y:0} " +
+			$"interior={interior.x:0}x{interior.y:0} draw={draw.x:0}x{draw.y:0} " +
+			$"center=({habitatWorld.x:0},{habitatWorld.y:0}) " +
+			$"flatFloor=True underlap={FenceUnderlap:0.#} groundBand=True alpha={alpha:0.##} " +
 			$"tex={GroundDiagnostics.TextureKey( texture )}" );
 	}
 }

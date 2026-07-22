@@ -80,6 +80,9 @@ public static class ZombieBestiary
 		if ( save is null ) return;
 
 		var progress = Math.Max( save.CurrentNight, save.BestNight );
+		if ( save.CureThreatIndex > 0 || !string.IsNullOrEmpty( save.SelectedTeam ) )
+			progress = Math.Max( progress, CureConstants.CureCombatProgressionNight( save ) );
+
 		foreach ( var def in ZombieCatalog.All )
 		{
 			if ( def.IntroNight <= progress )

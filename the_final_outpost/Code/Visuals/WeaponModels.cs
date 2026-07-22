@@ -1,7 +1,7 @@
 namespace FinalOutpost;
 
 /// <summary>
-/// Recruit weapon world models from the mounted <c>facepunch.sboxweapons</c> package.
+/// Recruit weapon world/view models from the mounted <c>facepunch.sboxweapons</c> package.
 /// </summary>
 public static class WeaponModels
 {
@@ -11,6 +11,12 @@ public static class WeaponModels
 	public const string ShotgunWorld = "models/weapons/sbox_shotgun_spaghellim4/w_spaghellim4.vmdl";
 	public const string SniperWorld = "models/weapons/sbox_sniper_m700/w_m700.vmdl";
 
+	public const string PistolView = "models/weapons/sbox_pistol_usp/v_usp.vmdl";
+	public const string SmgView = "models/weapons/sbox_smg_mp5/v_mp5.vmdl";
+	public const string RifleView = "models/weapons/sbox_assault_m4a1/v_m4a1.vmdl";
+	public const string ShotgunView = "models/weapons/sbox_shotgun_spaghellim4/v_spaghellim4.vmdl";
+	public const string SniperView = "models/weapons/sbox_sniper_m700/v_m700.vmdl";
+
 	public static readonly string[] RequiredWorldModels =
 	{
 		PistolWorld,
@@ -18,6 +24,15 @@ public static class WeaponModels
 		RifleWorld,
 		ShotgunWorld,
 		SniperWorld
+	};
+
+	public static readonly string[] RequiredViewModels =
+	{
+		PistolView,
+		SmgView,
+		RifleView,
+		ShotgunView,
+		SniperView
 	};
 
 	public static Model Load( string path )
@@ -29,7 +44,11 @@ public static class WeaponModels
 		if ( cached is not null && !cached.IsError )
 			return cached;
 
-		// Avoid Model.Load here — unmounted paths spam ERROR_FILEOPEN in the console.
+		var direct = AssetSafe.Model( path );
+		if ( direct is not null )
+			return direct;
+
+		// Avoid raw Model.Load — unmounted paths spam ERROR_FILEOPEN in the console.
 		return MeshPrimitives.Box;
 	}
 }

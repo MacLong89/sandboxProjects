@@ -1,0 +1,550 @@
+@namespace NoFly
+@inherits PanelComponent
+
+<root class="nf-root">
+	@if (Game is null)
+	{
+		<div class="nf-boot">
+			<div class="nf-boot-mark">NO FLY</div>
+			<div class="nf-boot-sub">Loading terminal…</div>
+		</div>
+	}
+	else if (Game.IsLobby)
+	{
+		<div class="nf-screen nf-lobby">
+			<div class="nf-lobby-shell">
+				<header class="nf-lobby-hero">
+					<div class="nf-brand">NO FLY</div>
+					<div class="nf-tagline">Social deception at the worst airport in the world</div>
+				</header>
+
+				<div class="nf-lobby-grid">
+					<section class="nf-card nf-play-card">
+						<div class="nf-card-head">
+							<div class="nf-card-title">Match Lobby</div>
+							<div class="nf-pill @(Local?.IsReady == true ? "ready" : "")">@(Local?.IsReady == true ? "READY" : "NOT READY")</div>
+						</div>
+
+						<div class="nf-stat-row">
+							<div class="nf-stat">
+								<div class="nf-stat-label">Players</div>
+								<div class="nf-stat-value">@Game.ConnectedPlayers</div>
+							</div>
+							<div class="nf-stat">
+								<div class="nf-stat-label">Ready</div>
+								<div class="nf-stat-value">@Game.ReadyPlayers</div>
+							</div>
+							<div class="nf-stat">
+								<div class="nf-stat-label">Need</div>
+								<div class="nf-stat-value">@Game.Settings.MinMultiplayerPlayers</div>
+							</div>
+						</div>
+
+						<div class="nf-status-line">@Game.StatusMessage</div>
+
+						@if (Game.State == RoundState.LobbyCountdown)
+						{
+							<div class="nf-countdown-banner">Starting in <span>@Game.PhaseTimeLeft.ToString("0")</span></div>
+						}
+
+						<div class="nf-btn-row">
+							<button class="nf-btn nf-btn-primary nf-btn-lg" onclick="@ToggleReady">@(Local?.IsReady == true ? "Cancel Ready" : "Ready Up")</button>
+						</div>
+
+						<div class="nf-section-label">Role Preference</div>
+						<div class="nf-btn-row">
+							<button class="nf-btn nf-btn-ghost @(Local?.Preference == RolePreference.Passenger ? "active" : "")" onclick="@(() => SetPref(RolePreference.Passenger))">Passenger</button>
+							<button class="nf-btn nf-btn-ghost @(Local?.Preference == RolePreference.Tsa ? "active" : "")" onclick="@(() => SetPref(RolePreference.Tsa))">TSA</button>
+							<button class="nf-btn nf-btn-ghost @(Local?.Preference == RolePreference.NoPreference ? "active" : "")" onclick="@(() => SetPref(RolePreference.NoPreference))">Any</button>
+						</div>
+
+						<div class="nf-divider"></div>
+
+						<div class="nf-section-label">Single Player</div>
+						<div class="nf-solo-grid">
+							@foreach (var role in SoloRoles)
+							{
+								var info = RoleCatalog.Get(role);
+								<button class="nf-solo-btn" onclick="@(() => StartSolo(role))">
+									<span class="nf-solo-dot" style="background: @info.Color.Hex;"></span>
+									<span class="nf-solo-name">@info.DisplayName</span>
+								</button>
+							}
+						</div>
+					</section>
+
+					<section class="nf-card nf-roles-card">
+						<div class="nf-card-title">Roles</div>
+						<div class="nf-role-list">
+							@foreach (var info in RoleCatalog.All.Values)
+							{
+								<div class="nf-role-row">
+									<div class="nf-role-accent" style="background: @info.Color.Hex;"></div>
+									<div class="nf-role-body">
+										<div class="nf-role-name">@info.DisplayName</div>
+										<div class="nf-role-obj">@info.ShortObjective</div>
+									</div>
+								</div>
+							}
+						</div>
+					</section>
+				</div>
+			</div>
+		</div>
+	}
+	else if (Game.State == RoundState.RoleReveal && Local is not null)
+	{
+		var info = Local.RoleInfo;
+		<div class="nf-screen nf-reveal">
+			<div class="nf-reveal-card" style="border-top-color: @info.Color.Hex;">
+				<div class="nf-reveal-kicker">Your Assignment</div>
+				<div class="nf-reveal-team" style="color: @info.Color.Hex;">@UiLabels.Team(RoleCatalog.VisibleTeam(Local.Role))</div>
+				<div class="nf-reveal-role">@info.DisplayName</div>
+				<div class="nf-reveal-obj">@info.ShortObjective</div>
+				<div class="nf-reveal-tips">
+					@foreach (var tip in info.Tips)
+					{
+						<div class="nf-tip-row">
+							<span class="nf-tip-mark">▸</span>
+							<span class="nf-tip-text">@tip</span>
+						</div>
+					}
+				</div>
+				<div class="nf-reveal-timer">@Game.PhaseTimeLeft.ToString("0")</div>
+			</div>
+		</div>
+	}
+	else if (Game.State == RoundState.Results)
+	{
+		var winner = Game.Winner;
+		var winnerLabel = winner == WinSide.Smuggler ? "SMUGGLER WINS" : "TSA WINS";
+		var winnerColor = winner == WinSide.Smuggler ? "#ff5d7a" : "#4aa3ff";
+		<div class="nf-screen nf-results">
+			<div class="nf-results-shell">
+				<div class="nf-results-head">
+					<div class="nf-results-kicker">Round Over</div>
+					<div class="nf-results-winner" style="color: @winnerColor;">@winnerLabel</div>
+					<div class="nf-results-title">@(Game.LastResults?.Headline ?? Game.StatusMessage)</div>
+					<div class="nf-results-sub">@(winner == WinSide.Smuggler ? "The smuggler boarded and got away." : "Security stopped the smuggler.")</div>
+					<div class="nf-results-timer">Returning to lobby in @Game.PhaseTimeLeft.ToString("0")s</div>
+				</div>
+
+				@if (Game.LastResults is not null)
+				{
+					<div class="nf-results-grid">
+						<section class="nf-card">
+							<div class="nf-card-title">Reveal</div>
+							<div class="nf-kv"><span>Smuggler</span><span>@Game.LastResults.SmugglerName</span></div>
+							<div class="nf-kv"><span>Undercover</span><span>@Game.LastResults.UndercoverName</span></div>
+							<div class="nf-kv"><span>Forged Field</span><span>@Game.LastResults.ForgedField</span></div>
+							<div class="nf-kv"><span>Contraband</span><span class="nf-kv-wrap">@Game.LastResults.ContrabandHide</span></div>
+						</section>
+
+						<section class="nf-card">
+							<div class="nf-card-title">MVPs</div>
+							@foreach (var m in Game.LastResults.Mvps)
+							{
+								<div class="nf-mvp-line">@m</div>
+							}
+						</section>
+
+						<section class="nf-card nf-scores-card">
+							<div class="nf-card-title">Scores</div>
+							<div class="nf-score-list">
+								@foreach (var line in Game.LastResults.Lines)
+								{
+									<div class="nf-score-line">@line</div>
+								}
+							</div>
+						</section>
+					</div>
+				}
+			</div>
+		</div>
+	}
+	else if (Local is not null)
+	{
+		<div class="nf-hud">
+			<div class="nf-topbar">
+				<div class="nf-top-left">
+					<div class="nf-role-chip" style="background: @Local.RoleInfo.Color.Hex;">@Local.RoleInfo.DisplayName</div>
+					<div class="nf-top-stack">
+						<div class="nf-obj-line">@Local.ObjectiveSummary</div>
+						@if (!string.IsNullOrEmpty(Local.FlightNumber))
+						{
+							<div class="nf-flight-line">Flight @Local.FlightNumber · Gate @Local.AssignedGate</div>
+						}
+					</div>
+				</div>
+				<div class="nf-top-right">
+					<div class="nf-timer-block">
+						<div class="nf-timer">@FormatTime(Game.PhaseTimeLeft)</div>
+						<div class="nf-phase">@UiLabels.Phase(Game.State)</div>
+					</div>
+					<div class="nf-score-chip">@Local.ScoreTotal <span>PTS</span></div>
+				</div>
+			</div>
+
+			@if (!string.IsNullOrEmpty(NavText))
+			{
+				<div class="nf-nav @NavClass">
+					<span class="nf-nav-kicker">@NavKicker</span>
+					<span class="nf-nav-text">@NavText</span>
+				</div>
+			}
+
+			<div class="nf-mid">
+				<div class="nf-side nf-side-left">
+					@if (Local.Objectives?.Count > 0)
+					{
+						<div class="nf-side-card">
+							<div class="nf-side-title">Objectives</div>
+							@foreach (var o in Local.Objectives)
+							{
+								<div class="nf-obj-item @(o.Completed ? "is-done" : "")">
+									<span class="nf-obj-check">@(o.Completed ? "✓" : "○")</span>
+									<span class="nf-obj-label">@o.Label</span>
+								</div>
+							}
+						</div>
+					}
+				</div>
+
+				<div class="nf-side nf-side-right">
+					@if (Local.Role == RoleType.UndercoverAgent)
+					{
+						<div class="nf-side-card">
+							<div class="nf-side-title">Clues</div>
+							@foreach (var c in Local.Clues)
+							{
+								<div class="nf-clue-item">@c</div>
+							}
+							<div class="nf-hotkeys">RMB report · R mark · 1 arrest</div>
+						</div>
+					}
+					@if (Local.Role == RoleType.SecurityOfficer)
+					{
+						<div class="nf-side-card">
+							<div class="nf-side-title">Security Tablet</div>
+							@if (Game.Alerts.Count == 0)
+							{
+								<div class="nf-empty">No active alerts</div>
+							}
+							else
+							{
+								@foreach (var a in Game.Alerts.Take(4))
+								{
+									<div class="nf-alert-item">@a.Message</div>
+								}
+							}
+						</div>
+					}
+				</div>
+			</div>
+
+			<div class="nf-bottom">
+				@if (!string.IsNullOrEmpty(Local.ActivePrompt))
+				{
+					<div class="nf-prompt">@Local.ActivePrompt</div>
+				}
+				else if (!string.IsNullOrEmpty(Game.StatusMessage) && Game.State is not RoundState.WaitingForPlayers)
+				{
+					<div class="nf-prompt nf-prompt-soft">@Game.StatusMessage</div>
+				}
+
+				@if (Game.State == RoundState.Preparation)
+				{
+					@if (Local.Role == RoleType.Smuggler && Local.ForgeryComplete && Local.HideComplete)
+					{
+						<div class="nf-banner-ok">Prep complete — security opens in @Game.PhaseTimeLeft.ToString("0")s</div>
+					}
+					else if (Local.AtStation && Local.Role is RoleType.DocumentAgent or RoleType.ScannerAgent or RoleType.SecurityOfficer)
+					{
+						<div class="nf-banner-ok">On station ✓ — @StationLabel — security opens in @Game.PhaseTimeLeft.ToString("0")s</div>
+					}
+					else if (Local.Role is RoleType.DocumentAgent or RoleType.ScannerAgent or RoleType.SecurityOfficer)
+					{
+						<div class="nf-banner-warn">Walk to @StationLabel and press E to man your post</div>
+					}
+					else if (Local.Role is RoleType.RegularPassenger or RoleType.UndercoverAgent)
+					{
+						<div class="nf-banner-ok">Waiting for security — walk around until it opens</div>
+					}
+				}
+				else if (Local.AtStation && Local.Role is RoleType.DocumentAgent or RoleType.ScannerAgent or RoleType.SecurityOfficer)
+				{
+					<div class="nf-banner-ok">On station ✓ — @StationLabel</div>
+				}
+
+			</div>
+		</div>
+
+		@if (ActiveTutorialTip is not null)
+		{
+			var tip = ActiveTutorialTip;
+			<div class="nf-tip-overlay">
+				<div class="nf-tip-backdrop"></div>
+				<div class="nf-tip-card tutorial-tip">
+					<i class="icon nf-tip-icon">@tip.Icon</i>
+					<div class="nf-tip-title">@tip.Title</div>
+					<div class="nf-tip-body">@tip.Body</div>
+					<div class="nf-tip-actions">
+						<button class="nf-btn nf-btn-ghost nf-tip-btn" onclick="@HideAllTips">
+							<i class="icon">visibility_off</i><span>Hide tips</span>
+						</button>
+						<button class="nf-btn nf-btn-primary nf-tip-btn" onclick="@DismissTip"><span>Got it</span></button>
+					</div>
+				</div>
+			</div>
+		}
+
+		@if (!string.IsNullOrEmpty(TipToast))
+		{
+			<div class="nf-tip-toast">@TipToast</div>
+		}
+	}
+</root>
+
+@code
+{
+	NoFlyGame Game => NoFlyGame.Instance;
+	NoFlyPlayer Local => NoFlyGame.LocalPlayer;
+
+	static readonly RoleType[] SoloRoles =
+	{
+		RoleType.Smuggler, RoleType.RegularPassenger, RoleType.UndercoverAgent,
+		RoleType.DocumentAgent, RoleType.ScannerAgent, RoleType.SecurityOfficer
+	};
+
+	TutorialTipDef _activeTutorialTip;
+	string _tipToast = "";
+	TimeUntil _tipCooldown = 0.55f;
+	TimeUntil _tipToastHide;
+
+	TutorialTipDef ActiveTutorialTip => _activeTutorialTip;
+	string TipToast => _tipToast;
+
+	protected override void OnUpdate()
+	{
+		UpdateMouseCapture();
+		RefreshTutorialTips();
+
+		if ( _tipToastHide )
+			_tipToast = "";
+
+		if ( Input.Keyboard.Pressed( "h" ) || Input.Keyboard.Pressed( "H" ) )
+			ToggleTutorialTipsHidden();
+	}
+
+	/// <summary>
+	/// ScreenPanel keeps a visible cursor by default, which zeroes AnalogLook.
+	/// Hide the cursor whenever we're in free play so mouse look works.
+	/// </summary>
+	void UpdateMouseCapture()
+	{
+		Mouse.Visibility = WantsCursor ? MouseVisibility.Visible : MouseVisibility.Hidden;
+	}
+
+	bool WantsCursor
+	{
+		get
+		{
+			if ( Game is null || Game.IsLobby ) return true;
+			if ( Game.State is RoundState.RoleReveal or RoundState.Results or RoundState.AssigningRoles )
+				return true;
+
+			// Active minigame panels need a cursor.
+			if ( Local is null ) return false;
+			if ( Game.State == RoundState.Preparation && Local.Role == RoleType.Smuggler
+			     && (!Local.ForgeryComplete || !Local.HideComplete) )
+				return true;
+			if ( Local.Role == RoleType.DocumentAgent
+			     && Game.Scene.GetAllComponents<DocumentStation>().FirstOrDefault()?.Busy == true )
+				return true;
+			if ( Local.Role == RoleType.ScannerAgent
+			     && Game.Scene.GetAllComponents<ScannerStation>().FirstOrDefault()?.Busy == true )
+				return true;
+			if ( ShopPanel.IsOpen )
+				return true;
+			if ( _activeTutorialTip is not null )
+				return true;
+
+			return false;
+		}
+	}
+
+	bool TutorialUiBlocking
+	{
+		get
+		{
+			if ( Game is null || Local is null ) return true;
+			if ( ShopPanel.IsOpen ) return true;
+			if ( Game.State == RoundState.Preparation && Local.Role == RoleType.Smuggler
+			     && (!Local.ForgeryComplete || !Local.HideComplete) )
+				return true;
+			if ( Local.Role == RoleType.DocumentAgent
+			     && Game.Scene.GetAllComponents<DocumentStation>().FirstOrDefault()?.Busy == true )
+				return true;
+			if ( Local.Role == RoleType.ScannerAgent
+			     && Game.Scene.GetAllComponents<ScannerStation>().FirstOrDefault()?.Busy == true )
+				return true;
+			return false;
+		}
+	}
+
+	void RefreshTutorialTips()
+	{
+		if ( Game is null || Local is null || NoFlyClientPrefs.HideTutorialTips || TutorialUiBlocking )
+		{
+			_activeTutorialTip = null;
+			return;
+		}
+
+		if ( _activeTutorialTip is not null )
+			return;
+
+		if ( !_tipCooldown )
+			return;
+
+		_activeTutorialTip = TutorialTips.PickNext( Local, Game.State, TutorialUiBlocking );
+	}
+
+	void DismissTip()
+	{
+		if ( _activeTutorialTip is not null )
+		{
+			TutorialTips.MarkShown( _activeTutorialTip.Id );
+			_activeTutorialTip = null;
+		}
+
+		_tipCooldown = 0.55f;
+	}
+
+	void HideAllTips()
+	{
+		if ( _activeTutorialTip is not null )
+		{
+			TutorialTips.MarkShown( _activeTutorialTip.Id );
+			_activeTutorialTip = null;
+		}
+
+		NoFlyClientPrefs.HideTutorialTips = true;
+		_tipToast = "Tips hidden — press H to show again";
+		_tipToastHide = 3f;
+		_tipCooldown = 0f;
+	}
+
+	void ToggleTutorialTipsHidden()
+	{
+		NoFlyClientPrefs.HideTutorialTips = !NoFlyClientPrefs.HideTutorialTips;
+
+		if ( NoFlyClientPrefs.HideTutorialTips )
+		{
+			_activeTutorialTip = null;
+			_tipToast = "Tips hidden — press H to show again";
+		}
+		else
+		{
+			_tipToast = "Tips enabled";
+		}
+
+		_tipToastHide = 3f;
+		RefreshTutorialTips();
+	}
+
+	// "Where do I go next" banner. The airport is linear (blue dashed line on the
+	// floor), so we can always tell the player their next stop.
+	string NavKicker => NavClass == "urgent" ? "NOW" : "NEXT";
+
+	string NavClass => Game?.State == RoundState.Chase || Game?.State == RoundState.Boarding ? "urgent" : "";
+
+	string NavText
+	{
+		get
+		{
+			if ( Game is null || Local is null ) return null;
+
+			if ( Game.State == RoundState.Chase )
+				return Local.Role == RoleType.Smuggler
+					? "You are exposed! Sprint to your gate!"
+					: RoleCatalog.VisibleTeam( Local.Role ) == TeamType.Tsa || Local.Role == RoleType.UndercoverAgent
+						? "Smuggler exposed — stop them before the gate!"
+						: "Stay clear — security is chasing a smuggler";
+
+			if ( Local.IsDetained ) return "You are detained — wait for security to finish";
+
+			if ( Game.State == RoundState.Preparation )
+			{
+				var secs = Game.PhaseTimeLeft.ToString( "0" );
+				return Local.Role switch
+				{
+					RoleType.Smuggler => !Local.ForgeryComplete
+						? $"Forge your document — security opens in {secs}s"
+						: !Local.HideComplete
+							? $"Hide your contraband — security opens in {secs}s"
+							: $"Prep done — wait here, security opens in {secs}s",
+					RoleType.DocumentAgent => Local.AtStation
+						? $"On station at Documents ✓ — opens in {secs}s"
+						: $"Walk to DOCUMENTS desk and press E — {secs}s",
+					RoleType.ScannerAgent => Local.AtStation
+						? $"On station at Bag Scan ✓ — opens in {secs}s"
+						: $"Walk to BAG SCAN desk and press E — {secs}s",
+					RoleType.SecurityOfficer => Local.AtStation
+						? $"On station at Security ✓ — opens in {secs}s"
+						: $"Walk to SECURITY desk and press E — {secs}s",
+					_ => $"Waiting area — walk around until security opens ({secs}s)"
+				};
+			}
+
+			if ( Game.State is not (RoundState.AirportOpen or RoundState.Boarding) ) return null;
+
+			// TSA roles man their stations for the whole round.
+			switch ( Local.Role )
+			{
+				case RoleType.DocumentAgent:
+					if ( !Local.AtStation ) return "Return to DOCUMENTS and press E to man your station";
+					return Game.Scene.GetAllComponents<DocumentStation>().FirstOrDefault()?.Busy == true
+						? "Passenger at your desk — complete the inspection"
+						: "On station ✓ — waiting for the next passenger";
+				case RoleType.ScannerAgent:
+					if ( !Local.AtStation ) return "Return to BAG SCAN and press E to man your station";
+					return Game.Scene.GetAllComponents<ScannerStation>().FirstOrDefault()?.Busy == true
+						? "Bag on the belt — complete the scan"
+						: "On station ✓ — waiting for the next bag";
+				case RoleType.SecurityOfficer:
+					return Local.AtStation
+						? "On station ✓ — patrol and respond to tablet alerts"
+						: "Return to SECURITY desk and press E to man your station";
+			}
+
+			if ( !Local.DocumentApproved ) return "Security is open — join the DOCUMENT CHECK queue";
+			if ( !Local.BagCleared ) return "Join the BAG SCAN queue";
+			if ( Local.HasBoarded ) return null;
+
+			var gate = string.IsNullOrEmpty( Local.AssignedGate ) ? "your gate" : $"Gate {Local.AssignedGate}";
+			var objectivesLeft = Local.Objectives?.Count( o => !o.Completed ) ?? 0;
+			return objectivesLeft > 0
+				? $"Finish {objectivesLeft} objective(s), then board at {gate} (long concourse)"
+				: $"You are cleared — run the concourse to {gate}";
+		}
+	}
+
+	void ToggleReady() => Local?.RpcSetReady( !(Local.IsReady) );
+	void SetPref( RolePreference pref ) => Local?.RpcSetPreference( pref );
+	void StartSolo( RoleType role ) => Game?.RpcRequestSinglePlayer( role );
+
+	string StationLabel => Local is null ? "your desk" : StaffStation.StationName( Local.Role );
+
+	string FormatTime( float t )
+	{
+		var m = (int)(t / 60f);
+		var s = (int)(t % 60f);
+		return $"{m}:{s:00}";
+	}
+
+	protected override int BuildHash() => HashCode.Combine(
+		HashCode.Combine( Game?.State, (int)(Game?.PhaseTimeLeft ?? 0), Game?.StatusMessage, Game?.ReadyPlayers ),
+		HashCode.Combine( Local?.Role, Local?.IsReady, Local?.ScoreTotal, Local?.ActivePrompt, Local?.AtStation ),
+		HashCode.Combine( Local?.ForgeryComplete, Local?.HideComplete, Game?.Alerts?.Count, _activeTutorialTip?.Id, _tipToast ),
+		HashCode.Combine( Local?.DocumentApproved, Local?.BagCleared, Game?.Winner, Game?.ResultsSummary ) );
+}

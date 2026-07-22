@@ -153,12 +153,6 @@ public static class PlotWorldRolls
 		return Hash( x, y ) % RivalSeedRollMod == 0;
 	}
 
-	public static bool IsScoutable( int x, int y ) =>
-		BoostAt( x, y ) != PlotBoostKind.None
-		|| BossAt( x, y ) != BossKind.None
-		|| RivalCivManager.IsRivalOwned( GameCore.Instance?.Save, x, y )
-		|| RivalCivManager.IsSeedPlot( x, y );
-
 	internal static int Hash( int x, int y )
 	{
 		unchecked

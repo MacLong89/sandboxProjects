@@ -282,8 +282,10 @@ public sealed class WildernessSpawner : Component
 	private static AnimalDefinition PickSpecies( int px, int py, Biome starterBiome )
 	{
 		var regional = WildernessBiomeMap.BiomeForPlot( px, py, starterBiome );
+		var maxUnlock = Math.Max( 3, ZooState.Instance?.Level ?? 1 );
 		var pool = Defs.Animals
-			.Where( a => a.UnlockLevel <= 5 && BiomeEcology.CanWildSpawn( regional, a.Biome ) )
+			.Where( a => a.UnlockLevel <= maxUnlock && BiomeEcology.CanWildSpawn( regional, a.Biome ) )
+			.Where( WorldSpriteCatalog.HasReadableCritterArt )
 			.Where( a => PlotHasValidHabitat( px, py, starterBiome, a ) )
 			.ToList();
 

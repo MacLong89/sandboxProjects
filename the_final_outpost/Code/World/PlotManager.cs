@@ -125,6 +125,10 @@ public sealed class PlotManager : Component
 		{
 			if ( PlotGrid.IsHome( x, y ) || IsCleared( x, y ) ) continue;
 			if ( PlotGrid.HarvestResourceAt( x, y ) == ResourceKind.None ) continue;
+			if ( core.IsCure
+				&& PlotFeatureGrid.KindAt( x, y ) == PlotKind.NeutralCiv
+				&& !PlotCivActions.IsRaided( core.Save, x, y ) )
+				continue;
 
 			var foragers = wm.CountForagersOn( x, y );
 			if ( foragers <= 0 ) continue;
@@ -170,16 +174,14 @@ public sealed class PlotManager : Component
 		if ( core is null || core.Phase != GamePhase.Day ) return false;
 		if ( !IsBuyable( x, y ) ) return false;
 
-		var cost = PlotGrid.BuyCostEffective( x, y ) * RivalCivManager.InvasionCostMult( core.Save, x, y );
+		// Rival territory requires an assault fight, not an instant claim.
+		if ( RivalCivManager.IsRivalOwned( core.Save, x, y ) )
+			return core.TryStartRivalAssault( x, y );
+
+		var cost = PlotGrid.BuyCostEffective( x, y );
 		if ( !core.Wallet.TrySpend( cost ) ) return false;
 
 		var key = PlotGrid.Key( x, y );
-		if ( RivalCivManager.IsRivalOwned( core.Save, x, y ) )
-		{
-			core.Save.RivalOwnedPlots?.Remove( key );
-			core.ShowToast( "Rival territory invaded — plot claimed at double cost" );
-		}
-
 		_owned.Add( (x, y) );
 		if ( !core.Save.OwnedPlots.Contains( key ) )
 			core.Save.OwnedPlots.Add( key );
@@ -189,6 +191,23 @@ public sealed class PlotManager : Component
 		Sfx.Play( Sfx.Purchase );
 		core.SaveManagerTouch();
 		return true;
+	}
+
+	/// <summary>Called when a rival plot assault is won — claim the tile without charging again.</summary>
+	public void CompleteRivalAssaultClaim( int x, int y )
+	{
+		var core = GameCore.Instance;
+		if ( core is null ) return;
+
+		var key = PlotGrid.Key( x, y );
+		core.Save.RivalOwnedPlots?.Remove( key );
+		_owned.Add( (x, y) );
+		if ( !core.Save.OwnedPlots.Contains( key ) )
+			core.Save.OwnedPlots.Add( key );
+
+		KnowledgeGain.OnPlotClaimed( core );
+		RebuildVisuals();
+		core.SaveManagerTouch();
 	}
 
 	// --- Visuals ------------------------------------------------------------
@@ -210,6 +229,8 @@ public sealed class PlotManager : Component
 			var save = GameCore.Instance?.Save;
 			var rivalOwned = RivalCivManager.IsRivalOwned( save, x, y );
 			var rivalSeed = RivalCivManager.IsSeedPlot( x, y );
+			var assaultingThis = HostileForceSystem.Instance is { IsAssault: true } h
+				&& h.AssaultPlotX == x && h.AssaultPlotY == y;
 			var boss = PlotWorldRolls.BossAt( x, y );
 			var boost = PlotWorldRolls.BoostAt( x, y );
 			var bossCleared = save?.ClearedBossPlots?.Contains( PlotGrid.Key( x, y ) ) == true;
@@ -227,7 +248,15 @@ public sealed class PlotManager : Component
 			}
 
 			if ( rivalSeed && !IsOwned( x, y ) )
-				BuildRivalCommandPost( x, y );
+			{
+				// Keep walls/CP/civic buildings during assault; live units replace daytime guards/towers.
+				BuildRivalCommandPost( x, y, includeGuards: !assaultingThis, includeDefenseBuildings: !assaultingThis );
+			}
+			else if ( rivalOwned && !IsOwned( x, y ) && !rivalSeed && !assaultingThis )
+			{
+				// Expanded rival land: lighter presence — a few guards without a command post.
+				BuildRivalOutpostGuards( x, y );
+			}
 
 			if ( rivalOwned && !IsOwned( x, y ) )
 				BuildBoundary( x, y, new Color( 0.85f, 0.28f, 0.32f ), height: 16f );
@@ -240,7 +269,7 @@ public sealed class PlotManager : Component
 	private void BuildBoundary( int x, int y, Color tint, float height )
 	{
 		var center = PlotGrid.CenterWorld( x, y );
-		var half = GameConstants.PlotSize * 0.5f - 8f;
+		var half = GameConstants.PlotSize * 0.5f - GameConstants.U( 8f );
 		var t = 10f;
 
 		// Four low edge rails to read the parcel outline without hiding the grass.
@@ -388,16 +417,41 @@ public sealed class PlotManager : Component
 		}
 	}
 
-	private void BuildRivalCommandPost( int x, int y )
+	private void BuildRivalOutpostGuards( int x, int y )
 	{
 		var center = PlotGrid.CenterWorld( x, y );
-		var tint = new Color( 0.82f, 0.25f, 0.28f );
-		AddProp( "RivalCore", MeshPrimitives.Box, StylizedMaterials.Stone,
-			center + Vector3.Up * 36f, new Vector3( 56f, 56f, 72f ), tint );
-		AddProp( "RivalFlag", MeshPrimitives.Cylinder, MeshPrimitives.Mat,
-			center + new Vector3( 28f, 28f, 78f ), new Vector3( 8f, 8f, 64f ), tint * 0.7f );
-		AddProp( "RivalBanner", MeshPrimitives.Box, MeshPrimitives.Mat,
-			center + new Vector3( 42f, 28f, 108f ), new Vector3( 36f, 6f, 24f ), new Color( 0.95f, 0.35f, 0.35f ) );
+		var layout = RivalGarrison.Build( x, y );
+		var tint = new Color( 0.78f, 0.3f, 0.32f );
+		var show = Math.Min( 3, layout.Recruits.Count );
+		for ( var i = 0; i < show; i++ )
+		{
+			var slot = layout.Recruits[i];
+			var rp = center + slot.LocalOffset * 0.7f;
+			rp.z = OutpostTerrain.SampleHeight( rp.x, rp.y );
+			var go = new GameObject( _root, true, "RivalPatrolVisual" );
+			go.WorldPosition = rp;
+			var character = go.Components.Create<CharacterModel>();
+			var def = RecruitWeapons.Get( slot.Weapon );
+			character.Setup( tint, def.WorldModel, def.Hold, def.WeaponScale * 0.9f );
+			character.Tick( Vector3.Zero, Rotation.FromYaw( i * 90f ) );
+		}
+
+		if ( layout.Buildings.Count > 0 )
+		{
+			var slot = layout.Buildings[0];
+			var tp = center + slot.LocalOffset * 0.8f;
+			tp.z = OutpostTerrain.SampleHeight( tp.x, tp.y );
+			var go = new GameObject( _root, true, "RivalOutpostBuilding" );
+			go.WorldPosition = tp;
+			BuildingVisual.Build( go, slot.Id, tp, includeRubble: false );
+		}
+	}
+
+	private void BuildRivalCommandPost( int x, int y, bool includeGuards, bool includeDefenseBuildings )
+	{
+		var center = PlotGrid.CenterWorld( x, y );
+		var layout = RivalGarrison.Build( x, y );
+		RivalBaseVisual.BuildSeed( _root, center, layout, includeGuards, includeDefenseBuildings );
 	}
 
 	private static Vector3 ScatterXY( Vector3 center, Random rng, float spread )

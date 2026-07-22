@@ -72,7 +72,7 @@
 	{
 		get
 		{
-			var remaining = GameConstants.ObstacleClearSeconds * (1f - UiState.ObstacleClearPercent);
+			var remaining = GameConstants.ObstacleClearDuration * (1f - UiState.ObstacleClearPercent);
 			return remaining <= 0.1f ? "Almost done" : $"About {MathF.Ceiling( remaining )}s left";
 		}
 	}

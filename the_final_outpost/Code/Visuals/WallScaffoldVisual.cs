@@ -13,30 +13,50 @@ public static class WallScaffoldVisual
 	/// <param name="size">Full solid footprint the segment still occupies (length × thickness × height).</param>
 	/// <param name="track">Called for each renderer so damage tints can track base colors.</param>
 	/// <param name="wallCenter">World center — used to pick N/S vs E/W when the footprint is square.</param>
+	/// <param name="level">1–5; denser bars / iron cap rail at higher tiers.</param>
 	public static void Build(
 		GameObject root,
 		Vector3 size,
 		Action<ModelRenderer, Color> track,
-		Vector3 wallCenter = default )
+		Vector3 wallCenter = default,
+		int level = 1 )
 	{
 		var alongX = RunsAlongX( wallCenter, size );
+		level = Math.Clamp( level, 1, 5 );
 
 		var length = alongX ? size.x : size.y;
 		var depth = alongX ? size.y : size.x;
 		var height = size.z;
 
-		var wood = StylizedMaterials.Wood;
-		var stone = StylizedMaterials.Stone;
+		// Corner ring cells keep full collision, but the mesh only covers the inward half
+		// so rails don't stick past the perpendicular face.
+		var originShift = 0f;
+		if ( IsRingCorner( wallCenter ) )
+		{
+			var inward = alongX
+				? -MathF.Sign( wallCenter.x )
+				: -MathF.Sign( wallCenter.y );
+			if ( inward == 0 )
+				inward = -1;
+			length *= 0.5f;
+			originShift = inward * length * 0.5f;
+		}
 
-		var span = length * 1.02f;
+		var wood = StylizedMaterials.Wood;
+		var iron = StylizedMaterials.Metal;
+
 		// Thin fence depth — centered so both faces match and gaps stay open.
 		var frameDepth = MathF.Max( 8f, depth * 0.22f );
 		var postW = MathF.Max( 7f, GameConstants.CellSize * 0.12f );
 		var railH = MathF.Max( 6f, height * 0.05f );
-		var postCount = Math.Max( 2, (int)MathF.Round( length / GameConstants.CellSize ) + 1 );
+		// Inset end posts so neighbors meet flush instead of overlapping past each other.
+		var postInset = postW * 0.5f;
+		var postRun = MathF.Max( postW, length - postW );
+		var span = postRun;
+		var postCount = Math.Max( 2, (int)MathF.Round( postRun / GameConstants.CellSize ) + 1 );
 
 		void Part( Material mat, Vector3 localPos, Vector3 localSize, Color textured, Color fallback ) =>
-			AddPart( root, alongX, mat, localPos, localSize, textured, fallback, track );
+			AddPart( root, alongX, mat, localPos + new Vector3( originShift, 0f, 0f ), localSize, textured, fallback, track );
 
 		var halfL = length * 0.5f;
 		var halfH = height * 0.5f;
@@ -44,24 +64,31 @@ public static class WallScaffoldVisual
 		var zMid = 0f;
 		var zTop = halfH - railH * 0.55f;
 
-		// Three horizontal rails (kick / mid / top) — full span, centered on the wall midline.
+		// Three horizontal rails (kick / mid / top) — sit between end-post faces.
 		Part( wood, new Vector3( 0f, 0f, zBot ), new Vector3( span, frameDepth, railH ), WoodTextured, WoodFallback );
 		Part( wood, new Vector3( 0f, 0f, zMid ), new Vector3( span, frameDepth * 0.9f, railH * 0.8f ), WoodTextured, WoodFallback );
 		Part( wood, new Vector3( 0f, 0f, zTop ), new Vector3( span, frameDepth, railH ), WoodTextured, WoodFallback );
+		if ( level >= 3 )
+			Part( iron, new Vector3( 0f, 0f, zTop + railH * 0.7f ), new Vector3( span * 0.98f, frameDepth * 0.55f, railH * 0.55f ), IronTextured, IronFallback );
 
-		// Vertical timber posts at cell edges.
+		// Vertical timber posts — inset from cell edges so corners don't T-overhang.
 		for ( var i = 0; i < postCount; i++ )
 		{
 			var t = postCount == 1 ? 0.5f : i / (float)(postCount - 1);
-			var x = -halfL + length * t;
+			var x = -halfL + postInset + postRun * t;
 			Part( wood, new Vector3( x, 0f, 0f ), new Vector3( postW, frameDepth * 1.1f, height * 0.98f ), WoodTextured, WoodFallback );
 		}
 
-		// Iron bars fill each bay — see-through from both sides (no solid backer).
-		var picketGap = MathF.Max( 8f, GameConstants.CellSize * 0.14f );
-		var picketW = MathF.Max( 2.2f, depth * 0.04f );
-		var picketH = height * 0.78f;
-		var picketZ = -halfH + railH + picketH * 0.5f + 1f;
+		// Iron bars fill each bay — denser at higher levels.
+		var gapScale = level switch
+		{
+			>= 5 => 0.72f,
+			>= 4 => 0.82f,
+			>= 2 => 0.9f,
+			_ => 1f
+		};
+		var picketGap = MathF.Max( 8f, GameConstants.CellSize * 0.14f * gapScale );
+		var picketThick = MathF.Max( 2.2f, GameConstants.CellSize * 0.025f * (level >= 4 ? 1.15f : 1f) );
 		var margin = postW * 0.75f;
 
 		for ( var x = -halfL + margin + picketGap * 0.5f; x <= halfL - margin; x += picketGap )
@@ -70,7 +97,7 @@ public static class WallScaffoldVisual
 			for ( var i = 0; i < postCount; i++ )
 			{
 				var t = postCount == 1 ? 0.5f : i / (float)(postCount - 1);
-				if ( MathF.Abs( x - (-halfL + length * t) ) < postW * 0.75f )
+				if ( MathF.Abs( x - (-halfL + postInset + postRun * t) ) < postW * 0.75f )
 				{
 					onPost = true;
 					break;
@@ -80,9 +107,9 @@ public static class WallScaffoldVisual
 			if ( onPost )
 				continue;
 
-			Part( stone,
-				new Vector3( x, 0f, picketZ ),
-				new Vector3( picketW, frameDepth * 0.7f, picketH ),
+			Part( iron,
+				new Vector3( x, 0f, 0f ),
+				new Vector3( picketThick, picketThick, height ),
 				IronTextured,
 				IronFallback );
 		}
@@ -100,14 +127,17 @@ public static class WallScaffoldVisual
 		Action<ModelRenderer, Color> track )
 	{
 		var wood = StylizedMaterials.Wood;
-		var stone = StylizedMaterials.Stone;
+		var iron = StylizedMaterials.Metal;
 		var ox = outwardX >= 0f ? 1f : -1f;
 		var oy = outwardY >= 0f ? 1f : -1f;
 
-		var post = MathF.Max( 10f, thickness * 0.22f );
-		var railH = MathF.Max( 6f, height * 0.05f );
-		var arm = thickness * 0.7f;
+		var cell = GameConstants.CellSize;
 		var frameDepth = MathF.Max( 8f, thickness * 0.22f );
+		// Match side-wall posts; long E/W arm bridges the skipped corner cell.
+		var post = MathF.Max( 10f, cell * 0.12f );
+		var railH = MathF.Max( 6f, height * 0.05f );
+		var armAlongNs = cell * 0.12f;
+		var armAlongEw = cell * 0.55f;
 		var halfH = height * 0.5f;
 		var zBot = -halfH + railH * 0.5f;
 		var zTop = halfH - railH * 0.55f;
@@ -119,7 +149,7 @@ public static class WallScaffoldVisual
 		// Corner post.
 		Part( Vector3.Zero, new Vector3( post, post, height ), wood, WoodTextured, WoodFallback );
 
-		// Rails along both arms (inward along each adjoining wall).
+		// Short N/S stub (side segment already reaches here) + longer E/W bridge arm.
 		void ArmRails( Vector3 mid, Vector3 size )
 		{
 			Part( mid + new Vector3( 0f, 0f, zBot ), size.WithZ( railH ), wood, WoodTextured, WoodFallback );
@@ -127,24 +157,29 @@ public static class WallScaffoldVisual
 			Part( mid + new Vector3( 0f, 0f, zTop ), size.WithZ( railH ), wood, WoodTextured, WoodFallback );
 		}
 
-		ArmRails( new Vector3( -ox * arm * 0.5f, 0f, 0f ), new Vector3( arm, frameDepth, 0f ) );
-		ArmRails( new Vector3( 0f, -oy * arm * 0.5f, 0f ), new Vector3( frameDepth, arm, 0f ) );
+		ArmRails( new Vector3( -ox * armAlongNs * 0.5f, 0f, 0f ), new Vector3( armAlongNs, frameDepth, 0f ) );
+		ArmRails( new Vector3( 0f, -oy * armAlongEw * 0.5f, 0f ), new Vector3( frameDepth, armAlongEw, 0f ) );
 
-		var picketH = height * 0.78f;
-		var picketZ = -halfH + railH + picketH * 0.5f + 1f;
-		var picketW = MathF.Max( 2.2f, thickness * 0.04f );
+		var picketThick = MathF.Max( 2.2f, cell * 0.025f );
 		for ( var i = 1; i <= 3; i++ )
 		{
-			var d = arm * (i / 4f);
+			var d = armAlongEw * (i / 4f);
 			Part(
-				new Vector3( -ox * d, 0f, picketZ ),
-				new Vector3( picketW, frameDepth * 0.7f, picketH ),
-				stone, IronTextured, IronFallback );
-			Part(
-				new Vector3( 0f, -oy * d, picketZ ),
-				new Vector3( frameDepth * 0.7f, picketW, picketH ),
-				stone, IronTextured, IronFallback );
+				new Vector3( 0f, -oy * d, 0f ),
+				new Vector3( picketThick, picketThick, height ),
+				iron, IronTextured, IronFallback );
 		}
+	}
+
+	static bool IsRingCorner( Vector3 wallCenter )
+	{
+		if ( wallCenter == default )
+			return false;
+
+		var half = GameConstants.WallRingCenter;
+		var onRingX = MathF.Abs( MathF.Abs( wallCenter.x ) - half ) < 1f;
+		var onRingY = MathF.Abs( MathF.Abs( wallCenter.y ) - half ) < 1f;
+		return onRingX && onRingY;
 	}
 
 	/// <summary>
@@ -153,7 +188,7 @@ public static class WallScaffoldVisual
 	/// </summary>
 	public static bool RunsAlongX( Vector3 wallCenter, Vector3 size )
 	{
-		var half = GameConstants.ArenaHalf;
+		var half = GameConstants.WallRingCenter;
 		var distN = MathF.Abs( MathF.Abs( wallCenter.y ) - half );
 		var distE = MathF.Abs( MathF.Abs( wallCenter.x ) - half );
 

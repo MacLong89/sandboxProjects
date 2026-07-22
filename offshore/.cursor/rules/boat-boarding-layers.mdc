@@ -1,0 +1,33 @@
+---
+description: How boarded boats must look — three-layer seating (hull, player, gunwale). Do not use oversized pilot composites.
+globs: Code/Visual/WorldPresenter.cs,Assets/textures/boats/**
+alwaysApply: false
+---
+
+# Boat boarding visuals (locked)
+
+Boarding the dinghy looks correct. **Keep this pattern for every boat.**
+
+## Do
+
+Use **three layers** so the player sits *inside* the hull:
+
+1. **Full empty boat** (`boats/boat_{id}.png`) at `BoatY` (farther) — always the same sprite and `BoatHeight`. Size must never change when boarding.
+2. **Foot player** (`art/player_*`) at `BoatSeatY` between hull and rim — slightly scaled (`PlayerHeight * 0.88`), seated via `PlayerAnchor` / seat offsets. Flip and rock with the boat.
+3. **Near gunwale / front rim** (`boats/boat_{id}_front.png`) at `BoatFrontY` (closer) — only while `aboard` / boarding. Same canvas size as the empty boat; lower half of the hull so legs are occluded.
+
+Depth order (smaller Y = closer to camera): `BoatFrontY` → `BoatSeatY` → `BoatY`.
+
+## Do not
+
+- Swap to composite `pilot_*` sprites that use a different canvas (they change size/look).
+- Glue the full standing player entirely in front of the boat with no rim (legs read as outside the hull).
+- Hide the empty boat and replace it with a different-sized “player-in-boat” plate.
+
+## Front rim assets
+
+Each boat needs a matching `_front` PNG: same dimensions as `boat_*.png`, transparent upper half, opaque lower gunwale (roughly bottom ~50% of the hull). Regenerate when boat art changes.
+
+## Reference
+
+Implementation: `WorldPresenter` boat update block (`_boat`, `_boatFront`, seated `_player`).

@@ -81,13 +81,13 @@ public static class AimboxProgressionUiHelpers
 			case AimboxProgressionCategory.KillEffects:
 			{
 				var unlocked = 0;
-				foreach ( var streak in AimboxMw2Catalog.Killstreaks )
+				foreach ( var streak in AimboxMw2Catalog.ImplementedKillstreaks )
 				{
 					if ( AimboxUnlockService.IsKillstreakUnlocked( data, streak.Id ) )
 						unlocked++;
 				}
 
-				return (unlocked, AimboxMw2Catalog.Killstreaks.Count);
+				return (unlocked, AimboxMw2Catalog.ImplementedKillstreaks.Count());
 			}
 			default:
 				return (0, 0);
@@ -164,7 +164,7 @@ public static class AimboxProgressionUiHelpers
 			case AimboxProgressionCategory.KillEffects:
 			{
 				var entries = new List<AimboxProgressionRewardEntry>();
-				foreach ( var streak in AimboxMw2Catalog.Killstreaks )
+				foreach ( var streak in AimboxMw2Catalog.ImplementedKillstreaks )
 					entries.Add( KillstreakEntry( data, streak ) );
 
 				SortEntriesByLevelName( entries );
@@ -350,7 +350,7 @@ public static class AimboxProgressionUiHelpers
 
 		if ( category is AimboxProgressionCategory.Overview or AimboxProgressionCategory.KillEffects )
 		{
-			foreach ( var streak in AimboxMw2Catalog.Killstreaks )
+			foreach ( var streak in AimboxMw2Catalog.ImplementedKillstreaks )
 			{
 				if ( streak.UnlockLevel == level )
 					rewards.Add( KillstreakEntry( data, streak ) );

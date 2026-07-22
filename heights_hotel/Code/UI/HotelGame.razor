@@ -7,7 +7,7 @@
 @inherits PanelComponent
 @attribute [Title( "Hotel HUD" )]
 
-<root class="hotel-root @(CompactHeight ? "compact-height" : "") @(SelectedCell is not null ? "has-inspector" : "") @(ActiveTab is not null ? "dock-open" : "")">
+<root class="hotel-root @(CompactHeight ? "compact-height" : "") @(SelectedCell is not null ? "has-inspector" : "") @(ActiveTab is not null ? "dock-open" : "") @(BuildMode ? "has-build-banner" : "") @(ShowTutorialTip ? "has-tip-modal" : "") @( !string.IsNullOrWhiteSpace(ToastStatus) ? "has-toast" : "" )">
 	@if ( Sim is null )
 	{
 		<div class="boot-screen">
@@ -42,19 +42,38 @@
 
 		<section class="hud-panel goals-panel">
 			<header>Today's goals</header>
+			@if ( !ActiveGoals.Any() )
+			{
+				<button class="goal-row empty-goal" @onclick="@OpenGoalsDock">
+					<span>No goals yet</span><b>Open</b>
+				</button>
+			}
 			@foreach ( var goal in ActiveGoals.Take( 3 ) )
 			{
 				var progress = GoalProgressValue( goal );
 				var pct = goal.Target <= 0 ? 0 : Math.Min( 100, progress * 100 / goal.Target );
-				<div class="goal-row @(IsGoalDone( goal ) ? "complete" : "")">
-					<span>@goal.Title</span><b>@FormatGoalProgress( goal )</b>
-				</div>
+				var claimable = IsGoalDone( goal ) && !goal.Claimed;
+				var goalId = goal.Id;
+				<button class="goal-row @(IsGoalDone( goal ) ? "complete" : "") @(goal.Claimed ? "claimed" : "") @(claimable ? "claimable" : "")"
+						Tooltip="@(claimable ? "Claim reward" : "Open goals")"
+						@onclick="@(() => HandleRailGoal( goalId ))">
+					<span>@goal.Title</span>
+					<b>@(claimable ? $"Claim {HotelSimulation.FormatMoney( goal.RewardCents )}" : FormatGoalProgress( goal ))</b>
+				</button>
 				<div class="mini-track @(IsGoalDone( goal ) ? "complete" : "")"><div style="width:@pct%;"></div></div>
 			}
 		</section>
 
 		<section class="hud-panel notifications-panel">
 			<header>Notifications</header>
+			@if ( IsUnderstaffed )
+			{
+				<button class="notice understaffed-notice" @onclick="@OpenStaffHireDock">
+					<div class="notice-dot danger"></div>
+					<span>@TopStaffingNeed.Reason</span>
+					<b>Hire</b>
+				</button>
+			}
 			@foreach ( var notice in Notifications )
 			{
 				<button class="notice" @onclick="@(() => HandleNotice( notice ))">
@@ -92,10 +111,12 @@
 
 	@if ( SelectedBuild is RoomType placing )
 	{
-		<div class="build-mode-banner">
-			<strong>Placing @GameBalance.GetRoom(placing).DisplayName</strong>
-			<span>Click a glowing plot · Build again to change type · Esc cancels</span>
-			<button class="small" @onclick="@CancelBuild">Cancel</button>
+		<div class="build-mode-slot">
+			<div class="build-mode-banner">
+				<strong>Placing @GameBalance.GetRoom(placing).DisplayName</strong>
+				<span>Click a glowing plot to build</span>
+				<button class="small" @onclick="@CancelBuild">Cancel</button>
+			</div>
 		</div>
 	}
 
@@ -129,10 +150,6 @@
 					 Tooltip="@RoomTooltip(cell)"
 					 @onclick="@(() => SelectRoom(cx, cy))">
 					<div class="room-level">Lv @cell.Level</div>
-					@if ( cell.AssignedEmployeeId is int )
-					{
-						<div class="staff-pin"></div>
-					}
 					@if ( cell.Level > 1 )
 					{
 						<div class="overlay level-@cell.Level"></div>
@@ -151,32 +168,41 @@
 						<div class="overlay broken"></div>
 						<div class="repair-sparks"></div>
 					}
-					else if ( cell.OccupantGuestIds.Count > 0 && cell.Cleanliness >= 0.65f )
+					else if ( AmenityClosed( cell ) )
 					{
-						<div class="state-bubble bubble-happy"></div>
+						<div class="overlay closed"></div>
+						<div class="room-service-alerts">
+							<div class="room-service-alert closed-alert hire-alert">
+								<div class="service-alert-icon bubble-queue"></div>
+								<span>Needs staff</span>
+							</div>
+						</div>
 					}
-					@if ( cell.Broken || NeedsCleaningAlert(cell) )
+					@if ( cell.Broken || NeedsCleaningAlert(cell) || LobbyQueueAlert(cell) )
 					{
 						<div class="room-service-alerts">
 							@if ( cell.Broken )
 							{
 								<div class="room-service-alert fix-alert">
 									<div class="service-alert-icon bubble-broken"></div>
-									<span>Fix</span>
+									<span>Broken</span>
 								</div>
 							}
 							@if ( NeedsCleaningAlert(cell) )
 							{
 								<div class="room-service-alert clean-alert">
 									<div class="service-alert-icon bubble-dirty"></div>
-									<span>Clean</span>
+									<span>Dirty</span>
+								</div>
+							}
+							@if ( LobbyQueueAlert(cell) )
+							{
+								<div class="room-service-alert queue-alert">
+									<div class="service-alert-icon bubble-queue"></div>
+									<span>Waiting</span>
 								</div>
 							}
 						</div>
-					}
-					@if ( cell.Type == RoomType.Lobby && Guests.Any(g => g.Phase == GuestPhase.CheckingIn) )
-					{
-						<div class="state-bubble bubble-queue"></div>
 					}
 					@if ( cell.Type is RoomType.Cafe or RoomType.Restaurant )
 					{
@@ -230,33 +256,52 @@
 				<span>Level</span><b>@selected.Level/@GameBalance.MaxRoomLevel</b>
 				<span>Clean</span><b>@Percent(selected.Cleanliness)</b>
 				<span>Guests</span><b>@selected.OccupantGuestIds.Count/@Capacity(selected)</b>
-				<span>Staff</span><b>@AssignedStaffName(selected)</b>
+				<span>Crew</span><b>Auto hotel-wide</b>
 			</div>
 			@if ( selected.Broken )
 			{
-				<div class="warning">Needs maintenance</div>
+				<div class="warning">Needs maintenance@(HasRole(StaffRole.MaintenanceWorker) ? "" : " — HIRE Maintenance")</div>
+			}
+			else if ( AmenityClosed( selected ) )
+			{
+				<div class="warning hire-warning">@AmenityClosedText( selected )</div>
+				<button class="primary hire-cta" @onclick="@(() => OpenStaffHireFor( PreferredRole( selected ) ))">
+					Hire @GameBalance.GetStaff( PreferredRole( selected ) ).DisplayName
+				</button>
 			}
 			<div class="service-actions">
 				@if ( GameBalance.GetRoom(selected.Type).Category == RoomCategory.Lodging && selected.Cleanliness < 0.95f )
 				{
-					<button class="service clean-service" Tooltip="Send an available housekeeper" @onclick="@DispatchClean">Clean</button>
+					@if ( HasRole( StaffRole.Housekeeper ) )
+					{
+						<button class="service clean-service" Tooltip="Send an available housekeeper" @onclick="@DispatchClean">Clean now</button>
+					}
+					else
+					{
+						<button class="service clean-service hire-needed" Tooltip="No housekeepers on staff" @onclick="@(() => OpenStaffHireFor( StaffRole.Housekeeper ))">Hire Housekeeper</button>
+					}
 				}
 				@if ( selected.Broken )
 				{
-					<button class="service fix-service" Tooltip="Send an available maintenance worker" @onclick="@DispatchFix">Fix</button>
+					@if ( HasRole( StaffRole.MaintenanceWorker ) )
+					{
+						<button class="service fix-service" Tooltip="Send an available maintenance worker" @onclick="@DispatchFix">Fix now</button>
+					}
+					else
+					{
+						<button class="service fix-service hire-needed" Tooltip="No maintenance on staff" @onclick="@(() => OpenStaffHireFor( StaffRole.MaintenanceWorker ))">Hire Maintenance</button>
+					}
 				}
 				@if ( selected.Type is RoomType.Cafe or RoomType.Restaurant )
 				{
-					<button class="service cook-service" Tooltip="Send an available cook" @onclick="@DispatchCook">Staff kitchen</button>
-				}
-				@foreach ( var staff in CompatibleStaff(selected) )
-				{
-					var role = staff.Role;
-					<button class="service staff-service"
-							Tooltip="@($"Permanently assign an idle {staff.DisplayName}")"
-							@onclick="@(() => AutoAssignStaff(role))">
-						Assign @staff.DisplayName
-					</button>
+					@if ( HasRole( StaffRole.Cook ) )
+					{
+						<button class="service cook-service" Tooltip="Send an available cook" @onclick="@DispatchCook">Send cook</button>
+					}
+					else if ( selected.Type == RoomType.Restaurant )
+					{
+						<button class="service cook-service hire-needed" Tooltip="Restaurant needs a cook" @onclick="@(() => OpenStaffHireFor( StaffRole.Cook ))">Hire Cook</button>
+					}
 				}
 			</div>
 			@if ( selected.Type != RoomType.Lobby && selected.Level < GameBalance.MaxRoomLevel )
@@ -331,12 +376,17 @@
 			}
 			else if ( ActiveTab == "staff" )
 			{
-				@if ( SelectedCell is GridCell targetRoom )
+				@if ( IsUnderstaffed )
 				{
-					<div class="staff-target-banner">
-						<span>Assignment target:</span>
-						<strong>@RoomLabel(targetRoom) · Floor @(targetRoom.Y + 1)</strong>
-						<span>Pick an employee below and click Assign here.</span>
+					<div class="staff-understaffed-banner">
+						<strong>UNDERSTAFFED</strong>
+						<span>Hire the highlighted role below. Staff work hotel-wide automatically.</span>
+					</div>
+				}
+				else
+				{
+					<div class="staff-auto-banner">
+						<span>Staff work hotel-wide automatically. Hire when rooms pile up dirty, break, or amenities close.</span>
 					</div>
 				}
 				<div class="staff-columns">
@@ -348,22 +398,37 @@
 								var role = staff.Role;
 								var unlocked = IsStaffUnlocked(role);
 								var canAfford = unlocked && CanAffordHire(role);
-								<button class="hire-card @(!unlocked ? "locked" : "") @(!canAfford && unlocked ? "unaffordable" : "")"
+								var needed = IsRoleNeeded( role );
+								<button class="hire-card @(!unlocked ? "locked" : "") @(!canAfford && unlocked ? "unaffordable" : "") @(needed ? "needed" : "")"
 										Tooltip="@HireTooltip(staff)"
 										@onclick="@(() => Hire(role))">
 									<div class="hire-card-heading">
 										<strong>@staff.DisplayName</strong>
-										@if ( !unlocked )
-										{
-											<span class="hire-action locked-action">Rep @staff.UnlockReputation</span>
-										}
-										else
-										{
-											<span class="hire-action">Hire</span>
-										}
+										<div class="hire-actions">
+											@if ( needed )
+											{
+												<span class="hire-needed-badge">Needed</span>
+											}
+											@if ( !unlocked )
+											{
+												<span class="hire-action locked-action">Rep @staff.UnlockReputation</span>
+											}
+											else if ( needed )
+											{
+												<span class="hire-action needed-action">Hire now</span>
+											}
+											else
+											{
+												<span class="hire-action">Hire</span>
+											}
+										</div>
 									</div>
 									<span class="hire-cost">@HotelSimulation.FormatMoney(staff.HireCostCents)</span>
 									<span class="hire-wage">@HotelSimulation.FormatMoney(staff.WagePerMinuteCents)/min</span>
+									@if ( needed )
+									{
+										<small class="hire-need-reason">@NeedReason( role )</small>
+									}
 								</button>
 							}
 						</div>
@@ -382,20 +447,10 @@
 									<div class="staff-portrait @EmployeeClass(employee)" @onclick="@(() => SelectEmployee(id))"></div>
 									<div class="staff-info" @onclick="@(() => SelectEmployee(id))">
 										<b>@employee.Name</b>
-										<span>@employee.Role · @employee.Task</span>
-										<span>@EmployeeAssignment(employee)</span>
+										<span>@employee.Role · @TaskLabel(employee.Task)</span>
+										<span>Hotel-wide auto</span>
 									</div>
 									<div class="staff-actions">
-										@if ( SelectedCell is GridCell assignmentRoom
-											&& GameBalance.CanAssignStaff(employee.Role, assignmentRoom.Type) )
-										{
-											<button class="small" @onclick="@(() => AssignEmployee(id))">Assign here</button>
-										}
-										else if ( SelectedCell is not null )
-										{
-											<button class="small incompatible" disabled>Incompatible</button>
-										}
-										<button class="small muted-button" @onclick="@(() => UnassignEmployee(id))">General</button>
 										<button class="small danger @(PendingFireId == id ? "confirm" : "")" @onclick="@(() => RequestFire(id))">
 											@(PendingFireId == id ? "Confirm" : "Fire")
 										</button>
@@ -404,7 +459,7 @@
 							}
 							@if ( !Employees.Any() )
 							{
-								<div class="empty">No staff yet — hire someone on the left.</div>
+								<div class="empty">No staff yet — hire someone on the left. They handle jobs automatically.</div>
 							}
 						</div>
 					</div>
@@ -415,10 +470,11 @@
 				<div class="list-scroll">
 					@foreach ( var guest in Guests )
 					{
-						<div class="list-row guest-row">
+						var guestId = guest.Id;
+						<button class="list-row guest-row" @onclick="@(() => SelectGuest( guestId ))">
 							<span>@guest.Name · @guest.Phase</span>
 							<span>@GuestDetail( guest )</span>
-						</div>
+						</button>
 					}
 					@if ( !Guests.Any() )
 					{
@@ -452,6 +508,10 @@
 							}
 						</div>
 					}
+					@if ( !ActiveGoals.Any() )
+					{
+						<div class="empty">Daily goals refresh each hotel day.</div>
+					}
 				</div>
 			}
 			else if ( ActiveTab == "stats" )
@@ -466,6 +526,8 @@
 					<div><span>Hotel value</span><strong>@HotelValue</strong></div>
 					<div><span>Occupancy</span><strong>@OccupancyPct%</strong></div>
 					<div><span>Satisfaction</span><strong>@SatisfactionPct%</strong></div>
+					<div><span>Guests served</span><strong>@TotalGuestsServed</strong></div>
+					<div><span>In hotel now</span><strong>@CurrentGuests</strong></div>
 				</div>
 				<div class="ledger">
 					@foreach ( var entry in Ledger )
@@ -473,6 +535,10 @@
 						<div class="ledger-row @(entry.DeltaCents < 0 ? "negative" : "positive")">
 							<span>@entry.Label</span><b>@HotelSimulation.FormatMoney(entry.DeltaCents)</b>
 						</div>
+					}
+					@if ( !Ledger.Any() )
+					{
+						<div class="empty">Ledger entries appear as cash moves.</div>
 					}
 				</div>
 			}
@@ -496,10 +562,14 @@
 		@foreach ( var tab in Tabs )
 		{
 			var id = tab.Id;
-			<button class="nav-button @(ActiveTab == id || (id == "build" && BuildMode) ? "active" : "")" Tooltip="@($"{tab.Label} management")" @onclick="@(() => ToggleTab(id))">
+			<button class="nav-button @(ActiveTab == id || (id == "build" && BuildMode) ? "active" : "") @(id == "staff" && IsUnderstaffed ? "needs-attention" : "")" Tooltip="@($"{tab.Label} management")" @onclick="@(() => ToggleTab(id))">
 				<div class="nav-icon @tab.Icon"></div>
 				<span>@tab.Label</span>
-				@if ( ActiveTab == id || (id == "build" && BuildMode) )
+				@if ( id == "staff" && IsUnderstaffed )
+				{
+					<div class="nav-alert">!</div>
+				}
+				else if ( ActiveTab == id || (id == "build" && BuildMode) )
 				{
 					<div class="selection-pip"></div>
 				}
@@ -509,15 +579,21 @@
 
 	@if ( !string.IsNullOrWhiteSpace(ToastStatus) )
 	{
-		<div class="toast">@ToastStatus</div>
+		<div class="toast @ToastSlotClass">@ToastStatus</div>
 	}
 
-	@if ( !string.IsNullOrWhiteSpace(Tutorial) )
+	@if ( ShowTutorialTip )
 	{
-		<div class="tutorial hud-panel">
-			<strong>Manager tip</strong>
-			<span>@TutorialText</span>
-			<button class="primary" @onclick="@DismissTutorial">Got it</button>
+		<div class="tip-overlay">
+			<div class="tip-modal tutorial-tip">
+				<i class="icon tip-icon">@TutorialIcon</i>
+				<div class="tip-title">@TutorialTitle</div>
+				<div class="tip-body">@TutorialText</div>
+				<div class="tip-btn-row">
+					<button class="ghost" @onclick="@HideAllTutorialTips">Hide tips</button>
+					<button class="primary" @onclick="@DismissTutorial">@TutorialPrimaryLabel</button>
+				</div>
+			</div>
 		</div>
 	}
 	}
@@ -584,16 +660,14 @@
 			state.Revision
 		);
 		var interactionHash = HashCode.Combine(
-			SelectedX,
-			SelectedY,
-			SelectedEmployeeId,
-			ZoomIndex,
-			ConfirmUpgrade,
-			PendingFireId,
-			(int)PanX,
-			(int)PanY
+			HashCode.Combine( SelectedX, SelectedY, SelectedEmployeeId, ZoomIndex ),
+			HashCode.Combine( ConfirmUpgrade, ConfirmDemolish, ConfirmNewGame, PendingFireId ),
+			Sim?.State.ActiveTutorial,
+			Sim?.State.AcknowledgedTutorial,
+			Sim?.State.HideTutorialTips
 		);
-		return HashCode.Combine(stateHash, ActiveTab, SelectedBuild, interactionHash, _localRevision);
+		var viewHash = HashCode.Combine( (int)PanX, (int)PanY, _localRevision, ActiveTab, SelectedBuild );
+		return HashCode.Combine( stateHash, interactionHash, viewHash );
 	}
 
 	protected override void OnStart()
@@ -648,6 +722,8 @@
 		}
 		if ( EscapePressed() )
 			HandleEscape();
+		if ( Input.Keyboard.Pressed( "h" ) && Sim is not null )
+			Sim.ToggleTutorialTipsHidden();
 		if ( _toastVisible && Time.Now >= _toastUntil )
 		{
 			_toastVisible = false;
@@ -669,17 +745,16 @@
 	IEnumerable<int> Floors => Enumerable.Range(0, MaxFloor + 1).Reverse();
 	IEnumerable<RoomDef> AllBuildRooms => GameBalance.Rooms.Where(r => r.Category != RoomCategory.Structure);
 	IEnumerable<StaffDef> AllStaffRoles => GameBalance.Staff;
-	IEnumerable<StaffDef> CompatibleStaff(GridCell room) =>
-		GameBalance.Staff.Where(staff =>
-			IsStaffUnlocked(staff.Role) && GameBalance.CanAssignStaff(staff.Role, room.Type));
 	bool IsStaffUnlocked(StaffRole role) => Sim?.IsUnlocked(role) ?? false;
 	string HireTooltip(StaffDef staff)
 	{
 		if ( !IsStaffUnlocked(staff.Role) )
 			return $"{staff.DisplayName} unlocks at reputation {staff.UnlockReputation}.";
+		if ( IsRoleNeeded( staff.Role ) )
+			return NeedReason( staff.Role );
 		if ( !CanAffordHire(staff.Role) )
 			return "Not enough cash.";
-		return $"Hire {staff.DisplayName}";
+		return $"Hire {staff.DisplayName} — they work hotel-wide automatically.";
 	}
 
 	GridCell SelectedCell => SelectedX is int x && SelectedY is int y ? Sim?.GetCell(x, y) : null;
@@ -714,7 +789,22 @@
 	string HotelValue => HotelSimulation.FormatMoney(Sim?.HotelValueCents ?? 0);
 	string Status => Sim?.State.StatusMessage;
 	string ToastStatus => _toastVisible ? _observedStatus : null;
+	string ToastSlotClass
+	{
+		get
+		{
+			if ( ActiveTab is not null )
+				return "toast-top-right";
+			if ( SelectedCell is not null )
+				return "toast-above-nav toast-clear-inspector";
+			return "toast-above-nav";
+		}
+	}
 	string Tutorial => Sim?.State.ActiveTutorial;
+	bool ShowTutorialTip =>
+		!string.IsNullOrWhiteSpace( Tutorial )
+		&& Sim?.State.HideTutorialTips != true
+		&& Sim?.State.AcknowledgedTutorial != Tutorial;
 	int Day => GameBalance.DayFromSimTime( Sim?.State.SimTime ?? 0 );
 	string WeatherLabel => GameBalance.WeatherLabel( Sim?.State.Weather ?? WeatherKind.Clear );
 	string WeatherClass => (Sim?.State.Weather ?? WeatherKind.Clear).ToString().ToLowerInvariant();
@@ -747,32 +837,86 @@
 		_ => ""
 	};
 
+	string TutorialTitle => Tutorial switch
+	{
+		"build_room" => "Welcome!",
+		"hire_staff" => "Hire your crew",
+		"first_guest" => "Guests are coming",
+		"earn_money" => "Earn your keep",
+		"upgrade_room" => "Upgrade a room",
+		"ratings" => "Ratings & reputation",
+		_ => "Manager tip",
+	};
+
+	string TutorialIcon => Tutorial switch
+	{
+		"build_room" => "add_home",
+		"hire_staff" => "groups",
+		"first_guest" => "luggage",
+		"earn_money" => "payments",
+		"upgrade_room" => "upgrade",
+		"ratings" => "star",
+		_ => "tips_and_updates",
+	};
+
 	string TutorialText => Tutorial switch
 	{
-		"build_room" => "Open Build and place a Standard Room beside the lobby.",
-		"hire_staff" => "Open Staff and hire a Receptionist and Housekeeper.",
-		"first_guest" => "Guests are arriving. Warm, clean rooms earn better tips.",
-		"earn_money" => "Checkout and amenity income fund your next floor.",
-		"upgrade_room" => "Select a room and upgrade it to improve capacity and rates.",
+		"build_room" => "Welcome! You've just purchased a hotel and it's your job to expand and maintain it! Let's add a room. To do this, open Build, click Standard Room, and place it next to the lobby.",
+		"hire_staff" => "Rooms need a crew. Open Staff and hire a Receptionist and a Housekeeper. They check guests in and clean rooms automatically — you don't assign them to rooms.",
+		"first_guest" => "Guests will arrive at the lobby, check in, and walk to their room. A Waiting tag on the lobby means someone needs check-in.",
+		"earn_money" => "When a guest checks out, you earn cash (plus tips if they're happy). That money pays for more rooms, staff, and upgrades.",
+		"upgrade_room" => "Click a finished room (not the lobby), then Upgrade it. Higher levels mean better rates and a little more capacity.",
+		"ratings" => "Hotel rating (stars on the left) is guest happiness. Reputation (the progress bar / Rep) unlocks new room types as your lifetime profit grows. Keep guests happy and keep expanding!",
 		_ => "Grow Heights Hotel."
 	};
+
+	string TutorialPrimaryLabel => Tutorial == "ratings" ? "Got it" : "Let's go";
 
 	IEnumerable<(string Kind, string Text, string Action)> Notifications
 	{
 		get
 		{
-			if ( Cells.Any(c => c.Broken) )
-				yield return ("danger", $"{Cells.Count(c => c.Broken)} room(s) need service", "broken");
-			if ( Cells.Any(c => c.Cleanliness < 0.65f) )
-				yield return ("warning", $"{Cells.Count(c => c.Cleanliness < 0.65f)} room(s) need cleaning", "dirty");
-			if ( Guests.Any(g => g.Phase == GuestPhase.CheckingIn) )
-				yield return ("info", "Guests are waiting at reception", "queue");
+			// Hire needs are shown in the understaffed notice above — don't repeat them here.
+			if ( Cells.Any(c => c.Broken) && HasRole( StaffRole.MaintenanceWorker ) )
+				yield return ("danger", $"{Cells.Count(c => c.Broken)} room(s) being repaired", "broken");
+			if ( Cells.Any(c => c.Cleanliness < 0.65f) && HasRole( StaffRole.Housekeeper ) )
+				yield return ("warning", $"{Cells.Count(c => c.Cleanliness < 0.65f)} room(s) being cleaned", "dirty");
+			if ( !IsUnderstaffed )
+			{
+				var closedAmenities = Cells.Count( AmenityClosed );
+				if ( closedAmenities > 0 )
+					yield return ("warning", $"{closedAmenities} amenity closed — hire staff", "closed");
+			}
+			if ( Guests.Any(g => g.Phase == GuestPhase.CheckingIn) && HasRole( StaffRole.Receptionist ) )
+				yield return ("info", "Guests checking in at reception", "queue");
 			if ( ActiveGoals.Any( g => IsGoalDone( g ) && !g.Claimed ) )
 				yield return ("good", "Daily goal ready to claim", "goals");
-			if ( !Cells.Any(c => c.Broken || c.Cleanliness < 0.65f) && !Guests.Any(g => g.Phase == GuestPhase.CheckingIn) )
+			if ( !IsUnderstaffed
+				&& !Cells.Any(c => c.Broken || c.Cleanliness < 0.65f || AmenityClosed( c ))
+				&& !Guests.Any(g => g.Phase == GuestPhase.CheckingIn) )
 				yield return ("good", "Hotel operations are running smoothly", null);
 		}
 	}
+
+	IReadOnlyList<StaffingNeed> StaffingNeeds => Sim?.GetStaffingNeeds() ?? Array.Empty<StaffingNeed>();
+	bool IsUnderstaffed => StaffingNeeds.Count > 0;
+	StaffingNeed TopStaffingNeed => StaffingNeeds.Count > 0
+		? StaffingNeeds[0]
+		: new StaffingNeed { Role = StaffRole.Receptionist, Reason = "Hire staff", Urgency = 0 };
+	bool IsRoleNeeded( StaffRole role ) => StaffingNeeds.Any( n => n.Role == role );
+	string NeedReason( StaffRole role ) =>
+		StaffingNeeds.FirstOrDefault( n => n.Role == role )?.Reason ?? $"Hire a {GameBalance.GetStaff( role ).DisplayName}";
+	bool HasRole( StaffRole role ) => Employees.Any( e => e.Role == role );
+	StaffRole PreferredRole( GridCell cell ) => GameBalance.PreferredStaffRole( cell.Type );
+	string TaskLabel( EmployeeTask task ) => task switch
+	{
+		EmployeeTask.Walk => "Walking",
+		EmployeeTask.CheckIn => "Check-in",
+		EmployeeTask.Clean => "Cleaning",
+		EmployeeTask.Cook => "Cooking",
+		EmployeeTask.Repair => "Repairing",
+		_ => "Idle"
+	};
 
 	int GoalProgressValue( DailyGoal goal ) => Sim?.GoalProgress( goal ) ?? 0;
 	bool IsGoalDone( DailyGoal goal ) => Sim?.IsGoalComplete( goal ) ?? false;
@@ -836,13 +980,23 @@
 	{
 		if ( cell.Broken ) return "state-broken";
 		if ( cell.UnderConstruction ) return "state-building";
+		if ( AmenityClosed( cell ) ) return "state-closed";
 		if ( cell.Cleanliness < 0.65f ) return "state-dirty";
 		return "";
 	}
+	bool AmenityClosed( GridCell cell ) =>
+		cell is not null
+		&& GameBalance.GetRoom( cell.Type ).Category == RoomCategory.Amenity
+		&& !(Sim?.IsAmenityOpen( cell ) ?? true);
+	string AmenityClosedText( GridCell cell ) => Sim?.AmenityClosedReason( cell ) ?? "Closed";
 	bool NeedsCleaningAlert(GridCell cell) =>
 		!cell.UnderConstruction
+		&& !cell.Broken
 		&& GameBalance.GetRoom(cell.Type).Category == RoomCategory.Lodging
-		&& cell.Cleanliness < 0.8f;
+		&& cell.Cleanliness < 0.65f;
+	bool LobbyQueueAlert(GridCell cell) =>
+		cell.Type == RoomType.Lobby
+		&& Guests.Any( g => g.Phase == GuestPhase.CheckingIn );
 
 	string IconClass(RoomType type) => "icon-" + RoomClass(new GridCell { Type = type });
 	string RoomLabel(GridCell cell) => GameBalance.GetRoom(cell.Type).DisplayName;
@@ -850,7 +1004,11 @@
 	{
 		var def = GameBalance.GetRoom(cell.Type);
 		var rate = GameBalance.RateAtLevel(def, cell.Level);
-		var state = cell.Broken ? "Broken" : cell.UnderConstruction ? "Under construction" : $"{Percent(cell.Cleanliness)} clean";
+		var closed = AmenityClosed( cell );
+		var state = cell.Broken ? "Broken"
+			: cell.UnderConstruction ? "Under construction"
+			: closed ? AmenityClosedText( cell )
+			: $"{Percent(cell.Cleanliness)} clean";
 		return rate > 0
 			? $"{def.DisplayName} · Level {cell.Level} · {state} · {HotelSimulation.FormatMoney(rate)} rate"
 			: $"{def.DisplayName} · Level {cell.Level} · {state}";
@@ -881,7 +1039,6 @@
 	bool IsSelected(GridCell cell) => SelectedX == cell.X && SelectedY == cell.Y;
 	int Capacity(GridCell cell) => GameBalance.CapacityAtLevel(GameBalance.GetRoom(cell.Type), cell.Level);
 	string Percent(float value) => $"{(int)(Math.Clamp(value, 0f, 1f) * 100)}%";
-	string AssignedStaffName(GridCell cell) => cell.AssignedEmployeeId is int id ? Employees.FirstOrDefault(e => e.Id == id)?.Name ?? "Missing" : "General duty";
 
 	string GuestAnim(Guest guest) => guest.Phase switch
 	{
@@ -909,9 +1066,6 @@
 		_ => "anim-idle"
 	};
 
-	string EmployeeAssignment(Employee employee) => employee.AssignedRoomX is int x && employee.AssignedRoomY is int y
-		? $"Assigned: {GameBalance.GetRoom(Sim.GetCell(x, y)?.Type ?? RoomType.Lobby).DisplayName}"
-		: "General duty";
 	string SpeedClass(int index) => Sim?.State.SpeedIndex == index ? "active" : "";
 	string FormatCost(RoomType type) => HotelSimulation.FormatMoney(Sim?.CurrentBuildCost(type) ?? 0);
 	bool IsRoomUnlocked(RoomType type) => Sim?.IsUnlocked(type) ?? false;
@@ -927,6 +1081,7 @@
 			return;
 		}
 		ActiveTab = tab;
+		ClearSelection();
 		if ( ActiveTab != "build" )
 			SelectedBuild = null;
 	}
@@ -1092,7 +1247,7 @@
 		// Close the picker so glowing plots are clickable.
 		ActiveTab = null;
 		CenterHotel();
-		Sim?.ShowStatus( $"Placing {GameBalance.GetRoom( type ).DisplayName} — click a glowing plot." );
+		_localRevision++;
 	}
 
 	void SelectRoom(int x, int y)
@@ -1115,9 +1270,9 @@
 		if ( !result.Ok ) Sim.ShowStatus(result.Message);
 		else
 		{
-			// Stay in placement mode so multiple rooms can be laid quickly.
+			// Stay in placement mode — the build banner already explains next steps.
 			SelectedX = SelectedY = null;
-			Sim?.ShowStatus( $"Built {GameBalance.GetRoom( type ).DisplayName}. Click another plot or Cancel." );
+			_localRevision++;
 		}
 	}
 
@@ -1153,6 +1308,7 @@
 		{
 			ConfirmDemolish = true;
 			ConfirmUpgrade = false;
+			_localRevision++;
 			return;
 		}
 		if ( SelectedX is not int x || SelectedY is not int y || Mgr is null ) return;
@@ -1160,6 +1316,7 @@
 		if ( !result.Ok ) Sim?.ShowStatus( result.Message );
 		else ClearSelection();
 		ConfirmDemolish = false;
+		_localRevision++;
 	}
 
 	void DispatchClean() => DispatchSelectedService( StaffRole.Housekeeper );
@@ -1176,30 +1333,22 @@
 
 		Sim?.ShowStatus( result.Message );
 		if ( !Employees.Any( e => e.Role == role ) )
-			ActiveTab = "staff";
+			OpenStaffHireFor( role );
 	}
 
-	void AutoAssignStaff(StaffRole role)
+	void OpenStaffHireDock()
 	{
-		if ( Mgr is null || SelectedX is not int x || SelectedY is not int y )
-			return;
+		ActiveTab = "staff";
+		SelectedBuild = null;
+		_localRevision++;
+	}
 
-		var result = Mgr.AutoAssign( x, y, out var noAvailableStaff, role );
-		if ( result.Ok )
-		{
-			ActiveTab = null;
-			SelectedEmployeeId = null;
-			if ( !string.IsNullOrWhiteSpace( result.Message ) )
-				Sim?.ShowStatus( result.Message );
-			return;
-		}
-
-		Sim?.ShowStatus( result.Message );
-		if ( noAvailableStaff )
-		{
-			ActiveTab = "staff";
-			SelectedEmployeeId = null;
-		}
+	void OpenStaffHireFor( StaffRole role )
+	{
+		ActiveTab = "staff";
+		SelectedBuild = null;
+		SelectedEmployeeId = null;
+		_localRevision++;
 	}
 
 	void ClaimGoal( string goalId )
@@ -1207,6 +1356,38 @@
 		if ( Mgr is null ) return;
 		var result = Mgr.ClaimGoal( goalId );
 		if ( !result.Ok ) Sim?.ShowStatus( result.Message );
+		_localRevision++;
+	}
+
+	void HandleRailGoal( string goalId )
+	{
+		var goal = ActiveGoals.FirstOrDefault( g => g.Id == goalId );
+		if ( goal is not null && IsGoalDone( goal ) && !goal.Claimed )
+		{
+			ClaimGoal( goalId );
+			return;
+		}
+		OpenGoalsDock();
+	}
+
+	void OpenGoalsDock()
+	{
+		ActiveTab = "goals";
+		_localRevision++;
+	}
+
+	void SelectGuest( int guestId )
+	{
+		var guest = Guests.FirstOrDefault( g => g.Id == guestId );
+		if ( guest is null ) return;
+		if ( guest.RoomX is int rx && guest.RoomY is int ry )
+			SelectRoom( rx, ry );
+		else if ( guest.AmenityX is int ax && guest.AmenityY is int ay )
+			SelectRoom( ax, ay );
+		else
+			SelectRoom( 0, 0 );
+		ActiveTab = null;
+		_localRevision++;
 	}
 
 	void RequestNewGame()
@@ -1214,6 +1395,7 @@
 		if ( !ConfirmNewGame )
 		{
 			ConfirmNewGame = true;
+			_localRevision++;
 			return;
 		}
 		Mgr?.StartNewGame();
@@ -1221,6 +1403,7 @@
 		ActiveTab = null;
 		ClearSelection();
 		_initialCentered = false;
+		_localRevision++;
 	}
 
 	void HandleNotice( (string Kind, string Text, string Action) notice )
@@ -1229,18 +1412,31 @@
 			return;
 		switch ( notice.Action )
 		{
+			case "closed":
+			{
+				var room = Cells.FirstOrDefault( AmenityClosed );
+				if ( room is not null ) SelectRoom( room.X, room.Y );
+				OpenStaffHireFor( room is not null ? PreferredRole( room ) : StaffRole.Cook );
+				break;
+			}
 			case "broken":
 			{
 				var room = Cells.FirstOrDefault( c => c.Broken );
 				if ( room is not null ) SelectRoom( room.X, room.Y );
-				ActiveTab = "staff";
+				if ( !HasRole( StaffRole.MaintenanceWorker ) )
+					OpenStaffHireFor( StaffRole.MaintenanceWorker );
+				else
+					ActiveTab = "staff";
 				break;
 			}
 			case "dirty":
 			{
 				var room = Cells.Where( c => c.Cleanliness < 0.65f ).OrderBy( c => c.Cleanliness ).FirstOrDefault();
 				if ( room is not null ) SelectRoom( room.X, room.Y );
-				ActiveTab = "staff";
+				if ( !HasRole( StaffRole.Housekeeper ) )
+					OpenStaffHireFor( StaffRole.Housekeeper );
+				else
+					ActiveTab = "staff";
 				break;
 			}
 			case "queue":
@@ -1251,6 +1447,7 @@
 				ActiveTab = "goals";
 				break;
 		}
+		_localRevision++;
 	}
 
 	void Hire(StaffRole role)
@@ -1278,21 +1475,9 @@
 	}
 	void SelectEmployee(int id) => SelectedEmployeeId = id;
 
-	void AssignEmployee(int id)
-	{
-		if ( Mgr is null || SelectedX is not int x || SelectedY is not int y ) return;
-		var result = Mgr.Assign(id, x, y);
-		if ( !result.Ok ) Sim.ShowStatus(result.Message);
-	}
-
-	void UnassignEmployee(int id)
-	{
-		if ( Mgr is null ) return;
-		var result = Mgr.Unassign(id);
-		if ( !result.Ok ) Sim.ShowStatus(result.Message);
-	}
-
 	void DismissTutorial() => Sim?.DismissTutorial();
+
+	void HideAllTutorialTips() => Sim?.HideAllTutorialTips();
 
 	void OnViewMouseDown(MousePanelEvent e)
 	{

@@ -36,6 +36,13 @@ public static class Sfx
 	private static bool BlocksNightGameplaySounds =>
 		GameConstants.UseNightCombatMusicLoop && GameCore.Instance?.Phase == GamePhase.Night;
 
+	/// <summary>
+	/// Round cues still play under the night music bed so Start Night / clear / defeat are audible.
+	/// Combat gunfire/impacts stay muted while the music loop is active.
+	/// </summary>
+	private static bool AllowedDuringNightMusic( string path ) =>
+		path is WaveStart or WaveClear or GameOver or UiClick;
+
 	public static void Play(
 		string path,
 		string tag = null,
@@ -43,7 +50,7 @@ public static class Sfx
 		[CallerFilePath] string file = "",
 		[CallerLineNumber] int line = 0 )
 	{
-		if ( BlocksNightGameplaySounds )
+		if ( BlocksNightGameplaySounds && !AllowedDuringNightMusic( path ) )
 			return;
 
 		TryPlay( path, VolumeScaleFor( path ), 1f, tag, caller, file, line );
@@ -59,7 +66,7 @@ public static class Sfx
 		[CallerFilePath] string file = "",
 		[CallerLineNumber] int line = 0 )
 	{
-		if ( BlocksNightGameplaySounds )
+		if ( BlocksNightGameplaySounds && !AllowedDuringNightMusic( path ) )
 			return false;
 
 		return PlayInternal( path, AudioSettings.EffectiveSfx * volumeScale, pitch, tag, caller, file, line );

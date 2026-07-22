@@ -34,6 +34,7 @@ public sealed class ThornsWorldPersistence : Component
 	bool _structuresRestored;
 	bool _buildingLootRestored;
 	bool _worldResourcesRestored;
+	bool _deathCratesRestored;
 	bool _saveWorkerBusy;
 	bool _saveQueued;
 	bool _queuedPreserveTamesWhenSceneEmpty;
@@ -43,8 +44,16 @@ public sealed class ThornsWorldPersistence : Component
 	bool _freshWorldPendingSunrise;
 	bool _significantSavePending;
 	double _significantSaveDueTime;
+	bool _loadFailed;
+	string _loadFailedError = "";
+	string _quarantinedSavePath = "";
 
 	const float SignificantSaveDebounceSeconds = 3f;
+
+	/// <summary>True when the host save could not be loaded; autosaves stay suppressed until recovery.</summary>
+	public bool LoadFailed => _loadFailed;
+	public string LoadFailedError => _loadFailedError;
+	public string QuarantinedSavePath => _quarantinedSavePath;
 
 	public static bool SavesSuppressed { get; private set; }
 
@@ -313,7 +322,7 @@ public sealed class ThornsWorldPersistence : Component
 
 	public void TryHostSaveNow( bool preserveTamesWhenSceneEmpty = false, bool forceSync = false )
 	{
-		if ( !ThornsMultiplayer.IsHostOrOffline || SavesSuppressed )
+		if ( !ThornsMultiplayer.IsHostOrOffline || SavesSuppressed || _loadFailed )
 			return;
 
 		if ( !forceSync && _saveWorkerBusy )
@@ -408,6 +417,9 @@ public sealed class ThornsWorldPersistence : Component
 		if ( ThornsSaveFormat.TryLoad( RelativeSavePath, out var loaded, out var error ) )
 		{
 			_live = loaded;
+			_loadFailed = false;
+			_loadFailedError = "";
+			_quarantinedSavePath = "";
 			_freshWorldPendingSunrise = !saveExisted;
 			SyncGuildsToWorldService();
 			ThornsVictoryPersistence.RestoreHost();
@@ -416,10 +428,54 @@ public sealed class ThornsWorldPersistence : Component
 			return;
 		}
 
-		Log.Warning( $"[Thorns Terrain] Persistence load failed for '{RelativeSavePath}' ({error}) — starting empty world." );
+		// Quarantine the unreadable primary so autosave cannot silently overwrite recoverable data.
+		_loadFailed = true;
+		_loadFailedError = string.IsNullOrWhiteSpace( error ) ? "deserialize failed" : error;
+		_quarantinedSavePath = TryQuarantineUnreadableSave( RelativeSavePath );
 		_live = ThornsSaveFormat.CreateEmpty();
 		_freshWorldPendingSunrise = true;
 		SyncGuildsToWorldService();
+		Log.Error(
+			$"[Thorns Terrain] Persistence load FAILED for '{RelativeSavePath}' ({_loadFailedError}). " +
+			$"Autosave suppressed. Quarantined copy: '{( string.IsNullOrEmpty( _quarantinedSavePath ) ? "(none)" : _quarantinedSavePath )}'. " +
+			"Host must choose recovery (new world) via AcknowledgeFailedLoadAndStartFresh before saves resume." );
+	}
+
+	string TryQuarantineUnreadableSave( string relativePath )
+	{
+		try
+		{
+			if ( !FileSystem.Data.FileExists( relativePath ) )
+				return "";
+
+			var stamp = DateTime.UtcNow.ToString( "yyyyMMdd_HHmmss" );
+			var quarantine = $"{relativePath}.corrupt.{stamp}";
+			// World saves are JSON — copy as text to avoid Span/byte[] API mismatch.
+			var text = FileSystem.Data.ReadAllText( relativePath );
+			if ( string.IsNullOrEmpty( text ) )
+				return "";
+
+			FileSystem.Data.WriteAllText( quarantine, text );
+			return quarantine;
+		}
+		catch ( Exception e )
+		{
+			Log.Warning( e, $"[Thorns Terrain] Failed to quarantine unreadable save '{relativePath}'." );
+			return "";
+		}
+	}
+
+	/// <summary>Host accepts starting a fresh world after a failed load; re-enables autosave.</summary>
+	public void AcknowledgeFailedLoadAndStartFresh()
+	{
+		if ( !ThornsMultiplayer.IsHostOrOffline )
+			return;
+
+		_loadFailed = false;
+		_loadFailedError = "";
+		_live ??= ThornsSaveFormat.CreateEmpty();
+		Log.Warning( "[Thorns Terrain] Host acknowledged failed load — starting fresh world and re-enabling saves." );
+		TryHostSaveNow( forceSync: true );
 	}
 
 	public void HostApplyFreshWorldSunriseIfNeeded( Scene scene )
@@ -448,6 +504,15 @@ public sealed class ThornsWorldPersistence : Component
 		ThornsStructurePersistence.RestoreHost( scene, _live );
 		ThornsWorldMapPersistence.RestoreHost();
 		ThornsVictoryPersistence.RestoreHost();
+	}
+
+	public void HostRestoreDeathCratesOnce()
+	{
+		if ( _deathCratesRestored || !ThornsMultiplayer.IsHostOrOffline )
+			return;
+
+		_deathCratesRestored = true;
+		ThornsDeathCratePersistence.RestoreHost();
 	}
 
 	public void HostRestoreBuildingLootOnce()
@@ -511,6 +576,7 @@ public sealed class ThornsWorldPersistence : Component
 		ThornsBuildingLootPersistence.Capture( _live );
 		ThornsWorldResourcePersistence.Capture( _live );
 		ThornsWorldMapPersistence.Capture( _live );
+		ThornsDeathCratePersistence.Capture( _live );
 
 		foreach ( var gameplay in Scene.GetAllComponents<ThornsPlayerGameplay>() )
 		{

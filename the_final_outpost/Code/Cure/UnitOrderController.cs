@@ -41,6 +41,12 @@ public sealed class UnitOrderController : Component
 	public void ToggleNightCommandMode()
 	{
 		var core = GameCore.Instance;
+		if ( RecruitTakeoverController.Instance?.IsPossessing == true )
+		{
+			CancelNightCommandMode();
+			return;
+		}
+
 		if ( core?.Phase != GamePhase.Night || (DefenderManager.Instance?.Count ?? 0) <= 0 )
 		{
 			CancelNightCommandMode();
@@ -99,6 +105,7 @@ public sealed class UnitOrderController : Component
 	{
 		var core = GameCore.Instance;
 		if ( core is null || core.Phase != GamePhase.Night || !CanAcceptNightClick ) return false;
+		if ( RecruitTakeoverController.Instance?.IsPossessing == true ) return false;
 
 		var defenders = DefenderManager.Instance;
 		if ( defenders is null || defenders.Count == 0 )
@@ -125,7 +132,7 @@ public sealed class UnitOrderController : Component
 		var combat = GameCore.Instance?.Combat;
 		if ( combat is null ) return false;
 
-		var zombie = combat.NearestZombie( ground, 120f );
+		var zombie = combat.NearestZombie( ground, GameConstants.NightFocusPickRadius );
 		if ( zombie is null ) return false;
 
 		unit.SetAttackOrder( zombie );

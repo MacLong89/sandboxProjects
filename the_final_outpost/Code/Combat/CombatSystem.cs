@@ -15,6 +15,8 @@ public sealed class CombatSystem : Component
 		public Vector3 Pos;
 		public Vector3 Dir;
 		public float Damage;
+		public float SplashRadius;
+		public float SplashDamageMult;
 		public float Life;
 		public bool Active;
 	}
@@ -105,6 +107,7 @@ public sealed class CombatSystem : Component
 			Speed = speed,
 			ApproachSide = WallApproach.FromWorldPosition( pos, OutpostManager.Instance?.CorePosition ?? Vector3.Zero )
 		};
+		ZombieHitTarget.Attach( go, z, typeDef.Scale );
 		z.RefreshLabel();
 		_zombies.Add( z );
 		return z;
@@ -114,10 +117,20 @@ public sealed class CombatSystem : Component
 		NearestZombieInternal( from, range, losOrigin: null );
 
 	/// <summary>Nearest live zombie in range with unobstructed line of fire from <paramref name="losOrigin"/>.</summary>
-	public ZombieInstance NearestEngageableZombie( Vector3 from, float range, Vector3 losOrigin ) =>
-		NearestZombieInternal( from, range, losOrigin );
+	public ZombieInstance NearestEngageableZombie(
+		Vector3 from,
+		float range,
+		Vector3 losOrigin,
+		int ignoreCellX = int.MinValue,
+		int ignoreCellY = int.MinValue ) =>
+		NearestZombieInternal( from, range, losOrigin, ignoreCellX, ignoreCellY );
 
-	private ZombieInstance NearestZombieInternal( Vector3 from, float range, Vector3? losOrigin )
+	private ZombieInstance NearestZombieInternal(
+		Vector3 from,
+		float range,
+		Vector3? losOrigin,
+		int ignoreCellX = int.MinValue,
+		int ignoreCellY = int.MinValue )
 	{
 		ZombieInstance best = null;
 		var bestD = range * range;
@@ -129,7 +142,8 @@ public sealed class CombatSystem : Component
 			var d = (z.Position.WithZ( 0f ) - from).LengthSquared;
 			if ( d >= bestD ) continue;
 
-			if ( losOrigin.HasValue && !BuildingCollision.HasLineOfFire( losOrigin.Value, z.Position ) )
+			if ( losOrigin.HasValue
+			     && !BuildingCollision.HasLineOfFire( losOrigin.Value, z.Position, ignoreCellX: ignoreCellX, ignoreCellY: ignoreCellY ) )
 				continue;
 
 			bestD = d;
@@ -139,12 +153,22 @@ public sealed class CombatSystem : Component
 		return best;
 	}
 
-	public void FireBullet( Vector3 origin, Vector3 dir, float damage, string fireSound = null, Color? tracerColor = null, bool playSound = true )
+	public void FireBullet(
+		Vector3 origin,
+		Vector3 dir,
+		float damage,
+		string fireSound = null,
+		Color? tracerColor = null,
+		bool playSound = true,
+		float splashRadius = 0f,
+		float splashDamageMult = 0f )
 	{
 		var b = _pool.Count > 0 ? _pool.Pop() : CreateBullet();
 		b.Pos = origin;
 		b.Dir = dir.Normal;
 		b.Damage = damage;
+		b.SplashRadius = MathF.Max( 0f, splashRadius );
+		b.SplashDamageMult = MathF.Max( 0f, splashDamageMult );
 		b.Life = GameConstants.BulletLife;
 		b.Active = true;
 		b.Go.Enabled = true;
@@ -159,6 +183,31 @@ public sealed class CombatSystem : Component
 			var snd = fireSound ?? Sfx.Shoot;
 			CombatAudio.PlayGunfire( snd, $"FireBullet ({System.IO.Path.GetFileName( snd )})" );
 		}
+	}
+
+	/// <summary>
+	/// World blast vs zombies only (mines / artillery). Never hits recruits, buildings, or walls.
+	/// </summary>
+	public void SplashAt( Vector3 origin, float damage, float radius, string fireSound = null )
+	{
+		if ( damage <= 0f || radius <= 0f ) return;
+
+		var core = GameCore.Instance;
+		var night = core?.CombatProgressionNight ?? 1;
+		origin = origin.WithZ( 0f );
+
+		foreach ( var z in _zombies )
+		{
+			if ( z.Dead ) continue;
+			if ( (z.Position.WithZ( 0f ) - origin).Length > radius ) continue;
+			if ( z.Hit( damage ) && core is not null )
+				GrantKillRewards( z, core, night );
+		}
+
+		if ( !string.IsNullOrEmpty( fireSound ) )
+			CombatAudio.PlayGunfire( fireSound, "SplashAt" );
+		else
+			Sfx.Play( Sfx.Turret );
 	}
 
 	protected override void OnUpdate()
@@ -215,7 +264,7 @@ public sealed class CombatSystem : Component
 		var pos = z.Position;
 		var to = (goal - pos).WithZ( 0f );
 		walkDir = to.Length > 0.001f ? to / to.Length : z.Go.WorldRotation.Forward;
-		var step = z.Speed * dt;
+		var step = z.EffectiveSpeed * dt;
 		if ( to.Length <= 1f || step <= 0.001f )
 		{
 			moved = 0f;
@@ -237,28 +286,67 @@ public sealed class CombatSystem : Component
 		moved = (next - pos).WithZ( 0f ).Length;
 
 		// When blocked straight-on, bias sideways so agents walk around cell edges.
+		// Near the command-post exterior, prefer radial-out + tangent so corners don't pin them.
 		if ( moved < step * GameConstants.ZombieStuckMoveThreshold )
 		{
 			if ( z.StrafeSign == 0 )
 				z.StrafeSign = Game.Random.Int( 0, 1 ) == 0 ? -1 : 1;
 
-			var perp = new Vector3( -walkDir.y, walkDir.x, 0f ) * z.StrafeSign;
-			var sideGoal = pos + perp * MathF.Max( step * 4f, GameConstants.CellSize * 0.35f ) + walkDir * step;
-			var sideNext = BuildingCollision.ResolveZombieStep( pos, sideGoal, step, allow.IgnorePerimeterWalls, allow );
-			var sideMoved = (sideNext - pos).WithZ( 0f ).Length;
-			if ( sideMoved >= step * GameConstants.ZombieStuckMoveThreshold )
+			var strafeOk = false;
+			if ( OutpostManager.Instance is { } outpost )
 			{
-				PathDebug.Event( agent, "strafe-ok",
-					$"sign={z.StrafeSign} moved={sideMoved:0.0} goal={PathDebug.Fmt( goal )}{PathDebug.Cell( goal )}" );
-				next = sideNext;
-				moved = sideMoved;
-				z.StrafeSign = 0;
+				var core = outpost.CorePosition.WithZ( 0f );
+				var half = BuildGrid.CommandPostZombieCollisionFootprint * 0.5f;
+				var dx = MathF.Abs( pos.x - core.x );
+				var dy = MathF.Abs( pos.y - core.y );
+				var nearCore =
+					dx < half.x + GameConstants.CellSize
+					&& dy < half.y + GameConstants.CellSize;
+				if ( nearCore )
+				{
+					var radial = (pos - core).WithZ( 0f );
+					if ( radial.Length > 0.001f )
+					{
+						var outN = radial.Normal;
+						var tang = new Vector3( -outN.y, outN.x, 0f ) * z.StrafeSign;
+						var push = MathF.Max( step * 3.5f, GameConstants.CellSize * 0.4f );
+						var pushGoal = pos + outN * push + tang * push + walkDir * (step * 0.5f);
+						var pushNext = BuildingCollision.ResolveZombieStep(
+							pos, pushGoal, step, allow.IgnorePerimeterWalls, allow );
+						var pushMoved = (pushNext - pos).WithZ( 0f ).Length;
+						if ( pushMoved >= step * GameConstants.ZombieStuckMoveThreshold )
+						{
+							PathDebug.Event( agent, "core-strafe-ok",
+								$"sign={z.StrafeSign} moved={pushMoved:0.0} goal={PathDebug.Fmt( goal )}{PathDebug.Cell( goal )}" );
+							next = pushNext;
+							moved = pushMoved;
+							z.StrafeSign = 0;
+							strafeOk = true;
+						}
+					}
+				}
 			}
-			else
+
+			if ( !strafeOk )
 			{
-				PathDebug.Event( agent, "strafe-fail",
-					$"sign={z.StrafeSign} straight={moved:0.00}/{step:0.00} pos={PathDebug.Fmt( pos )}{PathDebug.Cell( pos )} goal={PathDebug.Fmt( goal )}{PathDebug.Cell( goal )}" );
-				z.StrafeSign = -z.StrafeSign;
+				var perp = new Vector3( -walkDir.y, walkDir.x, 0f ) * z.StrafeSign;
+				var sideGoal = pos + perp * MathF.Max( step * 4f, GameConstants.CellSize * 0.35f ) + walkDir * step;
+				var sideNext = BuildingCollision.ResolveZombieStep( pos, sideGoal, step, allow.IgnorePerimeterWalls, allow );
+				var sideMoved = (sideNext - pos).WithZ( 0f ).Length;
+				if ( sideMoved >= step * GameConstants.ZombieStuckMoveThreshold )
+				{
+					PathDebug.Event( agent, "strafe-ok",
+						$"sign={z.StrafeSign} moved={sideMoved:0.0} goal={PathDebug.Fmt( goal )}{PathDebug.Cell( goal )}" );
+					next = sideNext;
+					moved = sideMoved;
+					z.StrafeSign = 0;
+				}
+				else
+				{
+					PathDebug.Event( agent, "strafe-fail",
+						$"sign={z.StrafeSign} straight={moved:0.00}/{step:0.00} pos={PathDebug.Fmt( pos )}{PathDebug.Cell( pos )} goal={PathDebug.Fmt( goal )}{PathDebug.Cell( goal )}" );
+					z.StrafeSign = -z.StrafeSign;
+				}
 			}
 		}
 		else
@@ -309,7 +397,7 @@ public sealed class CombatSystem : Component
 		}
 
 		var delta = (clear - pos).WithZ( 0f );
-		var maxStep = MathF.Max( GameConstants.ZombiePathRadius * 2f, z.Speed * 0.08f );
+		var maxStep = MathF.Max( GameConstants.ZombiePathRadius * 2f, z.EffectiveSpeed * 0.08f );
 		if ( delta.Length > maxStep )
 			clear = pos + delta.Normal * maxStep;
 
@@ -337,11 +425,12 @@ public sealed class CombatSystem : Component
 		var build = BuildManager.Instance;
 		var defenders = DefenderManager.Instance;
 		var corePos = outpost.CorePosition;
-		var night = core.Save.CurrentNight;
+		var night = core.CombatProgressionNight;
 
 		foreach ( var z in _zombies )
 		{
 			if ( z.Dead ) continue;
+			z.TickSlow( dt );
 
 			var target = FindTarget( z, z.Position, corePos, outpost, build, defenders );
 			var allow = PathAllowFor( z, target );
@@ -364,8 +453,9 @@ public sealed class CombatSystem : Component
 				allow.IgnorePerimeterWalls,
 				forZombieMelee: true,
 				allow );
-			// Never ask them to stand/hug the interior wall face after a breach.
-			if ( target.Kind is TargetKind.Building or TargetKind.Core )
+			// Home-ring targets only — satellite-plot towers must keep their outside stand points.
+			var homeTarget = TargetIsInsideHomeRing( target, corePos );
+			if ( homeTarget && target.Kind is TargetKind.Building or TargetKind.Core )
 				engagePoint = WallApproach.ClampInsideCourtyard( engagePoint, corePos, pathRadius );
 
 			TryDisengage( z, attackDist, attackRadius );
@@ -393,13 +483,15 @@ public sealed class CombatSystem : Component
 				continue;
 			}
 
-			// Destinations: funnel through a breach only while still in the wall band; once past
-			// the inward waypoint, seek/detour around HQ toward the building.
+			// Destinations: funnel through a home breach only when the target is inside the
+			// home ring. Outer-plot structures are approached directly — never drag the horde
+			// into the courtyard first (that caused pass-by + invisible-wall softlocks).
 			var moveGoal = engagePoint;
 			var usedBreach = false;
 			var usedDetour = false;
 			var usedClearRing = false;
-			if ( z.TypeDef?.CanJumpWalls != true
+			if ( homeTarget
+			     && z.TypeDef?.CanJumpWalls != true
 			     && WallApproach.SideHasBreach( outpost.Walls, z.ApproachSide )
 			     && target.Kind != TargetKind.Wall
 			     && WallApproach.NeedsBreachEntry( pos, corePos ) )
@@ -413,9 +505,9 @@ public sealed class CombatSystem : Component
 				}
 			}
 
-			// Clear-ring: ONLY when already inside the outer face. Pulling Outside→Inside
-			// with a courtyard goal was the secondary phase-through path for non-jumpers.
+			// Clear-ring: ONLY when already inside and hunting a home-ring target.
 			if ( !usedBreach
+			     && homeTarget
 			     && !WallApproach.IsOutsideWalls( pos, corePos )
 			     && target.Kind is TargetKind.Building or TargetKind.Core
 			     && WallApproach.OverlapsPerimeterPath( pos, corePos, pathRadius )
@@ -448,29 +540,62 @@ public sealed class CombatSystem : Component
 				}
 				else if ( (target.Kind == TargetKind.Building || target.Kind == TargetKind.Core)
 				          && (arrivedEarly || BuildingCollision.SegmentHitsBlocker( pos, moveGoal, allow )
-				              || z.MoveStuckTimer > 0.35f) )
+				              || z.MoveStuckTimer > 0.35f || z.HasDetour) )
 				{
-					// Never skip perimeter walls on detour — that let agents slide through timber.
-					if ( BuildingCollision.TryDetourWaypoint(
-						     pos,
-						     TargetAimPoint( target, corePos ),
-						     allow,
-						     skipPerimeterWalls: false,
-						     out var detour )
-					     && (detour - pos).WithZ( 0f ).Length > 14f )
+					var finalAim = TargetAimPoint( target, corePos );
+
+					// Stick to a skirt waypoint until past HQ — recomputing every frame
+					// flipped corners and pinned agents on the L-edge.
+					if ( z.HasDetour )
 					{
-						moveGoal = WallApproach.ClampInsideCourtyard( detour, corePos, pathRadius );
-						usedDetour = true;
+						if ( BuildingCollision.HasClearedCoreSkirt( pos, z.DetourGoal, finalAim, corePos ) )
+						{
+							z.HasDetour = false;
+							PathDebug.Event( agent, "detour-clear",
+								$"pos={PathDebug.Fmt( pos )}{PathDebug.Cell( pos )} aim={PathDebug.Fmt( finalAim )}" );
+						}
+						else
+						{
+							moveGoal = homeTarget
+								? WallApproach.ClampInsideCourtyard( z.DetourGoal, corePos, pathRadius )
+								: z.DetourGoal;
+							usedDetour = true;
+						}
+					}
+
+					if ( !usedDetour
+					     && (arrivedEarly || BuildingCollision.SegmentHitsBlocker( pos, moveGoal, allow )
+					         || z.MoveStuckTimer > 0.35f) )
+					{
+						// Never skip perimeter walls on detour — that let agents slide through timber.
+						if ( BuildingCollision.TryDetourWaypoint(
+							     pos,
+							     finalAim,
+							     allow,
+							     skipPerimeterWalls: false,
+							     out var detour )
+						     && (detour - pos).WithZ( 0f ).Length > 14f )
+						{
+							z.HasDetour = true;
+							z.DetourGoal = detour;
+							moveGoal = homeTarget
+								? WallApproach.ClampInsideCourtyard( detour, corePos, pathRadius )
+								: detour;
+							usedDetour = true;
+						}
 					}
 				}
 
-				if ( target.Kind is TargetKind.Building or TargetKind.Core )
+				if ( homeTarget && target.Kind is TargetKind.Building or TargetKind.Core )
 					moveGoal = WallApproach.ClampInsideCourtyard( moveGoal, corePos, pathRadius );
 			}
 
 			if ( usedBreach )
+			{
+				z.HasDetour = false;
 				PathDebug.Event( agent, "breach-waypoint",
 					$"side={z.ApproachSide} via={PathDebug.Fmt( moveGoal )}{PathDebug.Cell( moveGoal )} target={targetLabel}" );
+			}
 			else if ( usedClearRing )
 				PathDebug.Event( agent, "clear-ring",
 					$"via={PathDebug.Fmt( moveGoal )}{PathDebug.Cell( moveGoal )} target={targetLabel}" );
@@ -487,7 +612,7 @@ public sealed class CombatSystem : Component
 			ApplyHordeSeparation( z, ref pos, dt, allow.IgnorePerimeterWalls, attackDist, allow );
 			z.Go.WorldPosition = pos;
 
-			var step = z.Speed * dt;
+			var step = z.EffectiveSpeed * dt;
 			if ( moved < step * GameConstants.ZombieStuckMoveThreshold )
 			{
 				z.MoveStuckTimer += dt;
@@ -502,7 +627,7 @@ public sealed class CombatSystem : Component
 				z.TotalStuckTimer = MathF.Max( 0f, z.TotalStuckTimer - dt * 2f );
 			}
 
-			z.Character?.TickZombie( walkDir * z.Speed, facing );
+			z.Character?.TickZombie( walkDir * z.EffectiveSpeed, facing );
 
 			(engagePoint, attackDist, attackRadius) = ResolveEngagement( pos, target, corePos, allow );
 			TryEngage( z, attackDist, attackRadius );
@@ -576,7 +701,7 @@ public sealed class CombatSystem : Component
 			z.Character?.SetZombieEngaged( false );
 			z.Character?.SetWallVaulting( true, triggerJump: !z.VaultJumpTriggered );
 			z.VaultJumpTriggered = true;
-			z.Character?.TickZombie( faceDir.Normal * z.Speed * 1.2f, z.Go.WorldRotation );
+			z.Character?.TickZombie( faceDir.Normal * z.EffectiveSpeed * 1.2f, z.Go.WorldRotation );
 
 			if ( t >= 1f )
 			{
@@ -622,7 +747,7 @@ public sealed class CombatSystem : Component
 			z.Character?.SetZombieEngaged( false );
 			z.Character?.SetWallVaulting( false );
 			WalkZombieToward( z, takeoff, dt, allow, out _, out var walkDir );
-			z.Character?.TickZombie( walkDir * z.Speed, z.Go.WorldRotation );
+			z.Character?.TickZombie( walkDir * z.EffectiveSpeed, z.Go.WorldRotation );
 			PathDebug.Event( agent, "vault-approach",
 				$"side={side} takeoff={PathDebug.Fmt( takeoff )} dist={takeoffDist:0.0}" );
 			return true;
@@ -713,16 +838,25 @@ public sealed class CombatSystem : Component
 	/// </summary>
 	public void FailsafeClearRemainingZombies( GameCore core )
 	{
-		var night = core.Save.CurrentNight;
+		var night = core.CombatProgressionNight;
 		foreach ( var z in _zombies )
 			KillStuckZombie( z, core, night, grantRewards: false, suppressSplit: true );
+	}
+
+	public void ApplyTakeoverHit( ZombieInstance z, float damage )
+	{
+		if ( z is null || z.Dead || damage <= 0f ) return;
+		var core = GameCore.Instance;
+		if ( z.Hit( damage ) && core is not null )
+			GrantKillRewards( z, core, core.CombatProgressionNight );
 	}
 
 	private static void GrantKillRewards( ZombieInstance z, GameCore core, int night )
 	{
 		CombatAudio.PlayZombieKill( "ZombieKill" );
 		var scrap = (GameConstants.ScrapPerKillBase + night * GameConstants.ScrapPerKillPerNight)
-			* core.ScrapMultiplier;
+			* core.ScrapMultiplier
+			+ core.SalvageKillBonus;
 		core.Wallet.Earn( scrap );
 		core.Save.TotalKills++;
 		ZombieBestiary.RecordKill( core.Save, z.TypeDef?.Kind ?? ZombieKind.Walker );
@@ -767,7 +901,7 @@ public sealed class CombatSystem : Component
 		var to = (engagePoint - pos).WithZ( 0f );
 		if ( to.Length < 0.5f ) return;
 
-		var creep = MathF.Min( to.Length, z.Speed * dt * 0.5f );
+		var creep = MathF.Min( to.Length, z.EffectiveSpeed * dt * 0.5f );
 		var next = BuildingCollision.ResolveZombieStep(
 			pos,
 			pos + to.Normal * creep,
@@ -804,7 +938,7 @@ public sealed class CombatSystem : Component
 
 		if ( push.Length < 0.01f ) return;
 
-		var step = MathF.Min( push.Length, z.Speed * dt * 0.22f );
+		var step = MathF.Min( push.Length, z.EffectiveSpeed * dt * 0.22f );
 		var desired = pos + push.Normal * step;
 		var next = BuildingCollision.ResolveZombieStep( pos, desired, step, jumpWalls, allow );
 		var moved = (next - pos).WithZ( 0f ).Length;
@@ -907,6 +1041,22 @@ public sealed class CombatSystem : Component
 		}
 	}
 
+	/// <summary>
+	/// True when the hunt target sits inside/on the home perimeter ring.
+	/// False for structures on claimed outer plots — those are approached from outside.
+	/// </summary>
+	static bool TargetIsInsideHomeRing( ZombieTarget target, Vector3 corePos ) =>
+		target.Kind switch
+		{
+			TargetKind.Core => true,
+			TargetKind.Wall => true,
+			TargetKind.Building when target.Building is not null =>
+				!WallApproach.IsOutsideWalls( target.Building.Center, corePos ),
+			TargetKind.Defender when target.Defender is not null =>
+				!WallApproach.IsOutsideWalls( target.Defender.WorldPos, corePos ),
+			_ => !WallApproach.IsOutsideWalls( target.Position, corePos )
+		};
+
 	private static ZombieTarget FindTarget(
 		ZombieInstance z,
 		Vector3 pos,
@@ -969,7 +1119,20 @@ public sealed class CombatSystem : Component
 			hasBest = true;
 		}
 
-		// Buildings & recruits first so breach-wall probing can lose to a nearby tower.
+		// Buildings, command post & recruits — nearest wins (HQ no longer last-resort only).
+		if ( outpost.CoreHealth > 0f )
+		{
+			var coreDist = BuildingCollision.DistToFootprintSurface(
+				pos, corePos, BuildGrid.CommandPostZombieCollisionFootprint );
+			if ( coreDist <= GameConstants.ZombieSeekRadius )
+			{
+				Consider(
+					TargetKind.Core,
+					corePos,
+					GameConstants.CoreSize * 0.6f + GameConstants.ZombieRadius );
+			}
+		}
+
 		if ( build is not null )
 		{
 			foreach ( var b in build.Buildings )
@@ -991,6 +1154,10 @@ public sealed class CombatSystem : Component
 			}
 		}
 
+		// Already locked onto an outer-plot structure — don't divert to the home wall / HQ.
+		if ( hasBest && !TargetIsInsideHomeRing( best, corePos ) )
+			return best;
+
 		if ( z.TypeDef?.CanJumpWalls != true )
 		{
 			var side = z.ApproachSide;
@@ -1005,6 +1172,7 @@ public sealed class CombatSystem : Component
 		if ( hasBest )
 			return best;
 
+		// Nothing in seek range — still push toward the command post.
 		return new ZombieTarget
 		{
 			Kind = TargetKind.Core,
@@ -1090,14 +1258,18 @@ public sealed class CombatSystem : Component
 	private void UpdateBullets( float dt, GameCore core )
 	{
 		var step = GameConstants.BulletSpeed * dt;
+		// World scale raised BulletSpeed with TileScale, but hit radii stayed citizen-sized.
+		// Point samples then tunneled through targets (~180u/frame at 60fps vs ~42u radius).
+		var hitRadius = GameConstants.ZombieRadius + 10f;
 
 		for ( var i = _activeBullets.Count - 1; i >= 0; i-- )
 		{
 			var b = _activeBullets[i];
+			var prev = b.Pos;
 			b.Pos += b.Dir * step;
 			b.Life -= dt;
 
-			var hit = ResolveHit( b, core );
+			var hit = ResolveHitSwept( b, core, prev, b.Pos, hitRadius );
 
 			if ( hit || b.Life <= 0f )
 			{
@@ -1110,23 +1282,57 @@ public sealed class CombatSystem : Component
 		}
 	}
 
-	private bool ResolveHit( Bullet b, GameCore core )
+	private bool ResolveHitSwept( Bullet b, GameCore core, Vector3 from, Vector3 to, float hitRadius )
 	{
+		var a = new Vector2( from.x, from.y );
+		var c = new Vector2( to.x, to.y );
+
 		foreach ( var z in _zombies )
 		{
 			if ( z.Dead ) continue;
 
-			var p = z.Position;
-			if ( (new Vector2( p.x, p.y ) - new Vector2( b.Pos.x, b.Pos.y )).Length > GameConstants.ZombieRadius + 10f )
+			var p = new Vector2( z.Position.x, z.Position.y );
+			if ( DistancePointToSegment( p, a, c ) > hitRadius )
 				continue;
 
 			if ( z.Hit( b.Damage ) )
-				GrantKillRewards( z, core, core.Save.CurrentNight );
+				GrantKillRewards( z, core, core.CombatProgressionNight );
+
+			if ( b.SplashRadius > 0f && b.SplashDamageMult > 0f )
+			{
+				var impact = p;
+				foreach ( var nearby in _zombies )
+				{
+					if ( nearby == z || nearby.Dead ) continue;
+					var nearbyPos = new Vector2( nearby.Position.x, nearby.Position.y );
+					if ( (nearbyPos - impact).Length > b.SplashRadius ) continue;
+					if ( nearby.Hit( b.Damage * b.SplashDamageMult ) )
+						GrantKillRewards( nearby, core, core.CombatProgressionNight );
+				}
+			}
 
 			return true;
 		}
 
+		if ( b.Damage > 0f && HostileForceSystem.Instance is { } hostiles )
+		{
+			if ( hostiles.TryHitSwept( from, to, b.Damage, hitRadius + 2f ) )
+				return true;
+		}
+
 		return false;
+	}
+
+	static float DistancePointToSegment( Vector2 p, Vector2 a, Vector2 b )
+	{
+		var ab = b - a;
+		var lenSq = ab.LengthSquared;
+		if ( lenSq < 0.0001f )
+			return (p - a).Length;
+
+		var t = Math.Clamp( Vector2.Dot( p - a, ab ) / lenSq, 0f, 1f );
+		var closest = a + ab * t;
+		return (p - closest).Length;
 	}
 
 	private void CleanupDead()

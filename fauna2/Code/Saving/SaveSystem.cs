@@ -110,6 +110,9 @@ public sealed class SaveSystem : Component
 
 	// ── Save ────────────────────────────────────────────────
 
+	/// <param name="preserveWorldOnEmptyCapture">Merge the last disk layout when a transient capture is unexpectedly empty.</param>
+	/// <param name="verifyWrite">Read the new file back and validate it before considering the save complete.</param>
+	/// <param name="shutdown">Use shutdown-safe behavior and diagnostics.</param>
 	/// <param name="allowEmptyBuiltOverwrite">
 	/// True only for intentional wipes (new game over a slot). Hotload/teardown must
 	/// never pass this — otherwise empty habitat/placeable lists overwrite good saves.
@@ -153,7 +156,14 @@ public sealed class SaveSystem : Component
 			if ( !allowEmptyBuiltOverwrite )
 				ProtectBuiltWorldFromEmptyCapture( data, path );
 
-			WriteSaveFile( path, data, preserveWorldOnEmptyCapture, verifyWrite );
+			// New-game overwrites must not snapshot the previous zoo into .bak —
+			// Continue recovery would otherwise resurrect it.
+			WriteSaveFile(
+				path,
+				data,
+				preserveWorldOnEmptyCapture,
+				verifyWrite,
+				writeBuiltWorldBackup: !allowEmptyBuiltOverwrite );
 
 			RememberSnapshot( data );
 
@@ -295,7 +305,12 @@ public sealed class SaveSystem : Component
 			&& !save.HasNet;
 	}
 
-	private static void WriteSaveFile( string path, SaveData data, bool preserveWorldOnEmptyCapture, bool verifyWrite )
+	private static void WriteSaveFile(
+		string path,
+		SaveData data,
+		bool preserveWorldOnEmptyCapture,
+		bool verifyWrite,
+		bool writeBuiltWorldBackup = true )
 	{
 		// AUDIT FIX B4 + CONTINUE/SAVE FIX: Shutdown/preserve resurrects layout when
 		// player-built content is gone (not merely when TerrainObstacles are empty).
@@ -313,9 +328,10 @@ public sealed class SaveSystem : Component
 		EnsureDirectoryForFile( path );
 
 		// Keep one previous good build on disk so a future wipe can be recovered.
-		// Only refresh .bak when the new payload still has a built world — otherwise
-		// New Game would snapshot the old zoo into .bak and Continue would resurrect it.
-		TryWriteBuiltWorldBackup( path, data );
+		// Skip on intentional New Game overwrite — otherwise the old zoo is copied to .bak
+		// right before the new file is written, and Continue can resurrect it.
+		if ( writeBuiltWorldBackup )
+			TryWriteBuiltWorldBackup( path, data );
 
 		FileSystem.Data.WriteJson( path, data );
 
@@ -353,51 +369,6 @@ public sealed class SaveSystem : Component
 		target.TerrainObstaclesCleared = source.TerrainObstaclesCleared;
 		target.WildAnimals = source.WildAnimals ?? new();
 		target.Plots = source.Plots?.Count > 0 ? source.Plots : target.Plots;
-	}
-
-	// AUDIT FIX B4: Kept for reference / emergency restore tooling. No longer called
-	// from WriteSaveFile — per-category empty→disk restore undid intentional wipes.
-	// If you re-enable it, pair with an explicit "capture failed" flag, not count==0.
-	private static void PreserveWorldLayoutFromDisk( string path, SaveData data )
-	{
-		if ( !TryReadSaveFile( path, out var existing ) )
-			return;
-
-		var preserved = false;
-
-		if ( (data.Habitats?.Count ?? 0) == 0 && (existing.Habitats?.Count ?? 0) > 0 )
-		{
-			data.Habitats = existing.Habitats;
-			preserved = true;
-		}
-
-		if ( (data.Placeables?.Count ?? 0) == 0 && (existing.Placeables?.Count ?? 0) > 0 )
-		{
-			data.Placeables = existing.Placeables;
-			preserved = true;
-		}
-
-		if ( (data.Animals?.Count ?? 0) == 0 && (existing.Animals?.Count ?? 0) > 0 )
-		{
-			data.Animals = existing.Animals;
-			preserved = true;
-		}
-
-		if ( (data.TerrainObstacles?.Count ?? 0) == 0 && (existing.TerrainObstacles?.Count ?? 0) > 0 )
-		{
-			data.TerrainObstacles = existing.TerrainObstacles;
-			data.TerrainObstaclesCleared = existing.TerrainObstaclesCleared;
-			preserved = true;
-		}
-
-		if ( (data.WildAnimals?.Count ?? 0) == 0 && (existing.WildAnimals?.Count ?? 0) > 0 )
-		{
-			data.WildAnimals = existing.WildAnimals;
-			preserved = true;
-		}
-
-		if ( preserved )
-			Log.Warning( "Fauna: preserved world layout from disk — live capture was empty." );
 	}
 
 	private static void EnsureDirectoryForFile( string path )
@@ -531,6 +502,7 @@ public sealed class SaveSystem : Component
 			SaveSlotId = ActiveSlotId,
 
 			ObjectiveIndex = ObjectiveSystem.Instance?.CurrentIndex ?? 0,
+			GuestRatingsReviewed = ObjectiveSystem.Instance?.GuestRatingsReviewed ?? false,
 			ChallengeIndex = 0,
 			LoginStreak = DailyBonusSystem.Instance?.LoginStreak ?? 0,
 			GuestMilestoneFlags = ZooMilestones.Instance?.GuestMilestoneFlags ?? 0,
@@ -763,12 +735,13 @@ public sealed class SaveSystem : Component
 	public static bool DeleteSlot( int slotId )
 	{
 		var path = slotId == 0 ? GameConstants.LegacySaveFile : GetSlotPath( slotId );
-		if ( !FileSystem.Data.FileExists( path ) )
+		var existed = FileSystem.Data.FileExists( path ) || FileSystem.Data.FileExists( GetBackupPath( path ) );
+		if ( !existed )
 			return false;
 
 		try
 		{
-			FileSystem.Data.DeleteFile( path );
+			TryDeleteSlotFiles( path );
 			Log.Info( $"Fauna: deleted save slot {(slotId == 0 ? "legacy" : slotId.ToString())}." );
 			return true;
 		}
@@ -776,6 +749,26 @@ public sealed class SaveSystem : Component
 		{
 			Log.Warning( $"Fauna: failed to delete save — {e.Message}" );
 			return false;
+		}
+	}
+
+	/// <summary>Delete slot JSON and its .bak so overwrite / delete cannot leave a recoverable old zoo.</summary>
+	private static void TryDeleteSlotFiles( string path )
+	{
+		TryDeleteFile( path );
+		TryDeleteBackup( path );
+	}
+
+	private static void TryDeleteFile( string path )
+	{
+		try
+		{
+			if ( FileSystem.Data.FileExists( path ) )
+				FileSystem.Data.DeleteFile( path );
+		}
+		catch ( Exception e )
+		{
+			Log.Warning( $"Fauna: could not delete save '{path}' — {e.Message}" );
 		}
 	}
 
@@ -821,6 +814,7 @@ public sealed class SaveSystem : Component
 				Money = data.Money,
 				StarterProfileId = data.StarterProfileId,
 				SavedAtUnix = data.SavedAtUnix,
+				LoginStreak = data.LoginStreak,
 				IsLegacy = isLegacy,
 			};
 		}
@@ -844,6 +838,7 @@ public sealed class SaveSystem : Component
 			Money = info.Money,
 			StarterProfileId = info.StarterProfileId,
 			SavedAtUnix = info.SavedAtUnix,
+			LoginStreak = info.LoginStreak,
 			IsLegacy = true,
 		};
 	}
@@ -868,7 +863,17 @@ public sealed class SaveSystem : Component
 
 		ActiveSlotId = slotId;
 		PlayerSpawnPoint.ClearRestoredPosition();
+
+		// Drop prior-session memory + disk so Protect / .bak recovery cannot resurrect the old zoo.
+		_lastGoodSnapshot = null;
+		_eventSaveQueued = false;
+		_terrainObstacleCache = new();
+		_terrainObstacleClearedCache = 0;
+		var path = GetSlotPath( slotId );
+		TryDeleteSlotFiles( path );
+
 		ClearWorld();
+		ResetProgressionForNewGame();
 
 		ZooState.Instance.ApplyStarterProfile( profile );
 		PlotSystem.Instance.SetNewGameDefaults();
@@ -878,6 +883,7 @@ public sealed class SaveSystem : Component
 			TerrainObstacleSystem.Instance.GenerateWorld( profile.Biome, PlotSystem.Instance, slotId );
 		}
 
+		// No pre-built entrance / path / habitat — player builds the loop themselves.
 		if ( WildernessSpawner.Instance.IsValid() )
 			WildernessSpawner.Instance.GenerateWorld( profile.Biome );
 
@@ -900,7 +906,10 @@ public sealed class SaveSystem : Component
 		}
 
 		if ( ObjectiveSystem.Instance.IsValid() )
+		{
 			ObjectiveSystem.Instance.CurrentIndex = 0;
+			ObjectiveSystem.Instance.GuestRatingsReviewed = false;
+		}
 
 		var guests = GuestSystem.Instance;
 		if ( guests.IsValid() )
@@ -911,10 +920,59 @@ public sealed class SaveSystem : Component
 			guests.Satisfaction = 75f;
 		}
 
-		// Intentional empty built world for this slot — must not resurrect the old zoo.
-		TryDeleteBackup( GetSlotPath( slotId ) );
+		// Belt-and-suspenders: reused ZooCore / starter rewards must never boot a "Level 3" new zoo.
+		ForceNewGameLevel();
+
+		// Intentional slot wipe — skip Protect + .bak snapshot of the previous zoo.
 		Save( verifyWrite: true, allowEmptyBuiltOverwrite: true );
+		TryDeleteBackup( path );
 		Log.Info( $"Fauna: new zoo '{profile.DisplayName}' in slot {slotId}." );
+	}
+
+	/// <summary>Public so GameManager can re-assert Level 1 after post-start catch-up.</summary>
+	public void ForceNewGameLevel() => EnsureNewGameLevel( ZooState.Instance );
+
+	/// <summary>Clear codex / milestones / achievements left on a reused ZooCore from a prior session.</summary>
+	private static void ResetProgressionForNewGame()
+	{
+		if ( ObjectiveSystem.Instance.IsValid() )
+		{
+			ObjectiveSystem.Instance.CurrentIndex = 0;
+			ObjectiveSystem.Instance.GuestRatingsReviewed = false;
+		}
+
+		CollectionSystem.Instance?.Restore( new Dictionary<string, int>(), new Dictionary<string, bool>() );
+		ZooMilestones.Instance?.Restore( 0, 0, 0, false, false );
+		AchievementSystem.Instance?.Restore( 0 );
+
+		var breeding = BreedingSystem.Instance;
+		if ( breeding.IsValid() )
+		{
+			breeding.History.Clear();
+			breeding.TotalBredCount = 0;
+		}
+
+		var daily = DailyBonusSystem.Instance;
+		if ( daily.IsValid() )
+		{
+			daily.LastBonusUnixDay = 0;
+			daily.LoginStreak = 0;
+		}
+	}
+
+	private static void EnsureNewGameLevel( ZooState state )
+	{
+		if ( !state.IsValid() ) return;
+
+		if ( state.Level != 1 || state.Xp != 0 || state.Prestige != 0 )
+		{
+			Log.Warning(
+				$"Fauna: new game had Level={state.Level} Xp={state.Xp} Prestige={state.Prestige} — forcing Level 1." );
+		}
+
+		state.Level = 1;
+		state.Xp = 0;
+		state.Prestige = 0;
 	}
 
 	public bool TryLoad()
@@ -1028,13 +1086,54 @@ public sealed class SaveSystem : Component
 
 		if ( data.Version < 10 )
 		{
-			// Legacy: 7-step tutorial (0–6) then challenges. New: 8-step tutorial (0–7) then 8+.
+			// Legacy: 7-step tutorial (0–6) then challenges. v10: 8-step tutorial (0–7) then 8+.
+			const int tutorialGoalCountV10 = 8;
 			if ( data.ChallengeIndex > 0 )
-				data.ObjectiveIndex = ObjectiveSystem.TutorialGoalCount + data.ChallengeIndex;
+				data.ObjectiveIndex = tutorialGoalCountV10 + data.ChallengeIndex;
 			else if ( data.ObjectiveIndex >= 7 )
-				data.ObjectiveIndex = ObjectiveSystem.TutorialGoalCount;
+				data.ObjectiveIndex = tutorialGoalCountV10;
 			data.ChallengeIndex = 0;
 			data.Version = 10;
+		}
+
+		if ( data.Version < 11 )
+		{
+			// Catch moved from index 8 to index 0; clear→guests shift +1. Breed+ stay put.
+			if ( data.ObjectiveIndex == 8 )
+				data.ObjectiveIndex = 0;
+			else if ( data.ObjectiveIndex >= 0 && data.ObjectiveIndex < 8 )
+				data.ObjectiveIndex += 1;
+			data.Version = 11;
+		}
+
+		if ( data.Version < 12 )
+		{
+			// v12: find inserted at 0, clear removed. catch→place shift.
+			// old: 0 catch, 1 clear, 2 entrance…5 place, 6+ amenities
+			// new: 0 find, 1 catch, 2 entrance…5 place, 6+ amenities
+			data.ObjectiveIndex = data.ObjectiveIndex switch
+			{
+				0 => data.TotalAnimalsCaught > 0 ? 1 : 0,
+				1 => 2, // was clear → entrance
+				_ => data.ObjectiveIndex,
+			};
+			data.Version = 12;
+		}
+
+		if ( data.Version < 13 )
+		{
+			// v13: shop + ratings tips inserted at 8–9; welcome-10+ shift +2.
+			if ( data.ObjectiveIndex >= 8 )
+				data.ObjectiveIndex += 2;
+			data.Version = 13;
+		}
+
+		if ( data.Version < 14 )
+		{
+			// v14: clear-land tip inserted at 3; path→ratings shift +1.
+			if ( data.ObjectiveIndex >= 3 )
+				data.ObjectiveIndex += 1;
+			data.Version = 14;
 		}
 
 		data.Version = SaveData.CurrentVersion;
@@ -1085,7 +1184,10 @@ public sealed class SaveSystem : Component
 			ActiveSlotId = data.SaveSlotId;
 
 		if ( ObjectiveSystem.Instance.IsValid() )
+		{
 			ObjectiveSystem.Instance.CurrentIndex = data.ObjectiveIndex;
+			ObjectiveSystem.Instance.GuestRatingsReviewed = data.GuestRatingsReviewed;
+		}
 
 		if ( DailyBonusSystem.Instance.IsValid() )
 		{

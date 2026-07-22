@@ -389,6 +389,7 @@ public sealed class ThornsTerrainBootstrap : Component
 		var service = Scene.GetAllComponents<ThornsDeathCrateWorldService>().FirstOrDefault()
 		              ?? GameObject.Components.Create<ThornsDeathCrateWorldService>();
 		service?.OnWorldReady( terrain );
+		ThornsWorldPersistence.Instance?.HostRestoreDeathCratesOnce();
 	}
 
 	void NotifyMapSystems()

@@ -46,8 +46,8 @@ public static class SelectHelp
 		if ( scrap <= 0 ) return 0;
 		return Math.Min( fullCost, scrap );
 	}
-	public static bool CanStartRepair( double fullCost ) =>
-		IsDay && AffordableRepairSpend( fullCost ) > 0;
+	public static bool CanStartRepair( double scrapCost ) =>
+		IsDay && (scrapCost <= 0.001 || AffordableRepairSpend( scrapCost ) > 0);
 	public static int Pct( float frac ) => (int)MathF.Round( Math.Clamp( frac, 0f, 1f ) * 100f );
 	public static bool IsDay => GameCore.Instance?.Phase == GamePhase.Day;
 }
@@ -65,7 +65,7 @@ public sealed class WallSelectable : ISelectable
 	public float Health => _w.Health;
 	public float MaxHealth => _w.MaxHealth;
 	public Vector3 WorldPos => _w.Center;
-	public float SelectRadius => 58f;
+	public float SelectRadius => GameConstants.U( 58f );
 	public bool IsAlive => _w is not null && _w.Go.IsValid() && !_w.IsBroken;
 
 	public IReadOnlyList<StatLine> Stats
@@ -102,6 +102,7 @@ public sealed class WallSelectable : ISelectable
 			else if ( _w.Health < _w.MaxHealth )
 			{
 				var repairCost = (_w.MaxHealth - _w.Health) * (float)GameConstants.RepairCostPerHp;
+				repairCost = (float)RepairCosts.EffectiveScrapCost( repairCost );
 				var spend = SelectHelp.AffordableRepairSpend( repairCost );
 				list.Add( new SelectAction
 				{
@@ -150,7 +151,7 @@ public sealed class CoreSelectable : ISelectable
 	public float Health => _o.CoreHealth;
 	public float MaxHealth => _o.CoreMaxHealth;
 	public Vector3 WorldPos => _o.CorePosition;
-	public float SelectRadius => 100f;
+	public float SelectRadius => GameConstants.CoreSize;
 	public bool IsAlive => _o is not null && _o.CoreMaxHealth > 0f;
 
 	public IReadOnlyList<StatLine> Stats
@@ -192,6 +193,7 @@ public sealed class CoreSelectable : ISelectable
 			else if ( _o.CoreHealth < _o.CoreMaxHealth )
 			{
 				var repairCost = (_o.CoreMaxHealth - _o.CoreHealth) * (float)GameConstants.RepairCostPerHp;
+				repairCost = (float)RepairCosts.EffectiveScrapCost( repairCost );
 				var spend = SelectHelp.AffordableRepairSpend( repairCost );
 				list.Add( new SelectAction
 				{
@@ -211,6 +213,14 @@ public sealed class CoreSelectable : ISelectable
 				Kind = SelectActionKind.Primary,
 				Enabled = !maxed && SelectHelp.CanAfford( cost ),
 				Invoke = () => core?.BuyUpgrade( UpgradeId.FortifyCore )
+			} );
+
+			list.Add( new SelectAction
+			{
+				Label = "Move",
+				Detail = SelectHelp.IsDay ? "Relocate HQ" : "Day only",
+				Enabled = SelectHelp.IsDay && RepairManager.Instance?.IsScheduledCore() != true,
+				Invoke = () => BuildManager.Instance?.BeginMoveCore()
 			} );
 
 			return list;
@@ -271,9 +281,9 @@ public sealed class PlotSelectable : ISelectable
 		get
 		{
 			if ( IsRival && !Owned )
-				return "Rival territory — claim at double cost";
+				return "Rival territory — invade to fight their garrison (2× cost)";
 			if ( RivalCivManager.IsSeedPlot( _x, _y ) && !Owned )
-				return "Enemy colony — expands each season";
+				return "Enemy colony with defenses — expands each season";
 			if ( Boss != BossKind.None && !Cleared )
 				return PlotWorldRolls.GetBoss( Boss ).Description;
 			if ( Boost != PlotBoostKind.None && !Cleared )
@@ -295,7 +305,7 @@ public sealed class PlotSelectable : ISelectable
 	public float Health => 0f;
 	public float MaxHealth => 0f;
 	public Vector3 WorldPos => PlotGrid.CenterWorld( _x, _y );
-	public float SelectRadius => GameConstants.PlotSize * 0.5f - 30f;
+	public float SelectRadius => GameConstants.PlotSize * 0.5f - GameConstants.U( 30f );
 	public bool IsAlive => PlotGrid.InGrid( _x, _y ) && !PlotGrid.IsHome( _x, _y );
 
 	public IReadOnlyList<StatLine> Stats
@@ -313,15 +323,23 @@ public sealed class PlotSelectable : ISelectable
 				};
 			}
 
-			var list = new List<StatLine> { new( "Resource", ResourceInfo.Name( Kind ) ) };
+			var isCure = GameCore.Instance?.IsCure == true;
+			var list = new List<StatLine>
+			{
+				isCure
+					? new( "Resource", ResourceInfo.Name( Kind ) )
+					: new( "Land", "Scrap while clearing" )
+			};
 
 			if ( Owned )
 			{
 				var foragers = wm?.CountForagersOn( _x, _y ) ?? 0;
-				var perMin = foragers * GameConstants.ForagerHarvestPerSec * 60f;
+				var perMin = foragers * (isCure
+					? GameConstants.ForagerHarvestPerSec
+					: GameConstants.ForagerScrapPerSec) * 60f;
 				var clearPct = SelectHelp.Pct( PlotManager.Instance?.ClearFraction( _x, _y ) ?? 0f );
 				list.Add( new StatLine( "Foragers", $"{foragers}" ) );
-				list.Add( new StatLine( "Yield", $"{perMin:0}/min" ) );
+				list.Add( new StatLine( isCure ? "Yield" : "Scrap", $"{perMin:0}/min" ) );
 				list.Add( new StatLine( "Cleared", $"{clearPct}%" ) );
 			}
 			else
@@ -329,7 +347,9 @@ public sealed class PlotSelectable : ISelectable
 				var mult = RivalCivManager.InvasionCostMult( GameCore.Instance?.Save, _x, _y );
 				var cost = PlotGrid.BuyCostEffective( _x, _y ) * mult;
 				list.Add( new StatLine( "Claim Cost", SelectHelp.Cost( cost ) ) );
-				if ( mult > 1 ) list.Add( new StatLine( "Note", "Rival invasion (2×)" ) );
+				if ( mult > 1 ) list.Add( new StatLine( "Note", "Assault fight (2×)" ) );
+				var layout = RivalGarrison.Build( _x, _y );
+				list.Add( new StatLine( "Garrison", $"{layout.Recruits.Count} recruits · {layout.Buildings.Count} buildings" ) );
 			}
 
 			return list;
@@ -349,7 +369,7 @@ public sealed class PlotSelectable : ISelectable
 				var cost = PlotGrid.BuyCostEffective( _x, _y ) * mult;
 				list.Add( new SelectAction
 				{
-					Label = Buyable ? (mult > 1 ? "Invade Plot" : "Claim Plot") : "Not Reachable",
+					Label = Buyable ? (mult > 1 ? "Assault Outpost" : "Claim Plot") : "Not Reachable",
 					Detail = Buyable ? SelectHelp.Cost( cost ) : null,
 					Kind = SelectActionKind.Primary,
 					Enabled = Buyable && SelectHelp.CanAfford( cost ),
@@ -360,7 +380,8 @@ public sealed class PlotSelectable : ISelectable
 
 			// Foragers both harvest and clear the land. Once cleared there's nothing left to gather,
 			// so we only offer to recall any leftover workers off the (now buildable) plot.
-			if ( !Cleared && Kind != ResourceKind.None )
+			var civCanBeCleared = !IsCiv || PlotCivActions.IsRaided( GameCore.Instance?.Save, _x, _y );
+			if ( !Cleared && Kind != ResourceKind.None && civCanBeCleared )
 			{
 				var hireCost = WorkerInfo.HireCost( WorkerRole.Forager );
 				var full = (wm?.Count ?? 0) >= GameConstants.MaxWorkers;
@@ -392,16 +413,20 @@ public sealed class PlotSelectable : ISelectable
 
 			if ( GameCore.Instance?.IsCure == true && Owned && PlotCivActions.CanInteract( GameCore.Instance.Save, _x, _y ) )
 			{
-				list.Add( new SelectAction
+				var save = GameCore.Instance.Save;
+				if ( PlotCivActions.CanTrade( save, _x, _y ) )
 				{
-					Label = "Trade (20 Food)",
-					Detail = "+Scrap",
-					Kind = SelectActionKind.Primary,
-					Enabled = GameCore.Instance.Resources.Get( ResourceKind.Food ) >= 20,
-					Invoke = () => PlotCivActions.TryTrade( GameCore.Instance, _x, _y )
-				} );
+					list.Add( new SelectAction
+					{
+						Label = "Trade (20 Food)",
+						Detail = "+Scrap",
+						Kind = SelectActionKind.Primary,
+						Enabled = GameCore.Instance.Resources.Get( ResourceKind.Food ) >= 20,
+						Invoke = () => PlotCivActions.TryTrade( GameCore.Instance, _x, _y )
+					} );
+				}
 
-				if ( !PlotCivActions.IsAllied( GameCore.Instance.Save, _x, _y ) )
+				if ( PlotCivActions.CanAlly( save, _x, _y ) )
 				{
 					list.Add( new SelectAction
 					{
@@ -412,13 +437,16 @@ public sealed class PlotSelectable : ISelectable
 					} );
 				}
 
-				list.Add( new SelectAction
+				if ( PlotCivActions.CanRaid( save, _x, _y ) )
 				{
-					Label = "Raid Colony",
-					Detail = "+Supplies, +Scrap · +Sickness",
-					Kind = SelectActionKind.Warn,
-					Invoke = () => PlotCivActions.TryRaid( GameCore.Instance, _x, _y )
-				} );
+					list.Add( new SelectAction
+					{
+						Label = "Raid Colony",
+						Detail = "+Supplies, +Scrap · +Sickness",
+						Kind = SelectActionKind.Warn,
+						Invoke = () => PlotCivActions.TryRaid( GameCore.Instance, _x, _y )
+					} );
+				}
 			}
 
 			return list;
@@ -443,7 +471,7 @@ public sealed class WorkerSelectable : ISelectable
 	public float Health => 0f;
 	public float MaxHealth => 0f;
 	public Vector3 WorldPos => _u.WorldPos;
-	public float SelectRadius => 32f;
+	public float SelectRadius => 32f; // citizen-scale click target (not tile-scaled)
 	public bool IsAlive => _u is not null && _u.Go.IsValid() && WorkerManager.Instance?.Units.Contains( _u ) == true;
 
 	public IReadOnlyList<StatLine> Stats
@@ -501,7 +529,7 @@ public sealed class DefenderSelectable : ISelectable
 	public float Health => _u.Health;
 	public float MaxHealth => _u.MaxHealth;
 	public Vector3 WorldPos => _u.WorldPos;
-	public float SelectRadius => 32f;
+	public float SelectRadius => 32f; // citizen-scale click target (not tile-scaled)
 	public bool IsAlive => _u is not null && _u.Go.IsValid() && DefenderManager.Instance?.Units.Contains( _u ) == true;
 
 	public IReadOnlyList<StatLine> Stats
@@ -516,7 +544,7 @@ public sealed class DefenderSelectable : ISelectable
 			return new List<StatLine>
 			{
 				new( "Weapon", def.ShortName ),
-				new( "Training", $"Lv {trainLevel}" ),
+				new( "Training", $"Level {trainLevel}" ),
 				new( "Health", $"{_u.Health:0} / {_u.MaxHealth:0}" ),
 				new( "Damage", $"{volley:0}{(def.Pellets > 1 ? $" ({def.Pellets}x)" : "")}" ),
 				new( "Range", $"{def.Range:0}" ),
@@ -543,7 +571,7 @@ public sealed class DefenderSelectable : ISelectable
 			{
 				new()
 				{
-					Label = $"Train {Def.ShortName} (Lv {level})",
+					Label = $"Train {Def.ShortName} (Level {level})",
 					Detail = SelectHelp.Cost( cost ),
 					Kind = SelectActionKind.Primary,
 					Enabled = SelectHelp.CanAfford( cost ),

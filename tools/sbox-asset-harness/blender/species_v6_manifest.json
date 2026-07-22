@@ -1,0 +1,443 @@
+{
+  "schemaVersion": 1,
+  "pipeline": "scratch_v6_realistic",
+  "rules": {
+    "donorUsed": false,
+    "sourceContribution": "geometry, UVs, and material appearance only",
+    "preservePreviousVersions": true,
+    "canonicalForward": "-Y",
+    "canonicalUp": "+Z",
+    "fps": 30,
+    "actions": [
+      "Attack",
+      "Death",
+      "Gallop",
+      "Idle",
+      "Trot",
+      "Walk"
+    ]
+  },
+  "families": {
+    "canid": {
+      "walkPattern": "four_beat_lateral_sequence",
+      "trotPattern": "diagonal_two_beat",
+      "gallopPattern": "rotary_double_suspension",
+      "spineFlex": 0.12,
+      "headStability": 0.9,
+      "rootBounce": 0.65,
+      "tailBalance": 0.85,
+      "attackStyle": "bite_lunge"
+    },
+    "felid": {
+      "walkPattern": "stealth_four_beat",
+      "trotPattern": "diagonal_two_beat",
+      "gallopPattern": "rotary_double_suspension",
+      "spineFlex": 0.2,
+      "headStability": 0.96,
+      "rootBounce": 0.48,
+      "tailBalance": 1.2,
+      "attackStyle": "pounce_bite"
+    },
+    "cervid_light": {
+      "walkPattern": "four_beat_lateral_sequence",
+      "trotPattern": "diagonal_two_beat",
+      "gallopPattern": "elastic_bound",
+      "spineFlex": 0.08,
+      "headStability": 0.9,
+      "rootBounce": 0.95,
+      "tailBalance": 0.4,
+      "attackStyle": "head_charge"
+    },
+    "cervid_heavy": {
+      "walkPattern": "four_beat_lateral_sequence",
+      "trotPattern": "diagonal_two_beat",
+      "gallopPattern": "fast_trot_lope",
+      "spineFlex": 0.045,
+      "headStability": 0.96,
+      "rootBounce": 0.42,
+      "tailBalance": 0.25,
+      "attackStyle": "head_charge"
+    },
+    "equid": {
+      "walkPattern": "four_beat_lateral_sequence",
+      "trotPattern": "diagonal_two_beat",
+      "gallopPattern": "transverse_four_beat",
+      "spineFlex": 0.055,
+      "headStability": 0.88,
+      "rootBounce": 0.62,
+      "tailBalance": 0.7,
+      "attackStyle": "hind_kick"
+    },
+    "bovine": {
+      "walkPattern": "heavy_four_beat",
+      "trotPattern": "diagonal_two_beat",
+      "gallopPattern": "heavy_transverse_gallop",
+      "spineFlex": 0.035,
+      "headStability": 0.94,
+      "rootBounce": 0.38,
+      "tailBalance": 0.45,
+      "attackStyle": "head_charge"
+    },
+    "camelid": {
+      "walkPattern": "lateral_couplet_walk",
+      "trotPattern": "lateral_sequence_run",
+      "gallopPattern": "transverse_gallop",
+      "spineFlex": 0.04,
+      "headStability": 0.9,
+      "rootBounce": 0.52,
+      "tailBalance": 0.35,
+      "attackStyle": "stomp_threat"
+    },
+    "reptile": {
+      "walkPattern": "waddle",
+      "trotPattern": "fast_waddle",
+      "gallopPattern": "swim_undulate",
+      "spineFlex": 0.05,
+      "headStability": 0.95,
+      "rootBounce": 0.18,
+      "tailBalance": 1.4,
+      "attackStyle": "jaw_gape"
+    },
+    "avian": {
+      "walkPattern": "cruise_flap",
+      "trotPattern": "steady_flap",
+      "gallopPattern": "power_flap",
+      "spineFlex": 0.02,
+      "headStability": 0.92,
+      "rootBounce": 0.4,
+      "tailBalance": 0.3,
+      "attackStyle": "talon_strike"
+    },
+    "piscine": {
+      "walkPattern": "slow_swim",
+      "trotPattern": "cruise_swim",
+      "gallopPattern": "dart_swim",
+      "spineFlex": 0.16,
+      "headStability": 0.95,
+      "rootBounce": 0.08,
+      "tailBalance": 1.6,
+      "attackStyle": "snap_bite"
+    }
+  },
+  "builds": [
+    {
+      "species": "alpaca",
+      "title": "Alpaca realistic scratch v6",
+      "assetId": "alpaca_scratch_v6_realistic",
+      "rigName": "ScratchV6AlpacaArmature",
+      "source": "tools/FBX/Alpaca.fbx",
+      "sourceSha256": "0292F5199A6C3586263B2A7481E16A4766DE7B86BA2E900AD645D5BDA2725C10",
+      "family": "camelid",
+      "targetHeight": 1.5,
+      "materialMode": "palette"
+    },
+    {
+      "species": "bull",
+      "title": "Bull realistic scratch v6",
+      "assetId": "bull_scratch_v6_realistic",
+      "rigName": "ScratchV6BullArmature",
+      "source": "tools/FBX/Bull.fbx",
+      "sourceSha256": "9C34D1156FBB376C7624DDC268186AFFDB064EA26B889FAFAD6E047DF01BFB0A",
+      "family": "bovine",
+      "targetHeight": 1.65,
+      "materialMode": "palette"
+    },
+    {
+      "species": "cow",
+      "title": "Cow realistic scratch v6",
+      "assetId": "cow_scratch_v6_realistic",
+      "rigName": "ScratchV6CowArmature",
+      "source": "tools/FBX/Cow.fbx",
+      "sourceSha256": "097BA8D23692D901A9F821D569DE579032AEB43B9E52D89E73D0999387337D74",
+      "family": "bovine",
+      "targetHeight": 1.55,
+      "materialMode": "palette"
+    },
+    {
+      "species": "deer",
+      "title": "Deer realistic scratch v6",
+      "assetId": "deer_scratch_v6_realistic",
+      "rigName": "ScratchV6DeerArmature",
+      "source": "thorns/Assets/models/deer/deer.fbx",
+      "sourceSha256": "17B2FC80FDD9ABDDD705FFD506139207C9949A4307AF3618592C21508A6F1424",
+      "family": "cervid_light",
+      "targetHeight": 1.5,
+      "materialMode": "existing",
+      "materialSource": "thorns/Assets/models/deer/bloomdeer_basecolor.vmat",
+      "textureSource": "thorns/Assets/models/deer/bloomdeer_basecolor.png"
+    },
+    {
+      "species": "donkey",
+      "title": "Donkey realistic scratch v6",
+      "assetId": "donkey_scratch_v6_realistic",
+      "rigName": "ScratchV6DonkeyArmature",
+      "source": "tools/FBX/Donkey.fbx",
+      "sourceSha256": "BB507C0EAF5BA401B210DA3E6329D559E89156E23389315DD15B184281FD4734",
+      "family": "equid",
+      "targetHeight": 1.35,
+      "materialMode": "palette"
+    },
+    {
+      "species": "fox",
+      "title": "Fox realistic scratch v6",
+      "assetId": "fox_scratch_v6_realistic",
+      "rigName": "ScratchV6FoxArmature",
+      "source": "tools/FBX/Fox.fbx",
+      "sourceSha256": "24DA24DBD2800BE0B268ADE50429FB7D815423A92A9A39178A4FC460D7B832DE",
+      "family": "canid",
+      "targetHeight": 0.65,
+      "materialMode": "palette",
+      "motionOverrides": {
+        "rootBounce": 0.8,
+        "spineFlex": 0.16,
+        "attackStyle": "pounce_bite"
+      }
+    },
+    {
+      "species": "horse",
+      "title": "Horse realistic scratch v6",
+      "assetId": "horse_scratch_v6_realistic",
+      "rigName": "ScratchV6HorseArmature",
+      "source": "tools/FBX/Horse.fbx",
+      "sourceSha256": "BABB40391B8C3E217BE2BB9C1F7C4D21910E943C28840363509DDE7E88B54CBA",
+      "family": "equid",
+      "targetHeight": 1.8,
+      "materialMode": "palette"
+    },
+    {
+      "species": "husky",
+      "title": "Husky realistic scratch v6",
+      "assetId": "husky_scratch_v6_realistic",
+      "rigName": "ScratchV6HuskyArmature",
+      "source": "tools/FBX/Husky.fbx",
+      "sourceSha256": "2FD68780EBD69E138303FD38A430F6B8A87F6AAFD29770339C95CE15F52D7321",
+      "family": "canid",
+      "targetHeight": 0.85,
+      "materialMode": "palette",
+      "motionOverrides": {
+        "rootBounce": 0.55,
+        "spineFlex": 0.1
+      }
+    },
+    {
+      "species": "shiba_inu",
+      "title": "Shiba Inu realistic scratch v6",
+      "assetId": "shiba_inu_scratch_v6_realistic",
+      "rigName": "ScratchV6ShibaInuArmature",
+      "source": "tools/FBX/ShibaInu.fbx",
+      "sourceSha256": "293200761FB96194EBC1E5BC816E344C244A6AE95E2757761FDDAC85BE763A22",
+      "family": "canid",
+      "targetHeight": 0.55,
+      "materialMode": "palette",
+      "motionOverrides": {
+        "rootBounce": 0.72,
+        "tailBalance": 1.05
+      }
+    },
+    {
+      "species": "stag",
+      "title": "Stag realistic scratch v6",
+      "assetId": "stag_scratch_v6_realistic",
+      "rigName": "ScratchV6StagArmature",
+      "source": "tools/FBX/Stag.fbx",
+      "sourceSha256": "76C4D6ED1FBEFAE722631C3B324C9152A0AD3F0FDA4063212AA599FE2AF84889",
+      "family": "cervid_heavy",
+      "targetHeight": 1.7,
+      "materialMode": "palette",
+      "joinAllMeshes": true,
+      "motionOverrides": {
+        "gallopPattern": "rotary_double_suspension"
+      }
+    },
+    {
+      "species": "elk",
+      "title": "Elk realistic scratch v6",
+      "assetId": "elk_scratch_v6_realistic",
+      "rigName": "ScratchV6ElkArmature",
+      "source": "thorns/Assets/models/elk/elk.fbx",
+      "sourceSha256": "4BEAF567EF46CEDA18285CF578F40ED34DFC51047BBF250661CD89990856CE59",
+      "family": "cervid_heavy",
+      "targetHeight": 1.9,
+      "materialMode": "existing",
+      "materialSource": "thorns/Assets/models/elk/elk_basecolor.vmat",
+      "textureSource": "thorns/Assets/models/elk/elk_basecolor.png"
+    },
+    {
+      "species": "moose",
+      "title": "Moose realistic scratch v6",
+      "assetId": "moose_scratch_v6_realistic",
+      "rigName": "ScratchV6MooseArmature",
+      "source": "thorns/Assets/models/moose/moose.fbx",
+      "sourceSha256": "D1F8183084C95C5868A13CF33981BE905C7169B3571F6A1D4E4F11BB8A503EBA",
+      "family": "cervid_heavy",
+      "targetHeight": 2.2,
+      "materialMode": "existing",
+      "materialSource": "thorns/Assets/models/moose/bloommoose_basecolor.vmat",
+      "textureSource": "thorns/Assets/models/moose/bloommoose_basecolor.png",
+      "motionOverrides": {
+        "spineFlex": 0.03,
+        "rootBounce": 0.3
+      }
+    },
+    {
+      "species": "wolf",
+      "title": "Tripo wolf realistic scratch v6",
+      "assetId": "tripo_wolf_scratch_v6_realistic",
+      "rigName": "ScratchWolfV6RealisticArmature",
+      "source": "scene_lab/Assets/models/tripo_wolf_test/tripo_wolf_test.fbx",
+      "sourceSha256": "0F60FCC352EB0389C9A84F53B3758AD39AED5CC77EECFE6FA8D30CDA97007443",
+      "family": "canid",
+      "targetHeight": 1.15,
+      "materialMode": "existing",
+      "materialSource": "scene_lab/Assets/models/tripo_wolf_test/tripo_wolf_test_basecolor.vmat",
+      "textureSource": "scene_lab/Assets/models/tripo_wolf_test/tripo_wolf_test_basecolor.png"
+    },
+    {
+      "species": "bloomwolf",
+      "title": "Bloom wolf realistic scratch v6",
+      "assetId": "wolf_scratch_v6_realistic",
+      "rigName": "ScratchV6BloomWolfArmature",
+      "source": "shared_assets/Assets/models/wolf/wolf.fbx",
+      "sourceSha256": "D74375EB8120F097C1D6AB9CC9453D15B35641960F61B492D720E496445F3A37",
+      "family": "canid",
+      "targetHeight": 1.1,
+      "materialMode": "existing",
+      "materialSource": "shared_assets/Assets/models/wolf/bloomwolf_basecolor.vmat",
+      "textureSource": "shared_assets/Assets/models/wolf/Bloomwolf_basecolor.png",
+      "joinAllMeshes": true,
+      "motionOverrides": {
+        "gallopPattern": "rotary_double_suspension",
+        "attackStyle": "bite_lunge"
+      }
+    },
+    {
+      "species": "buffalo",
+      "title": "Bloom buffalo realistic scratch v6",
+      "assetId": "buffalo_scratch_v6_realistic",
+      "rigName": "ScratchV6BuffaloArmature",
+      "source": "shared_assets/Assets/models/buffalo/buffalo.fbx",
+      "sourceSha256": "8C3EED6876BFD7452F45C7D89E76A8B3F5204A79AC03733988C5F2032A89C081",
+      "family": "bovine",
+      "targetHeight": 1.75,
+      "materialMode": "existing",
+      "materialSource": "shared_assets/Assets/models/buffalo/buffalo_basecolor.vmat",
+      "textureSource": "shared_assets/Assets/models/buffalo/buffalo_basecolor.png",
+      "joinAllMeshes": true,
+      "motionOverrides": {
+        "gallopPattern": "rotary_double_suspension",
+        "spineFlex": 0.018,
+        "rootBounce": 0.2,
+        "headStability": 0.96
+      }
+    },
+    {
+      "species": "ram",
+      "title": "Bloom ram realistic scratch v6",
+      "assetId": "ram_scratch_v6_realistic",
+      "rigName": "ScratchV6RamArmature",
+      "source": "shared_assets/Assets/models/ram/ram.fbx",
+      "sourceSha256": "6F257C0E42D963FAA0915B0A70066B77B0322302E162C2A76FC47F46DA287F01",
+      "family": "cervid_heavy",
+      "targetHeight": 1.35,
+      "materialMode": "existing",
+      "materialSource": "shared_assets/Assets/models/ram/ram_basecolor.vmat",
+      "textureSource": "shared_assets/Assets/models/ram/ram_basecolor.png",
+      "joinAllMeshes": true,
+      "motionOverrides": {
+        "gallopPattern": "rotary_double_suspension",
+        "spineFlex": 0.03,
+        "rootBounce": 0.35,
+        "headStability": 0.96
+      }
+    },
+    {
+      "species": "eagle",
+      "title": "Bloom eagle realistic scratch v6",
+      "assetId": "eagle_scratch_v6_realistic",
+      "rigName": "ScratchV6EagleArmature",
+      "source": "shared_assets/Assets/models/eagle/eagle.fbx",
+      "sourceSha256": "351DCE1E9CE27231C885FA97D45542F972A3DBE1F4D974E76F9771E6A3DFC1A2",
+      "family": "avian",
+      "targetHeight": 1.0,
+      "materialMode": "existing",
+      "materialSource": "shared_assets/Assets/models/eagle/eagle_basecolor.vmat",
+      "textureSource": "shared_assets/Assets/models/eagle/eagle_basecolor.png",
+      "joinAllMeshes": true
+    },
+    {
+      "species": "salmon",
+      "title": "Bloom salmon realistic scratch v6",
+      "assetId": "salmon_scratch_v6_realistic",
+      "rigName": "ScratchV6SalmonArmature",
+      "source": "shared_assets/Assets/models/salmon/salmon.fbx",
+      "sourceSha256": "AB3BAFDEA3A6350D011CC3E25BE79511A0A3729AD526A0558AA2FEA249A7F586",
+      "family": "piscine",
+      "targetHeight": 0.75,
+      "materialMode": "existing",
+      "materialSource": "shared_assets/Assets/models/salmon/salmon_basecolor.vmat",
+      "textureSource": "shared_assets/Assets/models/salmon/salmon_basecolor.png",
+      "joinAllMeshes": true
+    },
+    {
+      "species": "alligator",
+      "title": "Bloom alligator realistic scratch v6",
+      "assetId": "alligator_scratch_v6_realistic",
+      "rigName": "ScratchV6AlligatorArmature",
+      "source": "shared_assets/Assets/models/alligator/alligator.fbx",
+      "sourceSha256": "440F5DC4C9AEFE95301D06B28039E2283A12D6A73D3DCFF788C8404EEC0CBD05",
+      "family": "reptile",
+      "targetHeight": 0.65,
+      "materialMode": "existing",
+      "materialSource": "shared_assets/Assets/models/alligator/alligator_basecolor.vmat",
+      "textureSource": "shared_assets/Assets/models/alligator/alligator_basecolor.png",
+      "joinAllMeshes": true
+    },
+    {
+      "species": "panther",
+      "title": "Panther realistic scratch v6",
+      "assetId": "tripo_panther_scratch_v6_realistic",
+      "rigName": "ScratchPantherV6RealisticArmature",
+      "source": "thorns/Assets/models/panther/panther.fbx",
+      "sourceSha256": "3B9F990F1BA60D9AB88FCBAFC8DA48D13E15564AD890BCB0B260122F9F0F2E89",
+      "family": "felid",
+      "targetHeight": 1.1,
+      "materialMode": "existing",
+      "materialSource": "thorns/Assets/models/panther/bloomed_panther_basecolor.vmat",
+      "textureSource": "thorns/Assets/models/panther/bloomed_panther_basecolor.png"
+    }
+  ],
+  "excluded": [
+    {
+      "source": "tools/FBX/Horse_White.fbx",
+      "reason": "Exact Horse geometry/topology and bounds; color-only variant."
+    },
+    {
+      "source": "tools/FBX/Deer.fbx",
+      "reason": "Duplicate deer species; the selected generated deer is the higher-detail canonical geometry."
+    },
+    {
+      "source": "tools/FBX/Wolf.fbx",
+      "reason": "Duplicate wolf species and historical donor/reference file; the new wolf version uses the established Tripo wolf geometry."
+    },
+    {
+      "source": "thorns/Assets/models/wolf/wolf.fbx",
+      "reason": "Duplicate wolf species; the requested new version continues the established Tripo wolf line."
+    },
+    {
+      "source": "shared_assets/Assets/models/panther-wolf/panther-wolf.fbx",
+      "reason": "Derivative hybrid rather than a real-world species; wolf and panther are built separately."
+    },
+    {
+      "source": "shared_assets/Assets/models/bloomseed/bloomseed.fbx",
+      "reason": "Plant/fantasy creature with no real-world animal movement reference."
+    },
+    {
+      "source": "tools/tripo_output/wolf_model.fbx",
+      "reason": "Byte-identical duplicate of the selected Tripo wolf source."
+    },
+    {
+      "source": "shared_assets/source/tripo/wolf_model.fbx",
+      "reason": "Byte-identical duplicate of the selected Tripo wolf source."
+    }
+  ]
+}

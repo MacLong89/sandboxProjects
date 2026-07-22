@@ -1,4 +1,5 @@
 using Dynasty.Bootstrap;
+using Dynasty.Core;
 using Dynasty.Core.Events;
 using Dynasty.LeagueNet;
 using Dynasty.Persistence;
@@ -27,6 +28,7 @@ public static class DynastyApp
 			return;
 
 		_initialized = true;
+		DynastyClientSettings.Load();
 		Persistence = new PersistenceService( League );
 
 		League.Events.Subscribe<LeagueStateMutatedEvent>( OnLeagueStateMutated );

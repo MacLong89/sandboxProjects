@@ -57,7 +57,8 @@ public static class TutorialTips
 			Title = "Build a Barracks first",
 			Body = "You need a Barracks before recruiting soldiers. Each Barracks holds up to 3 recruits, "
 				+ "slowly heals them during the day, and fully restores nearby defenders at dawn. "
-				+ "Recruits who fall during a night are gone for good."
+				+ "Recruits who fall during a night are gone for good. "
+				+ "Once you have a Recruit, you'll have the ability to play in First Person as one of them during the nights!"
 		},
 		new()
 		{
@@ -91,9 +92,9 @@ public static class TutorialTips
 		{
 			Id = "expand", MinNight = 5, MaxNight = 5, Priority = 55, Icon = "map",
 			Title = "Claim nearby land",
-			Body = "Each plot holds up to 6 towers and barracks. Survive tonight and you earn a "
-				+ "+200 scrap plot fund — click frontier plots around your base to claim them. "
-				+ "Staff foragers to clear debris so new land becomes buildable."
+			Body = "Each plot holds up to 6 towers/barracks plus 4 support pads (Fortify Command adds home-plot tower slots). "
+				+ "Survive tonight and you earn a +200 scrap plot fund — click frontier plots to claim them. "
+				+ "Staff foragers to clear debris; they earn scrap while they work."
 		},
 		new()
 		{

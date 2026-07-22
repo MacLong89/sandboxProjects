@@ -189,8 +189,8 @@ public sealed class PlaceableComponent : Component
 		Texture texture;
 		if ( !PixelArt.TryProp( propKey, out texture ) )
 		{
-			Fauna2Debug.Warn( "Assets", $"Placeable '{Defs.IdOf( def )}' uses missing prop '{propKey}' — skipped visual" );
-			return root;
+			texture = PlaceholderTiles.Prop( propKey, tintOverride );
+			Fauna2Debug.Warn( "Assets", $"Placeable '{Defs.IdOf( def )}' uses missing prop '{propKey}' — using color placeholder" );
 		}
 
 		var drawSize = WorldSpriteCatalog.UsesFootprintDrawDimensions( def, propKey )

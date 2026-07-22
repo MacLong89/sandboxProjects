@@ -1,0 +1,145 @@
+@namespace NoFly
+@inherits PanelComponent
+
+<root class="@(Visible ? "mg-root" : "mg-hidden")">
+@if (Visible)
+{
+	<div class="mg-panel scan inspect">
+		<header class="mg-header mg-header-row">
+			<div class="mg-header-main">
+				<div class="mg-kicker">Bag on the belt</div>
+				<div class="mg-title">Inspect bag scan</div>
+				<div class="mg-sub">Compare Declared vs X-Ray carefully. Select a suspicious item and Search — or Clear if it looks clean.</div>
+			</div>
+			<div class="mg-meta-pills">
+				<div class="mg-pill">Queue @Station.QueueCount</div>
+				<div class="mg-pill">Bag #@(Bag?.BagNumber ?? "—")</div>
+				<div class="mg-pill @(string.IsNullOrEmpty(Selected) ? "" : "accent")">@(string.IsNullOrEmpty(Selected) ? "No item selected" : SelectedLabel)</div>
+				<div class="mg-pill @(Station.Searching ? "warn" : "")">@(Station.Searching ? $"Delay {Station.SearchTimeLeft:0.0}s" : "Ready")</div>
+			</div>
+		</header>
+
+		@if (Bag is null || Manifest is null)
+		{
+			<div class="mg-hint" style="text-align: center; padding: 40px;">Loading bag scan…</div>
+		}
+		else
+		{
+			<div class="compare-row">
+				<section class="doc-col">
+					<div class="col-head reference">Declared (passenger)</div>
+					<div class="scan-board compare-board" style="border-color: @Layout.SuitcaseColor.Hex;">
+						@foreach (var slot in Layout.Slots)
+						{
+							var item = LuggageCatalog.GetItem(slot.ItemId);
+							<div class="scan-tile is-static">
+								<div class="scan-main">
+									<div class="scan-silhouette" style="background: @item.Color.Hex;"></div>
+									<div class="scan-name">@item.Label</div>
+								</div>
+							</div>
+						}
+					</div>
+				</section>
+
+				<section class="doc-col">
+					<div class="col-head submitted">X-Ray (scanner)</div>
+					<div class="scan-board compare-board xray" style="border-color: #3d8f6a;">
+						@foreach (var slot in Layout.Slots)
+						{
+							var item = LuggageCatalog.GetItem(slot.ItemId);
+							var itemId = slot.ItemId;
+							var isSelected = Selected == itemId;
+							var hasPeek = !string.IsNullOrEmpty(AnomalyId) && AnomalyId == itemId;
+							<button class="scan-tile @(isSelected ? "is-selected" : "")" onclick="@(() => Selected = itemId)">
+								<div class="scan-main">
+									<div class="scan-silhouette" style="background: @item.Color.Hex;"></div>
+									<div class="scan-name">@item.Label</div>
+								</div>
+								@if (hasPeek)
+								{
+									<div class="scan-peek-corner"></div>
+								}
+							</button>
+						}
+					</div>
+				</section>
+			</div>
+		}
+
+		<footer class="mg-footer actions">
+			<button class="mg-btn mg-btn-ok" onclick="@Clear">Clear Bag</button>
+			<button class="mg-btn mg-btn-danger" onclick="@Search">Search Bag</button>
+			<button class="mg-btn mg-btn-warn" onclick="@CallSec">Call Security</button>
+		</footer>
+	</div>
+}
+</root>
+
+@code
+{
+	ScannerStation Station => NoFlyGame.Instance?.Scene?.GetAllComponents<ScannerStation>().FirstOrDefault();
+	NoFlyPlayer Local => NoFlyGame.LocalPlayer;
+	BagInstance Bag => Station?.ActiveBag;
+	BagInstance Manifest => Station?.ActiveManifest;
+	SuitcaseLayoutDef Layout => Bag is null ? LuggageCatalog.Layouts[0] : LuggageCatalog.GetLayout(Bag.LayoutId);
+	string AnomalyId => Station?.AnomalyItemId;
+	bool Visible => Local?.Role == RoleType.ScannerAgent && Station?.Busy == true;
+	string Selected;
+	string SelectedLabel => string.IsNullOrEmpty(Selected) ? "" : LuggageCatalog.GetItem(Selected).Label;
+
+	void Clear()
+	{
+		Selected = null;
+		RpcClear();
+	}
+
+	void Search()
+	{
+		if (string.IsNullOrEmpty(Selected))
+		{
+			if (Local is not null)
+				Local.ActivePrompt = "Select a suspicious X-Ray item first, then Search.";
+			return;
+		}
+		RpcSearch(Selected);
+	}
+
+	void CallSec()
+	{
+		Selected = null;
+		RpcCallSecurity();
+	}
+
+	[Rpc.Host]
+	public void RpcClear()
+	{
+		var station = Scene.GetAllComponents<ScannerStation>().FirstOrDefault();
+		station?.ClearBag(ResolveAgent());
+	}
+
+	[Rpc.Host]
+	public void RpcSearch(string selectedItemId)
+	{
+		var station = Scene.GetAllComponents<ScannerStation>().FirstOrDefault();
+		if (station is null) return;
+		station.SelectedItemId = selectedItemId;
+		station.SearchBag(ResolveAgent());
+	}
+
+	[Rpc.Host]
+	public void RpcCallSecurity()
+	{
+		var station = Scene.GetAllComponents<ScannerStation>().FirstOrDefault();
+		station?.CallSecurity(ResolveAgent());
+	}
+
+	NoFlyPlayer ResolveAgent() =>
+		Scene.GetAllComponents<NoFlyPlayer>().FirstOrDefault(p => p.Network.Owner == Rpc.Caller)
+		?? NoFlyGame.Instance?.FindLocalPlayer();
+
+	protected override int BuildHash() => HashCode.Combine(
+		HashCode.Combine(Visible, Station?.CurrentPassengerId, Selected, Station?.Busy),
+		HashCode.Combine(Station?.Searching, Station?.BagJson, Station?.ManifestJson, Station?.AnomalyItemId),
+		(int)((Station?.SearchTimeLeft ?? 0) * 10));
+}

@@ -1,0 +1,1605 @@
+$gold: #ffb648;
+$gold-deep: #e0a03a;
+$good: #6ee7a0;
+$bad: #ff8a8a;
+$warn: #ffd166;
+$ink: #1a1208;
+$panel: rgba(22, 16, 10, 0.94);
+$panel-soft: rgba(42, 32, 22, 0.95);
+$panel-raised: rgba(58, 44, 28, 0.98);
+$stroke: rgba(255, 210, 140, 0.28);
+$text: #fff6e8;
+$text-muted: #e8dcc8;
+$text-dim: #cbbba3;
+$font: Poppins;
+
+root {
+	position: absolute;
+	width: 100%;
+	height: 100%;
+	font-family: $font;
+	color: $text;
+	pointer-events: none;
+	font-smooth: always;
+	z-index: 1;
+
+	label, span, div, b, i, p {
+		font-family: $font;
+		color: $text;
+	}
+
+	.icon {
+		font-family: "Material Icons";
+		font-size: 18px;
+		color: $text-muted;
+	}
+}
+
+.loading {
+	position: absolute;
+	width: 100%;
+	top: 45%;
+	justify-content: center;
+	font-size: 30px;
+	color: $text;
+}
+
+// ------------------------------------------------------------------ shared
+
+.btn {
+	flex-direction: row;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	padding: 10px 20px;
+	background: $panel-raised;
+	border: 1px solid $stroke;
+	border-radius: 10px;
+	font-size: 15px;
+	font-weight: 700;
+	letter-spacing: 0.5px;
+	color: $text;
+	cursor: pointer;
+	pointer-events: all;
+	transition: all 0.08s ease-out;
+
+	label, span, div, b, i { color: $text; }
+	.icon { color: $gold; }
+
+	&:hover {
+		background: lighten($panel-raised, 8%);
+		transform: scale(1.03);
+	}
+
+	&.gold {
+		background: $gold;
+		border-color: lighten($gold, 8%);
+		color: $ink;
+		label, span, div, b, i, .icon { color: $ink; }
+		&:hover { background: lighten($gold, 8%); }
+	}
+
+	&.red {
+		border-color: rgba(255, 138, 138, 0.55);
+		color: $bad;
+		label, span, div, b, i, .icon { color: $bad; }
+		&:hover { background: rgba(120, 40, 40, 0.7); }
+	}
+
+	&.big {
+		font-size: 19px;
+		padding: 14px 34px;
+	}
+
+	&.small {
+		padding: 6px 12px;
+		font-size: 13px;
+	}
+
+	&.disabled {
+		opacity: 0.45;
+		cursor: default;
+		&:hover { transform: none; background: $panel-raised; }
+	}
+}
+
+.fullscreen {
+	position: absolute;
+	width: 100%;
+	height: 100%;
+	align-items: center;
+	justify-content: center;
+	z-index: 80;
+
+	&.dim-bg { background: rgba(8, 5, 2, 0.78); }
+}
+
+.tag {
+	flex-direction: row;
+	align-items: center;
+	gap: 4px;
+	padding: 3px 9px;
+	border-radius: 20px;
+	background: rgba(255, 255, 255, 0.1);
+	border: 1px solid $stroke;
+	font-size: 12px;
+	font-weight: 600;
+	color: $text-muted;
+
+	label, span, b { color: inherit; }
+	.icon { font-size: 13px; color: inherit; }
+
+	&.genuine { color: $good; border-color: rgba(110, 231, 160, 0.5); }
+	&.fake { color: $bad; border-color: rgba(255, 138, 138, 0.55); background: rgba(120, 30, 30, 0.4); }
+	&.rarity { font-weight: 800; color: $gold; }
+}
+
+// ------------------------------------------------------------------ top bar
+
+.topbar {
+	position: absolute;
+	top: 14px;
+	left: 0;
+	width: 100%;
+	flex-direction: row;
+	justify-content: center;
+	align-items: center;
+	gap: 12px;
+	z-index: 10;
+}
+
+.chip {
+	flex-direction: row;
+	align-items: center;
+	gap: 8px;
+	padding: 8px 16px;
+	background: $panel;
+	border: 1px solid $stroke;
+	border-radius: 12px;
+	font-size: 15px;
+	font-weight: 700;
+	color: $text;
+
+	label, span, b { color: $text; }
+	.icon { color: $gold; }
+
+	.divider {
+		width: 1px;
+		height: 16px;
+		background: $stroke;
+		margin: 0 4px;
+	}
+
+	.open-label { color: $good; }
+	.closed-label { color: $bad; }
+	.debt { color: $bad; }
+	.stars { color: $gold; font-size: 16px; }
+}
+
+.cash-chip {
+	padding: 8px 28px;
+	background: $panel;
+	border: 1px solid $gold-deep;
+	border-radius: 12px;
+	font-size: 28px;
+	font-weight: 800;
+	color: $gold;
+
+	&.danger { color: $bad; border-color: $bad; }
+}
+
+.event-chip {
+	position: absolute;
+	top: 72px;
+	left: 0;
+	width: 100%;
+	flex-direction: row;
+	justify-content: center;
+	align-items: center;
+	gap: 8px;
+	font-size: 14px;
+	font-weight: 700;
+	z-index: 10;
+	pointer-events: none;
+	color: $warn;
+
+	label, span, b, i, .icon { color: inherit; }
+
+	&.good { color: $good; }
+	&.bad { color: $warn; }
+}
+
+// ------------------------------------------------------------------ left rail (goals + duties)
+
+.side-rail {
+	position: absolute;
+	left: 16px;
+	top: 108px;
+	width: 280px;
+	flex-direction: column;
+	gap: 10px;
+	z-index: 15;
+	pointer-events: none;
+}
+
+.rail-block {
+	flex-direction: column;
+	gap: 5px;
+	padding: 12px 14px;
+	background: $panel;
+	border: 1px solid $stroke;
+	border-radius: 12px;
+}
+
+.rail-title {
+	flex-direction: row;
+	align-items: center;
+	gap: 6px;
+	font-size: 11px;
+	font-weight: 800;
+	letter-spacing: 1.3px;
+	color: $gold;
+	margin-bottom: 2px;
+
+	.icon { font-size: 14px; color: $gold; }
+}
+
+.rail-row {
+	flex-direction: row;
+	align-items: center;
+	gap: 8px;
+	font-size: 13px;
+	font-weight: 600;
+	color: $text-muted;
+
+	label, span, b { color: inherit; }
+	.icon { font-size: 15px; color: $gold; }
+	.rail-text { flex-grow: 1; color: $text-muted; }
+	.rail-count { font-size: 12px; font-weight: 800; color: $gold; }
+
+	&.done {
+		.icon { color: $good; }
+		.rail-text { color: $text-dim; }
+		.rail-count { color: $good; }
+	}
+}
+
+// ------------------------------------------------------------------ toasts
+
+.toasts {
+	position: absolute;
+	right: 16px;
+	top: 108px;
+	flex-direction: column;
+	gap: 8px;
+	max-width: 360px;
+	z-index: 25;
+
+	.toast {
+		flex-direction: row;
+		align-items: center;
+		gap: 10px;
+		padding: 10px 14px;
+		background: $panel;
+		border: 1px solid $stroke;
+		border-left: 3px solid $gold;
+		border-radius: 8px;
+		font-size: 14px;
+		font-weight: 600;
+		color: $text;
+
+		label, span, b { color: $text; }
+		.icon { color: $gold; }
+	}
+}
+
+// ------------------------------------------------------------------ bottom stack
+
+.bottom-stack {
+	position: absolute;
+	left: 0;
+	bottom: 18px;
+	width: 100%;
+	flex-direction: column;
+	align-items: center;
+	gap: 10px;
+	z-index: 30;
+	pointer-events: none;
+}
+
+.crosshair {
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	width: 5px;
+	height: 5px;
+	margin-left: -2px;
+	margin-top: -2px;
+	border-radius: 100%;
+	background: rgba(255, 255, 255, 0.9);
+	z-index: 12;
+}
+
+.interact-prompt {
+	flex-direction: row;
+	justify-content: center;
+	align-items: center;
+	font-size: 17px;
+	font-weight: 700;
+	color: $text;
+	padding: 8px 16px;
+	background: $panel;
+	border: 1px solid $stroke;
+	border-radius: 10px;
+
+	label, span { color: $text; }
+
+	b {
+		background: $gold;
+		color: $ink;
+		border-radius: 6px;
+		padding: 2px 10px;
+		margin-right: 8px;
+		font-weight: 800;
+	}
+}
+
+.controls-hint {
+	font-size: 12px;
+	font-weight: 600;
+	color: $text-dim;
+	padding: 4px 10px;
+	background: rgba(18, 12, 8, 0.65);
+	border-radius: 6px;
+}
+
+.carry-chip {
+	flex-direction: row;
+	justify-content: center;
+	align-items: center;
+	gap: 10px;
+	pointer-events: none;
+
+	> .icon { color: $gold; font-size: 20px; }
+
+	span {
+		background: $panel;
+		border: 1px solid $gold;
+		border-radius: 10px;
+		padding: 9px 16px;
+		font-size: 14px;
+		font-weight: 600;
+		color: $text;
+		b { color: $gold; }
+	}
+
+	&.trash {
+		> .icon { color: $warn; }
+		span { border-color: $warn; b { color: $warn; } }
+	}
+}
+
+// ------------------------------------------------------------------ tutorial tip overlay
+
+.overlay {
+	position: absolute;
+	width: 100%;
+	height: 100%;
+	align-items: center;
+	justify-content: center;
+	padding: 24px;
+	background: rgba(8, 5, 2, 0.78);
+	pointer-events: all;
+	z-index: 85;
+}
+
+.tip-overlay {
+	pointer-events: all;
+}
+
+.tutorial-tip {
+	width: 440px;
+	max-width: 100%;
+	flex-direction: column;
+	align-items: center;
+	padding: 24px 28px;
+	background: $panel;
+	border: 1px solid $gold-deep;
+	border-radius: 16px;
+	box-shadow: 0 16px 48px rgba(0, 0, 0, 0.55);
+	pointer-events: all;
+
+	.tip-icon {
+		font-size: 46px;
+		color: $gold;
+		margin-bottom: 12px;
+	}
+
+	.confirm-title {
+		font-size: 24px;
+		font-weight: 800;
+		text-align: center;
+		color: $gold;
+		margin-bottom: 8px;
+	}
+
+	.confirm-body {
+		font-size: 15px;
+		font-weight: 600;
+		color: $text-muted;
+		text-align: left;
+		line-height: 1.45;
+		margin-bottom: 20px;
+		max-width: 100%;
+	}
+
+	.btn-row {
+		flex-direction: row;
+		gap: 10px;
+		width: 100%;
+
+		.btn {
+			flex-grow: 1;
+			flex-basis: 0;
+		}
+	}
+}
+
+.btn {
+	&.ghost {
+		background: transparent;
+		border-color: $stroke;
+		color: $text-muted;
+
+		label, span, div, b, i { color: $text-muted; }
+		.icon { color: $text-dim; }
+
+		&:hover {
+			background: $panel-soft;
+			color: $text;
+			label, span, div, b, i { color: $text; }
+		}
+	}
+
+	&.primary {
+		background: $gold;
+		border-color: lighten($gold, 8%);
+		color: $ink;
+
+		label, span, div, b, i, .icon { color: $ink; }
+		&:hover { background: lighten($gold, 8%); }
+	}
+}
+
+// ------------------------------------------------------------------ morning card
+
+.morning-card {
+	position: absolute;
+	left: 16px;
+	top: 100px;
+	width: 420px;
+	max-height: calc(100% - 140px);
+	overflow-y: scroll;
+	flex-direction: column;
+	gap: 10px;
+	padding: 18px;
+	background: $panel;
+	border: 1px solid $stroke;
+	border-radius: 14px;
+	pointer-events: all;
+	z-index: 40;
+	color: $text;
+
+	label, span, div, b { color: $text; }
+	.icon { color: $gold; }
+
+	.mc-title {
+		font-size: 19px;
+		font-weight: 800;
+		color: $gold;
+		letter-spacing: 1px;
+	}
+
+	.mc-event {
+		flex-direction: row;
+		gap: 10px;
+		padding: 10px;
+		border-radius: 10px;
+		background: $panel-soft;
+		border: 1px solid $stroke;
+
+		> .icon { font-size: 26px; color: $warn; }
+		&.good > .icon { color: $good; }
+
+		.mc-event-name { font-weight: 800; font-size: 14px; color: $text; }
+		.mc-event-desc { font-size: 13px; color: $text-muted; }
+	}
+
+	.mc-row {
+		flex-direction: row;
+		align-items: center;
+		gap: 8px;
+		font-size: 14px;
+		color: $text-muted;
+
+		label, span { color: $text-muted; }
+		b { color: $text; }
+		.icon { color: $gold; }
+		&.warn { color: $warn; label, span, b, .icon { color: $warn; } }
+		&.dim { color: $text-dim; label, span, b { color: $text-dim; } }
+	}
+
+	.mc-buttons {
+		flex-direction: row;
+		gap: 10px;
+		margin-top: 6px;
+	}
+
+	.mc-crate {
+		flex-direction: row;
+		align-items: center;
+		gap: 10px;
+		padding: 10px;
+		border-radius: 10px;
+		background: rgba(90, 60, 20, 0.45);
+		border: 1px solid $gold-deep;
+
+		> .icon { font-size: 28px; color: $gold; }
+
+		.mc-crate-info {
+			flex-direction: column;
+			gap: 2px;
+			flex-grow: 1;
+			.mc-event-name { font-weight: 800; font-size: 13px; color: $text; }
+			.mc-event-desc { font-size: 12px; color: $text-muted; }
+		}
+	}
+}
+
+// ------------------------------------------------------------------ negotiation
+
+.negotiation {
+	position: absolute;
+	bottom: 18px;
+	left: 50%;
+	width: 920px;
+	margin-left: -460px;
+	flex-direction: column;
+	gap: 12px;
+	padding: 18px 20px;
+	background: $panel;
+	border: 1px solid $stroke;
+	border-radius: 16px;
+	pointer-events: all;
+	z-index: 70;
+	color: $text;
+	box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+
+	label, span, div, b { color: $text; }
+}
+
+.neg-header {
+	flex-direction: row;
+	justify-content: space-between;
+	align-items: center;
+	gap: 16px;
+
+	.neg-customer {
+		flex-direction: row;
+		align-items: center;
+		gap: 14px;
+		flex-grow: 1;
+	}
+
+	.portrait {
+		width: 52px;
+		height: 52px;
+		border-radius: 12px;
+		align-items: center;
+		justify-content: center;
+		border: 1px solid $stroke;
+		flex-shrink: 0;
+
+		.face {
+			width: 28px;
+			height: 28px;
+			border-radius: 100%;
+		}
+	}
+
+	.neg-who {
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 6px;
+		flex-grow: 1;
+	}
+
+	.neg-name {
+		font-size: 20px;
+		font-weight: 800;
+		color: $text;
+		letter-spacing: 0.3px;
+	}
+
+	.neg-meta {
+		flex-direction: row;
+		align-items: center;
+		gap: 6px;
+		flex-wrap: wrap;
+	}
+
+	.neg-pill {
+		padding: 3px 10px;
+		border-radius: 999px;
+		background: $panel-raised;
+		border: 1px solid $stroke;
+		font-size: 11px;
+		font-weight: 800;
+		letter-spacing: 0.6px;
+		color: $text-muted;
+
+		&.intent {
+			background: rgba(255, 182, 72, 0.18);
+			border-color: $gold-deep;
+			color: $gold;
+		}
+
+		&.soft {
+			color: $text-dim;
+		}
+	}
+
+	.neg-status {
+		flex-direction: column;
+		align-items: flex-end;
+		gap: 8px;
+		min-width: 170px;
+
+		.mood {
+			flex-direction: row;
+			align-items: center;
+			gap: 6px;
+			font-size: 14px;
+			font-weight: 700;
+			color: $text;
+
+			.icon { color: $gold; font-size: 18px; }
+			span { color: $text; }
+		}
+
+		.patience-wrap {
+			flex-direction: column;
+			align-items: flex-end;
+			gap: 4px;
+			width: 100%;
+		}
+
+		.patience-label {
+			font-size: 10px;
+			font-weight: 800;
+			letter-spacing: 1px;
+			color: $text-muted;
+		}
+
+		.patience-track {
+			width: 100%;
+			height: 8px;
+			border-radius: 6px;
+			background: rgba(0, 0, 0, 0.45);
+			overflow: hidden;
+
+			.patience-fill {
+				height: 100%;
+				border-radius: 6px;
+				background: $good;
+				&.low { background: $bad; }
+			}
+		}
+	}
+}
+
+.neg-line {
+	font-size: 15px;
+	font-weight: 600;
+	color: #ffe9c4;
+	padding: 12px 14px;
+	background: $panel-soft;
+	border-radius: 10px;
+	border-left: 3px solid $gold;
+	line-height: 22px;
+}
+
+.neg-item {
+	flex-direction: row;
+	align-items: center;
+	gap: 14px;
+	padding: 12px 14px;
+	background: $panel-soft;
+	border: 1px solid $stroke;
+	border-radius: 12px;
+
+	.ni-icon {
+		width: 56px;
+		height: 56px;
+		border-radius: 12px;
+		background: rgba(0, 0, 0, 0.35);
+		border: 1px solid $stroke;
+		align-items: center;
+		justify-content: center;
+		flex-shrink: 0;
+
+		.icon { font-size: 30px; }
+	}
+
+	.neg-item-info {
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 5px;
+		flex-grow: 1;
+		min-width: 0;
+	}
+
+	.ni-name {
+		font-size: 17px;
+		font-weight: 800;
+		color: $text;
+	}
+
+	.ni-brand {
+		font-size: 12px;
+		font-weight: 600;
+		color: $text-muted;
+	}
+
+	.ni-tags {
+		flex-direction: row;
+		gap: 6px;
+		flex-wrap: wrap;
+	}
+
+	.ni-value {
+		flex-direction: column;
+		align-items: flex-end;
+		gap: 2px;
+		padding: 8px 12px;
+		background: rgba(0, 0, 0, 0.28);
+		border: 1px solid $stroke;
+		border-radius: 10px;
+		min-width: 150px;
+		flex-shrink: 0;
+	}
+
+	.ni-value-label {
+		font-size: 10px;
+		font-weight: 800;
+		letter-spacing: 1px;
+		color: $text-muted;
+	}
+
+	.ni-value-range {
+		font-size: 18px;
+		font-weight: 800;
+		color: $gold;
+	}
+
+	.ni-value-conf {
+		font-size: 12px;
+		font-weight: 600;
+		color: $text-muted;
+	}
+
+	.inspect {
+		align-self: center;
+		flex-shrink: 0;
+	}
+}
+
+.cite-row {
+	flex-direction: row;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+
+	.cite-label {
+		font-size: 13px;
+		font-weight: 700;
+		color: $text-muted;
+	}
+
+	.cite-chip {
+		flex-direction: row;
+		align-items: center;
+		gap: 5px;
+		padding: 5px 12px;
+		border-radius: 20px;
+		background: rgba(120, 60, 20, 0.55);
+		border: 1px solid $gold-deep;
+		font-size: 13px;
+		font-weight: 700;
+		color: $text;
+		cursor: pointer;
+		pointer-events: all;
+
+		.icon { font-size: 14px; color: $gold; }
+
+		&:hover { background: rgba(160, 85, 30, 0.75); }
+
+		&.used {
+			opacity: 0.4;
+			cursor: default;
+			&:hover { background: rgba(120, 60, 20, 0.55); }
+		}
+	}
+}
+
+.neg-numbers {
+	flex-direction: row;
+	gap: 12px;
+	align-items: stretch;
+
+	.num-block {
+		flex-direction: column;
+		gap: 8px;
+		padding: 12px 16px;
+		background: $panel-soft;
+		border: 1px solid $stroke;
+		border-radius: 12px;
+		align-items: center;
+		justify-content: center;
+		min-width: 140px;
+
+		&.offer {
+			flex-grow: 1;
+			align-items: stretch;
+		}
+	}
+
+	.num-label {
+		font-size: 11px;
+		font-weight: 800;
+		letter-spacing: 1.2px;
+		color: $text-muted;
+	}
+
+	.num-value {
+		font-size: 28px;
+		font-weight: 800;
+		color: $text;
+	}
+
+	.offer-amt {
+		min-width: 110px;
+		justify-content: center;
+		font-size: 26px;
+		color: $gold;
+	}
+
+	.gold-text { color: $gold; }
+	.num-sub { font-size: 12px; color: $text-muted; }
+}
+
+.stepper {
+	flex-direction: row;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+
+	.step {
+		padding: 8px 12px;
+		background: $panel-raised;
+		border: 1px solid $stroke;
+		border-radius: 8px;
+		font-size: 13px;
+		font-weight: 800;
+		color: $text;
+		cursor: pointer;
+		pointer-events: all;
+		&:hover { background: lighten($panel-raised, 10%); color: $gold; }
+	}
+}
+
+.presets, .fee-row {
+	flex-direction: row;
+	justify-content: center;
+	gap: 6px;
+
+	.preset {
+		padding: 5px 14px;
+		border-radius: 16px;
+		background: rgba(255, 255, 255, 0.08);
+		border: 1px solid $stroke;
+		font-size: 12px;
+		font-weight: 700;
+		color: $text-muted;
+		cursor: pointer;
+		pointer-events: all;
+
+		&:hover { background: rgba(255, 255, 255, 0.16); color: $text; }
+		&.active {
+			background: $gold;
+			color: $ink;
+			border-color: lighten($gold, 6%);
+		}
+	}
+}
+
+.risk-line {
+	flex-direction: row;
+	align-items: center;
+	gap: 8px;
+	font-size: 14px;
+	color: $text-muted;
+	.icon { color: $warn; }
+	b { color: $warn; }
+}
+
+.neg-buttons {
+	flex-direction: row;
+	gap: 10px;
+	flex-wrap: wrap;
+	align-items: center;
+}
+
+// ------------------------------------------------------------------ inspection
+
+.inspect-card {
+	width: 1080px;
+	flex-direction: column;
+	gap: 12px;
+	padding: 20px;
+	background: $panel;
+	border: 1px solid $stroke;
+	border-radius: 16px;
+	pointer-events: all;
+	color: $text;
+
+	label, span, div, b { color: $text; }
+
+	.ic-header {
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+
+		.ic-title {
+			flex-direction: row;
+			align-items: center;
+			gap: 10px;
+			font-size: 19px;
+			font-weight: 800;
+			.icon { font-size: 26px; }
+		}
+	}
+
+	.ic-body {
+		flex-direction: row;
+		gap: 16px;
+	}
+
+	.ic-stage {
+		position: relative;
+		width: 620px;
+		height: 420px;
+		background: rgba(20, 14, 8, 0.92);
+		border: 2px solid $stroke;
+		border-radius: 14px;
+		align-items: center;
+		justify-content: center;
+
+		.stage-icon {
+			font-size: 190px;
+			opacity: 0.9;
+		}
+	}
+
+	.hotspot {
+		position: absolute;
+		flex-direction: row;
+		align-items: center;
+		gap: 6px;
+		padding: 6px 12px;
+		background: rgba(30, 22, 12, 0.92);
+		border: 1px solid $gold-deep;
+		border-radius: 20px;
+		font-size: 13px;
+		font-weight: 700;
+		cursor: pointer;
+		pointer-events: all;
+		transition: all 0.1s ease-out;
+
+		.icon { font-size: 15px; color: $gold; }
+
+		&:hover { transform: scale(1.1); background: rgba(70, 50, 25, 0.95); }
+
+		&.found {
+			border-color: $bad;
+			.icon { color: $bad; }
+		}
+
+		&.clear {
+			border-color: rgba(74, 222, 128, 0.5);
+			opacity: 0.65;
+			.icon { color: $good; }
+		}
+	}
+
+	.ic-side {
+		flex-direction: column;
+		gap: 8px;
+		flex-grow: 1;
+
+		.ic-label {
+			font-size: 11px;
+			font-weight: 800;
+			letter-spacing: 1.4px;
+			color: $text-dim;
+			margin-top: 4px;
+		}
+	}
+
+	.tool-list {
+		flex-direction: column;
+		gap: 4px;
+
+		.tool {
+			flex-direction: row;
+			align-items: center;
+			gap: 8px;
+			padding: 6px 12px;
+			border-radius: 8px;
+			background: $panel-soft;
+			border: 1px solid transparent;
+			font-size: 13px;
+			font-weight: 600;
+			cursor: pointer;
+			pointer-events: all;
+
+			.icon { font-size: 16px; color: $gold; }
+
+			&:hover { background: $panel-raised; }
+			&.active { border-color: $gold; background: rgba(120, 80, 30, 0.5); }
+
+			&.locked {
+				opacity: 0.55;
+				cursor: default;
+				.lock {
+					margin-left: auto;
+					flex-direction: row;
+					align-items: center;
+					gap: 3px;
+					font-size: 12px;
+					color: $text-dim;
+					.icon { font-size: 12px; color: $text-dim; }
+				}
+			}
+		}
+	}
+
+	.findings {
+		flex-direction: column;
+		gap: 4px;
+		max-height: 120px;
+		overflow-y: scroll;
+
+		.finding {
+			flex-direction: row;
+			align-items: center;
+			gap: 8px;
+			font-size: 13px;
+			font-weight: 600;
+			padding: 4px 10px;
+			border-radius: 6px;
+			background: rgba(255, 255, 255, 0.05);
+
+			.icon { font-size: 15px; color: $warn; }
+
+			&.positive { .icon { color: $good; } color: $good; }
+			&.alarm { .icon { color: $bad; } color: $bad; }
+			&.dim { color: $text-dim; }
+		}
+	}
+
+	.ic-est {
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 4px;
+		font-size: 15px;
+		padding: 10px 12px;
+		background: $panel-soft;
+		border-radius: 8px;
+		border: 1px solid $stroke;
+
+		.ic-est-range {
+			font-size: 18px;
+			font-weight: 800;
+			color: $gold;
+		}
+
+		.dim { color: $text-muted; font-size: 13px; font-weight: 600; }
+	}
+
+	.ic-message {
+		font-size: 14px;
+		font-weight: 600;
+		color: #ffe9c4;
+		padding: 10px 14px;
+		background: $panel-soft;
+		border-radius: 10px;
+		border-left: 3px solid $gold;
+		min-height: 40px;
+	}
+}
+
+// ------------------------------------------------------------------ management
+
+.mgmt-card {
+	width: 1160px;
+	height: 700px;
+	flex-direction: column;
+	gap: 12px;
+	padding: 18px;
+	background: $panel;
+	border: 1px solid $stroke;
+	border-radius: 16px;
+	pointer-events: all;
+	color: $text;
+
+	label, span, div, b { color: $text; }
+
+	.mgmt-header {
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+	}
+
+	.mgmt-tabs {
+		flex-direction: row;
+		gap: 6px;
+
+		.mtab {
+			flex-direction: row;
+			align-items: center;
+			gap: 7px;
+			padding: 8px 18px;
+			border-radius: 10px;
+			background: $panel-soft;
+			border: 1px solid transparent;
+			font-size: 14px;
+			font-weight: 700;
+			color: $text-muted;
+			cursor: pointer;
+			pointer-events: all;
+
+			label, span, b { color: $text-muted; }
+			.icon { font-size: 17px; color: $gold; }
+
+			&:hover {
+				background: $panel-raised;
+				color: $text;
+				label, span, b { color: $text; }
+			}
+
+			&.active {
+				background: $gold;
+				border-color: lighten($gold, 6%);
+				color: $ink;
+				label, span, b, i, .icon { color: $ink; }
+			}
+		}
+	}
+}
+
+.mgmt-body {
+	flex-direction: row;
+	gap: 14px;
+	flex-grow: 1;
+	overflow: hidden;
+
+	&.column {
+		flex-direction: column;
+		gap: 8px;
+		overflow-y: scroll;
+		padding-right: 6px;
+	}
+}
+
+.inv-list {
+	width: 500px;
+	flex-direction: column;
+	gap: 8px;
+
+	.inv-filters {
+		flex-direction: row;
+		gap: 6px;
+
+		.filter {
+			padding: 5px 14px;
+			border-radius: 16px;
+			background: rgba(255, 255, 255, 0.08);
+			border: 1px solid $stroke;
+			font-size: 13px;
+			font-weight: 700;
+			color: $text-muted;
+			cursor: pointer;
+			pointer-events: all;
+			&:hover { background: rgba(255, 255, 255, 0.14); color: $text; }
+			&.active {
+				background: $gold;
+				color: $ink;
+				border-color: lighten($gold, 6%);
+			}
+		}
+	}
+
+	.inv-caps { font-size: 12px; color: $text-dim; }
+
+	.inv-scroll {
+		flex-direction: column;
+		gap: 6px;
+		overflow-y: scroll;
+		flex-grow: 1;
+		padding-right: 6px;
+	}
+}
+
+.inv-row, .pawn-row, .shop-row {
+	flex-direction: row;
+	align-items: center;
+	gap: 12px;
+	padding: 10px 12px;
+	background: $panel-soft;
+	border: 1px solid transparent;
+	border-radius: 10px;
+	cursor: pointer;
+	pointer-events: all;
+
+	> .icon { font-size: 26px; }
+
+	&:hover { background: $panel-raised; }
+	&.selected { border-color: $gold; background: rgba(120, 80, 30, 0.4); }
+
+	.inv-main {
+		flex-direction: column;
+		gap: 2px;
+		flex-grow: 1;
+	}
+
+	.inv-name { font-size: 15px; font-weight: 700; color: $text; }
+	.inv-sub { font-size: 12px; color: $text-muted; }
+
+	.inv-status {
+		font-size: 11px;
+		font-weight: 800;
+		letter-spacing: 0.8px;
+		padding: 4px 10px;
+		border-radius: 14px;
+		background: rgba(255, 255, 255, 0.08);
+		color: $text-muted;
+
+		&.display { color: $good; }
+		&.pawned { color: $warn; }
+		&.sold { color: $text-dim; }
+		&.bad { color: $bad; }
+	}
+}
+
+.pawn-row {
+	cursor: default;
+	&.urgent { border-color: rgba(248, 113, 113, 0.6); }
+	.pawn-due { flex-direction: column; align-items: flex-end; gap: 2px; }
+}
+
+.shop-row {
+	cursor: default;
+	&:hover { background: $panel-soft; }
+	&.owned { opacity: 0.8; }
+
+	.owned-chip {
+		flex-direction: row;
+		align-items: center;
+		gap: 4px;
+		font-size: 13px;
+		font-weight: 800;
+		color: $good;
+		.icon { font-size: 15px; color: $good; }
+	}
+
+	.tier {
+		font-size: 11px;
+		font-weight: 800;
+		color: $gold;
+		margin-left: 6px;
+	}
+
+	.trust-track {
+		width: 120px;
+		height: 8px;
+		border-radius: 6px;
+		background: rgba(0, 0, 0, 0.5);
+		.trust-fill { height: 100%; border-radius: 6px; background: $gold; }
+	}
+}
+
+.inv-empty {
+	font-size: 14px;
+	color: $text-dim;
+	padding: 20px;
+}
+
+.inv-sub.pad { padding: 8px 4px; font-size: 12px; color: $text-dim; }
+
+.inv-detail {
+	flex-direction: column;
+	gap: 10px;
+	flex-grow: 1;
+	padding: 14px;
+	background: $panel-soft;
+	border-radius: 12px;
+	overflow-y: scroll;
+
+	.det-name {
+		flex-direction: row;
+		align-items: center;
+		gap: 10px;
+		font-size: 19px;
+		font-weight: 800;
+		.icon { font-size: 26px; }
+	}
+
+	.det-sub { font-size: 13px; color: $text-muted; }
+	.det-blurb { font-size: 13px; color: $text-dim; }
+	.warn-text { color: $warn; }
+
+	.det-tags { flex-direction: row; gap: 6px; flex-wrap: wrap; }
+
+	.det-numbers {
+		flex-direction: row;
+		gap: 10px;
+
+		.det-num {
+			flex-direction: column;
+			gap: 2px;
+			padding: 8px 14px;
+			background: rgba(0, 0, 0, 0.25);
+			border-radius: 8px;
+
+			span { font-size: 11px; color: $text-dim; font-weight: 700; letter-spacing: 0.8px; }
+			b { font-size: 15px; }
+		}
+	}
+
+	.det-price {
+		flex-direction: column;
+		gap: 8px;
+		padding: 12px;
+		background: rgba(0, 0, 0, 0.25);
+		border-radius: 10px;
+		align-items: flex-start;
+
+		.num-label { font-size: 11px; font-weight: 800; letter-spacing: 1.2px; color: $text-dim; }
+		.num-value { font-size: 22px; font-weight: 800; }
+		.num-sub { font-size: 13px; font-weight: 700; }
+	}
+
+	.det-actions {
+		flex-direction: row;
+		gap: 8px;
+		flex-wrap: wrap;
+	}
+}
+
+.good-text { color: $good; }
+.red-text { color: $bad; }
+
+// ------------------------------------------------------------------ collector's ledger
+
+.ledger-cat {
+	flex-direction: column;
+	gap: 6px;
+	padding: 12px;
+	background: $panel-soft;
+	border-radius: 12px;
+
+	.ledger-head {
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+
+		.ledger-count { font-size: 12px; color: $gold; margin-left: 8px; }
+		.inv-sub { font-size: 12px; color: $text-dim; }
+
+		.owned-chip {
+			flex-direction: row;
+			align-items: center;
+			gap: 4px;
+			font-size: 12px;
+			font-weight: 800;
+			color: $good;
+			.icon { font-size: 14px; color: $good; }
+		}
+	}
+
+	.ledger-items {
+		flex-direction: row;
+		flex-wrap: wrap;
+		gap: 6px;
+
+		.ledger-item {
+			flex-direction: row;
+			align-items: center;
+			gap: 6px;
+			padding: 4px 10px;
+			border-radius: 16px;
+			background: rgba(0, 0, 0, 0.3);
+			font-size: 12px;
+			font-weight: 600;
+			color: $text-dim;
+
+			.icon { font-size: 14px; }
+
+			&.stamped {
+				background: rgba(120, 80, 30, 0.4);
+				border: 1px solid $gold-deep;
+				color: $text;
+			}
+		}
+	}
+}
+
+.det-numbers.wide {
+	flex-wrap: wrap;
+	.det-num { min-width: 150px; }
+}
+
+.fin-grid {
+	flex-direction: row;
+	flex-wrap: wrap;
+	gap: 10px;
+
+	.fin-card {
+		flex-direction: column;
+		gap: 4px;
+		padding: 14px 22px;
+		background: $panel-soft;
+		border-radius: 12px;
+		min-width: 170px;
+
+		&.bad { border: 1px solid rgba(248, 113, 113, 0.5); }
+
+		.fin-label { font-size: 11px; font-weight: 800; letter-spacing: 1px; color: $text-dim; }
+		.fin-value { font-size: 22px; font-weight: 800; color: $gold; }
+		.fin-value.good-text { color: $good; }
+		.fin-value.red-text { color: $bad; }
+	}
+}
+
+// ------------------------------------------------------------------ summary / menus
+
+.summary-card {
+	width: 640px;
+	flex-direction: column;
+	gap: 12px;
+	padding: 26px;
+	background: $panel;
+	border: 1px solid $gold-deep;
+	border-radius: 18px;
+	pointer-events: all;
+	align-items: center;
+
+	.sum-title {
+		font-size: 26px;
+		font-weight: 800;
+		letter-spacing: 2px;
+		color: $gold;
+	}
+
+	.red-text { color: $bad; }
+
+	.sum-profit {
+		font-size: 40px;
+		font-weight: 800;
+		&.good { color: $good; }
+		&.bad { color: $bad; }
+	}
+
+	.sum-grid {
+		flex-direction: column;
+		width: 100%;
+		gap: 4px;
+
+		.sum-row {
+			flex-direction: row;
+			justify-content: space-between;
+			padding: 6px 12px;
+			border-radius: 6px;
+			background: rgba(255, 255, 255, 0.04);
+			font-size: 14px;
+
+			span { color: $text-muted; }
+			b { font-weight: 700; }
+
+			&.good b { color: $good; }
+			&.bad b { color: $bad; }
+		}
+	}
+
+	.sum-note {
+		flex-direction: row;
+		align-items: center;
+		gap: 8px;
+		font-size: 13px;
+		color: $warn;
+		.icon { color: $warn; }
+	}
+}
+
+.menu-screen {
+	background: rgba(14, 8, 4, 0.96);
+	z-index: 100;
+}
+
+.menu-card {
+	flex-direction: column;
+	align-items: center;
+	gap: 22px;
+	padding: 40px 60px;
+	pointer-events: all;
+	color: $text;
+
+	label, span, div, b { color: $text; }
+
+	&.small-menu {
+		background: $panel;
+		border: 1px solid $stroke;
+		border-radius: 18px;
+		padding: 30px 50px;
+	}
+
+	.menu-title {
+		font-size: 58px;
+		font-weight: 800;
+		letter-spacing: 6px;
+		color: $text;
+
+		.accent {
+			color: $gold;
+			margin-left: 18px;
+		}
+
+		&.small { font-size: 30px; letter-spacing: 3px; }
+	}
+
+	.menu-sub {
+		font-size: 17px;
+		color: $text-muted;
+		letter-spacing: 1px;
+	}
+
+	.menu-buttons {
+		flex-direction: column;
+		gap: 12px;
+		align-items: center;
+		min-width: 340px;
+
+		.btn { width: 100%; }
+	}
+
+	.menu-help {
+		flex-direction: column;
+		gap: 6px;
+		align-items: center;
+		margin-top: 10px;
+
+		.help-row {
+			font-size: 13px;
+			color: $text-muted;
+			label, span { color: $text-muted; }
+			b { color: $gold; }
+			&.dim {
+				color: $text-dim;
+				label, span { color: $text-dim; }
+				max-width: 560px;
+				text-align: center;
+			}
+		}
+	}
+}

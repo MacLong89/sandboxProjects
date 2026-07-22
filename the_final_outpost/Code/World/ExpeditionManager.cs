@@ -7,10 +7,11 @@ public struct ExpeditionReward
 	public double Wood;
 	public double Stone;
 	public double Water;
+	public double Specimens;
 	public bool RareFind;
 	public int Lost;       // units that didn't make it back (long expeditions only)
 	public int Returned;
-	public bool Any => Scrap > 0 || Wood > 0 || Stone > 0 || Water > 0;
+	public bool Any => Scrap > 0 || Wood > 0 || Stone > 0 || Water > 0 || Specimens > 0;
 }
 
 /// <summary>
@@ -145,7 +146,7 @@ public sealed class ExpeditionManager : Component
 
 		var soldiers = Save.ExpeditionSoldiers.Count;
 		var civilians = Save.ExpeditionWorkers.Count;
-		var reward = RollReward( soldiers, civilians, Save.ExpeditionLong, core.Save.CurrentNight );
+		var reward = RollReward( soldiers, civilians, Save.ExpeditionLong, core.CombatProgressionNight );
 
 		// Resolve survivors: on long trips each committed unit rolls against a loss chance
 		// (reduced by how many soldiers came along).
@@ -192,7 +193,10 @@ public sealed class ExpeditionManager : Component
 		{
 			var specimenRoll = Save.ExpeditionLong ? 2 : 1;
 			if ( Game.Random.Float( 0f, 1f ) < 0.55f )
-				core.Resources.Add( ResourceKind.Specimens, specimenRoll * TeamBonuses.ExpeditionRewardMult( core ) );
+			{
+				reward.Specimens = Math.Round( specimenRoll * TeamBonuses.ExpeditionRewardMult( core ) );
+				core.Resources.Add( ResourceKind.Specimens, reward.Specimens );
+			}
 		}
 
 		LastReward = reward;
@@ -228,9 +232,18 @@ public sealed class ExpeditionManager : Component
 		{
 			var lootBoost = 1.0 + civilians * GameConstants.ExpeditionLootBoostPerCivilian;
 			var res = party * GameConstants.ExpeditionResourcePerScoutLong * lootBoost * Game.Random.Float( 0.8f, 1.2f );
-			reward.Wood = Math.Round( res * 0.55 );
-			reward.Stone = Math.Round( res * 0.45 );
-			reward.Water = 0;
+			var core = GameCore.Instance;
+			if ( core?.IsCure == true )
+			{
+				reward.Wood = Math.Round( res * 0.55 );
+				reward.Stone = Math.Round( res * 0.45 );
+				reward.Water = 0;
+			}
+			else
+			{
+				// Survival: fold material haul into scrap.
+				scrap += res * GameConstants.CraftsmanScrapPerResource;
+			}
 		}
 
 		reward.Scrap = Math.Round( scrap );
@@ -238,10 +251,10 @@ public sealed class ExpeditionManager : Component
 		if ( reward.RareFind )
 			reward.Scrap += Math.Round( scrap * 0.5 );
 
-		var core = GameCore.Instance;
-		if ( core?.IsCure == true )
+		var game = GameCore.Instance;
+		if ( game?.IsCure == true )
 		{
-			var mult = TeamBonuses.ExpeditionRewardMult( core );
+			var mult = TeamBonuses.ExpeditionRewardMult( game );
 			reward.Scrap = Math.Round( reward.Scrap * mult );
 			reward.Wood = Math.Round( reward.Wood * mult );
 			reward.Stone = Math.Round( reward.Stone * mult );

@@ -420,7 +420,7 @@ public sealed class AimboxPlayerController : Component, IAimboxCombatActor
 
 	void UpdateLookInput()
 	{
-		var lookScale = AimboxAdsSightTuning.DefaultLookScale;
+		var lookScale = AimboxAdsSightTuning.DefaultLookScale * AimboxClientSettings.MouseSensitivity;
 		if ( UseScopedLookSensitivity )
 			lookScale *= AimboxAdsSightTuning.SniperLookMultiplier;
 		else if ( UseRedDotLookSensitivity )
@@ -1192,10 +1192,7 @@ public sealed class AimboxPlayerController : Component, IAimboxCombatActor
 		if ( _perkRuntime.RefillAmmoOnKill )
 			RefillCurrentWeapon();
 
-		var victimPlayer = victim as AimboxPlayerController;
-		var medals = victimPlayer is not null
-			? AimboxGame.Instance.Medals.EvaluateKill( this, victimPlayer, headshot, distance )
-			: [];
+		var medals = AimboxGame.Instance.Medals.EvaluateKill( this, victim, headshot, distance );
 		AimboxGame.Instance.Killstreaks.EvaluateKill( this );
 		// AUDIT FIX: when UseHostAuthority, scores/killfeed are owned by RpcBroadcastPlayerKill
 		// (player victims) or AimboxBotController.Die (bot victims). Calling RegisterKill here
@@ -1265,10 +1262,8 @@ public sealed class AimboxPlayerController : Component, IAimboxCombatActor
 	}
 
 	/// <summary>
-	/// AUDIT FIX C1/H1: host proxies never ran ApplyLoadout, so RpcRequestPlayerFire always
-	/// saw CurrentWeapon == null. Ensure a runtime exists for the claimed weapon id, then
-	/// tick it so fire-delay cooldowns advance on the host.
-	/// Attachments are base-stat only until we Sync attach lists — intentional minimal fix.
+	/// Host mirror for proxy fire authority. Reuses an existing slot so ammo/ROF persist.
+	/// Never clears inventory (ApplySingleWeapon would reset mag/cooldown and allow weapon-ID spam exploits).
 	/// </summary>
 	public AimboxWeaponRuntime EnsureHostAuthorityWeapon( AimboxWeaponId weaponId )
 	{
@@ -1284,9 +1279,9 @@ public sealed class AimboxPlayerController : Component, IAimboxCombatActor
 			}
 		}
 
-		_inventory.ApplySingleWeapon( weaponId );
+		var mirrored = _inventory.GetOrAddHostMirrorSlot( weaponId );
 		ActiveWeapon = weaponId;
-		return _inventory.GetSlot( 0 );
+		return mirrored;
 	}
 
 	/// <summary>Host-only: advance proxy ammo cooldown/reload so TryConsumeShot can rate-limit.</summary>

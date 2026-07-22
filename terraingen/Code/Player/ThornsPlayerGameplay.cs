@@ -31,6 +31,7 @@ public sealed partial class ThornsPlayerGameplay : Component, Component.INetwork
 
 	readonly ThornsInventoryContainer _inventory = new();
 	readonly ThornsCraftQueueHost _craftQueue = new();
+	readonly List<ThornsItemStack> _pendingCraftOverflow = new();
 
 	bool _craftPanelExpanded = true;
 	string _craftCategory = ThornsCraftCatalog.AllCraftCategoryId;
@@ -477,6 +478,8 @@ public sealed partial class ThornsPlayerGameplay : Component, Component.INetwork
 		var completed = _craftQueue.Tick( Time.Delta, out var changed );
 		if ( completed is not null )
 			HostGrantRecipeOutput( completed );
+
+		HostTickPendingCraftOverflow();
 
 		if ( changed || _craftQueue.Entries.Count > 0 )
 		{

@@ -1,5 +1,6 @@
 @using Sandbox
 @using Sandbox.UI
+@using Fauna2
 @inherits PanelComponent
 @namespace Fauna2.UI
 
@@ -46,7 +47,7 @@
 					{
 						<div class="joiner-status-banner">
 							<i class="icon">groups</i>
-							Explore the zoo while you wait — the host will start the session soon.
+							Waiting for the host to start — movement unlocks when the zoo session begins.
 						</div>
 					}
 
@@ -122,24 +123,16 @@
 					<div class="menu-list">
 						@foreach ( var slot in SaveSlots )
 						{
-							<div class="save-row @(_selectedSlot == slot.SlotId ? "selected" : "")">
-								<div class="menu-item @(slot.Exists ? "" : "empty") @(_selectedSlot == slot.SlotId ? "selected" : "")"
-									 onclick=@( () => SelectSlot( slot.SlotId ) )>
-									<div class="slot-badge">@slot.SlotId</div>
-									<div class="info">
-										<div class="name">@slot.Label</div>
-										<div class="desc">@slot.SummaryText</div>
-									</div>
-									@if ( _selectedSlot == slot.SlotId && slot.Exists )
-									{
-										<i class="icon item-check">check_circle</i>
-									}
+							<div class="menu-item @(slot.Exists ? "" : "empty") @(_selectedSlot == slot.SlotId ? "selected" : "")"
+								 onclick=@( () => SelectSlot( slot.SlotId ) )>
+								<div class="slot-badge">@slot.SlotId</div>
+								<div class="info">
+									<div class="name">@slot.Label</div>
+									<div class="desc">@slot.SummaryText</div>
 								</div>
-								@if ( IsHost && slot.Exists )
+								@if ( _selectedSlot == slot.SlotId && slot.Exists )
 								{
-									<div class="delete-btn" onclick=@( () => DeleteSaveSlot( slot.SlotId ) ) title="Delete save">
-										<i class="icon">delete_outline</i>
-									</div>
+									<i class="icon item-check">check_circle</i>
 								}
 							</div>
 						}
@@ -149,8 +142,13 @@
 				<div class="submenu-footer">
 					@if ( CanControlSession )
 					{
-						<div class="button menu-action primary @(CanContinue ? "" : "disabled")" onclick=@( () => ContinueGame() )>
-							<i class="icon">play_arrow</i> Load Save
+						<div class="footer-actions">
+							<div class="button menu-action primary @(CanContinue ? "" : "disabled")" onclick=@( () => ContinueGame() )>
+								<i class="icon">play_arrow</i> Load Save
+							</div>
+							<div class="button menu-action danger @(CanContinue ? "" : "disabled")" onclick=@( () => DeleteSelectedSave() )>
+								<i class="icon">delete_outline</i> Delete Save
+							</div>
 						</div>
 					}
 					else
@@ -177,20 +175,28 @@
 							var slotId = i;
 							var slot = SaveSlots.FirstOrDefault( s => s.SlotId == slotId && !s.IsLegacy );
 							<div class="menu-item slot @(_newGameSlot == slotId ? "selected" : "")"
-								 onclick=@( () => _newGameSlot = slotId )>
+								 onclick=@( () => SelectNewGameSlot( slotId ) )>
 								<div class="slot-badge">@slotId</div>
 								<div class="name">Slot @slotId</div>
 								<div class="desc">@(slot?.Exists == true ? slot.SummaryText : "Empty")</div>
 							</div>
 						}
 					</div>
+					@if ( _confirmOverwrite )
+					{
+						<div class="host-wait">
+							<i class="icon">warning</i>
+							This will permanently replace @SelectedNewGameSlot?.ZooName in slot @_newGameSlot. Press confirm to continue.
+						</div>
+					}
 				</div>
 
 				<div class="submenu-footer">
 					@if ( CanControlSession )
 					{
 						<div class="button menu-action primary @(CanStartNew ? "" : "disabled")" onclick=@( () => StartNewGame() )>
-							<i class="icon">flag</i> Start New Zoo
+							<i class="icon">@(_confirmOverwrite ? "delete_forever" : "flag")</i>
+							@(_confirmOverwrite ? "Confirm Overwrite" : "Start New Zoo")
 						</div>
 					}
 					else
@@ -301,6 +307,7 @@
 	private string HighlightedNav => HoveredNav;
 	private int _selectedSlot = 1;
 	private int _newGameSlot = 1;
+	private bool _confirmOverwrite;
 	private GameSettingsData _settings = GameSettings.Current;
 
 	private bool GameStarted => GameManager.Instance?.GameStarted ?? false;
@@ -321,8 +328,13 @@
 	private List<SaveSlotInfo> SaveSlots => SaveSystem.ListSlots();
 
 	private SaveSlotInfo LatestSave => SaveSlots.FirstOrDefault( s => s.Exists );
+	private SaveSlotInfo SelectedNewGameSlot =>
+		SaveSlots.FirstOrDefault( s => s.SlotId == _newGameSlot && !s.IsLegacy );
 
-	private int DailyStreak => DailyBonusSystem.Instance?.LoginStreak ?? 0;
+	private int DailyStreak =>
+		DailyBonusSystem.Instance?.LoginStreak
+		?? LatestSave?.LoginStreak
+		?? 0;
 
 	private string DailyStreakFillWidth =>
 		$"{Math.Clamp( DailyStreak * 10, 8, 100 )}%";
@@ -378,7 +390,20 @@
 	string NavItemClass( NavItem item ) =>
 		CanActivateNav( item ) ? "" : "disabled";
 
-	bool CanActivateNav( NavItem item ) => true;
+	bool CanActivateNav( NavItem item )
+	{
+		if ( item.IsQuit || item.Screen == MenuScreen.Settings )
+			return true;
+
+		// Joiners can browse but cannot start/continue a host session.
+		if ( !CanControlSession )
+			return false;
+
+		if ( item.Screen == MenuScreen.Continue )
+			return SaveSlots.Any( s => s.Exists );
+
+		return true;
+	}
 
 	void ActivateNav( NavItem item )
 	{
@@ -426,10 +451,23 @@
 	{
 		ActiveNav = "newgame";
 		HoveredNav = "newgame";
+		_confirmOverwrite = false;
 		_screen = MenuScreen.NewGame;
 	}
 
 	private void SelectSlot( int slotId ) => _selectedSlot = slotId;
+
+	private void SelectNewGameSlot( int slotId )
+	{
+		_newGameSlot = slotId;
+		_confirmOverwrite = false;
+	}
+
+	private void DeleteSelectedSave()
+	{
+		if ( !CanContinue ) return;
+		DeleteSaveSlot( _selectedSlot );
+	}
 
 	private void DeleteSaveSlot( int slotId )
 	{
@@ -459,9 +497,16 @@
 	{
 		if ( !CanStartNew ) return;
 
-		var slot = SaveSlots.FirstOrDefault( s => s.SlotId == _newGameSlot && !s.IsLegacy );
+		var slot = SelectedNewGameSlot;
+		if ( slot?.Exists == true && !_confirmOverwrite )
+		{
+			_confirmOverwrite = true;
+			StateHasChanged();
+			return;
+		}
+
 		if ( slot?.Exists == true )
-			Log.Info( $"Fauna: overwriting save slot {_newGameSlot}." );
+			Log.Info( $"Fauna: confirmed overwrite of save slot {_newGameSlot}." );
 
 		GameManager.Instance?.BeginNewGame( ZooStarterProfiles.Default, _newGameSlot );
 	}
@@ -532,7 +577,7 @@
 
 	protected override int BuildHash() => System.HashCode.Combine(
 		(int)_screen, GameStarted, _selectedSlot, _newGameSlot,
-		ActiveNav, HoveredNav,
+		ActiveNav, HoveredNav, _confirmOverwrite,
 		System.HashCode.Combine(
 			_settings.BuildDebug, _settings.CameraPanSpeed, _settings.GuestRevenueMultiplier,
 			_settings.MasterVolume,

@@ -118,6 +118,8 @@ public sealed class JobSiteManager
 			{
 				CleanedCells += count;
 				_wallet.Earn( count * CashPerCell * areaFactor );
+				if ( count > 0 )
+					GameCore.Instance?.NotifyDirtCleaned();
 			};
 
 			// Pests smear grime back on: progress drops, but no cash is clawed back.

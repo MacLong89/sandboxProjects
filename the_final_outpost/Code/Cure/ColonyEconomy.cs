@@ -45,6 +45,7 @@ public sealed class ColonyEconomy : Component
 	{
 		var core = GameCore.Instance;
 		if ( core is null || !core.IsCure ) return;
+		if ( core.IsUiBlocking ) return;
 		if ( core.Phase is not GamePhase.Day and not GamePhase.Night ) return;
 
 		var dt = Time.Delta;
@@ -64,6 +65,8 @@ public sealed class ColonyEconomy : Component
 		var schools = 0;
 		var hospitals = 0;
 		var shops = 0;
+		var observatories = 0;
+		var universities = 0;
 
 		foreach ( var b in buildings )
 		{
@@ -76,6 +79,8 @@ public sealed class ColonyEconomy : Component
 				case BuildableId.School: schools++; break;
 				case BuildableId.Hospital: hospitals++; break;
 				case BuildableId.Shop: shops++; break;
+				case BuildableId.Observatory: observatories++; break;
+				case BuildableId.University: universities++; break;
 			}
 		}
 
@@ -99,7 +104,22 @@ public sealed class ColonyEconomy : Component
 		if ( schools > 0 )
 			core.Resources.Add( ResourceKind.Knowledge, schools * CureConstants.SchoolKnowledgePerSec * dt * labMult );
 
+		if ( observatories > 0 )
+			core.Resources.Add( ResourceKind.Knowledge, observatories * CureConstants.ObservatoryKnowledgePerSec * dt * labMult );
+
+		if ( universities > 0 )
+			core.Resources.Add( ResourceKind.Knowledge, universities * CureConstants.UniversityKnowledgePerSec * dt * labMult );
+
 		core.Resources.Add( ResourceKind.Knowledge, CureConstants.BaseKnowledgePerSec * dt * labMult );
+
+		var allies = PlotCivActions.AlliedCount( core.Save );
+		if ( allies > 0 )
+		{
+			core.Resources.Add( ResourceKind.Food, allies * CureConstants.AllianceFoodPerSec * dt );
+			var allyScrap = allies * CureConstants.AllianceScrapPerSec * dt;
+			if ( allyScrap >= 0.01 )
+				core.Wallet.Earn( allyScrap );
+		}
 
 		if ( shops > 0 )
 		{

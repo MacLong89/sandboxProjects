@@ -1,5 +1,7 @@
 namespace Fauna2;
 
+using System.Globalization;
+
 /// <summary>
 /// Replicates host-local terrain obstacles and wild animals to visiting clients.
 /// Host-only entities stay off the network budget; clients mirror snapshots instead.
@@ -152,7 +154,11 @@ internal static class WorldSnapshotFormat
 		{
 			if ( string.IsNullOrEmpty( wild.SpeciesId ) ) continue;
 			var pos = wild.Position?.ToVector3() ?? Vector3.Zero;
-			parts.Add( $"{wild.WildId};{wild.SpeciesId};{wild.PlotX};{wild.PlotY};{pos.x:0.##};{pos.y:0.##};{pos.z:0.##}" );
+			parts.Add(
+				$"{wild.WildId};{wild.SpeciesId};{wild.PlotX};{wild.PlotY};" +
+				$"{pos.x.ToString( "0.##", CultureInfo.InvariantCulture )};" +
+				$"{pos.y.ToString( "0.##", CultureInfo.InvariantCulture )};" +
+				$"{pos.z.ToString( "0.##", CultureInfo.InvariantCulture )}" );
 		}
 
 		return string.Join( "|", parts );
@@ -167,9 +173,12 @@ internal static class WorldSnapshotFormat
 		{
 			var split = part.Split( ';' );
 			if ( split.Length < 7 ) continue;
-			if ( !int.TryParse( split[2], out var px ) || !int.TryParse( split[3], out var py ) )
+			if ( !int.TryParse( split[2], NumberStyles.Integer, CultureInfo.InvariantCulture, out var px )
+				|| !int.TryParse( split[3], NumberStyles.Integer, CultureInfo.InvariantCulture, out var py ) )
 				continue;
-			if ( !float.TryParse( split[4], out var x ) || !float.TryParse( split[5], out var y ) || !float.TryParse( split[6], out var z ) )
+			if ( !float.TryParse( split[4], NumberStyles.Float, CultureInfo.InvariantCulture, out var x )
+				|| !float.TryParse( split[5], NumberStyles.Float, CultureInfo.InvariantCulture, out var y )
+				|| !float.TryParse( split[6], NumberStyles.Float, CultureInfo.InvariantCulture, out var z ) )
 				continue;
 
 			yield return new WildAnimalSave

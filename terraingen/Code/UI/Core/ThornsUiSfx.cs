@@ -33,7 +33,7 @@ public static class ThornsUiSfx
 			return false;
 
 		handle.SpacialBlend = 0f;
-		handle.Volume = Math.Clamp( ThornsLocalSettings.Current.SfxVolume, 0f, 1f );
+		handle.Volume = ThornsAudioSettings.EffectiveSfxVolume;
 		return true;
 	}
 }

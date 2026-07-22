@@ -36,8 +36,8 @@ public static class CureTutorialTips
 		{
 			Id = "cure_defense", MinNight = 1, MaxNight = 3, Priority = 90, Icon = "adjust",
 			Title = "Place defenses",
-			Body = "Select Gun Tower or Cannon in the build dock and click open ground. "
-				+ "Towers auto-fire during threats — check stats in the placement preview."
+			Body = "Select Gun Tower or Wall Segment in the build dock and click open ground. "
+				+ "Advanced towers unlock through the Tech Tree. Towers auto-fire during threats."
 		},
 		new()
 		{
@@ -51,7 +51,8 @@ public static class CureTutorialTips
 			Id = "cure_barracks", MinNight = 1, MaxNight = 4, Priority = 85, Icon = "groups",
 			Title = "Build a Barracks first",
 			Body = "Recruits require a Barracks. Each one holds up to 3 soldiers, heals them during the day, "
-				+ "and fully restores nearby defenders after a threat. Fallen recruits are gone for good."
+				+ "and fully restores nearby defenders after a threat. Fallen recruits are gone for good. "
+				+ "Once you have a Recruit, you'll have the ability to play in First Person as one of them during the nights!"
 		},
 		new()
 		{
@@ -72,15 +73,15 @@ public static class CureTutorialTips
 		{
 			Id = "cure_lab", MinNight = 1, MaxNight = 4, Priority = 80, Icon = "science",
 			Title = "Research Lab",
-			Body = "Labs generate cure lab points for the Cure panel — they do not unlock Farms or Factories. "
-				+ "Scholars and higher lab levels boost output. Spend those points under Cure, not Tech."
+			Body = "Research Literacy to unlock Research Labs. Labs generate cure lab points for the Cure panel — "
+				+ "not Farms or Factories. Scholars and higher lab levels boost output. Spend lab points under Cure, not Tech."
 		},
 		new()
 		{
 			Id = "cure_tech", MinNight = 1, MaxNight = 3, Priority = 78, Icon = "account_tree",
 			Title = "Tech tree",
-			Body = "Open Tech (or click the Knowledge counter). Spend Knowledge like Civ science to unlock civic buildings. "
-				+ "Path: Agriculture (Farm) → Industry (Factory). Literacy unlocks Libraries for faster Knowledge income."
+			Body = "Open Tech (or click the Knowledge counter). Almost everything beyond starter defenses unlocks here — "
+				+ "towers, weapons, civic buildings, and specialists. Path: Agriculture → Industry, or Field Tactics for guns."
 		},
 		new()
 		{
@@ -143,7 +144,7 @@ public static class CureTutorialTips
 		{
 			Id = "cure_scouts", MinNight = 2, MaxNight = 6, Priority = 60, Icon = "explore",
 			Title = "Send scouts",
-			Body = "Open Scouts in the build dock to run expeditions. "
+			Body = "Research Field Tactics for short scout trips, then Diplomacy for long expeditions. "
 				+ "Scouts bring scrap, resources, and specimens — essential for later cure tiers."
 		},
 		new()

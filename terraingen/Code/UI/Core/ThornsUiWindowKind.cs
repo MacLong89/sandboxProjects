@@ -17,6 +17,7 @@ public enum ThornsUiWindowKind
 	LevelUpMoment,
 	SessionRecap,
 	VictoryIntro,
+	FirstSessionTutorial,
 	MainMenuConfirm,
 	MainMenuWorldName,
 	GameplayModal

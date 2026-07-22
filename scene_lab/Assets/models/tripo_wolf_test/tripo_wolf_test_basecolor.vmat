@@ -1,0 +1,21 @@
+// Tripo wolf — PNG color + normal (Source won't compile jpeg textures cleanly).
+Layer0
+{
+	shader "shaders/complex.shader"
+
+	TextureColor "models/tripo_wolf_test/tripo_wolf_test_basecolor.png"
+	TextureNormal "models/tripo_wolf_test/tripo_wolf_test_normal.png"
+	TextureRoughness "materials/default/default_rough.tga"
+	TextureAmbientOcclusion "materials/default/default_ao.tga"
+
+	F_TRANSPARENT 0
+	F_ALPHA_TEST 0
+	F_RENDER_BACKFACES 0
+
+	g_flOpacity "1.000"
+	g_flModelTintAmount "0.000"
+	g_vColorTint "[1.000000 1.000000 1.000000 1.000000]"
+	g_flMetalness "0.000"
+	g_flRoughnessScaleFactor "1.000"
+	g_vTexCoordScale "[1.000 1.000]"
+}

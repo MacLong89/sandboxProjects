@@ -36,11 +36,11 @@ public static class AimboxPlayLobbyUiHelpers
 	public static readonly IReadOnlyList<LobbyModeCard> ModeCards =
 	[
 		new( "tdm", AimboxGameMode.TeamDeathmatch, "TEAM DEATHMATCH", "Eliminate the enemy team.", "5v5", true ),
-		new( "ctf", null, "CAPTURE THE FLAG", "Steal the enemy flag.", "6v6", false ),
 		new( "range", AimboxGameMode.Range, "RANGE", "Practice on passive dummies — no time limit.", "SOLO", true ),
-		new( "ffa", AimboxGameMode.FreeForAll, "FREE FOR ALL", "Every player for themselves.", "FFA", true ),
-		new( "duel", AimboxGameMode.Duel, "DUEL", "First to the kill limit wins.", "1v1", true ),
-		new( "survival", AimboxGameMode.Survival, "SURVIVAL", "Clear waves of enemies.", "CO-OP", true )
+		new( "ffa", AimboxGameMode.FreeForAll, "FREE FOR ALL", "Highest score when the clock hits zero wins.", "FFA", true ),
+		new( "duel", AimboxGameMode.Duel, "DUEL", "1v1. Ranked MMR only updates vs a human opponent.", "1v1", true ),
+		new( "survival", AimboxGameMode.Survival, "SURVIVAL", "Clear waves of enemies.", "CO-OP", true ),
+		new( "more", null, "MORE MODES", "Additional modes are in development.", "—", false )
 	];
 
 	public static bool IsMapPlayable( string mapId ) =>
@@ -85,8 +85,8 @@ public static class AimboxPlayLobbyUiHelpers
 
 	public static string ModeDescription( AimboxGameMode mode ) => mode switch
 	{
-		AimboxGameMode.TeamDeathmatch => "Work with your squad to eliminate the enemy team and reach the score limit.",
-		AimboxGameMode.Duel => "Face a single opponent. First to the kill limit takes the round.",
+		AimboxGameMode.TeamDeathmatch => "Work with your squad to eliminate the enemy team. Highest team score when time runs out wins — or hit the score limit early.",
+		AimboxGameMode.Duel => "Face a single opponent. First to the kill limit wins. Ranked MMR only changes when both fighters are human players.",
 		AimboxGameMode.Survival => "Survive escalating enemy waves with your loadout.",
 		AimboxGameMode.Range => "Shoot passive dummies at your own pace. They respawn quickly and never fight back.",
 		AimboxGameMode.AimLevel1 => AimboxAimDrillLabels.Description( AimboxAimDrill.Triple ) + " Private trainer room, 60 seconds.",
@@ -95,7 +95,7 @@ public static class AimboxPlayLobbyUiHelpers
 		AimboxGameMode.AimLevel4 => AimboxAimDrillLabels.Description( AimboxAimDrill.MicroTriple ) + " Private trainer room, 60 seconds.",
 		AimboxGameMode.AimLevel5 => AimboxAimDrillLabels.Description( AimboxAimDrill.MicroFlick ) + " Private trainer room, 60 seconds.",
 		AimboxGameMode.AimLevel6 => AimboxAimDrillLabels.Description( AimboxAimDrill.MicroBounce ) + " Private trainer room, 60 seconds.",
-		_ => "Eliminate enemies to reach the score limit. No teams, no allies."
+		_ => "Highest score when the clock hits zero wins. Hit the kill limit early to end the match sooner."
 	};
 
 	public static string PlayerDisplayName( AimboxPlayerController player )

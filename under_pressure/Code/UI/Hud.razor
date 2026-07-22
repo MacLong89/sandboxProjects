@@ -462,6 +462,27 @@
 			</div>
 		}
 
+		@if ( TutorialTip is not null && !ShowMissionBriefing )
+		{
+			var tip = TutorialTip;
+			<div class="tip-overlay">
+				<div class="popup-backdrop"></div>
+				<div class="popup tutorial-tip">
+					<div class="popup-title"><i class="icon tip-icon">@tip.Icon</i> @tip.Title</div>
+					<div class="popup-body tip-body">@tip.Body</div>
+					<div class="tip-btn-row">
+						<div class="popup-btn ghost" onclick=@HideAllTips><i class="icon">visibility_off</i><span>Hide tips</span></div>
+						<div class="popup-btn" onclick=@DismissTip>Got it</div>
+					</div>
+				</div>
+			</div>
+		}
+
+		@if ( !string.IsNullOrEmpty( TipToast ) )
+		{
+			<div class="tip-toast">@TipToast</div>
+		}
+
 		@if ( ShowDiscovery )
 		{
 			<div class="popup-backdrop" onclick=@DismissDiscovery></div>
@@ -512,6 +533,8 @@
 	private bool IsKnockedOut => Core?.IsKnockedOut ?? false;
 	private bool IsDeparting => Core?.IsDeparting ?? false;
 	private bool ShowMissionBriefing => Core?.ShowMissionBriefing ?? false;
+	private TutorialTipDef TutorialTip => Core?.ActiveTutorialTip;
+	private string TipToast => Core?.TipToast ?? "";
 	private float DepartBlackout => Core?.DepartBlackout ?? 0f;
 	private float GameplayHudOpacity => 1f - DepartBlackout;
 	private string DepartBlackoutCss => DepartBlackout.ToString( "0.###", System.Globalization.CultureInfo.InvariantCulture );
@@ -607,6 +630,8 @@
 	private void DismissDaily() => Core?.DismissDailyPopup();
 	private void DismissKnockout() => Core?.DismissKnockoutPopup();
 	private void DismissMissionBriefing() => Core?.DismissMissionBriefing();
+	private void DismissTip() => Core?.DismissTutorialTip();
+	private void HideAllTips() => Core?.DismissTutorialTip( hideAll: true );
 	private void DismissDiscovery() => Core?.DismissDiscoveryPopup();
 	private void AdvanceHitmanBriefing() => Core?.AdvanceHitmanBriefing();
 	private void ResetAllProgress() => Core?.ResetAllProgress();
@@ -661,6 +686,6 @@
 		System.HashCode.Combine( ShowCompletion, ShowPerfect, Spotless, System.HashCode.Combine( ShowDaily, ShowHarassment, ShowKnockout, IsKnockedOut, IsDeparting, ShowMissionBriefing, ShowDiscovery ) ),
 		System.HashCode.Combine( ShowHitmanBriefing, Core?.HitmanBriefingLine ?? 0, FixerApproaching, Core?.HarassmentAlert?.GetHashCode() ?? 0, Core?.HarassmentSubtext?.GetHashCode() ?? 0, Core?.KnockoutContext?.GetHashCode() ?? 0, Core?.KnockoutPenalty ?? 0 ),
 		System.HashCode.Combine( Core?.DepartBlackout ?? 0, Core?.MissionBriefingLevel ?? 0, Core?.MissionBriefingTitle?.GetHashCode() ?? 0, Core?.MissionBriefingBody?.GetHashCode() ?? 0, Core?.MissionBriefingTag?.GetHashCode() ?? 0, Core?.DiscoveryMonologue?.GetHashCode() ?? 0 ),
-		System.HashCode.Combine( (int)Tab, Upgrades?.VanTier ?? 0, LeaderboardLoading ? 1 : 0, Leaderboard?.Entries?.Length ?? 0 )
+		System.HashCode.Combine( TutorialTip?.Id?.GetHashCode() ?? 0, TipToast?.GetHashCode() ?? 0, (int)Tab, Upgrades?.VanTier ?? 0, LeaderboardLoading ? 1 : 0, Leaderboard?.Entries?.Length ?? 0 )
 	);
 }

@@ -54,13 +54,15 @@ public static class ZooSoundEffects
 		return handle;
 	}
 
-	public static void PlayAnimalPlaced( string definitionId, Vector3 position )
+	public static void PlayAnimalPlaced( string definitionId, Vector3 position ) =>
+		Play3D( AnimalPlacementStem( definitionId ), position, 0.475f );
+
+	public static string AnimalPlacementStem( string definitionId )
 	{
 		var stem = Defs.ResourceStem( definitionId );
 		if ( !AnimalPlacementSounds.TryGetValue( stem, out var soundStem ) )
 			soundStem = DefaultAnimalSound;
-
-		Play3D( soundStem, position, 0.475f );
+		return soundStem;
 	}
 
 	public static void PlayUiClick() => Play2D( "button", 0.275f );
@@ -77,7 +79,7 @@ public static class ZooSoundEffects
 		Play2D( stem, 0.425f );
 	}
 
-	public static void PlayBuild() => PlayPlace();
+	public static void PlayBuild() => Play2D( "build", PlaceVolume );
 
 	public static void PlayDemolish() => Play2D( "demolish", 0.375f );
 

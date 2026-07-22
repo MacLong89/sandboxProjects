@@ -42,6 +42,13 @@ public sealed class ThornsMenuHost : PanelComponent
 	public static bool IsVictoryIntroOpen =>
 		Instance?._victoryIntro?.IsOpen == true;
 
+	public static bool IsFirstSessionTutorialOpen =>
+		Instance?._firstSessionTutorial?.IsOpen == true;
+
+	public static bool IsJournalTabOpen =>
+		IsOpen
+		&& string.Equals( Instance?._activeTab, "Journal", StringComparison.OrdinalIgnoreCase );
+
 	static readonly string[] TabOrder =
 	{
 		"Inventory", "Journal", "Tames", "Skills", "Map", "Guild", "Settings"
@@ -382,20 +389,39 @@ public sealed class ThornsMenuHost : PanelComponent
 				ThornsMenuPerformance.SetVictoryIntroOverlayOpen( false );
 		}
 
+		var tutorialOpen = _firstSessionTutorial?.IsOpen == true;
+		if ( tutorialOpen )
+		{
+			SyncOverlayRegistration( "first-session-tutorial", tutorialOpen && !IsOpen && _firstSessionTutorial?.IsOpen == true,
+				ThornsUiPriority.CriticalPopup,
+				_firstSessionTutorial?.Backdrop,
+				() => _firstSessionTutorial?.DismissStep(),
+				ThornsUiWindowKind.FirstSessionTutorial );
+			if ( !IsOpen )
+			{
+				SetPlayerInputBlocked( true );
+				ApplyMenuCursor( true );
+			}
+		}
+		else
+		{
+			SyncOverlayRegistration( "first-session-tutorial", false, ThornsUiPriority.CriticalPopup, null, null, ThornsUiWindowKind.FirstSessionTutorial );
+		}
+
 		ThornsUiManager.ApplyFocusDimming( _hudLayer );
 		ThornsTooltip.Tick();
 
-		if ( !containerOpen && !radioOpen && !researchOpen && !campfireOpen && !workbenchOpen && !victoryIntroOpen && !IsOpen && ThornsPlayerGameplay.Local?.IsAwaitingWorldContainerUi != true )
+		if ( !containerOpen && !radioOpen && !researchOpen && !campfireOpen && !workbenchOpen && !victoryIntroOpen && !tutorialOpen && !IsOpen && ThornsPlayerGameplay.Local?.IsAwaitingWorldContainerUi != true )
 		{
 			SetPlayerInputBlocked( false );
 		}
 
 		ThornsUiCursor.SyncForActiveContext();
 
-		_crosshair?.SetVisible( ShouldShowGameplayCrosshair( containerOpen, radioOpen, researchOpen, campfireOpen, workbenchOpen, victoryIntroOpen ) );
+		_crosshair?.SetVisible( ShouldShowGameplayCrosshair( containerOpen, radioOpen, researchOpen, campfireOpen, workbenchOpen, victoryIntroOpen, tutorialOpen ) );
 		_sniperScope?.Refresh();
 
-		if ( victoryIntroOpen && !IsOpen )
+		if ( (victoryIntroOpen || tutorialOpen) && !IsOpen )
 		{
 			SetPlayerInputBlocked( true );
 			ApplyMenuCursor( true );
@@ -458,7 +484,7 @@ public sealed class ThornsMenuHost : PanelComponent
 		}
 	}
 
-	bool ShouldShowGameplayCrosshair( bool containerOpen, bool radioOpen, bool researchOpen, bool campfireOpen, bool workbenchOpen, bool victoryIntroOpen ) =>
+	bool ShouldShowGameplayCrosshair( bool containerOpen, bool radioOpen, bool researchOpen, bool campfireOpen, bool workbenchOpen, bool victoryIntroOpen, bool tutorialOpen ) =>
 		!IsOpen
 		&& !containerOpen
 		&& !radioOpen
@@ -466,6 +492,7 @@ public sealed class ThornsMenuHost : PanelComponent
 		&& !campfireOpen
 		&& !workbenchOpen
 		&& !victoryIntroOpen
+		&& !tutorialOpen
 		&& !ThornsSniperScopeHudState.HideStandardCrosshair
 		&& !ThornsSniperScopeHudState.ShowClassicScope;
 
@@ -483,7 +510,7 @@ public sealed class ThornsMenuHost : PanelComponent
 		ThornsDragState.UpdatePointer();
 		ThornsInventoryDragGhost.Tick();
 
-		if ( !IsOpen && !IsWorldContainerOpen && !IsCampfireOpen && !IsWorkbenchOpen && !IsRadioShopOpen && !IsResearchOpen && !IsVictoryIntroOpen )
+		if ( !IsOpen && !IsWorldContainerOpen && !IsCampfireOpen && !IsWorkbenchOpen && !IsRadioShopOpen && !IsResearchOpen && !IsVictoryIntroOpen && !IsFirstSessionTutorialOpen )
 			return;
 
 		ThornsItemSlot.RefreshDropTarget();
@@ -1451,7 +1478,7 @@ public sealed class ThornsMenuHost : PanelComponent
 		_levelUpMoment = new ThornsLevelUpMomentHud( _hudLayer );
 		_sessionRecap = new ThornsSessionRecapHud( _hudLayer );
 		if ( ThornsFirstSessionTutorialHud.Enabled )
-			_firstSessionTutorial = new ThornsFirstSessionTutorialHud( _hudLayer );
+			_firstSessionTutorial = new ThornsFirstSessionTutorialHud( Panel );
 
 		_joinProgressOverlay = new MainMenuProgressOverlay( Panel );
 		_joinProgressOverlay.Refresh();

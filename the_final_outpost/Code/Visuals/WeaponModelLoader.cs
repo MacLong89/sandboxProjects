@@ -1,9 +1,10 @@
 namespace FinalOutpost;
 
 /// <summary>
-/// Loads recruit weapon world models from the mounted <c>facepunch.sboxweapons</c> package
-/// (or individual cloud weapon packages as fallback). Pulls packages onto disk when missing
-/// so players without the Library content pre-installed still get weapon meshes.
+/// Loads recruit/takeover weapon world + view models from the mounted
+/// <c>facepunch.sboxweapons</c> package (or individual cloud weapon packages as fallback).
+/// Pulls packages onto disk when missing so published-game players without Library
+/// content pre-installed still get the same meshes as the editor.
 /// </summary>
 public sealed class WeaponModelLoader : Component
 {
@@ -14,15 +15,22 @@ public sealed class WeaponModelLoader : Component
 
 	const string SboxWeaponsPackage = "facepunch.sboxweapons";
 
-	private readonly Dictionary<string, Model> _models = new();
+	private readonly Dictionary<string, Model> _models = new( StringComparer.OrdinalIgnoreCase );
 
-	private static readonly (string CloudIdent, string Path)[] Weapons =
+	/// <summary>Cloud ident + every path we need from that package (world and/or view).</summary>
+	private static readonly (string CloudIdent, string[] Paths)[] Weapons =
 	{
-		( "facepunch.w_usp", WeaponModels.PistolWorld ),
-		( "facepunch.w_mp5", WeaponModels.SmgWorld ),
-		( "facepunch.w_m4a1", WeaponModels.RifleWorld ),
-		( "facepunch.w_spaghellim4", WeaponModels.ShotgunWorld ),
-		( "facepunch.w_m700", WeaponModels.SniperWorld )
+		( "facepunch.w_usp", new[] { WeaponModels.PistolWorld, WeaponModels.PistolView, TakeoverWeaponCatalog.UspView } ),
+		( "facepunch.w_mp5", new[] { WeaponModels.SmgWorld, WeaponModels.SmgView, TakeoverWeaponCatalog.Mp5View } ),
+		( "facepunch.w_m4a1", new[] { WeaponModels.RifleWorld, WeaponModels.RifleView, TakeoverWeaponCatalog.M4View } ),
+		( "facepunch.w_spaghellim4", new[] { WeaponModels.ShotgunWorld, WeaponModels.ShotgunView, TakeoverWeaponCatalog.ShotgunView } ),
+		( "facepunch.w_m700", new[] { WeaponModels.SniperWorld, WeaponModels.SniperView, TakeoverWeaponCatalog.SniperView } ),
+	};
+
+	private static readonly string[] ExtraEngineModels =
+	{
+		TakeoverWeaponCatalog.ArmsPath,
+		CharacterModel.CitizenVmdl,
 	};
 
 	protected override void OnAwake() => Instance = this;
@@ -38,20 +46,38 @@ public sealed class WeaponModelLoader : Component
 
 		var mounted = await TryMountPackage( SboxWeaponsPackage );
 
-		foreach ( var (cloudIdent, path) in Weapons )
+		foreach ( var (cloudIdent, paths) in Weapons )
 		{
-			if ( mounted && TryCacheModel( path ) )
+			var allCached = true;
+			foreach ( var path in paths.Distinct( StringComparer.OrdinalIgnoreCase ) )
+			{
+				if ( mounted && TryCacheModel( path ) )
+					continue;
+
+				allCached = false;
+			}
+
+			if ( allCached )
 				continue;
 
-			await FetchCloudWeapon( cloudIdent, path );
+			await FetchCloudWeapon( cloudIdent, paths );
 
-			if ( !_models.ContainsKey( path ) )
-				Log.Warning( $"[FinalOutpost] Weapon '{path}' unavailable — recruits use box placeholder until remount." );
+			foreach ( var path in paths.Distinct( StringComparer.OrdinalIgnoreCase ) )
+			{
+				if ( !_models.ContainsKey( path ) )
+					Log.Warning( $"[FinalOutpost] Weapon '{path}' unavailable — box placeholder until remount." );
+			}
+		}
+
+		foreach ( var path in ExtraEngineModels )
+		{
+			if ( !TryCacheModel( path ) )
+				Log.Warning( $"[FinalOutpost] Engine model '{path}' unavailable." );
 		}
 
 		IsReady = true;
 		DefenderManager.Instance?.RefreshWeaponModels();
-		Log.Info( $"[FinalOutpost] Weapon models ready ({_models.Count}/{Weapons.Length} loaded)." );
+		Log.Info( $"[FinalOutpost] Weapon models ready ({_models.Count} cached, packageMounted={mounted})." );
 	}
 
 	public Model Get( string path ) =>
@@ -99,11 +125,8 @@ public sealed class WeaponModelLoader : Component
 		return true;
 	}
 
-	private async Task FetchCloudWeapon( string cloudIdent, string path )
+	private async Task FetchCloudWeapon( string cloudIdent, string[] paths )
 	{
-		if ( _models.ContainsKey( path ) )
-			return;
-
 		try
 		{
 			var package = await Package.Fetch( cloudIdent, true );
@@ -115,22 +138,19 @@ public sealed class WeaponModelLoader : Component
 
 			await package.MountAsync();
 
+			// After mount, try every requested path; also cache PrimaryAsset under its own path.
 			var primary = package.GetMeta( "PrimaryAsset", "" );
-			if ( string.IsNullOrWhiteSpace( primary ) )
-			{
-				Log.Warning( $"[FinalOutpost] Weapon package has no PrimaryAsset: {cloudIdent}" );
-				return;
-			}
+			if ( !string.IsNullOrWhiteSpace( primary ) )
+				TryCacheModel( primary );
 
-			var model = AssetSafe.Model( primary );
-			if ( model is null )
+			foreach ( var path in paths.Distinct( StringComparer.OrdinalIgnoreCase ) )
 			{
-				Log.Warning( $"[FinalOutpost] Weapon model failed to load: {cloudIdent} ({primary})" );
-				return;
-			}
+				if ( _models.ContainsKey( path ) )
+					continue;
 
-			_models[path] = model;
-			Log.Info( $"[FinalOutpost] Loaded weapon from cloud: {cloudIdent}" );
+				if ( TryCacheModel( path ) )
+					Log.Info( $"[FinalOutpost] Loaded weapon mesh: {path}" );
+			}
 		}
 		catch ( Exception e )
 		{

@@ -49,13 +49,16 @@ public static class AnimalHabitatRules
 			return false;
 		}
 
-		if ( habitat.Biome != def.Biome )
+		// Prefer the placeable definition — synced Size/Biome can lag or disagree with the pen type.
+		var biome = habitat.Definition?.HabitatBiome ?? habitat.Biome;
+		if ( biome != def.Biome )
 		{
 			error = $"{def.DisplayName} needs a {BiomeIdentity.Label( def.Biome )} habitat.";
 			return false;
 		}
 
-		var habitatTier = GetSizeTier( habitat.Size );
+		var sizeForTier = habitat.Definition?.HabitatSize ?? habitat.Size;
+		var habitatTier = GetSizeTier( sizeForTier );
 		if ( !MeetsSize( habitatTier, def.MinHabitatSize ) )
 		{
 			error = $"{def.DisplayName} needs at least a {TierLabelTitle( def.MinHabitatSize )} {BiomeIdentity.Label( def.Biome )} habitat.";

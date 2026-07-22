@@ -16,6 +16,98 @@ public enum DecorKind
 	SteakhouseAlley,
 	/// <summary>Commercial dumpster.</summary>
 	Dumpster,
+
+	// --- Campaign site kit (see SceneryKits.cs) ---
+	/// <summary>Corrugated industrial shell with roll-up doors on the −Y face. Size = footprint (w,d,h).</summary>
+	Warehouse,
+	/// <summary>Raised colliding concrete slab (dock platform, stage). Size = (w,d,height).</summary>
+	Platform,
+	/// <summary>Shipping container, doors on −Y. Size.x = uniform scale. Color = body.</summary>
+	Container,
+	/// <summary>Container with doors swung open and a dark interior. Size.x = scale. Color = body.</summary>
+	ContainerOpen,
+	/// <summary>Parked luxury sedan/SUV. Size.x = scale, Color = paint. Faces +X.</summary>
+	LuxuryCar,
+	/// <summary>Burnt, crumpled wreck. Size.x = scale. Faces +X.</summary>
+	WreckedCar,
+	/// <summary>Freight boxcar. Size.x = scale. Long axis X. Color = body.</summary>
+	TrainCar,
+	/// <summary>Diesel locomotive. Size.x = scale. Nose faces +X. Color = body.</summary>
+	Locomotive,
+	/// <summary>Twin rails + sleepers, flat on the ground. Size.x = run length. Long axis X.</summary>
+	RailTrack,
+	/// <summary>Elevated steel walkway with legs and rails. Size = (length, width, deck height). Long axis X.</summary>
+	Catwalk,
+	/// <summary>Cluster of 55-gal drums. Size.x = scale. Color = drum paint.</summary>
+	BarrelCluster,
+	/// <summary>Tall dark server cabinet with LED strips. Size.x = scale. Accent color = Color.</summary>
+	ServerRack,
+	/// <summary>Stack of wooden crates. Size.x = scale.</summary>
+	CrateStack,
+	/// <summary>Street lamp with a warm head. Size.x = scale.</summary>
+	LampPost,
+	/// <summary>Tripod work floodlight, angled toward −Y. Size.x = scale.</summary>
+	Floodlight,
+	/// <summary>Classical column. Size = (diameter, unused, height). Color = stone.</summary>
+	Column,
+	/// <summary>Pedestal + abstract marble figure. Size.x = scale. Color = stone.</summary>
+	Statue,
+	/// <summary>Museum display case: base + glass. Size.x = scale.</summary>
+	DisplayCase,
+	/// <summary>Overhead meat-hook rail on posts. Size.x = run length. Long axis X.</summary>
+	HookRail,
+	/// <summary>Stainless prep table. Size.x = scale.</summary>
+	SteelTable,
+	/// <summary>Lattice broadcast tower. Size = (base width, unused, height).</summary>
+	Antenna,
+	/// <summary>Satellite dish on a plinth, face tilted toward −Y. Size.x = scale.</summary>
+	SatelliteDish,
+	/// <summary>Industrial generator block. Size.x = scale. Color = housing.</summary>
+	Generator,
+	/// <summary>Pipes on stands. Size = (run length, unused, pipe height). Long axis X. Color = pipe.</summary>
+	PipeRun,
+	/// <summary>Valve stub with a wheel. Size.x = scale. Color = wheel.</summary>
+	ValveStation,
+	/// <summary>Highway W-beam guardrail. Size.x = run length. Long axis X.</summary>
+	GuardRail,
+	/// <summary>Elevated road deck on two piers, spanning X. Size = (span, deck width, clearance).</summary>
+	Overpass,
+	/// <summary>Jersey barrier run. Size.x = run length. Long axis X.</summary>
+	ConcreteBarrier,
+	/// <summary>Collapsed masonry pile. Size.x = scale. Color = debris.</summary>
+	Rubble,
+	/// <summary>Colliding interior wall slab with a tile band. Size = (width, thickness, height). Faces −Y. Color = tile.</summary>
+	TiledWall,
+	/// <summary>Superyacht cabin block with window band + radar arch. Size = footprint (w,d,h).</summary>
+	YachtCabin,
+	/// <summary>Deck/roof railing run: posts + top rail. Size.x = run length. Long axis X.</summary>
+	Railing,
+	/// <summary>White lab bench with equipment. Size.x = scale.</summary>
+	LabBench,
+	/// <summary>Studio camera on a tripod, lens toward −Y. Size.x = scale.</summary>
+	StudioCamera,
+	/// <summary>Broadcast control desk with monitors, screens toward −Y. Size.x = scale.</summary>
+	ControlDesk,
+	/// <summary>Detention cell: dark box with a barred front on −Y. Size = footprint (w,d,h).</summary>
+	HoldingCell,
+	/// <summary>Floor grate venting a translucent steam column. Size.x = scale.</summary>
+	SteamVent,
+	/// <summary>Giant pump/reactor machine with a glowing core on −Y. Size.x = scale. Color = glow.</summary>
+	MachineCore,
+	/// <summary>Recessed water channel with raised edges. Size = (length, width). Long axis X. Color = water.</summary>
+	WaterChannel,
+	/// <summary>Log cabin with snowy roof. Size = footprint (w,d,h).</summary>
+	Cabin,
+	/// <summary>Sofa. Size.x = scale. Color = upholstery. Seat faces −Y.</summary>
+	Sofa,
+	/// <summary>Executive desk with a toppled chair. Size.x = scale.</summary>
+	Desk,
+	/// <summary>Roof HVAC unit. Size.x = scale.</summary>
+	RoofUnit,
+	/// <summary>Subway platform edge: tactile strip + track trench with rails, drop on −Y. Size.x = run length.</summary>
+	TrackTrench,
+	/// <summary>Ceiling-less door frame with heavy blast doors ajar. Size = (width, thickness, height). Faces −Y.</summary>
+	BlastDoor,
 }
 
 /// <summary>
@@ -34,7 +126,7 @@ public sealed class DecorDef
 /// <summary>
 /// Builds composite low-poly props out of the shared box primitive.
 /// </summary>
-public static class Scenery
+public static partial class Scenery
 {
 	private const float RadToDeg = 57.29578f;
 
@@ -69,6 +161,51 @@ public static class Scenery
 			case DecorKind.FoothillsStation: BuildFoothillsStation( root, def ); break;
 			case DecorKind.SteakhouseAlley: BuildSteakhouseAlley( root, def ); break;
 			case DecorKind.Dumpster: BuildDumpster( root, def ); break;
+			case DecorKind.Warehouse: BuildWarehouse( root, def ); break;
+			case DecorKind.Platform: BuildPlatform( root, def ); break;
+			case DecorKind.Container: BuildContainer( root, def, open: false ); break;
+			case DecorKind.ContainerOpen: BuildContainer( root, def, open: true ); break;
+			case DecorKind.LuxuryCar: BuildLuxuryCar( root, def ); break;
+			case DecorKind.WreckedCar: BuildWreckedCar( root, def ); break;
+			case DecorKind.TrainCar: BuildTrainCar( root, def ); break;
+			case DecorKind.Locomotive: BuildLocomotive( root, def ); break;
+			case DecorKind.RailTrack: BuildRailTrack( root, def ); break;
+			case DecorKind.Catwalk: BuildCatwalk( root, def ); break;
+			case DecorKind.BarrelCluster: BuildBarrelCluster( root, def ); break;
+			case DecorKind.ServerRack: BuildServerRack( root, def ); break;
+			case DecorKind.CrateStack: BuildCrateStack( root, def ); break;
+			case DecorKind.LampPost: BuildLampPost( root, def ); break;
+			case DecorKind.Floodlight: BuildFloodlight( root, def ); break;
+			case DecorKind.Column: BuildColumn( root, def ); break;
+			case DecorKind.Statue: BuildStatue( root, def ); break;
+			case DecorKind.DisplayCase: BuildDisplayCase( root, def ); break;
+			case DecorKind.HookRail: BuildHookRail( root, def ); break;
+			case DecorKind.SteelTable: BuildSteelTable( root, def ); break;
+			case DecorKind.Antenna: BuildAntenna( root, def ); break;
+			case DecorKind.SatelliteDish: BuildSatelliteDish( root, def ); break;
+			case DecorKind.Generator: BuildGenerator( root, def ); break;
+			case DecorKind.PipeRun: BuildPipeRun( root, def ); break;
+			case DecorKind.ValveStation: BuildValveStation( root, def ); break;
+			case DecorKind.GuardRail: BuildGuardRail( root, def ); break;
+			case DecorKind.Overpass: BuildOverpass( root, def ); break;
+			case DecorKind.ConcreteBarrier: BuildConcreteBarrier( root, def ); break;
+			case DecorKind.Rubble: BuildRubble( root, def ); break;
+			case DecorKind.TiledWall: BuildTiledWall( root, def ); break;
+			case DecorKind.YachtCabin: BuildYachtCabin( root, def ); break;
+			case DecorKind.Railing: BuildRailing( root, def ); break;
+			case DecorKind.LabBench: BuildLabBench( root, def ); break;
+			case DecorKind.StudioCamera: BuildStudioCamera( root, def ); break;
+			case DecorKind.ControlDesk: BuildControlDesk( root, def ); break;
+			case DecorKind.HoldingCell: BuildHoldingCell( root, def ); break;
+			case DecorKind.SteamVent: BuildSteamVent( root, def ); break;
+			case DecorKind.MachineCore: BuildMachineCore( root, def ); break;
+			case DecorKind.WaterChannel: BuildWaterChannel( root, def ); break;
+			case DecorKind.Cabin: BuildCabin( root, def ); break;
+			case DecorKind.Sofa: BuildSofa( root, def ); break;
+			case DecorKind.Desk: BuildDesk( root, def ); break;
+			case DecorKind.RoofUnit: BuildRoofUnit( root, def ); break;
+			case DecorKind.TrackTrench: BuildTrackTrench( root, def ); break;
+			case DecorKind.BlastDoor: BuildBlastDoor( root, def ); break;
 			default:
 				Log.Warning( $"[Scenery] Unhandled DecorKind {def.Kind} at {def.Position}" );
 				break;
@@ -230,8 +367,10 @@ public static class Scenery
 		var faceSlot = 0;
 		float FaceY() => front - DepthLayers.NextFaceDepth( ref faceSlot );
 		Box( root, "StoreGlass", new Vector3( -w * 0.22f, FaceY(), h * 0.48f ), new Vector3( w * 0.42f, 5, h * 0.58f ), glass, default, GameMaterials.Metal );
-		Box( root, "StoreDoor", new Vector3( w * 0.28f, FaceY(), h * 0.38f ), new Vector3( 52, 6, h * 0.66f ), dark, default, GameMaterials.Metal );
-		Box( root, "DoorWin", new Vector3( w * 0.28f, FaceY(), h * 0.52f ), new Vector3( 28, 4, 24 ), WindowGlass, default, GameMaterials.Metal );
+		var doorY = FaceY();
+		Box( root, "StoreDoor", new Vector3( w * 0.28f, doorY, h * 0.38f ), new Vector3( 52, 6, h * 0.66f ), dark, default, GameMaterials.Metal );
+		// Window sits proud of the 6-thick door (a FaceY slot lands coplanar with its face).
+		Box( root, "DoorWin", new Vector3( w * 0.28f, doorY - 3f, h * 0.52f ), new Vector3( 28, 4, 24 ), WindowGlass, default, GameMaterials.Metal );
 
 		Box( root, "HVAC", new Vector3( -w * 0.18f, d * 0.1f, roofTop + 1f + 14f ), new Vector3( 70, 50, 28 ), dark, default, GameMaterials.Metal );
 		Box( root, "Dish", new Vector3( w * 0.28f, -d * 0.05f, roofTop + 1f + 4f ), new Vector3( 36, 8, 8 ), dark, new Angles( 25, 0, 0 ), GameMaterials.Metal );
@@ -307,9 +446,11 @@ public static class Scenery
 		var faceSlot = 0;
 		float FaceY() => front - DepthLayers.NextFaceDepth( ref faceSlot );
 
-		// Sign band (text approximated as dark metal bars).
-		Box( root, "SignBand", new Vector3( w * 0.18f, FaceY(), h * 0.72f ), new Vector3( w * 0.42f, 5, 36 ), dark, default, GameMaterials.Metal );
-		Box( root, "SignBar", new Vector3( w * 0.18f, FaceY(), h * 0.72f ), new Vector3( w * 0.38f, 4, 8 ), new Color( 0.12f, 0.12f, 0.12f ), default, GameMaterials.Metal );
+		// Sign band (text approximated as dark metal bars). Bar sits a full unit proud of
+		// the 5-thick band face — successive FaceY slots leave only a 0.5 gap and flicker.
+		var bandY = FaceY();
+		Box( root, "SignBand", new Vector3( w * 0.18f, bandY, h * 0.72f ), new Vector3( w * 0.42f, 5, 36 ), dark, default, GameMaterials.Metal );
+		Box( root, "SignBar", new Vector3( w * 0.18f, bandY - 3f, h * 0.72f ), new Vector3( w * 0.38f, 4, 8 ), new Color( 0.12f, 0.12f, 0.12f ), default, GameMaterials.Metal );
 
 		// Left employee door (flush).
 		Box( root, "DoorL", new Vector3( -w * 0.32f, FaceY(), baseH + 52 ), new Vector3( 48, 6, 100 ), dark, default, GameMaterials.Metal );

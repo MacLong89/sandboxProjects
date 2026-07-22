@@ -32,7 +32,7 @@ public static class AimboxGameplaySfx
 			return;
 		}
 
-		handle.Volume = Math.Clamp( volume, 0f, 4f );
+		handle.Volume = Math.Clamp( volume * AimboxClientSettings.EffectiveSfxVolume, 0f, 4f );
 
 		if ( IsLocalHuman( actor ) )
 		{
@@ -57,11 +57,39 @@ public static class AimboxGameplaySfx
 			PlayAtActor( actor, GunDeploy, 0.78f );
 	}
 
+	static string FireSoundForWeapon( AimboxWeaponDefinition weapon )
+	{
+		if ( weapon is null )
+			return "";
+
+		return weapon.Id switch
+		{
+			AimboxWeaponId.SpaghelliM4 => ShotgunFire,
+			AimboxWeaponId.M700 => ShotgunFire,
+			AimboxWeaponId.Usp => BowShoot,
+			AimboxWeaponId.Mp5 => M4Fire,
+			AimboxWeaponId.M4A1 => M4Fire,
+			AimboxWeaponId.M9Bayonet or AimboxWeaponId.Trenchknife or AimboxWeaponId.Crowbar => KnifeLight,
+			_ => ""
+		};
+	}
+
 	public static void PlayFire( IAimboxCombatActor actor, AimboxWeaponDefinition weapon, float volumeMultiplier = 1f )
 	{
 		var path = FireSoundForWeapon( weapon );
-		if ( !string.IsNullOrWhiteSpace( path ) )
-			PlayAtActor( actor, path, Math.Clamp( volumeMultiplier, 0f, 1f ) );
+		if ( string.IsNullOrWhiteSpace( path ) )
+			return;
+
+		var classScale = weapon.Id switch
+		{
+			AimboxWeaponId.Usp => 0.72f,
+			AimboxWeaponId.Mp5 => 0.88f,
+			AimboxWeaponId.M700 => 1.05f,
+			AimboxWeaponId.SpaghelliM4 => 1f,
+			_ => 1f
+		};
+
+		PlayAtActor( actor, path, Math.Clamp( volumeMultiplier * classScale, 0f, 1f ) );
 	}
 
 	public static void PlayReload( IAimboxCombatActor actor, AimboxWeaponDefinition weapon, float volumeMultiplier = 1f )
@@ -131,7 +159,7 @@ public static class AimboxGameplaySfx
 			return;
 		}
 
-		handle.Volume = volume;
+		handle.Volume = Math.Clamp( volume * AimboxClientSettings.EffectiveSfxVolume, 0f, 4f );
 
 		if ( IsLocalHuman( actor ) )
 		{
@@ -169,20 +197,6 @@ public static class AimboxGameplaySfx
 			return;
 
 		Log.Warning( $"[Aimbox SFX] Failed to play '{resourcePath}' — check Assets/sounds audio files are mounted." );
-	}
-
-	static string FireSoundForWeapon( AimboxWeaponDefinition weapon )
-	{
-		if ( weapon is null )
-			return "";
-
-		return weapon.Id switch
-		{
-			AimboxWeaponId.SpaghelliM4 => ShotgunFire,
-			AimboxWeaponId.M4A1 or AimboxWeaponId.Mp5 or AimboxWeaponId.Usp or AimboxWeaponId.M700 => M4Fire,
-			AimboxWeaponId.M9Bayonet or AimboxWeaponId.Trenchknife or AimboxWeaponId.Crowbar => KnifeLight,
-			_ => ""
-		};
 	}
 
 	static string ReloadSoundForWeapon( AimboxWeaponDefinition weapon )

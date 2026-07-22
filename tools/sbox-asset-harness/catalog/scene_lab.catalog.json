@@ -3,7 +3,9 @@
   "entries": [
     {
       "id": "road_corridor",
-      "games": ["scene_lab"],
+      "games": [
+        "scene_lab"
+      ],
       "lane": "kit",
       "kind": "road",
       "title": "Road corridor (sidewalks + embankments)",
@@ -15,12 +17,17 @@
         "piece": "SceneLab.RoadCorridorPiece",
         "targetHeight": 10
       },
-      "tags": ["street", "modular"],
+      "tags": [
+        "street",
+        "modular"
+      ],
       "notes": "Code/Pieces/RoadCorridorPiece.cs"
     },
     {
       "id": "tree_pine",
-      "games": ["scene_lab"],
+      "games": [
+        "scene_lab"
+      ],
       "lane": "kit",
       "kind": "tree",
       "title": "Kit pine tree",
@@ -32,12 +39,17 @@
         "piece": "SceneLab.TreePinePiece",
         "targetHeight": 220
       },
-      "tags": ["vegetation", "modular"],
+      "tags": [
+        "vegetation",
+        "modular"
+      ],
       "notes": "Built; place via WorkbenchScene when requested"
     },
     {
       "id": "fire_hydrant",
-      "games": ["scene_lab"],
+      "games": [
+        "scene_lab"
+      ],
       "lane": "kit",
       "kind": "prop",
       "title": "Fire hydrant",
@@ -49,8 +61,714 @@
         "piece": "SceneLab.FireHydrantPiece",
         "targetHeight": 38
       },
-      "tags": ["street", "modular"],
+      "tags": [
+        "street",
+        "modular"
+      ],
       "notes": "Built; place via WorkbenchScene when requested"
+    },
+    {
+      "id": "tripo_wolf_test",
+      "games": [
+        "scene_lab"
+      ],
+      "lane": "mesh",
+      "kind": "creature",
+      "title": "Tripo stylized wolf test",
+      "status": "ready",
+      "vmdl": "models/tripo_wolf_test/tripo_wolf_test.vmdl",
+      "vmat": "models/tripo_wolf_test/tripo_wolf_test_basecolor.vmat",
+      "tags": [
+        "creature",
+        "tripo",
+        "rigged",
+        "animated",
+        "test"
+      ],
+      "notes": "LEGACY donor prototype (not the active pipeline). Installed v27 donor rig: reported -90 facing and tear 341; bones-only facingOk is not authoritative for this package. Prefer tripo_wolf_scratch_v5_* for new work."
+    },
+    {
+      "id": "tripo_wolf_rigify_v3",
+      "games": [
+        "scene_lab"
+      ],
+      "lane": "mesh",
+      "kind": "creature",
+      "title": "Tripo wolf Rigify v3 prototype",
+      "status": "ready",
+      "vmdl": "models/tripo_wolf_rigify_v3/tripo_wolf_rigify_v3.vmdl",
+      "vmat": "models/tripo_wolf_test/tripo_wolf_test_basecolor.vmat",
+      "tags": [
+        "creature",
+        "tripo",
+        "rigify",
+        "rigged",
+        "animated",
+        "prototype"
+      ],
+      "notes": "LEGACY Rigify/retarget prototype (not the active pipeline). Mesh-fitted Rigify deform rig + 12 retargeted Wolf takes, +90 so snout/head bones agree at -Y, tear ~499. Prefer tripo_wolf_scratch_v5_* for new work."
+    },
+    {
+      "id": "tripo_wolf_scratch_v4",
+      "games": [
+        "scene_lab"
+      ],
+      "lane": "mesh",
+      "kind": "creature",
+      "title": "Tripo wolf from-scratch v4",
+      "status": "ready",
+      "vmdl": "models/tripo_wolf_scratch_v4/tripo_wolf_scratch_v4.vmdl",
+      "vmat": "models/tripo_wolf_test/tripo_wolf_test_basecolor.vmat",
+      "tags": [
+        "creature",
+        "tripo",
+        "scratch",
+        "rigged",
+        "animated",
+        "procedural"
+      ],
+      "notes": "No donor. Landmark deform rig + Jaw + procedural Attack/Death/Gallop/Idle/Walk. Real jaw bite, bilateral lunge, side-fall Death, quieter head/neck. facingOk, tear 209. Reuses Tripo wolf material."
+    },
+    {
+      "id": "tripo_wolf_scratch_v5_balanced",
+      "games": [
+        "scene_lab"
+      ],
+      "lane": "mesh",
+      "kind": "creature",
+      "title": "Tripo wolf from-scratch v5 balanced",
+      "status": "ready",
+      "vmdl": "models/tripo_wolf_scratch_v5_balanced/tripo_wolf_scratch_v5_balanced.vmdl",
+      "vmat": "models/tripo_wolf_test/tripo_wolf_test_basecolor.vmat",
+      "tags": [
+        "creature",
+        "tripo",
+        "scratch",
+        "rigged",
+        "animated",
+        "procedural",
+        "v5",
+        "balanced"
+      ],
+      "notes": "Donor-free v5 profiled procedural anims. balanced: reference-plus \u2014 preserve v4 stride, reduce torso motion 15%, head/neck 25%, vertical root bounce 30%. Jaw bite, bilateral lunge, side-fall Death, quieter head/neck. facingOk, tear 193. Material: Tripo wolf basecolor."
+    },
+    {
+      "id": "tripo_wolf_scratch_v5_grounded",
+      "games": [
+        "scene_lab"
+      ],
+      "lane": "mesh",
+      "kind": "creature",
+      "title": "Tripo wolf from-scratch v5 grounded",
+      "status": "ready",
+      "vmdl": "models/tripo_wolf_scratch_v5_grounded/tripo_wolf_scratch_v5_grounded.vmdl",
+      "vmat": "models/tripo_wolf_test/tripo_wolf_test_basecolor.vmat",
+      "tags": [
+        "creature",
+        "tripo",
+        "scratch",
+        "rigged",
+        "animated",
+        "procedural",
+        "v5",
+        "grounded"
+      ],
+      "notes": "Donor-free v5 profiled procedural anims. grounded: stable/grounded \u2014 half axial and head motion, 10% shorter limb arcs, 35% less root travel, 80% less vertical bounce. Jaw bite, bilateral lunge, side-fall Death, quieter head/neck. facingOk, tear 166. Material: Tripo wolf basecolor."
+    },
+    {
+      "id": "tripo_wolf_scratch_v5_athletic",
+      "games": [
+        "scene_lab"
+      ],
+      "lane": "mesh",
+      "kind": "creature",
+      "title": "Tripo wolf from-scratch v5 athletic",
+      "status": "ready",
+      "vmdl": "models/tripo_wolf_scratch_v5_athletic/tripo_wolf_scratch_v5_athletic.vmdl",
+      "vmat": "models/tripo_wolf_test/tripo_wolf_test_basecolor.vmat",
+      "tags": [
+        "creature",
+        "tripo",
+        "scratch",
+        "rigged",
+        "animated",
+        "procedural",
+        "v5",
+        "athletic"
+      ],
+      "notes": "Donor-free v5 profiled procedural anims. athletic: predatory \u2014 18% longer limb arcs, 15% more root drive and tail action, head/neck restrained to 70%. Jaw bite, bilateral lunge, side-fall Death, quieter head/neck. facingOk, tear 229. Material: Tripo wolf basecolor."
+    },
+    {
+      "id": "tripo_panther_scratch_v5_balanced",
+      "games": [
+        "scene_lab"
+      ],
+      "lane": "mesh",
+      "kind": "creature",
+      "title": "Panther from-scratch v5 balanced",
+      "status": "ready",
+      "vmdl": "models/tripo_panther_scratch_v5_balanced/tripo_panther_scratch_v5_balanced.vmdl",
+      "vmat": "models/tripo_panther_scratch_v5/panther_basecolor.vmat",
+      "tags": [
+        "creature",
+        "panther",
+        "tripo",
+        "scratch",
+        "rigged",
+        "animated",
+        "procedural",
+        "v5",
+        "balanced"
+      ],
+      "notes": "Donor-free geometry-only rebuild from thorns panther. Balanced reference motion; Jaw bite, bilateral lunge, side-fall Death, quieter head/neck. facingOk at 0 degrees, height 1.10, tear 179. Shared copied panther basecolor."
+    },
+    {
+      "id": "tripo_panther_scratch_v5_grounded",
+      "games": [
+        "scene_lab"
+      ],
+      "lane": "mesh",
+      "kind": "creature",
+      "title": "Panther from-scratch v5 grounded",
+      "status": "ready",
+      "vmdl": "models/tripo_panther_scratch_v5_grounded/tripo_panther_scratch_v5_grounded.vmdl",
+      "vmat": "models/tripo_panther_scratch_v5/panther_basecolor.vmat",
+      "tags": [
+        "creature",
+        "panther",
+        "tripo",
+        "scratch",
+        "rigged",
+        "animated",
+        "procedural",
+        "v5",
+        "grounded"
+      ],
+      "notes": "Donor-free geometry-only rebuild from thorns panther. Stable motion with reduced axial/head/root travel; Jaw bite, bilateral lunge, side-fall Death, quieter head/neck. facingOk at 0 degrees, height 1.10, tear 151. Shared copied panther basecolor."
+    },
+    {
+      "id": "tripo_panther_scratch_v5_athletic",
+      "games": [
+        "scene_lab"
+      ],
+      "lane": "mesh",
+      "kind": "creature",
+      "title": "Panther from-scratch v5 athletic",
+      "status": "ready",
+      "vmdl": "models/tripo_panther_scratch_v5_athletic/tripo_panther_scratch_v5_athletic.vmdl",
+      "vmat": "models/tripo_panther_scratch_v5/panther_basecolor.vmat",
+      "tags": [
+        "creature",
+        "panther",
+        "tripo",
+        "scratch",
+        "rigged",
+        "animated",
+        "procedural",
+        "v5",
+        "athletic"
+      ],
+      "notes": "Donor-free geometry-only rebuild from thorns panther. Longer limb arcs with increased root/tail drive; Jaw bite, bilateral lunge, side-fall Death, quieter head/neck. facingOk at 0 degrees, height 1.10, tear 207. Shared copied panther basecolor."
+    },
+    {
+      "id": "alpaca_scratch_v6_realistic",
+      "games": [
+        "scene_lab"
+      ],
+      "lane": "mesh",
+      "kind": "creature",
+      "title": "Alpaca realistic scratch v6",
+      "status": "ready",
+      "vmdl": "models/alpaca_scratch_v6_realistic/alpaca_scratch_v6_realistic.vmdl",
+      "vmat": "models/alpaca_scratch_v6_realistic/alpaca_scratch_v6_realistic.vmat",
+      "tags": [
+        "creature",
+        "alpaca",
+        "camelid",
+        "scratch",
+        "donor-free",
+        "rigged",
+        "animated",
+        "procedural",
+        "realistic-motion",
+        "v6"
+      ],
+      "notes": "Donor-free scratch-v6 build; source contributes geometry, UVs, and appearance only. Family=camelid; walk=lateral_couplet_walk; trot=lateral_sequence_run; gallop=transverse_gallop; attack=stomp_threat; facing=-Y; height=1.50m; tear=48; motion QA passed."
+    },
+    {
+      "id": "bull_scratch_v6_realistic",
+      "games": [
+        "scene_lab"
+      ],
+      "lane": "mesh",
+      "kind": "creature",
+      "title": "Bull realistic scratch v6",
+      "status": "ready",
+      "vmdl": "models/bull_scratch_v6_realistic/bull_scratch_v6_realistic.vmdl",
+      "vmat": "models/bull_scratch_v6_realistic/bull_scratch_v6_realistic.vmat",
+      "tags": [
+        "creature",
+        "bull",
+        "bovine",
+        "scratch",
+        "donor-free",
+        "rigged",
+        "animated",
+        "procedural",
+        "realistic-motion",
+        "v6"
+      ],
+      "notes": "Donor-free scratch-v6 build; source contributes geometry, UVs, and appearance only. Family=bovine; walk=heavy_four_beat; trot=diagonal_two_beat; gallop=heavy_transverse_gallop; attack=head_charge; facing=-Y; height=1.65m; tear=154; motion QA passed."
+    },
+    {
+      "id": "cow_scratch_v6_realistic",
+      "games": [
+        "scene_lab"
+      ],
+      "lane": "mesh",
+      "kind": "creature",
+      "title": "Cow realistic scratch v6",
+      "status": "ready",
+      "vmdl": "models/cow_scratch_v6_realistic/cow_scratch_v6_realistic.vmdl",
+      "vmat": "models/cow_scratch_v6_realistic/cow_scratch_v6_realistic.vmat",
+      "tags": [
+        "creature",
+        "cow",
+        "bovine",
+        "scratch",
+        "donor-free",
+        "rigged",
+        "animated",
+        "procedural",
+        "realistic-motion",
+        "v6"
+      ],
+      "notes": "Donor-free scratch-v6 build; source contributes geometry, UVs, and appearance only. Family=bovine; walk=heavy_four_beat; trot=diagonal_two_beat; gallop=heavy_transverse_gallop; attack=head_charge; facing=-Y; height=1.55m; tear=146; motion QA passed."
+    },
+    {
+      "id": "deer_scratch_v6_realistic",
+      "games": [
+        "scene_lab"
+      ],
+      "lane": "mesh",
+      "kind": "creature",
+      "title": "Deer realistic scratch v6",
+      "status": "ready",
+      "vmdl": "models/deer_scratch_v6_realistic/deer_scratch_v6_realistic.vmdl",
+      "vmat": "models/deer_scratch_v6_realistic/deer_scratch_v6_realistic.vmat",
+      "tags": [
+        "creature",
+        "deer",
+        "cervid_light",
+        "scratch",
+        "donor-free",
+        "rigged",
+        "animated",
+        "procedural",
+        "realistic-motion",
+        "v6"
+      ],
+      "notes": "Donor-free scratch-v6 build; source contributes geometry, UVs, and appearance only. Family=cervid_light; walk=four_beat_lateral_sequence; trot=diagonal_two_beat; gallop=elastic_bound; attack=head_charge; facing=-Y; height=1.50m; tear=281; motion QA passed."
+    },
+    {
+      "id": "donkey_scratch_v6_realistic",
+      "games": [
+        "scene_lab"
+      ],
+      "lane": "mesh",
+      "kind": "creature",
+      "title": "Donkey realistic scratch v6",
+      "status": "ready",
+      "vmdl": "models/donkey_scratch_v6_realistic/donkey_scratch_v6_realistic.vmdl",
+      "vmat": "models/donkey_scratch_v6_realistic/donkey_scratch_v6_realistic.vmat",
+      "tags": [
+        "creature",
+        "donkey",
+        "equid",
+        "scratch",
+        "donor-free",
+        "rigged",
+        "animated",
+        "procedural",
+        "realistic-motion",
+        "v6"
+      ],
+      "notes": "Donor-free scratch-v6 build; source contributes geometry, UVs, and appearance only. Family=equid; walk=four_beat_lateral_sequence; trot=diagonal_two_beat; gallop=transverse_four_beat; attack=hind_kick; facing=-Y; height=1.35m; tear=93; motion QA passed."
+    },
+    {
+      "id": "fox_scratch_v6_realistic",
+      "games": [
+        "scene_lab"
+      ],
+      "lane": "mesh",
+      "kind": "creature",
+      "title": "Fox realistic scratch v6",
+      "status": "ready",
+      "vmdl": "models/fox_scratch_v6_realistic/fox_scratch_v6_realistic.vmdl",
+      "vmat": "models/fox_scratch_v6_realistic/fox_scratch_v6_realistic.vmat",
+      "tags": [
+        "creature",
+        "fox",
+        "canid",
+        "scratch",
+        "donor-free",
+        "rigged",
+        "animated",
+        "procedural",
+        "realistic-motion",
+        "v6"
+      ],
+      "notes": "Donor-free scratch-v6 build; source contributes geometry, UVs, and appearance only. Family=canid; walk=four_beat_lateral_sequence; trot=diagonal_two_beat; gallop=rotary_double_suspension; attack=pounce_bite; facing=-Y; height=0.65m; tear=62; motion QA passed."
+    },
+    {
+      "id": "horse_scratch_v6_realistic",
+      "games": [
+        "scene_lab"
+      ],
+      "lane": "mesh",
+      "kind": "creature",
+      "title": "Horse realistic scratch v6",
+      "status": "ready",
+      "vmdl": "models/horse_scratch_v6_realistic/horse_scratch_v6_realistic.vmdl",
+      "vmat": "models/horse_scratch_v6_realistic/horse_scratch_v6_realistic.vmat",
+      "tags": [
+        "creature",
+        "horse",
+        "equid",
+        "scratch",
+        "donor-free",
+        "rigged",
+        "animated",
+        "procedural",
+        "realistic-motion",
+        "v6"
+      ],
+      "notes": "Donor-free scratch-v6 build; source contributes geometry, UVs, and appearance only. Family=equid; walk=four_beat_lateral_sequence; trot=diagonal_two_beat; gallop=transverse_four_beat; attack=hind_kick; facing=-Y; height=1.80m; tear=97; motion QA passed."
+    },
+    {
+      "id": "husky_scratch_v6_realistic",
+      "games": [
+        "scene_lab"
+      ],
+      "lane": "mesh",
+      "kind": "creature",
+      "title": "Husky realistic scratch v6",
+      "status": "ready",
+      "vmdl": "models/husky_scratch_v6_realistic/husky_scratch_v6_realistic.vmdl",
+      "vmat": "models/husky_scratch_v6_realistic/husky_scratch_v6_realistic.vmat",
+      "tags": [
+        "creature",
+        "husky",
+        "canid",
+        "scratch",
+        "donor-free",
+        "rigged",
+        "animated",
+        "procedural",
+        "realistic-motion",
+        "v6"
+      ],
+      "notes": "Donor-free scratch-v6 build; source contributes geometry, UVs, and appearance only. Family=canid; walk=four_beat_lateral_sequence; trot=diagonal_two_beat; gallop=rotary_double_suspension; attack=bite_lunge; facing=-Y; height=0.85m; tear=56; motion QA passed."
+    },
+    {
+      "id": "shiba_inu_scratch_v6_realistic",
+      "games": [
+        "scene_lab"
+      ],
+      "lane": "mesh",
+      "kind": "creature",
+      "title": "Shiba Inu realistic scratch v6",
+      "status": "ready",
+      "vmdl": "models/shiba_inu_scratch_v6_realistic/shiba_inu_scratch_v6_realistic.vmdl",
+      "vmat": "models/shiba_inu_scratch_v6_realistic/shiba_inu_scratch_v6_realistic.vmat",
+      "tags": [
+        "creature",
+        "shiba_inu",
+        "canid",
+        "scratch",
+        "donor-free",
+        "rigged",
+        "animated",
+        "procedural",
+        "realistic-motion",
+        "v6"
+      ],
+      "notes": "Donor-free scratch-v6 build; source contributes geometry, UVs, and appearance only. Family=canid; walk=four_beat_lateral_sequence; trot=diagonal_two_beat; gallop=rotary_double_suspension; attack=bite_lunge; facing=-Y; height=0.55m; tear=100; motion QA passed."
+    },
+    {
+      "id": "stag_scratch_v6_realistic",
+      "games": [
+        "scene_lab"
+      ],
+      "lane": "mesh",
+      "kind": "creature",
+      "title": "Stag realistic scratch v6",
+      "status": "ready",
+      "vmdl": "models/stag_scratch_v6_realistic/stag_scratch_v6_realistic.vmdl",
+      "vmat": "models/stag_scratch_v6_realistic/stag_scratch_v6_realistic.vmat",
+      "tags": [
+        "creature",
+        "stag",
+        "cervid_heavy",
+        "scratch",
+        "donor-free",
+        "rigged",
+        "animated",
+        "procedural",
+        "realistic-motion",
+        "v6"
+      ],
+      "notes": "Donor-free scratch-v6 build; source contributes geometry, UVs, and appearance only. Family=cervid_heavy; walk=four_beat_lateral_sequence; trot=diagonal_two_beat; gallop=rotary_double_suspension; attack=head_charge; facing=-Y; height=1.70m; tear=46; motion QA passed."
+    },
+    {
+      "id": "elk_scratch_v6_realistic",
+      "games": [
+        "scene_lab"
+      ],
+      "lane": "mesh",
+      "kind": "creature",
+      "title": "Elk realistic scratch v6",
+      "status": "ready",
+      "vmdl": "models/elk_scratch_v6_realistic/elk_scratch_v6_realistic.vmdl",
+      "vmat": "models/elk_scratch_v6_realistic/elk_scratch_v6_realistic.vmat",
+      "tags": [
+        "creature",
+        "elk",
+        "cervid_heavy",
+        "scratch",
+        "donor-free",
+        "rigged",
+        "animated",
+        "procedural",
+        "realistic-motion",
+        "v6"
+      ],
+      "notes": "Donor-free scratch-v6 build; source contributes geometry, UVs, and appearance only. Family=cervid_heavy; walk=four_beat_lateral_sequence; trot=diagonal_two_beat; gallop=fast_trot_lope; attack=head_charge; facing=-Y; height=1.90m; tear=1622; motion QA passed. High deformation score; prioritize visual review."
+    },
+    {
+      "id": "moose_scratch_v6_realistic",
+      "games": [
+        "scene_lab"
+      ],
+      "lane": "mesh",
+      "kind": "creature",
+      "title": "Moose realistic scratch v6",
+      "status": "ready",
+      "vmdl": "models/moose_scratch_v6_realistic/moose_scratch_v6_realistic.vmdl",
+      "vmat": "models/moose_scratch_v6_realistic/moose_scratch_v6_realistic.vmat",
+      "tags": [
+        "creature",
+        "moose",
+        "cervid_heavy",
+        "scratch",
+        "donor-free",
+        "rigged",
+        "animated",
+        "procedural",
+        "realistic-motion",
+        "v6"
+      ],
+      "notes": "Donor-free scratch-v6 build; source contributes geometry, UVs, and appearance only. Family=cervid_heavy; walk=four_beat_lateral_sequence; trot=diagonal_two_beat; gallop=fast_trot_lope; attack=head_charge; facing=-Y; height=2.20m; tear=813; motion QA passed. High deformation score; prioritize visual review."
+    },
+    {
+      "id": "tripo_wolf_scratch_v6_realistic",
+      "games": [
+        "scene_lab"
+      ],
+      "lane": "mesh",
+      "kind": "creature",
+      "title": "Tripo wolf realistic scratch v6",
+      "status": "ready",
+      "vmdl": "models/tripo_wolf_scratch_v6_realistic/tripo_wolf_scratch_v6_realistic.vmdl",
+      "vmat": "models/tripo_wolf_scratch_v6_realistic/tripo_wolf_scratch_v6_realistic.vmat",
+      "tags": [
+        "creature",
+        "wolf",
+        "canid",
+        "scratch",
+        "donor-free",
+        "rigged",
+        "animated",
+        "procedural",
+        "realistic-motion",
+        "v6"
+      ],
+      "notes": "Donor-free scratch-v6 build; source contributes geometry, UVs, and appearance only. Family=canid; walk=four_beat_lateral_sequence; trot=diagonal_two_beat; gallop=rotary_double_suspension; attack=bite_lunge; facing=-Y; height=1.15m; tear=130; motion QA passed."
+    },
+    {
+      "id": "wolf_scratch_v6_realistic",
+      "games": [
+        "scene_lab"
+      ],
+      "lane": "mesh",
+      "kind": "creature",
+      "title": "Bloom wolf realistic scratch v6",
+      "status": "ready",
+      "vmdl": "models/wolf_scratch_v6_realistic/wolf_scratch_v6_realistic.vmdl",
+      "vmat": "models/wolf_scratch_v6_realistic/wolf_scratch_v6_realistic.vmat",
+      "tags": [
+        "creature",
+        "bloomwolf",
+        "canid",
+        "scratch",
+        "donor-free",
+        "rigged",
+        "animated",
+        "procedural",
+        "realistic-motion",
+        "v6"
+      ],
+      "notes": "Donor-free scratch-v6 build; source contributes geometry, UVs, and appearance only. Family=canid; walk=four_beat_lateral_sequence; trot=diagonal_two_beat; gallop=rotary_double_suspension; attack=bite_lunge; facing=-Y; height=1.10m; tear=240; motion QA passed."
+    },
+    {
+      "id": "buffalo_scratch_v6_realistic",
+      "games": [
+        "scene_lab"
+      ],
+      "lane": "mesh",
+      "kind": "creature",
+      "title": "Bloom buffalo realistic scratch v6",
+      "status": "ready",
+      "vmdl": "models/buffalo_scratch_v6_realistic/buffalo_scratch_v6_realistic.vmdl",
+      "vmat": "models/buffalo_scratch_v6_realistic/buffalo_scratch_v6_realistic.vmat",
+      "tags": [
+        "creature",
+        "buffalo",
+        "bovine",
+        "scratch",
+        "donor-free",
+        "rigged",
+        "animated",
+        "procedural",
+        "realistic-motion",
+        "v6"
+      ],
+      "notes": "Donor-free scratch-v6 build; source contributes geometry, UVs, and appearance only. Family=bovine; walk=heavy_four_beat; trot=diagonal_two_beat; gallop=rotary_double_suspension; attack=head_charge; facing=-Y; height=1.75m; tear=550; motion QA passed. High deformation score; prioritize visual review."
+    },
+    {
+      "id": "ram_scratch_v6_realistic",
+      "games": [
+        "scene_lab"
+      ],
+      "lane": "mesh",
+      "kind": "creature",
+      "title": "Bloom ram realistic scratch v6",
+      "status": "ready",
+      "vmdl": "models/ram_scratch_v6_realistic/ram_scratch_v6_realistic.vmdl",
+      "vmat": "models/ram_scratch_v6_realistic/ram_scratch_v6_realistic.vmat",
+      "tags": [
+        "creature",
+        "ram",
+        "cervid_heavy",
+        "scratch",
+        "donor-free",
+        "rigged",
+        "animated",
+        "procedural",
+        "realistic-motion",
+        "v6"
+      ],
+      "notes": "Donor-free scratch-v6 build; source contributes geometry, UVs, and appearance only. Family=cervid_heavy; walk=four_beat_lateral_sequence; trot=diagonal_two_beat; gallop=rotary_double_suspension; attack=head_charge; facing=-Y; height=1.35m; tear=809; motion QA passed. High deformation score; prioritize visual review."
+    },
+    {
+      "id": "eagle_scratch_v6_realistic",
+      "games": [
+        "scene_lab"
+      ],
+      "lane": "mesh",
+      "kind": "creature",
+      "title": "Bloom eagle realistic scratch v6",
+      "status": "ready",
+      "vmdl": "models/eagle_scratch_v6_realistic/eagle_scratch_v6_realistic.vmdl",
+      "vmat": "models/eagle_scratch_v6_realistic/eagle_scratch_v6_realistic.vmat",
+      "tags": [
+        "creature",
+        "eagle",
+        "avian",
+        "scratch",
+        "donor-free",
+        "rigged",
+        "animated",
+        "procedural",
+        "realistic-motion",
+        "v6"
+      ],
+      "notes": "Donor-free scratch-v6 build; source contributes geometry, UVs, and appearance only. Family=avian; walk=cruise_flap; trot=steady_flap; gallop=power_flap; attack=talon_strike; facing=-Y; height=1.00m; tear=285; motion QA passed."
+    },
+    {
+      "id": "salmon_scratch_v6_realistic",
+      "games": [
+        "scene_lab"
+      ],
+      "lane": "mesh",
+      "kind": "creature",
+      "title": "Bloom salmon realistic scratch v6",
+      "status": "ready",
+      "vmdl": "models/salmon_scratch_v6_realistic/salmon_scratch_v6_realistic.vmdl",
+      "vmat": "models/salmon_scratch_v6_realistic/salmon_scratch_v6_realistic.vmat",
+      "tags": [
+        "creature",
+        "salmon",
+        "piscine",
+        "scratch",
+        "donor-free",
+        "rigged",
+        "animated",
+        "procedural",
+        "realistic-motion",
+        "v6"
+      ],
+      "notes": "Donor-free scratch-v6 build; source contributes geometry, UVs, and appearance only. Family=piscine; walk=slow_swim; trot=cruise_swim; gallop=dart_swim; attack=snap_bite; facing=-Y; height=0.75m; tear=285; motion QA passed."
+    },
+    {
+      "id": "alligator_scratch_v6_realistic",
+      "games": [
+        "scene_lab"
+      ],
+      "lane": "mesh",
+      "kind": "creature",
+      "title": "Bloom alligator realistic scratch v6",
+      "status": "ready",
+      "vmdl": "models/alligator_scratch_v6_realistic/alligator_scratch_v6_realistic.vmdl",
+      "vmat": "models/alligator_scratch_v6_realistic/alligator_scratch_v6_realistic.vmat",
+      "tags": [
+        "creature",
+        "alligator",
+        "reptile",
+        "scratch",
+        "donor-free",
+        "rigged",
+        "animated",
+        "procedural",
+        "realistic-motion",
+        "v6"
+      ],
+      "notes": "Donor-free scratch-v6 build; source contributes geometry, UVs, and appearance only. Family=reptile; walk=waddle; trot=fast_waddle; gallop=swim_undulate; attack=jaw_gape; facing=-Y; height=0.65m; tear=194; motion QA passed."
+    },
+    {
+      "id": "tripo_panther_scratch_v6_realistic",
+      "games": [
+        "scene_lab"
+      ],
+      "lane": "mesh",
+      "kind": "creature",
+      "title": "Panther realistic scratch v6",
+      "status": "ready",
+      "vmdl": "models/tripo_panther_scratch_v6_realistic/tripo_panther_scratch_v6_realistic.vmdl",
+      "vmat": "models/tripo_panther_scratch_v6_realistic/tripo_panther_scratch_v6_realistic.vmat",
+      "tags": [
+        "creature",
+        "panther",
+        "felid",
+        "scratch",
+        "donor-free",
+        "rigged",
+        "animated",
+        "procedural",
+        "realistic-motion",
+        "v6"
+      ],
+      "notes": "Donor-free scratch-v6 build; source contributes geometry, UVs, and appearance only. Family=felid; walk=stealth_four_beat; trot=diagonal_two_beat; gallop=rotary_double_suspension; attack=pounce_bite; facing=-Y; height=1.10m; tear=444; motion QA passed. High deformation score; prioritize visual review."
     }
   ]
 }

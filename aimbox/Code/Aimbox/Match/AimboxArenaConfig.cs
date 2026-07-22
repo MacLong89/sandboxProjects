@@ -19,13 +19,14 @@ public static class AimboxArenaConfig
 
 	public const float MatchDurationSeconds = 300f;
 	public const float AimMatchDurationSeconds = 60f;
-	public const float FreezeTimeSeconds = 3f;
 	public const float DuelRoundResetSeconds = 2f;
 	public const float DuelRoundFreezeSeconds = 2f;
 	public const int PointsPerKill = 100;
 
-	public const int FfaScoreLimit = 5000;
-	public const int TdmTeamScoreLimit = 5000;
+	/// <summary>15 kills — reachable inside a 5-minute FFA.</summary>
+	public const int FfaScoreLimit = 1500;
+	/// <summary>25 team kills — reachable inside a 5-minute TDM.</summary>
+	public const int TdmTeamScoreLimit = 2500;
 	public const int DuelKillLimit = 10;
 	public const int TdmRosterPerTeam = 8;
 

@@ -23,9 +23,11 @@ public static class DepthLayers
 	public const float DecorSitOnPad = 0.05f;
 
 	// --- CleanableSurface (local Z on the panel root) ---
+	// Base box spans -2..0, underlay +1, grime layers +3 and up: every element keeps a
+	// full unit from thin decal props (top out at panel +1.5) and vent grates (+2).
 	public const float CleanBase = -1f;
-	public const float UnderlayLayer = 0.25f;
-	public const float GrimeTop = 2f;
+	public const float UnderlayLayer = 1f;
+	public const float GrimeTop = 3f;
 	public const float GrimeStep = 1.5f;
 
 	// --- Scenery face depth (local −Y) ---

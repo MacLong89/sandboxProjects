@@ -7,12 +7,15 @@ public sealed class PlacedBuilding : Component, ISelectable
 	public BuildableDef Def => BuildableCatalog.Get( Type );
 	public int CellX { get; private set; }
 	public int CellY { get; private set; }
+	/// <summary>Facing in 90° steps (0 = +X / east-west wall run).</summary>
+	public int YawSteps { get; private set; }
 	public int PlaceOrder { get; private set; }
 	public int Level { get; private set; } = 1;
 	public float Health { get; private set; }
 	public float MaxHealth { get; private set; }
 	public bool IsDestroyed => Health <= 0f;
 	public bool IsDefense => Def.Role == BuildingRole.Defense;
+	public bool IsSupport => Def.Role == BuildingRole.Support;
 
 	/// <summary>
 	/// AUDIT FIX M1: scrap paid at place time. Barracks cost escalates with owned count;
@@ -33,7 +36,7 @@ public sealed class PlacedBuilding : Component, ISelectable
 
 	float _wallMountZ;
 
-	public void Setup( BuildableId type, int cellX, int cellY, int level, float health, int placeOrder = 0, double paidPlaceCost = 0 )
+	public void Setup( BuildableId type, int cellX, int cellY, int level, float health, int placeOrder = 0, double paidPlaceCost = 0, int yawSteps = 0 )
 	{
 		Type = type;
 		CellX = cellX;
@@ -41,21 +44,38 @@ public sealed class PlacedBuilding : Component, ISelectable
 		PlaceOrder = placeOrder;
 		PaidPlaceCost = paidPlaceCost;
 		Level = Math.Clamp( level, 1, Def.MaxLevel );
+		YawSteps = ((yawSteps % 4) + 4) % 4;
 
 		var pos = TileOccupancy.WallMountWorldPosition( cellX, cellY );
 		_wallMountZ = TileOccupancy.WallMountHeight( cellX, cellY );
 		WorldPosition = pos;
+		ApplyYaw();
 
 		BuildVisual();
 
 		SetMaxHealth( Def.MaxHp( Level ), health );
 	}
 
-	public void Relocate( int cellX, int cellY )
+	public void Relocate( int cellX, int cellY, int? yawSteps = null )
 	{
 		CellX = cellX;
 		CellY = cellY;
+		if ( yawSteps.HasValue )
+			YawSteps = ((yawSteps.Value % 4) + 4) % 4;
 		RefreshMountHeight( force: true );
+		ApplyYaw();
+	}
+
+	public void SetYawSteps( int yawSteps )
+	{
+		YawSteps = ((yawSteps % 4) + 4) % 4;
+		ApplyYaw();
+	}
+
+	void ApplyYaw()
+	{
+		if ( GameObject.IsValid() )
+			WorldRotation = Rotation.FromYaw( YawSteps * 90f );
 	}
 
 	/// <summary>Sit on the wall when the cell has an intact perimeter segment; drop if the wall falls.</summary>
@@ -70,11 +90,12 @@ public sealed class PlacedBuilding : Component, ISelectable
 
 		_wallMountZ = mount;
 		WorldPosition = target;
+		ApplyYaw();
 	}
 
 	protected override void OnUpdate()
 	{
-		if ( IsDefense && !IsDestroyed )
+		if ( (IsDefense || IsSupport) && !IsDestroyed )
 			RefreshMountHeight();
 	}
 
@@ -94,6 +115,7 @@ public sealed class PlacedBuilding : Component, ISelectable
 	public void Damage( float amount )
 	{
 		if ( IsDestroyed ) return;
+		amount *= DefenseEffects.DamageTakenMultForBuilding( this );
 		Health = MathF.Max( 0f, Health - amount );
 
 		if ( HasNightOneGunTowerProtection() && Health <= 0f )
@@ -109,12 +131,14 @@ public sealed class PlacedBuilding : Component, ISelectable
 		RefreshVisual();
 	}
 
-	/// <summary>First-night safety net — starter gun towers cannot be destroyed on night 1.</summary>
+	/// <summary>First-night safety net — Survival starter gun towers cannot be destroyed on night 1.</summary>
 	private bool HasNightOneGunTowerProtection()
 	{
 		if ( Type != BuildableId.GunTower ) return false;
 		var core = GameCore.Instance;
-		return core?.Phase == GamePhase.Night && core.Save.CurrentNight == 1;
+		return core?.IsSurvival == true
+			&& core.Phase == GamePhase.Night
+			&& core.Save.CurrentNight == 1;
 	}
 
 	public void RepairToFull()
@@ -150,58 +174,200 @@ public sealed class PlacedBuilding : Component, ISelectable
 		Level++;
 		SetMaxHealth( Def.MaxHp( Level ), MaxHealth );
 		Health = MaxHealth;
+		RebuildVisual();
 		return true;
 	}
 
-	public double MissingRepairCost() => Def.RepairCost( MaxHealth - Health );
+	public double MissingRepairCost() => RepairCosts.EffectiveScrapCost( Def.RepairCost( MaxHealth - Health ) );
 
 	public void TickCombat( CombatSystem combat, UpgradeSystem upgrades )
 	{
-		if ( !IsDefense || IsDestroyed ) return;
+		if ( IsDestroyed ) return;
+		if ( !IsDefense && !IsSupport ) return;
 
+		switch ( Type )
+		{
+			case BuildableId.Spotlight:
+			case BuildableId.AmmoDepot:
+			case BuildableId.Hardpoint:
+			case BuildableId.RadioMast:
+				return;
+			case BuildableId.Minefield:
+				TickMines( combat, upgrades );
+				return;
+			case BuildableId.OilSlick:
+				TickOilSlick( combat, upgrades );
+				return;
+			case BuildableId.Artillery:
+				TickArtillery( combat, upgrades );
+				return;
+		}
+
+		if ( !IsDefense ) return;
 		if ( !TryTrackTarget( combat, upgrades, out var muzzle, out var fireDir ) )
 			return;
 
 		_fireTimer -= Time.Delta;
 		if ( _fireTimer > 0f ) return;
 
-		var dmg = Def.Damage( Level ) + upgrades.TurretDamageBonus;
+		var dmg = ScaledDamage( upgrades );
+		var isCannon = Type == BuildableId.CannonTower;
+		combat.FireBullet(
+			muzzle,
+			fireDir,
+			dmg,
+			Sfx.Turret,
+			isCannon ? new Color( 1f, 0.48f, 0.18f ) : null,
+			splashRadius: isCannon ? 85f * GameConstants.RangeScale : 0f,
+			splashDamageMult: isCannon ? 0.45f : 0f );
+		_fireTimer = Def.FireInterval * DefenseEffects.FireIntervalMultForBuilding( this );
+	}
+
+	float ScaledDamage( UpgradeSystem upgrades )
+	{
+		var dmg = Def.Damage( Level ) + (upgrades?.TurretDamageBonus ?? 0f);
 		var core = GameCore.Instance;
 		if ( core?.IsCure == true )
 			dmg *= TeamBonuses.TurretDamageMult( core );
-		combat.FireBullet( muzzle, fireDir, dmg, Sfx.Turret );
-		_fireTimer = Def.FireInterval;
+		return dmg;
 	}
 
-	private bool TryTrackTarget( CombatSystem combat, UpgradeSystem upgrades, out Vector3 muzzle, out Vector3 fireDir )
+	void TickMines( CombatSystem combat, UpgradeSystem upgrades )
+	{
+		_fireTimer -= Time.Delta;
+		if ( _fireTimer > 0f ) return;
+
+		var trigger = DefenseEffects.EffectiveTowerRange( this, upgrades );
+		if ( trigger <= 1f ) return;
+
+		var origin = WorldPosition.WithZ( 0f );
+		var armed = false;
+		foreach ( var z in combat.Zombies )
+		{
+			if ( z.Dead ) continue;
+			if ( (z.Position.WithZ( 0f ) - origin).Length <= trigger )
+			{
+				armed = true;
+				break;
+			}
+		}
+
+		if ( !armed ) return;
+
+		var splash = MathF.Max( trigger * 1.65f, 140f * GameConstants.RangeScale );
+		combat.SplashAt( origin, ScaledDamage( upgrades ), splash, Sfx.Turret );
+		DestructionFx.Burst( origin, 0.55f );
+		_fireTimer = Def.FireInterval * DefenseEffects.FireIntervalMultForBuilding( this );
+	}
+
+	void TickOilSlick( CombatSystem combat, UpgradeSystem upgrades )
+	{
+		_fireTimer -= Time.Delta;
+		if ( _fireTimer > 0f ) return;
+		_fireTimer = Def.FireInterval;
+
+		var radius = DefenseEffects.EffectiveTowerRange( this, upgrades );
+		if ( radius <= 1f ) return;
+
+		var origin = WorldPosition.WithZ( 0f );
+		foreach ( var z in combat.Zombies )
+		{
+			if ( z.Dead ) continue;
+			if ( (z.Position.WithZ( 0f ) - origin).Length > radius ) continue;
+			z.ApplySlow( DefenseEffects.OilSlowMult, DefenseEffects.OilSlowLinger );
+		}
+	}
+
+	void TickArtillery( CombatSystem combat, UpgradeSystem upgrades )
+	{
+		if ( !TryTrackTarget( combat, upgrades, out var muzzle, out var fireDir, out var aimFeet ) )
+			return;
+
+		_fireTimer -= Time.Delta;
+		if ( _fireTimer > 0f ) return;
+
+		var dmg = ScaledDamage( upgrades );
+		var splash = 220f * GameConstants.RangeScale;
+		combat.FireBullet(
+			muzzle,
+			fireDir,
+			dmg * 0.2f,
+			Sfx.Turret,
+			new Color( 1f, 0.55f, 0.2f ),
+			splashRadius: 0f );
+		combat.SplashAt( aimFeet, dmg, splash );
+		DestructionFx.Burst( aimFeet, 1.35f );
+		_fireTimer = Def.FireInterval * DefenseEffects.FireIntervalMultForBuilding( this );
+	}
+
+	private bool TryTrackTarget( CombatSystem combat, UpgradeSystem upgrades, out Vector3 muzzle, out Vector3 fireDir ) =>
+		TryTrackTarget( combat, upgrades, out muzzle, out fireDir, out _ );
+
+	private bool TryTrackTarget( CombatSystem combat, UpgradeSystem upgrades, out Vector3 muzzle, out Vector3 fireDir, out Vector3 aimFeet )
 	{
 		muzzle = default;
 		fireDir = default;
+		aimFeet = default;
 
-		var range = Def.Range( Level ) + upgrades.TurretRangeBonus;
-		var pivot = _headRoot.IsValid() ? _headRoot.WorldPosition : WorldPosition + Vector3.Up * (Def.VisualSize.z * 0.55f);
-		var target = combat.NearestEngageableZombie( WorldPosition, range, pivot );
-		if ( target is null ) return false;
-		var toTarget = (target.Position - pivot).WithZ( 0f );
-		if ( toTarget.Length < 1f ) return false;
+		var range = DefenseEffects.EffectiveTowerRange( this, upgrades );
+		var pivot = _headRoot.IsValid()
+			? _headRoot.WorldPosition
+			: WorldPosition + Vector3.Up * (Def.VisualSize.z * 0.55f);
 
-		var desired = Rotation.LookAt( toTarget.Normal );
-		_aim = desired;
-
-		if ( _headRoot.IsValid() )
+		// No building LOS gate — after the world scale-up, cell occlusion made towers
+		// wait until zombies were inside the short-range margin (~1 cell). Towers shoot
+		// over walls/scaffolding; solid blockers are a poor fit for this loop.
+		var target = combat.NearestZombie( WorldPosition, range );
+		if ( target is not null )
 		{
-			_headRoot.LocalRotation = Rotation.Slerp( _headRoot.LocalRotation, desired, MathF.Min( 1f, Time.Delta * 14f ) );
-			fireDir = _headRoot.WorldRotation.Forward;
-			muzzle = _headRoot.WorldPosition + _headRoot.WorldRotation * _muzzleLocal;
+			aimFeet = target.Position;
 		}
 		else
 		{
-			fireDir = desired.Forward;
-			muzzle = pivot + fireDir * _muzzleLocal.x + Vector3.Up * _muzzleLocal.z;
+			var hostile = HostileForceSystem.Instance?.Nearest( WorldPosition, range );
+			if ( hostile is null ) return false;
+			aimFeet = hostile.WorldPos;
 		}
 
-		if ( !BuildingCollision.HasLineOfFire( muzzle, target.Position ) )
-			return false;
+		var aimAt = aimFeet + Vector3.Up * 40f;
+		var toTarget = aimAt - pivot;
+		if ( toTarget.Length < 1f ) return false;
+
+		var flat = toTarget.WithZ( 0f );
+		if ( flat.Length < 0.01f )
+			flat = _aim.Forward.WithZ( 0f );
+		if ( flat.Length < 0.01f )
+			flat = Vector3.Forward;
+		flat = flat.Normal;
+
+		var desiredYaw = Rotation.LookAt( flat );
+		_aim = desiredYaw;
+
+		// World-space aim — building root may be rotated from placement yaw (R).
+		if ( _headRoot.IsValid() )
+			_headRoot.WorldRotation = Rotation.Slerp( _headRoot.WorldRotation, desiredYaw, MathF.Min( 1f, Time.Delta * 14f ) );
+
+		// All defenses share a hard floor/ceiling on muzzle reach so shots always clear the
+		// 1×1 cell rim — gun, cannon, and long-range alike. The old 0.3× CellSize ceiling
+		// spawned rounds inside the tower volume and read as blocked vision.
+		var cell = GameConstants.CellSize;
+		var muzzleReach = Math.Clamp(
+			MathF.Abs( _muzzleLocal.x ),
+			BuildingVisual.DefenseMuzzleReach( cell ) * 0.9f,
+			cell * 0.62f );
+		var muzzleLift = Math.Clamp(
+			MathF.Abs( _muzzleLocal.z ),
+			BuildingVisual.DefenseMuzzleLift( cell ) * 0.5f,
+			GameConstants.U( 28f ) );
+
+		// Prefer the commanded aim direction (flat) over head.Forward — LookAt forward axis
+		// can disagree with the +X barrel layout during slerp frames.
+		muzzle = pivot + flat * muzzleReach + Vector3.Up * muzzleLift;
+		fireDir = (aimAt - muzzle);
+		if ( fireDir.Length < 1f )
+			fireDir = flat;
+		else
+			fireDir = fireDir.Normal;
 
 		return true;
 	}
@@ -214,7 +380,8 @@ public sealed class PlacedBuilding : Component, ISelectable
 		Level = Level,
 		Health = Health,
 		PlaceOrder = PlaceOrder,
-		PaidPlaceCost = PaidPlaceCost
+		PaidPlaceCost = PaidPlaceCost,
+		YawSteps = YawSteps
 	};
 
 	public double SellRefund()
@@ -230,11 +397,22 @@ public sealed class PlacedBuilding : Component, ISelectable
 	// --- ISelectable ---
 	public string Name => Def.Name;
 	public string Icon => Def.Icon;
-	public string Subtitle => Def.Role switch
+	public string Subtitle => Type switch
 	{
-		BuildingRole.Defense => "Defense tower",
-		BuildingRole.Wall => "Barricade",
-		_ => "Support building"
+		BuildableId.Spotlight => "Plot range buff",
+		BuildableId.Minefield => "Proximity mines",
+		BuildableId.OilSlick => "Slow field",
+		BuildableId.Artillery => "Heavy splash",
+		BuildableId.AmmoDepot => "Plot fire-rate buff",
+		BuildableId.Hardpoint => "Plot armor buff",
+		BuildableId.RadioMast => "Recruit coordination",
+		_ => Def.Role switch
+		{
+			BuildingRole.Defense => "Defense tower",
+			BuildingRole.Support => "Support pad",
+			BuildingRole.Wall => "Barricade",
+			_ => "Support building"
+		}
 	};
 	public bool HasHealth => true;
 	public Vector3 WorldPos => WorldPosition;
@@ -249,14 +427,30 @@ public sealed class PlacedBuilding : Component, ISelectable
 		{
 			var list = new List<StatLine> { new( "Level", $"{Level} / {Def.MaxLevel}" ) };
 			var up = GameCore.Instance?.Upgrades;
-			if ( Def.Role == BuildingRole.Defense )
+			if ( Def.Role == BuildingRole.Support )
+			{
+				foreach ( var line in BuildableDef.SupportPlacementStats( Type, up ) )
+					list.Add( line );
+				if ( Type == BuildableId.Spotlight )
+					list.Add( new StatLine( "Active", DefenseEffects.RangeMultForBuilding( this ) > 1.01f ? "Lighting plot" : "Ready" ) );
+				else if ( Type == BuildableId.OilSlick )
+					list.Add( new StatLine( "Range", $"{DefenseEffects.EffectiveTowerRange( this, up ):0}" ) );
+			}
+			else if ( Def.Role == BuildingRole.Defense )
 			{
 				var dmg = Def.Damage( Level ) + (up?.TurretDamageBonus ?? 0);
-				var dps = Def.FireInterval > 0 ? dmg / Def.FireInterval : 0f;
+				var interval = Def.FireInterval * DefenseEffects.FireIntervalMultForBuilding( this );
+				var dps = interval > 0 ? dmg / interval : 0f;
 				list.Add( new StatLine( "Damage", $"{dmg:0}" ) );
+				if ( Type is BuildableId.Minefield or BuildableId.Artillery or BuildableId.CannonTower )
+					list.Add( new StatLine( "Splash", "Yes" ) );
 				list.Add( new StatLine( "DPS", $"{dps:0}" ) );
-				list.Add( new StatLine( "Range", $"{Def.Range( Level ) + (up?.TurretRangeBonus ?? 0):0}" ) );
-				list.Add( new StatLine( "Fire Rate", $"{(Def.FireInterval > 0 ? 1f / Def.FireInterval : 0):0.0}/s" ) );
+				list.Add( new StatLine( "Range", $"{DefenseEffects.EffectiveTowerRange( this, up ):0}" ) );
+				if ( Def.FireInterval > 0f )
+					list.Add( new StatLine( Type == BuildableId.Minefield ? "Rearm" : "Fire Rate",
+						Type == BuildableId.Minefield
+							? $"{interval:0.0}s"
+							: $"{1f / interval:0.0}/s" ) );
 			}
 			else if ( Type == BuildableId.Lab )
 			{
@@ -364,152 +558,29 @@ public sealed class PlacedBuilding : Component, ISelectable
 
 	// --- Visuals ---
 
-	/// <summary>Orient placeable wall pieces like perimeter segments (long along the ring, thin through it).</summary>
-	Vector3 WallPieceFootprint( float cell, float wallH )
+	void RebuildVisual()
 	{
-		var side = WallApproach.FromWorldPosition( WorldPosition, Vector3.Zero );
-		return side is WallApproachSide.North or WallApproachSide.South
-			? new Vector3( cell, cell * 0.55f, wallH )
-			: new Vector3( cell * 0.55f, cell, wallH );
+		if ( !GameObject.IsValid() ) return;
+
+		foreach ( var child in GameObject.Children.ToArray() )
+			child?.Destroy();
+
+		BuildVisual();
+		ApplyYaw();
+		RefreshVisual();
 	}
-
-	private ModelRenderer Part( Model model, Material mat, Vector3 localPos, Vector3 size, Color textured, Color fallback, GameObject parent = null, bool track = true )
-	{
-		var useTexture = mat is not null && mat.IsValid() && mat != MeshPrimitives.Mat;
-		var tint = useTexture ? textured : fallback;
-
-		var go = new GameObject( parent ?? GameObject, true, "Part" );
-		go.LocalPosition = localPos;
-		go.LocalScale = MeshPrimitives.ScaleFor( model, size );
-
-		var mr = go.Components.Create<ModelRenderer>();
-		mr.Model = model;
-		mr.MaterialOverride = mat;
-		mr.Tint = tint;
-
-		if ( track )
-			_parts.Add( (mr, tint) );
-
-		return mr;
-	}
-
-	private void EnsureHeadRoot( float pivotZ )
-	{
-		_headRoot = new GameObject( GameObject, true, "TurretHead" );
-		_headRoot.LocalPosition = new Vector3( 0f, 0f, pivotZ );
-	}
-
-	private void HeadPart( Model model, Material mat, Vector3 worldLocalPos, float pivotZ, Vector3 size, Color textured, Color fallback )
-	{
-		var local = new Vector3( worldLocalPos.x, worldLocalPos.y, worldLocalPos.z - pivotZ );
-		Part( model, mat, local, size, textured, fallback, _headRoot );
-	}
-
-	private static readonly Color StoneFallback = new( 0.62f, 0.62f, 0.64f );
-	private static readonly Color WoodFallback = new( 0.5f, 0.36f, 0.22f );
-	private static readonly Color RoofFallback = new( 0.78f, 0.28f, 0.16f );
 
 	private void BuildVisual()
 	{
-		var box = MeshPrimitives.Box;
-		var cyl = MeshPrimitives.Cylinder;
-		var pyr = MeshPrimitives.Pyramid;
-		var stone = StylizedMaterials.Stone;
-		var wood = StylizedMaterials.Wood;
-		var roof = StylizedMaterials.Roof;
+		_parts.Clear();
+		_headRoot = null;
+		_rubble = null;
 
-		var white = Color.White;
-		// Every placeable is 1×1 — primary XY footprint always fills the cell.
-		var c = GameConstants.CellSize;
-
-		switch ( Type )
-		{
-			case BuildableId.GunTower:
-				Part( cyl, stone, new Vector3( 0, 0, c * 0.17f ), new Vector3( c, c, c * 0.33f ), white, StoneFallback );
-				Part( cyl, stone, new Vector3( 0, 0, c * 0.67f ), new Vector3( c * 0.79f, c * 0.79f, c * 0.67f ), new Color( 0.82f, 0.88f, 1f ), new Color( 0.5f, 0.58f, 0.72f ) );
-				EnsureHeadRoot( c * 0.92f );
-				HeadPart( box, stone, new Vector3( 0, 0, c * 1.03f ), c * 0.92f, new Vector3( c * 0.92f, c * 0.92f, c * 0.13f ), white, StoneFallback );
-				HeadPart( box, wood, new Vector3( c * 0.33f, 0, c ), c * 0.92f, new Vector3( c * 0.5f, c * 0.17f, c * 0.17f ), new Color( 0.35f, 0.37f, 0.4f ), new Color( 0.3f, 0.3f, 0.32f ) );
-				_muzzleLocal = new Vector3( c * 0.58f, 0f, c * 0.08f );
-				break;
-
-			case BuildableId.CannonTower:
-				Part( cyl, stone, new Vector3( 0, 0, c * 0.18f ), new Vector3( c, c, c * 0.37f ), white, StoneFallback );
-				Part( box, wood, new Vector3( 0, 0, c * 0.52f ), new Vector3( c * 0.57f, c * 0.57f, c * 0.3f ), white, WoodFallback );
-				EnsureHeadRoot( c * 0.52f );
-				HeadPart( box, stone, new Vector3( c * 0.23f, 0, c * 0.63f ), c * 0.52f, new Vector3( c * 0.73f, c * 0.3f, c * 0.3f ), new Color( 0.3f, 0.32f, 0.35f ), new Color( 0.28f, 0.3f, 0.33f ) );
-				_muzzleLocal = new Vector3( c * 0.6f, 0f, c * 0.12f );
-				break;
-
-			case BuildableId.LongRangeTower:
-				Part( cyl, stone, new Vector3( 0, 0, c * 0.2f ), new Vector3( c, c, c * 0.4f ), white, StoneFallback );
-				EnsureHeadRoot( c * 0.4f );
-				HeadPart( cyl, stone, new Vector3( 0, 0, c * 0.77f ), c * 0.4f, new Vector3( c * 0.7f, c * 0.7f, c * 0.73f ), new Color( 0.85f, 1f, 0.8f ), new Color( 0.5f, 0.7f, 0.45f ) );
-				HeadPart( box, wood, new Vector3( 0, 0, c * 1.2f ), c * 0.4f, new Vector3( c, c, c * 0.13f ), white, WoodFallback );
-				HeadPart( pyr, roof, new Vector3( 0, 0, c * 1.43f ), c * 0.4f, new Vector3( c * 1.08f, c * 1.08f, c * 0.33f ), white, RoofFallback );
-				HeadPart( box, wood, new Vector3( c * 0.27f, 0, c * 1.3f ), c * 0.4f, new Vector3( c * 0.47f, c * 0.13f, c * 0.13f ), new Color( 0.45f, 0.38f, 0.28f ), new Color( 0.38f, 0.32f, 0.24f ) );
-				_muzzleLocal = new Vector3( c * 0.5f, 0f, c * 1.3f );
-				break;
-
-			case BuildableId.WallPiece:
-			{
-				var wallH = GameConstants.WallHeight;
-				var frame = new GameObject( GameObject, true, "WallFrame" );
-				frame.LocalPosition = new Vector3( 0f, 0f, wallH * 0.5f );
-				var footprint = WallPieceFootprint( c, wallH );
-				WallScaffoldVisual.Build(
-					frame,
-					footprint,
-					( mr, tint ) => _parts.Add( (mr, tint) ),
-					WorldPosition );
-				break;
-			}
-
-			case BuildableId.Barracks:
-				Part( box, wood, new Vector3( 0, 0, c * 0.33f ), new Vector3( c, c, c * 0.67f ), white, WoodFallback );
-				Part( pyr, roof, new Vector3( 0, 0, c * 0.88f ), new Vector3( c * 1.12f, c * 1.12f, c * 0.43f ), white, RoofFallback );
-				Part( box, stone, new Vector3( c * 0.5f, 0, c * 0.23f ), new Vector3( c * 0.07f, c * 0.43f, c * 0.47f ), new Color( 0.5f, 0.4f, 0.3f ), new Color( 0.45f, 0.35f, 0.25f ) );
-				break;
-
-			case BuildableId.Lab:
-				Part( box, stone, new Vector3( 0, 0, c * 0.4f ), new Vector3( c, c, c * 0.8f ), white, new Color( 0.65f, 0.72f, 0.82f ) );
-				Part( box, stone, new Vector3( 0, 0, c * 0.97f ), new Vector3( c * 0.33f, c * 0.33f, c * 0.6f ), white, new Color( 0.45f, 0.85f, 0.95f ) );
-				break;
-
-			case BuildableId.Farm:
-				Part( box, wood, new Vector3( 0, 0, c * 0.27f ), new Vector3( c, c, c * 0.53f ), white, new Color( 0.55f, 0.42f, 0.28f ) );
-				Part( pyr, MeshPrimitives.Mat, new Vector3( -c * 0.3f, c * 0.2f, c * 0.1f ), new Vector3( c * 0.47f, c * 0.47f, c * 0.27f ), white, new Color( 0.45f, 0.82f, 0.38f ) );
-				Part( pyr, MeshPrimitives.Mat, new Vector3( c * 0.27f, -c * 0.23f, c * 0.1f ), new Vector3( c * 0.4f, c * 0.4f, c * 0.23f ), white, new Color( 0.42f, 0.78f, 0.35f ) );
-				break;
-
-			case BuildableId.Factory:
-				Part( box, stone, new Vector3( 0, 0, c * 0.37f ), new Vector3( c, c, c * 0.73f ), white, new Color( 0.62f, 0.62f, 0.66f ) );
-				Part( cyl, stone, new Vector3( c * 0.4f, 0, c * 0.87f ), new Vector3( c * 0.27f, c * 0.27f, c * 0.47f ), white, new Color( 0.45f, 0.45f, 0.48f ) );
-				break;
-
-			case BuildableId.Library:
-				Part( box, wood, new Vector3( 0, 0, c * 0.4f ), new Vector3( c, c, c * 0.8f ), white, new Color( 0.55f, 0.72f, 0.95f ) );
-				Part( pyr, roof, new Vector3( 0, 0, c * 0.93f ), new Vector3( c * 1.08f, c * 1.08f, c * 0.37f ), white, RoofFallback );
-				break;
-
-			case BuildableId.School:
-				Part( box, wood, new Vector3( 0, 0, c * 0.43f ), new Vector3( c, c, c * 0.87f ), white, new Color( 0.62f, 0.78f, 0.55f ) );
-				Part( pyr, roof, new Vector3( 0, 0, c ), new Vector3( c * 1.13f, c * 1.13f, c * 0.4f ), white, RoofFallback );
-				break;
-
-			case BuildableId.Hospital:
-				Part( box, stone, new Vector3( 0, 0, c * 0.43f ), new Vector3( c, c, c * 0.87f ), white, new Color( 0.92f, 0.92f, 0.95f ) );
-				Part( box, stone, new Vector3( 0, 0, c * 0.97f ), new Vector3( c * 0.3f, c * 0.3f, c * 0.53f ), white, new Color( 0.75f, 0.85f, 0.95f ) );
-				break;
-
-			case BuildableId.Shop:
-				Part( box, wood, new Vector3( 0, 0, c * 0.33f ), new Vector3( c, c, c * 0.67f ), white, new Color( 0.85f, 0.62f, 0.32f ) );
-				Part( pyr, roof, new Vector3( 0, 0, c * 0.8f ), new Vector3( c * 1.08f, c * 1.08f, c * 0.3f ), white, RoofFallback );
-				break;
-		}
-
-		_rubble = Part( box, stone, new Vector3( 0, 0, 8 ), new Vector3( c, c, 16 ), new Color( 0.32f, 0.28f, 0.24f ), new Color( 0.25f, 0.2f, 0.18f ), track: false );
-		_rubble.GameObject.Enabled = false;
+		var built = BuildingVisual.Build( GameObject, Type, WorldPosition, includeRubble: true, level: Level );
+		_parts.AddRange( built.Parts );
+		_headRoot = built.HeadRoot;
+		_muzzleLocal = built.MuzzleLocal;
+		_rubble = built.Rubble;
 	}
 
 	private void RefreshVisual()

@@ -39,6 +39,23 @@ public static class WorldSpriteCatalog
 		return "building";
 	}
 
+	/// <summary>Hide species with missing critter art from market and wild spawn.</summary>
+	public static bool HasReadableCritterArt( AnimalDefinition def )
+	{
+		if ( def is null ) return false;
+		var key = CritterFor( Defs.ResourceStem( def.ResourceName ) );
+		return PixelArt.HasCritterArt( key );
+	}
+
+	/// <summary>Hide decoration placeables that still render as the generic building placeholder.</summary>
+	public static bool IsBuildMenuReady( PlaceableDefinition def )
+	{
+		if ( def is null ) return false;
+		if ( def.IsHabitat || def.IsPathTile || def.IsEntrance ) return true;
+		if ( def.ProvidesRestaurant || def.ProvidesRestroom || def.ProvidesShop ) return true;
+		return PropFor( def ) != "building";
+	}
+
 	public static bool UsesFootprintDrawDimensions( PlaceableDefinition def, string prop )
 	{
 		if ( def is null || def.IsPathTile ) return false;

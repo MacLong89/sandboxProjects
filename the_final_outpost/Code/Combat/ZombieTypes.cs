@@ -123,7 +123,15 @@ public static class ZombieCatalog
 		}
 	};
 
-	public static ZombieTypeDef Get( ZombieKind kind ) => All.First( t => t.Kind == kind );
+	public static ZombieTypeDef Get( ZombieKind kind )
+	{
+		var def = All.FirstOrDefault( t => t.Kind == kind );
+		if ( def is not null )
+			return def;
+
+		Log.Warning( $"[FinalOutpost] Unknown zombie kind {kind} — falling back to {All[0].Kind}." );
+		return All[0];
+	}
 
 	public static ZombieTypeDef PickForNight( int night )
 	{

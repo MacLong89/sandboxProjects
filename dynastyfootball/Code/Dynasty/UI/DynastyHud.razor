@@ -1417,6 +1417,11 @@
 		<FourthDownDecisionModal OnChoose="@OnFourthDownChoice" />
 	}
 
+	@if ( DynastyUi.IsOpen( UiWindowType.TutorialTip ) )
+	{
+		<TutorialTipModal />
+	}
+
 	@if ( _showTeamProfile && _teamProfileModal != null )
 	{
 		var teamProfile = _teamProfileModal;
@@ -1865,6 +1870,7 @@
 		hash.Add( DynastyUi.IsOpen( UiWindowType.TeamExtendDialog ) );
 		hash.Add( DynastyUi.IsOpen( UiWindowType.TeamTradeDialog ) );
 		hash.Add( DynastyUi.IsOpen( UiWindowType.DraftCeremony ) );
+		hash.Add( DynastyUi.IsOpen( UiWindowType.TutorialTip ) );
 		hash.Add( _showTeamProfile );
 		hash.Add( _teamProfileModal?.Abbreviation ?? "" );
 		hash.Add( _todos.Items.Count );
@@ -2060,6 +2066,8 @@
 				DynastyUi.Request( UiRequest.Open( UiWindowType.GameViewer, _provider.GetGameViewer( viewer.GameId ) ) );
 		}
 
+		DynastyTutorialTipsController.Tick( state, _tab );
+
 	}
 
 
@@ -2075,6 +2083,9 @@
 		}
 
 		_tab = tab;
+
+		if ( tab == "inbox" )
+			DynastyTutorialTipsController.NotifyInboxOpened();
 
 		RefreshPlayerProfile();
 
@@ -2638,6 +2649,8 @@
 
 	void HandleTodo( ActionTodoItem todo )
 	{
+		DynastyTutorialTipsController.NotifyTodoOrNextAction();
+
 		switch ( todo.Action )
 		{
 			case TodoActionType.Navigate:
@@ -2734,7 +2747,11 @@
 
 	}
 
-	void OnNextActionClick() => NavigateSuggestedAction();
+	void OnNextActionClick()
+	{
+		DynastyTutorialTipsController.NotifyTodoOrNextAction();
+		NavigateSuggestedAction();
+	}
 
 	void NavigateSuggestedAction()
 
@@ -2821,6 +2838,7 @@
 			Headline = summary.Headline,
 			Lines = summary.Lines
 		} ) );
+		DynastyTutorialTipsController.NotifyWeekFlowAcknowledged();
 		StateHasChanged();
 	}
 
@@ -2972,8 +2990,10 @@
 	{
 
 		if ( result.Success )
-
+		{
 			SetStatus( successMessage );
+			DynastyTutorialTipsController.NotifyWeekAdvanced();
+		}
 
 		else
 

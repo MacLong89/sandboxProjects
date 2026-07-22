@@ -14,6 +14,7 @@
 
 @using Dynasty.Bootstrap
 
+@using Dynasty.Core
 @using Dynasty.Core.Enums
 
 @using Dynasty.Persistence
@@ -425,6 +426,9 @@
 
 		if ( Input.EscapePressed )
 			DynastyUiInput.HandleEscape();
+
+		if ( Input.Keyboard.Pressed( "h" ) || Input.Keyboard.Pressed( "H" ) )
+			DynastyTutorialTipsController.ToggleHidden();
 
 
 

@@ -10,17 +10,12 @@ public static class PixelArt
 	public const float TileCoverage = 1.1f;
 	/// <summary>Extra depth-sort lift so opaque grass never clips supplied prop feet.</summary>
 	public const float SuppliedPropSortClearance = 6f;
-	public const int WalkFrameCount = 4;
-	public const float WalkFrameRate = 8f;
-
 	public const string IdleAnimationName = SpriteWalkAnimator.IdleAnimation;
 	public const string WalkAnimationName = SpriteWalkAnimator.WalkAnimation;
 
 	private static readonly Dictionary<string, Texture> _cache = new();
 	private static readonly Dictionary<string, Sprite> _spriteCache = new();
 	private static readonly HashSet<string> _missing = new( StringComparer.OrdinalIgnoreCase );
-	private static readonly Dictionary<string, Texture> _playerIdle = new();
-	private static readonly Dictionary<string, Texture> _playerWalk = new();
 	private static readonly HashSet<string> _loggedLoads = new();
 	private static bool _loggedTileManifest;
 	private static bool _loggedSpriteManifest;
@@ -30,11 +25,10 @@ public static class PixelArt
 		_cache.Clear();
 		_spriteCache.Clear();
 		_missing.Clear();
-		_playerIdle.Clear();
-		_playerWalk.Clear();
 		_loggedLoads.Clear();
 		_loggedTileManifest = false;
 		_loggedSpriteManifest = false;
+		PlaceholderTiles.ResetCache();
 	}
 
 	public static Texture Critter( string key = "deer" ) =>
@@ -43,8 +37,22 @@ public static class PixelArt
 			var path = CritterPath( key );
 			if ( FileSystem.Mounted.FileExists( path ) )
 				return LoadSuppliedSprite( path, key );
-			return Load( $"textures/critters/{key}.png" );
+
+			var generated = $"textures/critters/{key}.png";
+			if ( FileSystem.Mounted.FileExists( generated ) )
+				return Load( generated );
+
+			Log.Warning( $"[Fauna2 Art] Missing critter '{key}' — using color placeholder." );
+			return PlaceholderTiles.Prop( $"critter:{key}", new Color( 0.72f, 0.58f, 0.42f ) );
 		} );
+
+	public static bool HasCritterArt( string key )
+	{
+		var path = CritterPath( key );
+		if ( FileSystem.Mounted.FileExists( path ) )
+			return true;
+		return FileSystem.Mounted.FileExists( $"textures/critters/{key}.png" );
+	}
 
 	private static string CritterPath( string key ) => key switch
 	{
@@ -67,28 +75,15 @@ public static class PixelArt
 		_spriteCache.GetOrCreate( $"player:sprite:{facing.ToKey()}", () =>
 			BuildWalkSprite(
 				PlayerIdleTexture( facing ),
-				SuppliedSpriteManifest.PlayerAnimationDir( facing ),
-				"player",
-				facing.ToKey() ) );
+				SuppliedSpriteManifest.PlayerAnimationDir( facing ) ) );
 
 	public static Texture PlayerIdle( PlayerFacing facing ) =>
 		PlayerIdleTexture( facing );
-
-	public static Texture PlayerWalk( PlayerFacing facing ) =>
-		PlayerWalkTexture( facing, 0 );
-
-	public static Texture PlayerWalkFrame( PlayerFacing facing, int frame ) =>
-		PlayerWalkTexture( facing, frame );
 
 	private static Texture PlayerIdleTexture( PlayerFacing facing ) =>
 		_cache.GetOrCreate( $"player:idle:{facing.ToKey()}", () =>
 			TryLoadAnimationFrame( SuppliedSpriteManifest.PlayerAnimationDir( facing ), "idle" )
 			?? PlayerSprite );
-
-	private static Texture PlayerWalkTexture( PlayerFacing facing, int frame ) =>
-		_cache.GetOrCreate( $"player:walk:{facing.ToKey()}:{frame}", () =>
-			TryLoadAnimationFrame( SuppliedSpriteManifest.PlayerAnimationDir( facing ), "walk", frame )
-			?? PlayerIdleTexture( facing ) );
 
 	public static Texture TileGrass => LoadTile( SuppliedTileManifest.GrassPath, "grass" );
 	public static Texture TileGrassAlt => TileGrass;
@@ -370,22 +365,20 @@ public static class PixelArt
 		_cache.GetOrCreate( "guest:static", () =>
 			LoadSuppliedSprite( SuppliedSpriteManifest.GuestSpritePath, "guest_sprite" ) );
 
-	public static Sprite GuestSpriteResource( int variantIndex = 0 )
+	public static Sprite GuestSpriteResource( int variantIndex = 0, PlayerFacing facing = PlayerFacing.Down )
 	{
-		var animDir = SuppliedSpriteManifest.GuestAnimationDir( variantIndex );
-		return _spriteCache.GetOrCreate( $"guest:sprite:{variantIndex}:{animDir}", () =>
+		var animDir = ResolveGuestAnimationDir( variantIndex, facing );
+		return _spriteCache.GetOrCreate( $"guest:sprite:{variantIndex}:{facing.ToKey()}:{animDir}", () =>
 		{
 			var sprite = BuildWalkSprite(
-				GuestIdleTexture( variantIndex ),
-				animDir,
-				"guest",
-				$"guest_{variantIndex}" );
+				GuestIdleTexture( variantIndex, facing ),
+				animDir );
 
-			if ( _loggedLoads.Add( $"guest:sprite-built:{variantIndex}" ) )
+			if ( _loggedLoads.Add( $"guest:sprite-built:{variantIndex}:{facing.ToKey()}" ) )
 			{
 				var spritePath = SuppliedSpriteManifest.GuestVariantSpritePaths[
 					Math.Clamp( variantIndex, 0, SuppliedSpriteManifest.GuestVariantSpritePaths.Length - 1 )];
-				Log.Info( $"[Fauna2 Art] Guest variant {variantIndex} sprite uses '{spritePath}', anim dir '{animDir}'." );
+				Log.Info( $"[Fauna2 Art] Guest variant {variantIndex} facing={facing.ToKey()} uses '{spritePath}', anim dir '{animDir}'." );
 			}
 
 			return sprite;
@@ -404,9 +397,9 @@ public static class PixelArt
 		return _cache.GetOrCreate( $"guest:static:{index}", () => LoadSuppliedSprite( path, key ) );
 	}
 
-	private static Texture GuestIdleTexture( int variantIndex = 0 ) =>
-		_cache.GetOrCreate( $"guest:idle:{variantIndex}", () =>
-			TryLoadAnimationFrame( SuppliedSpriteManifest.GuestAnimationDir( variantIndex ), "idle" )
+	private static Texture GuestIdleTexture( int variantIndex = 0, PlayerFacing facing = PlayerFacing.Down ) =>
+		_cache.GetOrCreate( $"guest:idle:{variantIndex}:{facing.ToKey()}", () =>
+			TryLoadAnimationFrame( ResolveGuestAnimationDir( variantIndex, facing ), "idle" )
 			?? GuestTexture( variantIndex ) );
 
 	public static Texture FxSparkle() => Load( "textures/fx/sparkle.png" );
@@ -441,21 +434,63 @@ public static class PixelArt
 		} );
 	}
 
-	public static Sprite CritterSprite( string key = "deer" )
+	public static Sprite CritterSprite( string key = "deer", PlayerFacing facing = PlayerFacing.Down )
 	{
 		var stem = NormalizeCritterStem( key );
-		return _spriteCache.GetOrCreate( $"critter:sprite:{stem}", () =>
+		return _spriteCache.GetOrCreate( $"critter:sprite:{stem}:{facing.ToKey()}", () =>
 		{
 			var idle = Critter( stem );
 			return BuildWalkSprite(
 				idle,
-				SuppliedSpriteManifest.AnimalAnimationDir( stem ),
-				"critter",
-				stem );
+				ResolveAnimalAnimationDir( stem, facing ) );
 		} );
 	}
 
-	public static Sprite MakeWalkSprite( Texture idle, Texture[] walkFrames, float walkFrameRate = WalkFrameRate ) =>
+	public static bool HasAnimationDir( string animationDir ) =>
+		!string.IsNullOrEmpty( animationDir )
+		&& (HasWalkFrames( animationDir ) || FileSystem.Mounted.FileExists( $"{animationDir}idle.png" ));
+
+	private static string ResolveAnimalAnimationDir( string stem, PlayerFacing facing )
+	{
+		var facingDir = SuppliedSpriteManifest.AnimalAnimationDir( stem, facing );
+		if ( HasAnimationDir( facingDir ) )
+			return facingDir;
+
+		// Left can reuse right art; SpriteWalkAnimator mirrors when dedicated left is missing.
+		var rightDir = SuppliedSpriteManifest.AnimalAnimationDir( stem, PlayerFacing.Right );
+		if ( facing == PlayerFacing.Left && HasAnimationDir( rightDir ) )
+			return rightDir;
+
+		return SuppliedSpriteManifest.AnimalAnimationDir( stem );
+	}
+
+	private static string ResolveGuestAnimationDir( int variantIndex, PlayerFacing facing )
+	{
+		var facingDir = SuppliedSpriteManifest.GuestAnimationDir( variantIndex, facing );
+		if ( HasAnimationDir( facingDir ) )
+			return facingDir;
+
+		var rightDir = SuppliedSpriteManifest.GuestAnimationDir( variantIndex, PlayerFacing.Right );
+		if ( facing == PlayerFacing.Left && HasAnimationDir( rightDir ) )
+			return rightDir;
+
+		return SuppliedSpriteManifest.GuestAnimationDir( variantIndex );
+	}
+
+	public static bool HasDedicatedAnimalFacing( string stem, PlayerFacing facing ) =>
+		HasAnimationDir( SuppliedSpriteManifest.AnimalAnimationDir( NormalizeCritterStem( stem ), facing ) );
+
+	public static bool HasDedicatedGuestFacing( int variantIndex, PlayerFacing facing ) =>
+		HasAnimationDir( SuppliedSpriteManifest.GuestAnimationDir( variantIndex, facing ) );
+
+	private static Sprite BuildWalkSprite( Texture fallbackIdle, string animationDir )
+	{
+		// Walk cycle sheets were retired — facing packs use idle + procedural Bounce only.
+		var idle = TryLoadAnimationFrame( animationDir, "idle" ) ?? fallbackIdle;
+		return MakeIdleOnlySprite( idle );
+	}
+
+	private static Sprite MakeIdleOnlySprite( Texture idle ) =>
 		new()
 		{
 			Animations =
@@ -466,62 +501,19 @@ public static class PixelArt
 					Frames = [new Sprite.Frame { Texture = idle }],
 					FrameRate = 1f,
 				},
-				new Sprite.Animation
-				{
-					Name = WalkAnimationName,
-					Frames = walkFrames.Select( t => new Sprite.Frame { Texture = t } ).ToList(),
-					FrameRate = walkFrameRate,
-					LoopMode = Sprite.LoopMode.Loop,
-				},
 			],
 		};
 
-	private static Sprite BuildWalkSprite( Texture fallbackIdle, string animationDir, string category, string key )
-	{
-		var idle = TryLoadAnimationFrame( animationDir, "idle" ) ?? fallbackIdle;
-		var walkFrames = TryLoadWalkFrames( animationDir, category, key );
-		if ( walkFrames is null )
-			return MakeSprite( idle );
-
-		return MakeWalkSprite( idle, walkFrames );
-	}
-
-	private static Texture[] TryLoadWalkFrames( string animationDir, string category, string key )
-	{
-		if ( !HasWalkFrames( animationDir ) )
-			return null;
-
-		var frames = new Texture[WalkFrameCount];
-		for ( var i = 0; i < WalkFrameCount; i++ )
-		{
-			var frame = TryLoadAnimationFrame( animationDir, "walk", i );
-			if ( frame is null )
-				return null;
-
-			frames[i] = frame;
-			if ( _loggedLoads.Add( $"{category}:walk:{key}:{i}" ) )
-				Log.Info( $"[Fauna2 Art] Walk frame '{key}' #{i} uses '{WalkFramePath( animationDir, i )}'." );
-		}
-
-		return frames;
-	}
-
 	private static bool HasWalkFrames( string animationDir ) =>
-		FileSystem.Mounted.FileExists( WalkFramePath( animationDir, 0 ) );
+		FileSystem.Mounted.FileExists( $"{animationDir}walk_0.png" );
 
-	private static string WalkFramePath( string animationDir, int frame ) =>
-		$"{animationDir}walk_{frame}.png";
-
-	private static Texture TryLoadAnimationFrame( string animationDir, string prefix, int? frame = null )
+	private static Texture TryLoadAnimationFrame( string animationDir, string prefix )
 	{
-		var path = frame.HasValue
-			? WalkFramePath( animationDir, frame.Value )
-			: $"{animationDir}{prefix}.png";
-
+		var path = $"{animationDir}{prefix}.png";
 		if ( !FileSystem.Mounted.FileExists( path ) )
 			return null;
 
-		return LoadSuppliedSprite( path, $"{animationDir}:{prefix}{( frame.HasValue ? frame.Value.ToString() : "" )}" );
+		return LoadSuppliedSprite( path, $"{animationDir}:{prefix}" );
 	}
 
 	private static string NormalizeCritterStem( string key ) => key switch
@@ -738,7 +730,7 @@ public static class PixelArt
 
 		_missing.Add( name );
 		Log.Warning( $"[Fauna2 Art] Missing prop texture for '{name}' (expected supplied asset under models/)." );
-		return null;
+		return PlaceholderTiles.Prop( name );
 	}
 
 	private static readonly HashSet<string> SuppliedPropNames = new( StringComparer.OrdinalIgnoreCase )
@@ -789,15 +781,19 @@ public static class PlayerFacingExtensions
 		_ => "down",
 	};
 
+	/// <summary>
+	/// Map world move to sprite facing under the zoo camera (−X looking toward +X):
+	/// screen-up / away = +X, screen-down / toward = −X, screen-left = +Y, screen-right = −Y.
+	/// </summary>
 	public static PlayerFacing FromMove( Vector3 move )
 	{
 		if ( move.Length < 0.01f )
 			return PlayerFacing.Down;
 
 		if ( MathF.Abs( move.x ) > MathF.Abs( move.y ) )
-			return move.x >= 0f ? PlayerFacing.Right : PlayerFacing.Left;
+			return move.x >= 0f ? PlayerFacing.Up : PlayerFacing.Down;
 
-		return move.y >= 0f ? PlayerFacing.Up : PlayerFacing.Down;
+		return move.y >= 0f ? PlayerFacing.Left : PlayerFacing.Right;
 	}
 }
 

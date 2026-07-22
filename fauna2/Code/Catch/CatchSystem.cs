@@ -46,6 +46,18 @@ public sealed class CatchSystem : Component
 		if ( wild is null || !wild.IsValid() || wild.Fled ) return;
 		if ( PlayerState.Local?.IsZooOwner != true ) return;
 
+		if ( WildAttackSystem.Instance?.EncounterActive == true )
+		{
+			UiState.PushToast( "Fend off the attack first!", "warning" );
+			return;
+		}
+
+		if ( MinigameActive )
+		{
+			UiState.PushToast( "Already catching an animal.", "block" );
+			return;
+		}
+
 		var inv = PlayerState.Local?.Components.Get<PlayerInventory>();
 		if ( inv is null || !inv.HasNet )
 		{
@@ -86,8 +98,21 @@ public sealed class CatchSystem : Component
 
 	private void BeginCatchHost( WildAnimalComponent wild )
 	{
-		if ( wild is null || !wild.IsValid() || wild.Fled || MinigameActive ) return;
-		if ( WildAttackSystem.Instance?.EncounterActive == true ) return;
+		if ( wild is null || !wild.IsValid() || wild.Fled )
+		{
+			SendCatchRejected( "That animal is no longer available." );
+			return;
+		}
+		if ( MinigameActive )
+		{
+			SendCatchRejected( "Already catching an animal." );
+			return;
+		}
+		if ( WildAttackSystem.Instance?.EncounterActive == true )
+		{
+			SendCatchRejected( "Fend off the attack first!" );
+			return;
+		}
 
 		// AUDIT FIX B6: Host proximity check. Client UI already ranges against
 		// WildAnimalInteractRange, but RequestBeginCatch previously accepted any
@@ -96,16 +121,39 @@ public sealed class CatchSystem : Component
 			|| RpcAuthorization.HorizontalDistance( feet, wild.GameObject.WorldPosition )
 				> GameConstants.WildAnimalInteractRange )
 		{
+			SendCatchRejected( "Move closer to the animal and try again." );
 			return;
 		}
 
 		var inv = FindOwnerInventory();
-		if ( inv is null || !inv.HasNet || !inv.CanCarryMore ) return;
+		if ( inv is null )
+		{
+			SendCatchRejected( "Catch inventory is not ready yet." );
+			return;
+		}
+		if ( !inv.HasNet )
+		{
+			SendCatchRejected( "You need a net from Animals → Catch Tools." );
+			return;
+		}
+		if ( !inv.CanCarryMore )
+		{
+			SendCatchRejected( "Carry slots full — release an animal into a habitat first." );
+			return;
+		}
 
 		var def = wild.Definition;
-		if ( def is null ) return;
+		if ( def is null )
+		{
+			SendCatchRejected( "That animal could not be identified." );
+			return;
+		}
 
-		if ( def.RequiresTranquilizer && inv.TranquilizerCount <= 0 ) return;
+		if ( def.RequiresTranquilizer && inv.TranquilizerCount <= 0 )
+		{
+			SendCatchRejected( $"{def.DisplayName} needs a tranquilizer." );
+			return;
+		}
 
 		_activeWild = wild;
 		ActiveWildId = wild.WildId;
@@ -126,6 +174,15 @@ public sealed class CatchSystem : Component
 		HitsLanded = 0;
 
 		UiState.OpenCatchMinigame();
+	}
+
+	[Rpc.Broadcast]
+	private void SendCatchRejected( string message )
+	{
+		// Only the zoo owner can initiate catches. Broadcast keeps the rejection
+		// reliable across host/client ownership while other visitors ignore it.
+		if ( PlayerState.Local?.IsZooOwner == true )
+			UiState.PushToast( message, "block" );
 	}
 
 	public void TryResolveCatch( bool usedBait )
@@ -337,16 +394,6 @@ public sealed class CatchSystem : Component
 		var def = Defs.Animal( carried );
 		if ( def is null ) return;
 
-		// AUDIT FIX B7: Ignore forged far positions — snap to caller feet when
-		// the claimed place point is beyond interact range of the player.
-		// Habitat.FindAt still uses the (possibly clamped) position.
-		if ( RpcAuthorization.TryGetCallerFeet( out var feet ) )
-		{
-			var placeRange = GameConstants.InteractionRange + GameConstants.TileSize;
-			if ( RpcAuthorization.HorizontalDistance( feet, position ) > placeRange )
-				position = feet;
-		}
-
 		var plots = PlotSystem.Instance;
 		if ( plots is not null && AnimalRegistry.Count >= plots.AnimalCap )
 		{
@@ -367,6 +414,16 @@ public sealed class CatchSystem : Component
 			return;
 		}
 
+		// Anti-cheat: reject absurd remote teleports, but allow clicking anywhere
+		// inside a valid habitat while standing beside it (do NOT snap to feet —
+		// interact-range snapping made correct pens reject most release clicks).
+		if ( RpcAuthorization.TryGetCallerFeet( out var feet )
+			&& !IsNearHabitatForPlacement( feet, habitat, position ) )
+		{
+			ZooState.Instance?.Notify( "Move closer to the habitat to release the animal.", "block" );
+			return;
+		}
+
 		if ( !inv.TryTakeCarriedAt( slot, out var speciesId ) || speciesId != carried )
 			return;
 
@@ -378,5 +435,20 @@ public sealed class CatchSystem : Component
 
 		ZooState.Instance?.Notify( $"Released {def.DisplayName} into the habitat!", "pets" );
 		SaveSystem.Instance?.RequestSave();
+	}
+
+	/// <summary>
+	/// True when the player is beside the target habitat (or already inside it).
+	/// Generous enough to click the far corner of a large pen from the gate.
+	/// </summary>
+	private static bool IsNearHabitatForPlacement( Vector3 feet, HabitatComponent habitat, Vector3 placePoint )
+	{
+		if ( habitat.ContainsPoint( feet ) )
+			return true;
+
+		var center = habitat.GameObject.WorldPosition;
+		var reach = MathF.Max( habitat.Size.x, habitat.Size.y ) * 0.5f + GameConstants.TileSize * 12f;
+		return RpcAuthorization.HorizontalDistance( feet, center ) <= reach
+			|| RpcAuthorization.HorizontalDistance( feet, placePoint ) <= reach;
 	}
 }

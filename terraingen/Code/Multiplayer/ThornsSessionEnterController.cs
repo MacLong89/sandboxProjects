@@ -105,6 +105,14 @@ public sealed class ThornsSessionEnterController : Component
 			return;
 
 		ThornsJoinFlowDebug.JoinWarn( $"Enter wait hit {ForceCompleteAfterSeconds:F0}s cap — {DescribeWaitState( blockReason )}" );
+
+		// Never force enter without terrain applied — that yields a broken first session.
+		if ( ThornsTerrainBootstrap.Instance?.IsWorldApplied != true )
+		{
+			ThornsJoinFlowDebug.JoinWarn( "Enter wait timed out — terrain still not applied; keeping control locked." );
+			return;
+		}
+
 		if ( TryResolveLocalPawn( out _, out _ ) )
 			ForceCompleteEnter( "timeout" );
 		else
@@ -184,6 +192,9 @@ public sealed class ThornsSessionEnterController : Component
 		}
 
 		ThornsJoinFlowDebug.JoinWarn( $"WaitUntilReadyAsync timed out after {timeoutMs}ms — {DescribeWaitState( "timeout" )}" );
+
+		if ( ThornsTerrainBootstrap.Instance?.IsWorldApplied != true )
+			return false;
 
 		if ( TryResolveLocalPawn( out _, out _ ) )
 		{

@@ -9,6 +9,7 @@ WorldLabel, root {
 	align-items: center;
 	justify-content: center;
 	background-color: rgba(0, 0, 0, 0);
+	pointer-events: none;
 
 	.wl-text {
 		font-family: Poppins;

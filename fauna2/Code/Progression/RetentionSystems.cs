@@ -337,7 +337,6 @@ public sealed class WeatherSeasonSystem : Component
 		Season = (FaunaSeason)(((Day - 1) / GameConstants.SeasonLengthDays) % 4);
 		Weather = RollWeather();
 		ZooState.Instance?.Notify( $"{Summary}. Animal moods and guest turnout shifted.", WeatherIcon );
-		DailySanctuarySystem.Instance?.RollDailyGoals();
 		SanctuaryEventSystem.Instance?.RollDailyEvent();
 		SaveSystem.Instance?.RequestSave();
 	}
@@ -509,6 +508,11 @@ public sealed class DailySanctuarySystem : Component
 	{
 		if ( IsProxy || !_nextCheck || GameManager.Instance?.GameStarted != true ) return;
 		_nextCheck = 2f;
+		if ( DailySeed != TodayKey() )
+		{
+			RollDailyGoals();
+			SaveSystem.Instance?.RequestSave();
+		}
 		CheckCompletions();
 	}
 
@@ -516,7 +520,9 @@ public sealed class DailySanctuarySystem : Component
 	{
 		if ( !Networking.IsHost ) return;
 		var state = ZooState.Instance;
-		DailySeed = (WeatherSeasonSystem.Instance?.Day ?? 1) * 17 + (int)(state?.Prestige ?? 0);
+		// Calendar missions reset once per real UTC day, unlike sanctuary
+		// weather/events which continue cycling during a long play session.
+		DailySeed = TodayKey();
 		CompletedMask = 0;
 		StartingCleared = TerrainObstacleSystem.Instance?.TotalCleared ?? 0;
 		StartingGuests = GuestSystem.Instance?.GuestCount ?? 0;
@@ -525,6 +531,9 @@ public sealed class DailySanctuarySystem : Component
 		StartingCaught = state?.TotalAnimalsCaught ?? 0;
 		StartingPlaceables = PlaceableRegistry.Count;
 	}
+
+	private static int TodayKey() =>
+		(int)(DateTimeOffset.UtcNow.ToUnixTimeSeconds() / 86400);
 
 	public IReadOnlyList<SanctuaryDailyGoal> Goals()
 	{
@@ -608,7 +617,7 @@ public sealed class DailySanctuarySystem : Component
 			var reward = 350 + (ZooState.Instance?.Level ?? 1) * 90;
 			ZooState.Instance?.AddMoney( reward );
 			ZooState.Instance?.AddXp( 50 );
-			ZooState.Instance?.Notify( $"Daily goal complete: {goals[i].Title} (+${reward:n0})", goals[i].Icon );
+			ZooState.Instance?.Notify( $"Daily mission complete: {goals[i].Title} (+${reward:n0})", goals[i].Icon );
 			SaveSystem.Instance?.RequestSave();
 		}
 	}
@@ -847,22 +856,38 @@ public sealed class FranchiseSystem : Component
 	protected override void OnAwake() => Instance = this;
 	protected override void OnDestroy() { if ( Instance == this ) Instance = null; }
 
-	public bool CanPrestige()
+	public bool CanAdvanceRank()
 	{
 		var state = ZooState.Instance;
-		return state is not null && state.Level >= GameConstants.MaxLevel
-			&& (CollectionSystem.Instance?.CompletionPercent ?? 0f) >= 50f
-			&& (GuestSystem.Instance?.ZooRating ?? 0f) >= 4f;
+		if ( state is null ) return false;
+		if ( state.Level < GameConstants.MaxLevel ) return false;
+
+		// Each franchise rank raises the bar so prestige cannot be spammed.
+		var neededCodex = Math.Min( 95f, 50f + FranchiseRank * 12f );
+		var neededRating = Math.Min( 5f, 4f + FranchiseRank * 0.15f );
+		var neededPrestige = 25 + FranchiseRank * 35;
+
+		return (CollectionSystem.Instance?.CompletionPercent ?? 0f) >= neededCodex
+			&& (GuestSystem.Instance?.ZooRating ?? 0f) >= neededRating
+			&& state.Prestige >= neededPrestige;
+	}
+
+	public string RankRequirementText()
+	{
+		var neededCodex = Math.Min( 95f, 50f + FranchiseRank * 12f );
+		var neededRating = Math.Min( 5f, 4f + FranchiseRank * 0.15f );
+		var neededPrestige = 25 + FranchiseRank * 35;
+		return $"Need max level, {neededCodex:0}% codex, {neededRating:0.0}★ rating, and {neededPrestige} prestige.";
 	}
 
 	[Rpc.Host]
-	public void RequestFranchisePrestige()
+	public void RequestAdvanceRank()
 	{
 		if ( !RpcAuthorization.IsOwnerCaller() ) return;
 
-		if ( !CanPrestige() )
+		if ( !CanAdvanceRank() )
 		{
-			ZooState.Instance?.Notify( "Franchise prestige requires max level, 50% codex, and a 4-star zoo.", "lock" );
+			ZooState.Instance?.Notify( RankRequirementText(), "lock" );
 			return;
 		}
 

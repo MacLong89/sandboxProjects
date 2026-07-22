@@ -9,7 +9,6 @@ public sealed class CureResearchTierDef
 	public double ScrapCost { get; init; }
 	public double WoodCost { get; init; }
 	public double StoneCost { get; init; }
-	public double WaterCost { get; init; }
 	public double SpecimensCost { get; init; }
 	public int MinSeason { get; init; }
 }
@@ -21,25 +20,25 @@ public static class CureResearch
 		new()
 		{
 			Tier = 1, Name = "Field Lab", Description = "Establish basic research capacity.",
-			LabPointsRequired = 15, ScrapCost = 80, WoodCost = 20, StoneCost = 15, WaterCost = 0, SpecimensCost = 0,
+			LabPointsRequired = 15, ScrapCost = 80, WoodCost = 20, StoneCost = 15, SpecimensCost = 0,
 			MinSeason = 1
 		},
 		new()
 		{
 			Tier = 2, Name = "Synthesis", Description = "Combine samples into viable compounds.",
-			LabPointsRequired = 35, ScrapCost = 150, WoodCost = 30, StoneCost = 25, WaterCost = 0, SpecimensCost = 2,
+			LabPointsRequired = 35, ScrapCost = 150, WoodCost = 30, StoneCost = 25, SpecimensCost = 4,
 			MinSeason = 3
 		},
 		new()
 		{
 			Tier = 3, Name = "Patient Zero", Description = "Isolate the source strain from expedition finds.",
-			LabPointsRequired = 60, ScrapCost = 220, WoodCost = 40, StoneCost = 35, WaterCost = 0, SpecimensCost = 5,
+			LabPointsRequired = 60, ScrapCost = 220, WoodCost = 40, StoneCost = 35, SpecimensCost = 10,
 			MinSeason = 5
 		},
 		new()
 		{
 			Tier = 4, Name = "The Cure", Description = "Finalize and deploy the antidote.",
-			LabPointsRequired = 90, ScrapCost = 300, WoodCost = 50, StoneCost = 45, WaterCost = 0, SpecimensCost = 8,
+			LabPointsRequired = 90, ScrapCost = 300, WoodCost = 50, StoneCost = 45, SpecimensCost = 18,
 			MinSeason = 7
 		}
 	};
@@ -59,14 +58,18 @@ public static class CureResearch
 			.Where( b => !b.IsDestroyed && b.Type == BuildableId.Lab )
 			.Sum( b => b.Level ) ?? 0;
 
-		var rate = labs * CureConstants.LabPointsPerSeasonBase / CureConstants.RealSecondsPerDay
-			+ labLevelSum * CureConstants.LabPointsPerLevel / CureConstants.RealSecondsPerDay
-			+ craftsmen * CureConstants.LabPointsPerScholar / CureConstants.RealSecondsPerDay;
+		var seasonSeconds = CureConstants.SeasonDurationSeconds;
+		var rate = labs * CureConstants.LabPointsPerSeasonBase / seasonSeconds
+			+ labLevelSum * CureConstants.LabPointsPerLevel / seasonSeconds
+			+ craftsmen * CureConstants.LabPointsPerScholar / seasonSeconds;
 
 		var sickness = core.Save.ColonySickness / CureConstants.MaxSickness;
 		rate *= MathF.Max( 0.35f, 1f - sickness * 0.4f );
 
-		// AUDIT FIX M5: Advanced Synthesis claimed "+25% lab output" but only knowledge paths used it.
+		var universities = BuildManager.Instance?.Buildings.Count( b => !b.IsDestroyed && b.Type == BuildableId.University ) ?? 0;
+		if ( universities > 0 )
+			rate *= MathF.Pow( CureConstants.UniversityLabOutputMult, universities );
+
 		if ( TechTreeCatalog.IsUnlocked( core.Save, "synthesis" ) )
 			rate *= 1.25;
 
@@ -79,22 +82,6 @@ public static class CureResearch
 		core.Save.CureLabPoints += LabOutputPerSec( core ) * dt;
 	}
 
-	public static void ApplySeasonLabBonus( GameCore core )
-	{
-		if ( core is null || !core.IsCure ) return;
-
-		var labs = BuildManager.Instance?.Buildings.Count( b => !b.IsDestroyed && b.Type == BuildableId.Lab ) ?? 0;
-		if ( labs <= 0 ) return;
-
-		// Note (audit): continuous TickLabPoints already accrues toward the "per season base"
-		// constant over RealSecondsPerDay*DaysPerSeason. This lump is an extra end-of-season
-		// award — intentional or revisit later; synthesis mult kept consistent with LabOutputPerSec.
-		var amount = CureConstants.LabPointsPerSeasonBase * labs * TeamBonuses.ResearchRateMult( core );
-		if ( TechTreeCatalog.IsUnlocked( core.Save, "synthesis" ) )
-			amount *= 1.25;
-		core.Save.CureLabPoints += amount;
-	}
-
 	public static bool CanUnlockTier( GameCore core, int tier )
 	{
 		if ( core is null || !core.IsCure ) return false;
@@ -103,6 +90,7 @@ public static class CureResearch
 		if ( def is null ) return false;
 		if ( core.Save.CureResearchTier >= tier ) return false;
 		if ( core.Save.CureResearchTier < tier - 1 ) return false;
+		if ( CureConstants.ProgressSeason( core.Save ) < def.MinSeason ) return false;
 		if ( !CureObjectives.ObjectivesMetForTier( core.Save, tier ) ) return false;
 		if ( core.Save.CureLabPoints < def.LabPointsRequired ) return false;
 
@@ -113,6 +101,39 @@ public static class CureResearch
 		if ( core.Resources.Get( ResourceKind.Specimens ) < def.SpecimensCost * mult ) return false;
 
 		return true;
+	}
+
+	/// <summary>Why a research tier cannot be unlocked yet — for Cure Progress UI.</summary>
+	public static string LockReason( GameCore core, int tier )
+	{
+		if ( core?.Save is null ) return "Locked";
+
+		var def = GetTier( tier );
+		if ( def is null ) return "Locked";
+		if ( core.Save.CureResearchTier >= tier ) return "Complete";
+		if ( core.Save.CureResearchTier < tier - 1 )
+			return $"Unlock tier {tier - 1} first";
+
+		if ( CureConstants.ProgressSeason( core.Save ) < def.MinSeason )
+			return $"Reach season {def.MinSeason}";
+
+		if ( !CureObjectives.ObjectivesMetForTier( core.Save, tier ) )
+			return "Complete objectives";
+
+		if ( core.Save.CureLabPoints < def.LabPointsRequired )
+			return $"Need {def.LabPointsRequired:0} lab pts";
+
+		var mult = TeamBonuses.ResearchCostMult( core );
+		if ( core.Wallet.Scrap < def.ScrapCost * mult )
+			return $"Need {def.ScrapCost * mult:0} scrap";
+		if ( core.Resources.Get( ResourceKind.Wood ) < def.WoodCost * mult )
+			return $"Need {def.WoodCost * mult:0} wood";
+		if ( core.Resources.Get( ResourceKind.Stone ) < def.StoneCost * mult )
+			return $"Need {def.StoneCost * mult:0} stone";
+		if ( core.Resources.Get( ResourceKind.Specimens ) < def.SpecimensCost * mult )
+			return $"Need {def.SpecimensCost * mult:0} specimens";
+
+		return "Unlock";
 	}
 
 	public static bool TryUnlockTier( GameCore core, int tier )
@@ -126,6 +147,7 @@ public static class CureResearch
 		core.Resources.TrySpend( ResourceKind.Wood, def.WoodCost * mult );
 		core.Resources.TrySpend( ResourceKind.Stone, def.StoneCost * mult );
 		core.Resources.TrySpend( ResourceKind.Specimens, def.SpecimensCost * mult );
+		// Lab points are cumulative milestones — not spent on unlock.
 
 		core.Save.CureResearchTier = tier;
 		core.SaveManagerTouch();

@@ -1,0 +1,131 @@
+@namespace SkyEmpire
+@inherits PanelComponent
+
+<root class="menu @(Game?.MenuOpen == true ? "open" : "")">
+	@if (Game?.MenuOpen == true && Progress is not null)
+	{
+		<div class="window">
+			<div class="tabs">
+				<div class="tab @(Game.ActiveTab == MenuTab.Boosts ? "active" : "")" onclick="@(() => Game.OpenMenu(MenuTab.Boosts))">⚡ Boosts</div>
+				<div class="tab @(Game.ActiveTab == MenuTab.Rebirth ? "active" : "")" onclick="@(() => Game.OpenMenu(MenuTab.Rebirth))">🌟 Rebirth</div>
+				<div class="tab @(Game.ActiveTab == MenuTab.Daily ? "active" : "")" onclick="@(() => Game.OpenMenu(MenuTab.Daily))">📅 Daily</div>
+				<div class="tab @(Game.ActiveTab == MenuTab.Help ? "active" : "")" onclick="@(() => Game.OpenMenu(MenuTab.Help))">❓ Help</div>
+				<div class="close" onclick="@(() => Game.CloseMenu())">✕</div>
+			</div>
+
+			<div class="content">
+				@if (Game.ActiveTab == MenuTab.Boosts)
+				{
+					<div class="section-title">Spend gems on a rush — earn gems from quests, streaks, chests & golden orbs.</div>
+					<div class="gems-owned">You have <b>@Progress.Data.Gems 💎</b></div>
+
+					<div class="card">
+						<div class="card-head">⚡ Overdrive — ×@Balance.OverdriveMult.ToString("0") income for @Balance.OverdriveMinutes.ToString("0") min</div>
+						<div class="card-sub">Every orb pays double. Stacks with friend boost and rebirths.</div>
+						@if (Progress.OverdriveActive)
+						{
+							<div class="btn disabled">Running — @Balance.FmtTime(Progress.OverdriveSecondsLeft)</div>
+						}
+						else
+						{
+							<div class="btn @(Progress.Data.Gems >= Balance.OverdriveGemCost ? "" : "disabled")" onclick="@(() => Progress.TryBuyOverdrive())">
+								Activate — @Balance.OverdriveGemCost 💎
+							</div>
+						}
+					</div>
+
+					<div class="card">
+						<div class="card-head">🌧️ Orb Frenzy — droppers ×@Balance.FrenzyRateMult.ToString("0") speed for @Balance.FrenzySeconds.ToString("0")s</div>
+						<div class="card-sub">The belt floods with orbs. Great right after buying new arches.</div>
+						@if (Progress.FrenzyActive)
+						{
+							<div class="btn disabled">Running — @Balance.FmtTime(Progress.FrenzyLeft)</div>
+						}
+						else
+						{
+							<div class="btn @(Progress.Data.Gems >= Balance.FrenzyGemCost ? "" : "disabled")" onclick="@(() => Progress.TryBuyFrenzy())">
+								Activate — @Balance.FrenzyGemCost 💎
+							</div>
+						}
+					</div>
+				}
+				else if (Game.ActiveTab == MenuTab.Rebirth)
+				{
+					<div class="section-title">Reset your island. Keep your gems. Earn <b>+@Balance.RebirthIncomeBonus.ToString("P0") income forever</b> — and a new sky.</div>
+
+					<div class="rebirth-now">
+						<div class="rb-tier">Current sky: <b>@RebirthCatalog.Tier(Progress.Data.Rebirths).Name</b> (🌟@Progress.Data.Rebirths)</div>
+						<div class="rb-mult">Income multiplier: ×@Progress.RebirthMult.ToString("0.0")</div>
+					</div>
+
+					<div class="card">
+						<div class="card-head">Next: @RebirthCatalog.Tier(Progress.Data.Rebirths + 1).Name</div>
+						<div class="card-sub">Cost: @Balance.Fmt(Progress.RebirthCost) 💰 — you have @Balance.Fmt(Progress.Data.Cash)</div>
+						<div class="btn big @(Progress.CanRebirth ? "" : "disabled")" onclick="@DoRebirth">
+							@(Progress.CanRebirth ? "🌟 REBIRTH NOW" : $"Need {Balance.Fmt(Progress.RebirthCost - Progress.Data.Cash)} more")
+						</div>
+					</div>
+
+					<div class="fine">Purchases and cash reset. Gems, streaks, quests and milestones are kept.</div>
+				}
+				else if (Game.ActiveTab == MenuTab.Daily)
+				{
+					<div class="section-title">Fresh quests every day — each pays cash + @Balance.DailyGemReward 💎.</div>
+					@foreach (var quest in Progress.Data.DailyQuests)
+					{
+						<div class="card quest @(quest.Claimed ? "claimed" : "")">
+							<div class="card-head">@quest.Title</div>
+							<div class="q-bar"><div class="q-fill" style="width: @((quest.Fraction * 100f).ToString("0"))%"></div></div>
+							@if (quest.Claimed)
+							{
+								<div class="q-done">✓ Claimed</div>
+							}
+							else if (quest.Complete)
+							{
+								<div class="btn" onclick="@(() => DailyQuestGen.Claim(Progress, quest))">Claim reward!</div>
+							}
+							else
+							{
+								<div class="q-progress">@Balance.Fmt(quest.Progress) / @Balance.Fmt(quest.Target)</div>
+							}
+						</div>
+					}
+					<div class="fine">🔥 Login streak: day @Progress.Data.StreakCount — come back tomorrow for more gems!</div>
+				}
+				else
+				{
+					<div class="section-title">How Sky Empire works</div>
+					<div class="help-line">🏝️ <b>Your island is yours.</b> Step on green pads to buy droppers, arches, belts and floors.</div>
+					<div class="help-line">💰 <b>Orbs are money.</b> Droppers make orbs, arches multiply them, the furnace pays you.</div>
+					<div class="help-line">✨ <b>Golden orbs</b> are worth ×20 and sometimes drop gems. Charms improve the odds.</div>
+					<div class="help-line">🌟 <b>Rebirth</b> resets your island for +50% income forever, and a brand new sky palette.</div>
+					<div class="help-line">🤝 <b>Visit friends.</b> Standing on someone else's island gives you BOTH +25% income.</div>
+					<div class="help-line">🎁 <b>Sky Chests</b> charge every 8 minutes. 📅 Dailies and 🔥 streaks pay gems.</div>
+					<div class="help-line">😴 <b>Offline pay:</b> your island keeps earning at 50% for up to 8 hours while you're away.</div>
+				}
+			</div>
+		</div>
+	}
+</root>
+
+@code {
+	PlayerProgress Progress => PlayerProgress.Local;
+	TycoonGame Game => TycoonGame.Instance;
+
+	void DoRebirth()
+	{
+		if (Progress?.CanRebirth != true) return;
+		Progress.Rebirth();
+		Game?.CloseMenu();
+	}
+
+	protected override int BuildHash()
+	{
+		var p = Progress;
+		if (p is null || Game is null) return 0;
+		return HashCode.Combine(
+			Game.MenuOpen, (int)Game.ActiveTab, (long)p.Data.Cash, p.Data.Gems,
+			p.Data.Rebirths, p.Data.DailyQuests.Count(q => q.Claimed),
+			HashCode.Combine(p.OverdriveActive, p.FrenzyActive, Time.Now.FloorToInt()));
+	}
+}

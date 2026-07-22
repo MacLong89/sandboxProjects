@@ -70,6 +70,18 @@
 						</div>
 					</div>
 
+					<div class="section-title">Zoo records</div>
+					<div class="rows compact">
+						@foreach ( var row in Standings )
+						{
+							<div class="row">
+								<div class="k">@row.Stat</div>
+								<div class="v">@row.Value</div>
+							</div>
+						}
+					</div>
+					<div class="hint-text">Personal records for this zoo — not a global leaderboard.</div>
+
 					@if ( Harms.Count > 0 )
 					{
 						var harm = Harms[0];

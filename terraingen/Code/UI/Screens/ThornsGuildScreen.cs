@@ -80,7 +80,7 @@ public sealed partial class ThornsGuildScreen : ThornsScreenBase
 			_identityPanel, snap, accountKey,
 			ref _renameEntry, ref _noticeEntry,
 			OnGuildRenameCommitted, OnGuildNoticeCommitted,
-			ToggleManagement );
+			ToggleManagement, player );
 
 		ThornsGuildPanelBuilders.BuildVictoryPathsPanelConcept( _centerVictory, command, Host );
 		ThornsGuildPanelBuilders.BuildActivityPanelConcept( _centerActivity, command );

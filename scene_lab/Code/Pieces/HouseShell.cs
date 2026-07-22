@@ -580,8 +580,8 @@ public static class HouseShell
 	public static void WindowOnSide( GameObject root, float cx, float faceY, float z, float winW, float winH, Color trimC )
 	{
 		var sign = MathF.Sign( faceY );
-		if ( sign == 0f )
-			sign = 1f;
+		if ( sign == 0 )
+			sign = 1;
 		var rim = 5f;
 		var fy = faceY + sign * Depth.Step * 0.5f;
 		KitBox.Box( root, "WinSill",

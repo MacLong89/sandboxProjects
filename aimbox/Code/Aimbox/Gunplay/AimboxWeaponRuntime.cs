@@ -214,7 +214,7 @@ public sealed class AimboxWeaponInventory
 
 	void AddWeaponSlot( AimboxWeaponId id, AimboxLoadoutData loadout, AimboxPlayerData data, AimboxPerkRuntime perks )
 	{
-		if ( !AimboxUnlockService.IsWeaponUnlocked( data, id ) && id != AimboxWeaponId.M9Bayonet )
+		if ( !AimboxUnlockService.CanEquipWeaponInMatch( data, id ) )
 			return;
 
 		var attachments = AimboxUnlockService.SanitizeAttachments(
@@ -245,6 +245,26 @@ public sealed class AimboxWeaponInventory
 			$"Inventory.ApplySingleWeapon weapon={weaponId} attachments=[{AimboxAttachmentPipelineDebug.FormatList( list )}]" );
 		_slots.Clear();
 		_slots.Add( new AimboxWeaponRuntime( AimboxWeapons.Get( weaponId ), list ) );
+	}
+
+	/// <summary>
+	/// Host-authority mirror: add a runtime for <paramref name="weaponId"/> without clearing
+	/// other slots (preserves ammo/cooldown so clients cannot reset by alternating weapon IDs).
+	/// </summary>
+	public AimboxWeaponRuntime GetOrAddHostMirrorSlot( AimboxWeaponId weaponId )
+	{
+		for ( var i = 0; i < _slots.Count; i++ )
+		{
+			var slot = _slots[i];
+			if ( slot is not null && slot.Definition.Id == weaponId )
+				return slot;
+		}
+
+		var runtime = new AimboxWeaponRuntime( AimboxWeapons.Get( weaponId ), [] );
+		_slots.Add( runtime );
+		AimboxAttachmentPipelineDebug.Reg(
+			$"Inventory.GetOrAddHostMirrorSlot weapon={weaponId} slots={_slots.Count}" );
+		return runtime;
 	}
 
 	public bool TryReplaceSlotAttachments( AimboxWeaponId weaponId, IReadOnlyList<AimboxAttachmentId> attachments )

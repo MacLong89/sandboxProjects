@@ -31,9 +31,20 @@ public sealed class GameCore : Component
 	public bool IsSurvival => ActiveMode == GameModeId.Survival;
 	public bool IsCure => ActiveMode == GameModeId.RoadToCure;
 
+	/// <summary>
+	/// Shared combat difficulty. Survival uses CurrentNight; Cure compresses threat index
+	/// (~1 + CureThreatIndex * 0.2) so end of year 1 lands near night-13 survival strength.
+	/// </summary>
+	public float CombatProgression =>
+		IsCure ? CureConstants.CureCombatProgression( Save ) : Save.CurrentNight;
+
+	public int CombatProgressionNight =>
+		IsCure ? CureConstants.CureCombatProgressionNight( Save ) : Math.Max( 1, Save.CurrentNight );
+
 	public GamePhase Phase { get; private set; } = GamePhase.MainMenu;
 	public bool ShopOpen { get; private set; }
 	public bool SettingsOpen { get; private set; }
+	public bool CreditsOpen { get; private set; }
 	public bool LeaderboardOpen { get; private set; }
 	public bool RecruitOpen { get; private set; }
 	public bool WorkersOpen { get; private set; }
@@ -45,6 +56,8 @@ public sealed class GameCore : Component
 	public bool TechTreeOpen { get; private set; }
 	public bool WelcomePending { get; private set; }
 	public bool DailyPending { get; private set; }
+	/// <summary>Pre-combat FP recruit picker is open — world stays on Day until Simulate/Possess.</summary>
+	public bool TakeoverPickerOpen { get; private set; }
 	public OfflineSummary Welcome { get; private set; }
 	public DailyState Daily { get; private set; }
 	public string ObjectiveToast { get; private set; }
@@ -52,15 +65,20 @@ public sealed class GameCore : Component
 	public NightRecap PendingNightRecap { get; private set; }
 	public string PendingSeasonRecap { get; private set; }
 	public bool TutorialTipsHidden => Save?.HideTutorialTips ?? false;
-	public bool IsUiBlocking => ShopOpen || SettingsOpen || LeaderboardOpen || RecruitOpen || WorkersOpen || ExpeditionsOpen
+	public bool IsUiBlocking => ShopOpen || SettingsOpen || CreditsOpen || LeaderboardOpen || RecruitOpen || WorkersOpen || ExpeditionsOpen
 		|| MilestonesOpen || CatalogOpen || LegacyOpen || CureProgressOpen || TechTreeOpen || WelcomePending || DailyPending
+		|| TakeoverPickerOpen
+		|| ActiveTutorialTip is not null
+		|| RecruitTakeoverController.Instance?.IsTakeoverUiOpen == true
 		|| Phase == GamePhase.MainMenu || Phase == GamePhase.GameOver || Phase == GamePhase.NightRecap
 		|| Phase == GamePhase.SeasonRecap || Phase == GamePhase.Victory;
 
 	/// <summary>Permanent prestige bonus applied to gameplay scrap income.</summary>
 	public double LegacyMult => IsSurvival ? 1.0 + Save.LegacyPoints * GameConstants.LegacyScrapBonusPer : 1.0;
-	/// <summary>Combined scrap multiplier (upgrades × prestige legacy).</summary>
-	public double ScrapMultiplier => Upgrades.ScrapMult * LegacyMult;
+	/// <summary>Prestige scrap multiplier (Salvage Crew is a flat +scrap per kill, not a %).</summary>
+	public double ScrapMultiplier => LegacyMult;
+	/// <summary>Flat scrap from Salvage Crew added on each kill.</summary>
+	public double SalvageKillBonus => Upgrades?.ScrapKillBonus ?? 0;
 
 	private int PrestigeReach => Math.Max( Save.BestNight, Save.CurrentNight );
 	public bool PrestigeAvailable => IsSurvival && PrestigeReach >= GameConstants.PrestigeMinNight;
@@ -78,9 +96,15 @@ public sealed class GameCore : Component
 
 	private TimeUntil _nextAutosave;
 	private TimeUntil _toastHide;
+	/// <summary>After dismissing a tip, wait before showing the next so Close/Got it feels responsive.</summary>
+	private TimeUntil _tipCooldown;
 	private string _pendingRecapToast;
 	private int _nightStartRecruits;
 	private long _nightStartKills;
+	private bool _activeBossThreat;
+	private int _pendingAssaultPlotX = int.MinValue;
+	private int _pendingAssaultPlotY = int.MinValue;
+	public bool HasPendingRivalAssault => _pendingAssaultPlotX != int.MinValue;
 
 	protected override void OnAwake()
 	{
@@ -161,18 +185,14 @@ public sealed class GameCore : Component
 			var ordersGo = new GameObject( true, "UnitOrders" );
 			ordersGo.Components.Create<UnitOrderController>();
 
+			EnsureTakeoverController();
+
+			var hostileGo = new GameObject( true, "HostileForces" );
+			hostileGo.Components.Create<HostileForceSystem>();
+
 			Build.LoadFromSave( Save );
 			TileOccupancy.RebuildAll();
-			try
-			{
-				Defenders.RebuildFromSave();
-				Plots.RebuildFromSave();
-				Workers.RebuildFromSave();
-			}
-			catch ( Exception e )
-			{
-				Log.Error( $"[FinalOutpost] Failed to rebuild units from save: {e.Message}" );
-			}
+			RebuildUnitsFromSave();
 
 			Outpost.ApplyUpgrades( Upgrades, healToFull: false );
 			// AUDIT FIX H1: Build() always spawned full HP. Re-apply damage from save after load.
@@ -180,8 +200,13 @@ public sealed class GameCore : Component
 
 			if ( IsSurvival )
 			{
-				Welcome = IdleProgress.Apply( this );
-				WelcomePending = Welcome.Any;
+				var welcome = IdleProgress.Apply( this );
+				var converted = IdleProgress.ConvertMaterialsToScrap( this );
+				if ( converted > 0 )
+					welcome.Scrap += converted;
+				Welcome = welcome;
+				WelcomePending = welcome.Any;
+
 				Daily = DailyReward.Evaluate( Save );
 				DailyPending = Daily.Available;
 			}
@@ -299,8 +324,14 @@ public sealed class GameCore : Component
 
 	public void StartDay()
 	{
+		ClearTakeoverPicker();
+		RecruitTakeoverController.Instance?.ExitTakeoverFully();
+		HostileForceSystem.Instance?.ClearAll();
+		_pendingAssaultPlotX = int.MinValue;
+		_pendingAssaultPlotY = int.MinValue;
 		ShopOpen = false;
 		SettingsOpen = false;
+		CreditsOpen = false;
 		LeaderboardOpen = false;
 		RecruitOpen = false;
 		WorkersOpen = false;
@@ -322,10 +353,26 @@ public sealed class GameCore : Component
 		Workers?.TryAutoRepairOnDayStart();
 
 		if ( IsCure )
+		{
 			Seasons?.ResetTimers();
+			TryLaunchQueuedBossThreat();
+		}
 	}
 
 	public void StartNight()
+	{
+		if ( !IsSurvival || Phase != GamePhase.Day ) return;
+		if ( TakeoverPickerOpen ) return;
+
+		CloseMetaPanels();
+		if ( TryOpenTakeoverPicker( RecruitTakeoverPendingKind.SurvivalNight ) )
+			return;
+
+		CommitSurvivalNightStart();
+	}
+
+	/// <summary>Called after the recruit takeover picker (or when there are no recruits).</summary>
+	public void CommitSurvivalNightStart()
 	{
 		if ( !IsSurvival || Phase != GamePhase.Day ) return;
 
@@ -333,27 +380,72 @@ public sealed class GameCore : Component
 		DayNightLighting.Instance?.SetNight( true );
 		AmbiencePlayer.Instance?.RefreshVolumes();
 		NightCombatMusicPlayer.Instance?.RefreshVolumes();
-		ShopOpen = false;
-		SettingsOpen = false;
-		RecruitOpen = false;
-		WorkersOpen = false;
-		ExpeditionsOpen = false;
-		MilestonesOpen = false;
-		CatalogOpen = false;
-		LegacyOpen = false;
+		CloseMetaPanels();
 		Combo?.ResetCombo();
 		Build?.CancelBuildInteraction();
 		Build?.Deselect();
 		_nightStartRecruits = Save.Recruits.Count;
 		_nightStartKills = Save.TotalKills;
 		Defenders?.ClearAllOrders();
-		Nights?.BeginNight( Save.CurrentNight );
 
-		if ( Save.Recruits.Count > 0 )
-			ShowToast( "Recruits auto-defend · use Command Recruits to focus a zombie or area", 4.5f );
+		var rivalAttack = Save.CurrentNight >= RivalGarrison.SurvivalRivalAttackMinNight
+			&& Game.Random.Float() < RivalGarrison.SurvivalRivalAttackChance;
+		if ( rivalAttack )
+		{
+			var count = RivalGarrison.BaseAttackCount( CombatProgressionNight );
+			Nights?.BeginRivalBaseAttack( count );
+			ShowToast( "Rival Outpost Attack — armed raiders inbound!", 5f );
+		}
+		else
+		{
+			Nights?.BeginNight( Save.CurrentNight );
+			if ( Save.Recruits.Count > 0 && RecruitTakeoverController.Instance?.PossessedSaveIndex < 0 )
+				ShowToast( "Recruits auto-defend · use Command Recruits to focus a zombie or area", 4.5f );
+		}
 	}
 
 	public void TriggerThreat( float threatMult = 1f, string bossLabel = null )
+	{
+		if ( !IsCure ) return;
+
+		if ( !string.IsNullOrEmpty( bossLabel ) )
+		{
+			Save.PendingBossThreats ??= new List<SavedBossThreat>();
+			Save.PendingBossThreats.Add( new SavedBossThreat
+			{
+				ThreatMult = Math.Max( 1f, threatMult ),
+				BossLabel = bossLabel
+			} );
+			SaveManagerTouch();
+			TryLaunchQueuedBossThreat();
+			return;
+		}
+
+		if ( Phase != GamePhase.Day ) return;
+		StartThreat( threatMult, null );
+	}
+
+	private void StartThreat( float threatMult, string bossLabel, bool advanceProgress = true )
+	{
+		if ( Phase != GamePhase.Day ) return;
+		if ( TakeoverPickerOpen ) return;
+
+		CloseMetaPanels();
+		CureProgressOpen = false;
+		TechTreeOpen = false;
+
+		if ( TryOpenTakeoverPicker(
+			    RecruitTakeoverPendingKind.CureThreat,
+			    threatMult,
+			    bossLabel,
+			    advanceProgress ) )
+			return;
+
+		CommitCureThreatStart( threatMult, bossLabel, advanceProgress );
+	}
+
+	/// <summary>Called after the recruit takeover picker (or when there are no recruits).</summary>
+	public void CommitCureThreatStart( float threatMult, string bossLabel, bool advanceProgress = true )
 	{
 		if ( !IsCure || Phase != GamePhase.Day ) return;
 
@@ -361,14 +453,7 @@ public sealed class GameCore : Component
 		DayNightLighting.Instance?.SetNight( true );
 		AmbiencePlayer.Instance?.RefreshVolumes();
 		NightCombatMusicPlayer.Instance?.RefreshVolumes();
-		ShopOpen = false;
-		SettingsOpen = false;
-		RecruitOpen = false;
-		WorkersOpen = false;
-		ExpeditionsOpen = false;
-		MilestonesOpen = false;
-		CatalogOpen = false;
-		LegacyOpen = false;
+		CloseMetaPanels();
 		CureProgressOpen = false;
 		TechTreeOpen = false;
 		Combo?.ResetCombo();
@@ -376,18 +461,193 @@ public sealed class GameCore : Component
 		Build?.Deselect();
 		Defenders?.ClearAllOrders();
 
-		Save.CureThreatIndex++;
-		var count = Math.Max( 6, (int)(CureConstants.ZombiesForThreat( Save ) * Math.Max( 1f, threatMult )) );
-		Nights?.BeginThreat( count, Save.CureThreatIndex );
+		if ( advanceProgress )
+			Save.CureThreatIndex++;
+
+		var wantsRival = string.IsNullOrEmpty( bossLabel )
+			&& (Save.RivalOwnedPlots?.Count ?? 0) > 0
+			&& Game.Random.Float() < RivalGarrison.CureRivalAttackChance;
+
+		if ( wantsRival )
+		{
+			var count = RivalGarrison.BaseAttackCount( CombatProgressionNight );
+			Nights?.BeginRivalBaseAttack( count );
+			ShowToast( "Rival Outpost Attack — armed raiders inbound!", 5f );
+			return;
+		}
+
+		var countZ = Math.Max( 6, (int)(CureConstants.ZombiesForThreat( Save ) * Math.Max( 1f, threatMult )) );
+		var bossKind = string.IsNullOrEmpty( bossLabel )
+			? BossKind.None
+			: PlotWorldRolls.Bosses.FirstOrDefault( b => b.Name == bossLabel )?.Kind ?? BossKind.None;
+		Nights?.BeginThreat( countZ, CombatProgressionNight, bossKind );
 
 		if ( !string.IsNullOrEmpty( bossLabel ) )
 			ShowToast( $"{bossLabel} — defend the outpost!" );
-		else if ( Save.Recruits.Count > 0 )
+		else if ( Save.Recruits.Count > 0 && RecruitTakeoverController.Instance?.PossessedSaveIndex < 0 )
 			ShowToast( "Recruits auto-defend · use Command Recruits to focus a zombie or area", 4.5f );
+	}
+
+	/// <summary>Spend invasion cost and open takeover picker for a rival plot assault.</summary>
+	public bool TryStartRivalAssault( int plotX, int plotY )
+	{
+		if ( !IsCure || Phase != GamePhase.Day ) return false;
+		if ( TakeoverPickerOpen ) return false;
+		var plots = PlotManager.Instance;
+		if ( plots is null || !plots.IsBuyable( plotX, plotY ) ) return false;
+		if ( !RivalCivManager.IsRivalOwned( Save, plotX, plotY ) ) return false;
+
+		var cost = PlotGrid.BuyCostEffective( plotX, plotY ) * RivalCivManager.InvasionCostMult( Save, plotX, plotY );
+		if ( !Wallet.TrySpend( cost ) ) return false;
+
+		_pendingAssaultPlotX = plotX;
+		_pendingAssaultPlotY = plotY;
+		CloseMetaPanels();
+		Build?.CancelBuildInteraction();
+		Build?.Deselect();
+
+		if ( TryOpenTakeoverPicker( RecruitTakeoverPendingKind.RivalAssault ) )
+			return true;
+
+		CommitRivalAssaultStart();
+		return true;
+	}
+
+	/// <summary>Opens the FP recruit picker and holds combat until Simulate/Possess. Returns true if gated.</summary>
+	public bool TryOpenTakeoverPicker(
+		RecruitTakeoverPendingKind kind,
+		float threatMult = 1f,
+		string bossLabel = null,
+		bool advanceProgress = true )
+	{
+		if ( Phase != GamePhase.Day ) return false;
+		if ( TakeoverPickerOpen ) return true;
+
+		var recruitCount = Save?.Recruits?.Count ?? 0;
+		if ( recruitCount <= 0 )
+			return false;
+
+		if ( kind == RecruitTakeoverPendingKind.SurvivalNight && !IsSurvival )
+			return false;
+		if ( (kind is RecruitTakeoverPendingKind.CureThreat or RecruitTakeoverPendingKind.RivalAssault) && !IsCure )
+			return false;
+
+		var takeover = EnsureTakeoverController();
+		ActiveTutorialTip = null;
+		TakeoverPickerOpen = true;
+
+		if ( takeover is null || !takeover.IsValid() )
+		{
+			Log.Warning( "[FinalOutpost] Takeover picker aborted — controller missing after Ensure." );
+			TakeoverPickerOpen = false;
+			return false;
+		}
+
+		takeover.BeginPending( kind, threatMult, bossLabel, advanceProgress );
+		Log.Info( $"[FinalOutpost] Takeover picker open ({kind}, recruits={recruitCount})" );
+		return true;
+	}
+
+	public void ClearTakeoverPicker()
+	{
+		TakeoverPickerOpen = false;
+	}
+
+	RecruitTakeoverController EnsureTakeoverController()
+	{
+		var existing = RecruitTakeoverController.Instance;
+		if ( existing is not null && existing.IsValid() )
+			return existing;
+
+		foreach ( var found in Scene.GetAllComponents<RecruitTakeoverController>() )
+		{
+			if ( found is not null && found.IsValid() )
+				return found;
+		}
+
+		var takeoverGo = new GameObject( true, "RecruitTakeover" );
+		return takeoverGo.Components.Create<RecruitTakeoverController>();
+	}
+
+	public void CommitRivalAssaultStart()
+	{
+		if ( !IsCure || Phase != GamePhase.Day ) return;
+		if ( _pendingAssaultPlotX == int.MinValue ) return;
+
+		var px = _pendingAssaultPlotX;
+		var py = _pendingAssaultPlotY;
+
+		Phase = GamePhase.Night;
+		DayNightLighting.Instance?.SetNight( true );
+		AmbiencePlayer.Instance?.RefreshVolumes();
+		NightCombatMusicPlayer.Instance?.RefreshVolumes();
+		CloseMetaPanels();
+		Combo?.ResetCombo();
+		Build?.CancelBuildInteraction();
+		Build?.Deselect();
+		Defenders?.ClearAllOrders();
+		Nights?.BeginRivalPlotAssault( px, py );
+		ShowToast( "Assault the rival outpost — clear their garrison!", 5f );
+	}
+
+	public void OnRivalAssaultWon()
+	{
+		RecruitTakeoverController.Instance?.ExitTakeoverFully();
+		if ( _pendingAssaultPlotX == int.MinValue )
+		{
+			StartDay();
+			return;
+		}
+
+		var px = _pendingAssaultPlotX;
+		var py = _pendingAssaultPlotY;
+		_pendingAssaultPlotX = int.MinValue;
+		_pendingAssaultPlotY = int.MinValue;
+
+		PlotManager.Instance?.CompleteRivalAssaultClaim( px, py );
+		HostileForceSystem.Instance?.ClearAll();
+		ShowToast( "Rival outpost defeated — territory claimed!", 4.5f );
+		Sfx.Play( Sfx.WaveClear );
+		StartDay();
+	}
+
+	void CloseMetaPanels()
+	{
+		ShopOpen = false;
+		SettingsOpen = false;
+		CreditsOpen = false;
+		RecruitOpen = false;
+		WorkersOpen = false;
+		ExpeditionsOpen = false;
+		MilestonesOpen = false;
+		CatalogOpen = false;
+		LegacyOpen = false;
+	}
+
+	private void TryLaunchQueuedBossThreat()
+	{
+		if ( Phase != GamePhase.Day ) return;
+
+		Save.PendingBossThreats ??= new List<SavedBossThreat>();
+		if ( Save.PendingBossThreats.Count == 0 )
+		{
+			Save.PendingBossThreatInFlight = false;
+			return;
+		}
+
+		var pending = Save.PendingBossThreats[0];
+		var resuming = Save.PendingBossThreatInFlight;
+		if ( !resuming )
+			Save.CureThreatIndex++;
+		Save.PendingBossThreatInFlight = true;
+		_activeBossThreat = true;
+		SaveManagerTouch();
+		StartThreat( pending.ThreatMult, pending.BossLabel, advanceProgress: false );
 	}
 
 	public void OnThreatSurvived()
 	{
+		RecruitTakeoverController.Instance?.ExitTakeoverFully();
 		if ( !IsCure ) return;
 
 		Save.ThreatsSurvivedThisSeason++;
@@ -396,24 +656,35 @@ public sealed class GameCore : Component
 		if ( Save.CurrentSeason == (int)CureSeason.Winter )
 			Save.EverSurvivedWinterThreat = true;
 
-		Save.ColonySickness = MathF.Max( 0f, Save.ColonySickness - CureConstants.SicknessAfterThreatDrop );
+		var exposure = CureConstants.SicknessFromThreat * TeamBonuses.SicknessGainMult( this );
+		Save.ColonySickness = MathF.Min(
+			CureConstants.MaxSickness,
+			Save.ColonySickness + exposure );
 
-		var bonus = 8.0 + Save.CurrentYear * 2.0;
+		var bonus = 12.0 + CombatProgressionNight * 1.5;
 		Wallet.Earn( bonus * ScrapMultiplier );
 		KnowledgeGain.OnThreatSurvived( this );
 
 		Sfx.Play( Sfx.WaveClear );
 		Combat?.ClearAll();
+		HostileForceSystem.Instance?.ClearAll();
 		DayNightLighting.Instance?.SetNight( false );
 		Phase = GamePhase.Day;
 
-		ShowToast( $"Threat repelled! +{CureConstants.KnowledgeFromThreatSurvived:0} Knowledge" );
+		ShowToast( $"Threat repelled! +{bonus * ScrapMultiplier:0} Scrap, +{CureConstants.KnowledgeFromThreatSurvived:0} Knowledge · exposure +{exposure:0.#}" );
 		Build?.BarracksHealAfterNight();
 		Defenders?.RebuildFromSave();
 		Build?.ClearDestroyedRemnants();
 		CureObjectives.EvaluateAndReward( this );
+		if ( _activeBossThreat && Save.PendingBossThreats?.Count > 0 )
+		{
+			Save.PendingBossThreats.RemoveAt( 0 );
+			Save.PendingBossThreatInFlight = false;
+			_activeBossThreat = false;
+		}
 		SaveManagerTouch();
 		Workers?.TryAutoRepairOnDayStart();
+		TryLaunchQueuedBossThreat();
 	}
 
 	public void BeginSeasonRecap( string summary )
@@ -442,6 +713,7 @@ public sealed class GameCore : Component
 
 	public void OnNightSurvived()
 	{
+		RecruitTakeoverController.Instance?.ExitTakeoverFully();
 		if ( IsCure ) return;
 		var progressBefore = NightUnlocks.ProgressNight( Save );
 		var survivedNight = Save.CurrentNight;
@@ -484,6 +756,7 @@ public sealed class GameCore : Component
 
 		Sfx.Play( Sfx.WaveClear );
 		Combat?.ClearAll();
+		HostileForceSystem.Instance?.ClearAll();
 		DayNightLighting.Instance?.SetNight( false );
 
 		PendingNightRecap = NightRecap.Build(
@@ -524,6 +797,7 @@ public sealed class GameCore : Component
 
 	public void OnCoreDestroyed()
 	{
+		RecruitTakeoverController.Instance?.ExitTakeoverFully();
 		if ( Phase == GamePhase.GameOver ) return;
 
 		if ( IsCure )
@@ -534,6 +808,7 @@ public sealed class GameCore : Component
 			ApplyFreshRunWorld();
 			Phase = GamePhase.GameOver;
 			Combat?.ClearAll();
+			HostileForceSystem.Instance?.ClearAll();
 			DayNightLighting.Instance?.SetNight( false );
 			Sfx.Play( Sfx.GameOver );
 			SaveManagerTouch();
@@ -550,6 +825,7 @@ public sealed class GameCore : Component
 
 		Phase = GamePhase.GameOver;
 		Combat?.ClearAll();
+		HostileForceSystem.Instance?.ClearAll();
 		DayNightLighting.Instance?.SetNight( false );
 		Sfx.Play( Sfx.GameOver );
 		SaveManagerTouch();
@@ -568,6 +844,7 @@ public sealed class GameCore : Component
 
 	public void ReturnToMenu()
 	{
+		RecruitTakeoverController.Instance?.ExitTakeoverFully();
 		if ( Phase == GamePhase.Victory && IsCure )
 		{
 			Save.HasStartedRun = false;
@@ -576,6 +853,7 @@ public sealed class GameCore : Component
 
 		ShopOpen = false;
 		SettingsOpen = false;
+		CreditsOpen = false;
 		LeaderboardOpen = false;
 		RecruitOpen = false;
 		WorkersOpen = false;
@@ -598,6 +876,34 @@ public sealed class GameCore : Component
 		ApplyFreshRunWorld();
 	}
 
+	/// <summary>
+	/// Respawns defenders / plot visuals / workers from the save.
+	/// Each step is isolated so one failure (e.g. rival plot visuals) cannot wipe the others.
+	/// </summary>
+	void RebuildUnitsFromSave()
+	{
+		void Step( string label, Action action )
+		{
+			try
+			{
+				action();
+			}
+			catch ( Exception e )
+			{
+				Log.Error( $"[FinalOutpost] Failed to rebuild {label} from save: {e.Message}\n{e.StackTrace}" );
+			}
+		}
+
+		Step( "defenders", () => Defenders?.RebuildFromSave() );
+		Step( "plots", () =>
+		{
+			Plots?.RebuildFromSave();
+			if ( IsCure )
+				RivalCivManager.EnsureSeeded( Save );
+		} );
+		Step( "workers", () => Workers?.RebuildFromSave() );
+	}
+
 	/// <summary>Rebuilds the live world from the current save after a wipe.</summary>
 	private void ApplyFreshRunWorld()
 	{
@@ -605,20 +911,18 @@ public sealed class GameCore : Component
 		DestructionFx.Clear();
 		Build?.ClearAll();
 		Repairs?.Clear();
-		Defenders?.RebuildFromSave();
-		Plots?.RebuildFromSave();
-		if ( IsCure )
-			RivalCivManager.EnsureSeeded( Save );
-		Workers?.RebuildFromSave();
+		_activeBossThreat = false;
 		Outpost?.Build( Upgrades );
 		Outpost?.ApplyUpgrades( Upgrades, healToFull: true );
-		// AUDIT FIX H1: wipes/prestiges clear SavedCoreHealth; continue/retry restore damage here.
 		Outpost?.LoadPersistedHealth( Save );
+		// Buildings must load before defenders derive Barracks positions.
 		Build?.LoadFromSave( Save );
 		TileOccupancy.RebuildAll();
+		RebuildUnitsFromSave();
 
 		ShopOpen = false;
 		SettingsOpen = false;
+		CreditsOpen = false;
 		LeaderboardOpen = false;
 		RecruitOpen = false;
 		WorkersOpen = false;
@@ -648,6 +952,9 @@ public sealed class GameCore : Component
 	public void OpenSettings() => SettingsOpen = true;
 	public void CloseSettings() => SettingsOpen = false;
 	public void ToggleSettings() => SettingsOpen = !SettingsOpen;
+
+	public void OpenCredits() => CreditsOpen = true;
+	public void CloseCredits() => CreditsOpen = false;
 
 	public void OpenLeaderboard() => LeaderboardOpen = true;
 	public void CloseLeaderboard() => LeaderboardOpen = false;
@@ -699,7 +1006,7 @@ public sealed class GameCore : Component
 	{
 		if ( Save.HideTutorialTips || WelcomePending || DailyPending
 			|| Phase == GamePhase.NightRecap || Phase == GamePhase.SeasonRecap
-			|| ShopOpen || SettingsOpen || LeaderboardOpen || RecruitOpen || WorkersOpen
+			|| ShopOpen || SettingsOpen || CreditsOpen || LeaderboardOpen || RecruitOpen || WorkersOpen
 			|| ExpeditionsOpen || MilestonesOpen || CatalogOpen || LegacyOpen
 			|| CureProgressOpen || TechTreeOpen )
 		{
@@ -708,6 +1015,10 @@ public sealed class GameCore : Component
 		}
 
 		if ( ActiveTutorialTip is not null )
+			return;
+
+		// Still in post-dismiss cool-down — keep the tip panel gone so the click feels like it worked.
+		if ( !_tipCooldown )
 			return;
 
 		if ( Phase is not GamePhase.Day and not GamePhase.Night )
@@ -756,10 +1067,16 @@ public sealed class GameCore : Component
 			Save.HideTutorialTips = true;
 			ObjectiveToast = "Tips hidden — press H to show again";
 			_toastHide = 3f;
+			_tipCooldown = 0f; // tips stay off; no next tip
+		}
+		else
+		{
+			// Brief pause so "Got it" clears the modal before the next tip appears.
+			_tipCooldown = 0.55f;
 		}
 
 		SaveManagerTouch();
-		RefreshTutorialTips();
+		// Do not RefreshTutorialTips here — OnUpdate will pick the next tip after the cool-down.
 	}
 
 	public void ToggleTutorialTipsHidden()

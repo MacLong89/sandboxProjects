@@ -7,8 +7,7 @@ public enum PlotKind
 	FoodCache,
 	SupplyDepot,
 	TechRuins,
-	NeutralCiv,
-	BossLair
+	NeutralCiv
 }
 
 public sealed class PlotFeatureDef
@@ -30,8 +29,7 @@ public static class PlotFeatureCatalog
 		new() { Kind = PlotKind.FoodCache, Name = "Food Cache", Icon = "restaurant", Description = "Rich farmland — large food payout when cleared.", MarkerTint = new Color( 0.45f, 0.85f, 0.4f ) },
 		new() { Kind = PlotKind.SupplyDepot, Name = "Supply Depot", Icon = "inventory_2", Description = "Abandoned stockpile — supplies and scrap when cleared.", MarkerTint = new Color( 0.85f, 0.65f, 0.35f ) },
 		new() { Kind = PlotKind.TechRuins, Name = "Tech Ruins", Icon = "biotech", Description = "Pre-collapse lab — clear for Knowledge to spend in the Tech Tree.", MarkerTint = new Color( 0.55f, 0.75f, 0.95f ) },
-		new() { Kind = PlotKind.NeutralCiv, Name = "Neighboring Colony", Icon = "location_city", Description = "Trade, ally (+Knowledge), or raid for resources.", MarkerTint = new Color( 0.7f, 0.55f, 0.9f ) },
-		new() { Kind = PlotKind.BossLair, Name = "Threat Nest", Icon = "pest_control", Description = "Clearing triggers a boss wave.", MarkerTint = new Color( 0.95f, 0.35f, 0.35f ) }
+		new() { Kind = PlotKind.NeutralCiv, Name = "Neighboring Colony", Icon = "location_city", Description = "Trade, ally for steady support, or raid for a one-time haul.", MarkerTint = new Color( 0.7f, 0.55f, 0.9f ) }
 	};
 }
 

@@ -46,9 +46,9 @@ public sealed class ThornsAtmosphericMusic : Component
 
 		if ( _music is { IsValid: true, IsPlaying: true } )
 		{
-			_music.Volume = Volume;
+			_music.Volume = Volume * Terraingen.UI.ThornsAudioSettings.EffectiveMusicVolume;
 			if ( _ambience.IsValid() )
-				_ambience.RuntimeVolumeMultiplier = WorldAmbienceDuckWhenMusic;
+				_ambience.RuntimeVolumeMultiplier = WorldAmbienceDuckWhenMusic * Terraingen.UI.ThornsAudioSettings.EffectiveMusicVolume;
 			return;
 		}
 
@@ -71,7 +71,7 @@ public sealed class ThornsAtmosphericMusic : Component
 		}
 
 		h.SpacialBlend = 0f;
-		h.Volume = Volume;
+		h.Volume = Volume * Terraingen.UI.ThornsAudioSettings.EffectiveMusicVolume;
 		_music = h;
 	}
 

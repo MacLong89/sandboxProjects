@@ -144,7 +144,7 @@ public sealed class AimboxPlayerData
 	static AimboxLoadoutData FreshLoadout( int index ) => new()
 	{
 		Name = $"Custom {index}",
-		PrimaryWeapon = AimboxWeaponId.Usp,
+		PrimaryWeapon = AimboxWeaponId.M4A1,
 		SecondaryWeapon = AimboxWeaponId.Usp,
 		Perk1 = AimboxPerkId.None,
 		Perk2 = AimboxPerkId.None,
@@ -184,7 +184,7 @@ public sealed class AimboxWeaponData
 public sealed class AimboxLoadoutData
 {
 	public string Name { get; set; } = "Custom 1";
-	public AimboxWeaponId PrimaryWeapon { get; set; } = AimboxWeaponId.Usp;
+	public AimboxWeaponId PrimaryWeapon { get; set; } = AimboxWeaponId.M4A1;
 	public AimboxWeaponId SecondaryWeapon { get; set; } = AimboxWeaponId.Usp;
 	public string LethalGrenade { get; set; } = "Frag";
 	public string TacticalGrenade { get; set; } = "Flash";

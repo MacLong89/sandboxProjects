@@ -86,6 +86,14 @@ public sealed partial class YaPlayerHud : PanelComponent, Component.INetworkSpaw
 	Panel _scoreboardRoot;
 	Panel _scoreboardRows;
 	YaControlsTutorialPanel _controlsTutorial;
+	YaOnboardingTipPanel _onboardingTipPanel;
+	YaOnboardingTipDef _activeOnboardingTip;
+	int _onboardingStepIndex;
+	string _onboardingSoftDismissedId;
+	float _onboardingMoveAccum;
+	float _onboardingStepVisibleSeconds;
+	bool _onboardingControlsKeySeen;
+	YaGameState _onboardingLastMatchState = YaGameState.Lobby;
 	Panel _practiceChoiceRoot;
 	Panel _paranoiaBrightnessOverlay;
 	Panel _paranoiaBrightnessOverlayExtra;
@@ -115,9 +123,6 @@ public sealed partial class YaPlayerHud : PanelComponent, Component.INetworkSpaw
 	Guid _lastAloneConnectionId;
 	double _nextFeedThrottle;
 	double _roundStartAnnouncementEndAt;
-	double _onboardingAutoHideAt;
-	bool _onboardingAutoShown;
-	bool _onboardingDismissedByInput;
 	int _localKillStreak;
 	int _lastHeartbeatSecond = -1;
 	double _lastRoundVictorySoundAt = -999;
@@ -354,26 +359,117 @@ public sealed partial class YaPlayerHud : PanelComponent, Component.INetworkSpaw
 		PushFloatingMessageToQueue( text );
 	}
 
-	void TryShowFirstRunOnboarding()
+	void RefreshOnboardingTips( bool canShow )
 	{
-		if ( _onboardingAutoShown || YaClientPrefs.HasSeenControlsTutorial )
+		if ( !canShow || YaClientPrefs.HideTutorialTips || YaClientPrefs.HasSeenControlsTutorial )
+		{
+			_activeOnboardingTip = null;
+			_onboardingTipPanel?.Apply( null );
 			return;
-		if ( !_controlsTutorial.IsValid() )
+		}
+
+		var tip = YaOnboardingTips.TipForStep( _onboardingStepIndex );
+		if ( tip is not null && string.Equals( tip.Id, _onboardingSoftDismissedId, StringComparison.Ordinal ) )
+			tip = null;
+
+		if ( tip?.Id == _activeOnboardingTip?.Id )
 			return;
 
-		_onboardingAutoShown = true;
-		_onboardingAutoHideAt = Time.Now + 8.0;
+		_activeOnboardingTip = tip;
+		_onboardingTipPanel?.Apply( tip );
 	}
 
-	void TryDismissOnboarding()
+	void TickOnboardingGoals( bool canTrack, bool inRoundClient, YaGameState? gs )
 	{
-		if ( !_onboardingAutoShown || _onboardingDismissedByInput )
-			return;
-		if ( !IsControlsTutorialHeld() && Time.Now < _onboardingAutoHideAt )
+		if ( !canTrack || YaClientPrefs.HideTutorialTips || YaClientPrefs.HasSeenControlsTutorial )
 			return;
 
-		_onboardingDismissedByInput = true;
-		YaClientPrefs.HasSeenControlsTutorial = true;
+		var tip = YaOnboardingTips.TipForStep( _onboardingStepIndex );
+		if ( tip is null )
+			return;
+
+		if ( !IsOnboardingGoalMet( tip.Id, inRoundClient, gs ) )
+			return;
+
+		CompleteOnboardingGoal( tip.Id );
+
+		if ( _onboardingStepIndex >= YaOnboardingTips.MaxStepIndex )
+		{
+			YaClientPrefs.HasSeenControlsTutorial = true;
+			return;
+		}
+
+		_onboardingStepIndex++;
+		_onboardingSoftDismissedId = null;
+		_onboardingStepVisibleSeconds = 0f;
+	}
+
+	bool IsOnboardingGoalMet( string goalId, bool inRoundClient, YaGameState? gs )
+	{
+		if ( IsControlsTutorialHeld() )
+			_onboardingControlsKeySeen = true;
+
+		return goalId switch
+		{
+			"welcome" => _onboardingStepVisibleSeconds >= 0.35f,
+			"move_look" => _onboardingMoveAccum >= 1.25f,
+			"objectives" => _onboardingControlsKeySeen
+			                || inRoundClient
+			                || ( gs is not null
+			                     && _onboardingLastMatchState != gs.CurrentState
+			                     && gs.CurrentState is YaGameState.InRound or YaGameState.RoundVictory or YaGameState.Intermission ),
+			"controls_key" => _onboardingControlsKeySeen && _onboardingStepVisibleSeconds >= 0.35f,
+			"done" => _onboardingStepVisibleSeconds >= 0.35f,
+			_ => false
+		};
+	}
+
+	void CompleteOnboardingGoal( string goalId )
+	{
+		if ( string.IsNullOrEmpty( goalId ) )
+			return;
+
+		if ( YaClientPrefs.OnboardingGoalsCompleted.Contains( goalId ) )
+			return;
+
+		YaClientPrefs.MarkGoalComplete( goalId );
+	}
+
+	internal void DismissOnboardingTip( bool hideAll = false )
+	{
+		if ( hideAll )
+		{
+			YaClientPrefs.HideTutorialTips = true;
+			YaClientPrefs.HasSeenControlsTutorial = true;
+			_activeOnboardingTip = null;
+			_onboardingSoftDismissedId = null;
+			_onboardingTipPanel?.Apply( null );
+			PushFloatingMessageToQueue( "Tips hidden — press H to show again" );
+			return;
+		}
+
+		if ( _activeOnboardingTip is not null )
+			_onboardingSoftDismissedId = _activeOnboardingTip.Id;
+
+		_activeOnboardingTip = null;
+		_onboardingTipPanel?.Apply( null );
+	}
+
+	void ToggleOnboardingTipsHidden()
+	{
+		YaClientPrefs.HideTutorialTips = !YaClientPrefs.HideTutorialTips;
+		if ( YaClientPrefs.HideTutorialTips )
+		{
+			_activeOnboardingTip = null;
+			_onboardingSoftDismissedId = null;
+			_onboardingTipPanel?.Apply( null );
+			PushFloatingMessageToQueue( "Tips hidden — press H to show again" );
+		}
+		else
+		{
+			PushFloatingMessageToQueue( "Tips enabled" );
+			_onboardingSoftDismissedId = null;
+		}
 	}
 
 	void ShowRoundStartAnnouncement( string text )
@@ -509,7 +605,6 @@ public sealed partial class YaPlayerHud : PanelComponent, Component.INetworkSpaw
 			ApplyDamageFlash( d, yaw );
 		}
 
-		TryShowFirstRunOnboarding();
 		InitializeUiManager();
 	}
 
@@ -744,6 +839,9 @@ public sealed partial class YaPlayerHud : PanelComponent, Component.INetworkSpaw
 
 		_controlsTutorial = Panel.AddChild<YaControlsTutorialPanel>();
 		_controlsTutorial.Style.Display = DisplayMode.None;
+
+		_onboardingTipPanel = Panel.AddChild<YaOnboardingTipPanel>();
+		_onboardingTipPanel.Hud = this;
 
 		_practiceChoiceRoot = Panel.AddChild<Panel>( "ya-practice-choice" );
 		_practiceChoiceRoot.Style.Display = DisplayMode.None;
@@ -1215,10 +1313,10 @@ public sealed partial class YaPlayerHud : PanelComponent, Component.INetworkSpaw
 		var roleHud = roleCmpHud.IsValid() ? roleCmpHud.Role : YaPlayerRole.Unassigned;
 
 		var isDead = health.IsValid() && health.IsDeadState;
-		var onboardingForcedVisible = _onboardingAutoShown && !_onboardingDismissedByInput && Time.Now < _onboardingAutoHideAt;
-		var controlsTutorialVisible = (IsControlsTutorialHeld() || onboardingForcedVisible)
-		                              && YaUiInputRouter.CanOpenControls;
-		TryDismissOnboarding();
+		if ( Input.Keyboard.Pressed( "h" ) || Input.Keyboard.Pressed( "H" ) )
+			ToggleOnboardingTipsHidden();
+
+		var controlsTutorialVisible = IsControlsTutorialHeld() && YaUiInputRouter.CanOpenControls;
 		var scoreboardVisible = IsScoreboardHeld() && !controlsTutorialVisible && YaUiInputRouter.CanOpenScoreboard;
 
 		var scene = GameObject.Scene;
@@ -1269,6 +1367,18 @@ public sealed partial class YaPlayerHud : PanelComponent, Component.INetworkSpaw
 
 		var showRoundVictory = gs is { IsValid: true, CurrentState: YaGameState.RoundVictory }
 		                       && !string.IsNullOrWhiteSpace( gs.RoundVictoryBannerHeadline );
+
+		var canShowOnboardingTips = !showPracticeChoice && !showDeathOverlay && !showRoundVictory
+		                            && !controlsTutorialVisible && !scoreboardVisible;
+		if ( canShowOnboardingTips )
+			_onboardingStepVisibleSeconds += Time.Delta;
+		if ( canShowOnboardingTips && Input.AnalogMove.Length > 0.08f )
+			_onboardingMoveAccum += Time.Delta;
+		TickOnboardingGoals( canShowOnboardingTips, inRoundClient, gs );
+		if ( gs is not null )
+			_onboardingLastMatchState = gs.CurrentState;
+		RefreshOnboardingTips( canShowOnboardingTips );
+		var showOnboardingTip = _activeOnboardingTip is not null;
 
 		if ( _roundVictoryRoot.IsValid() && _roundVictoryHeadline.IsValid() && _roundVictoryCountdown.IsValid() )
 		{
@@ -1403,7 +1513,8 @@ public sealed partial class YaPlayerHud : PanelComponent, Component.INetworkSpaw
 			showRoundStartAnnouncement,
 			soloLobby,
 			showFloatingMessages,
-			damageFeedbackActive || (inRoundClient && !spectatingInRound && !isDead) );
+			damageFeedbackActive || (inRoundClient && !spectatingInRound && !isDead),
+			showOnboardingTip );
 
 		TickUiManager( Time.Delta );
 

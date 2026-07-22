@@ -99,7 +99,8 @@ public static class GameBoot
 				Log.Info( $"[FinalOutpost] GameCore created — Instance={(GameCore.Instance is not null)} valid={core.IsValid()}" );
 			}
 
-			TryCreateLobby();
+			// Single-player: do not CreateLobby — a public/private lobby can leave the
+			// session in a networked state with a black screen / no main camera.
 			Log.Info( "[FinalOutpost] Boot finished." );
 		}
 		catch ( Exception e )
@@ -131,17 +132,18 @@ public static class GameBoot
 		_ = MeshPrimitives.Quad;
 		_ = MeshPrimitives.Cylinder;
 		_ = MeshPrimitives.Pyramid;
-		_ = StylizedMaterials.Grass;
-		_ = StylizedMaterials.Stone;
-		_ = StylizedMaterials.Wood;
-		_ = StylizedMaterials.Roof;
 		_ = AssetSafe.Model( CharacterModel.CitizenVmdl );
+
+		// Warm FO materials + verify every packaged mat/sound/UI path players need.
+		ContentShipGate.WarmAndVerify();
+
 		Log.Info( "[FinalOutpost] Core assets warmed." );
 	}
 
+	// Intentionally unused: this game is single-player (MaxPlayers 1). Creating a lobby
+	// was linked to black-screen boots; keep the helper for a future multiplayer path.
 	private static void TryCreateLobby()
 	{
-		// Lobby only makes sense inside a running game session.
 		if ( !Game.IsPlaying && !Game.InGame )
 			return;
 
@@ -154,7 +156,8 @@ public static class GameBoot
 			{
 				MaxPlayers = 1,
 				Name = "The Final Outpost",
-				Privacy = Sandbox.Network.LobbyPrivacy.Public
+				Privacy = Sandbox.Network.LobbyPrivacy.Private,
+				Hidden = true
 			} );
 		}
 		catch ( Exception e )
@@ -211,7 +214,7 @@ public static class GameBoot
 		fallbackCam.ZFar = 20000f;
 		fallbackCam.BackgroundColor = new Color( 0.55f, 0.78f, 0.95f );
 		fallbackCam.IsMainCamera = true;
-		camGo.WorldPosition = new Vector3( -600f, -600f, 900f );
+		camGo.WorldPosition = new Vector3( GameConstants.U( -600f ), GameConstants.U( -600f ), GameConstants.H( 900f ) );
 		camGo.WorldRotation = Rotation.From( new Angles( 55f, 45f, 0f ) );
 	}
 }

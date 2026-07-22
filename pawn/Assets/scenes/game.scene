@@ -1,0 +1,87 @@
+{
+  "__guid": "b7f2c1d0-0001-4001-8001-000000000001",
+  "GameObjects": [
+    {
+      "__guid": "b7f2c1d0-0001-4001-8001-000000000010",
+      "Flags": 0,
+      "Name": "Sun",
+      "Rotation": "-0.107,0.437,0.183,0.874",
+      "Tags": "light_directional,light",
+      "Enabled": true,
+      "Components": [
+        {
+          "__type": "Sandbox.DirectionalLight",
+          "__guid": "b7f2c1d0-0001-4001-8001-000000000011",
+          "FogMode": "Enabled",
+          "FogStrength": 0.1,
+          "LightColor": "1,0.86,0.62,1",
+          "Shadows": true,
+          "SkyColor": "0.72,0.62,0.48,1"
+        }
+      ]
+    },
+    {
+      "__guid": "b7f2c1d0-0001-4001-8001-000000000020",
+      "Flags": 0,
+      "Name": "2D Skybox",
+      "Tags": "skybox",
+      "Enabled": true,
+      "Components": [
+        {
+          "__type": "Sandbox.SkyBox2D",
+          "__guid": "b7f2c1d0-0001-4001-8001-000000000021",
+          "SkyMaterial": "materials/skybox/pawn_sky.vmat",
+          "Tint": "1.05,1,0.92,1"
+        },
+        {
+          "__type": "Sandbox.EnvmapProbe",
+          "__guid": "b7f2c1d0-0001-4001-8001-000000000022",
+          "Texture": "textures/cubemaps/default2.vtex",
+          "Bounds": {
+            "Mins": "-2048,-2048,-512",
+            "Maxs": "2048,2048,1024"
+          },
+          "DelayBetweenUpdates": 0.1,
+          "Feathering": 0.02,
+          "FrameInterval": 5,
+          "MaxDistance": 2048,
+          "Projection": "Sphere",
+          "RenderDynamically": true,
+          "TintColor": "1.04,1,0.94,1",
+          "UpdateStrategy": "OnEnabled",
+          "ZFar": 4096,
+          "ZNear": 16
+        }
+      ]
+    },
+    {
+      "__guid": "b7f2c1d0-0001-4001-8001-000000000030",
+      "Flags": 0,
+      "Name": "Boot",
+      "Enabled": true,
+      "Components": [
+        {
+          "__type": "PawnShop.GameManager",
+          "__guid": "b7f2c1d0-0001-4001-8001-000000000031"
+        }
+      ]
+    }
+  ],
+  "SceneProperties": {
+    "FixedUpdateFrequency": 50,
+    "MaxFixedUpdates": 5,
+    "NetworkFrequency": 60,
+    "NetworkInterpolation": true,
+    "ThreadedAnimation": true,
+    "TimeScale": 1,
+    "UseFixedUpdate": true,
+    "NavMesh": {
+      "Enabled": false
+    }
+  },
+  "Title": "game",
+  "Description": "Brass Buck Pawn",
+  "ResourceVersion": 1,
+  "__references": [],
+  "__version": 1
+}

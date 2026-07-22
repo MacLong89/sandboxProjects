@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("heights_hotel.tests")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+0779701508847f84ce2ad7ee3a5df8d4496ae0b7")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+7099a095f700d08f4e2d8fdbac7bf5bb35b2e9fe")]
 [assembly: System.Reflection.AssemblyProductAttribute("heights_hotel.tests")]
 [assembly: System.Reflection.AssemblyTitleAttribute("heights_hotel.tests")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

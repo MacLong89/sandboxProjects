@@ -1,0 +1,28 @@
+@using Sandbox.UI
+@using Dynasty.Core
+@using Dynasty.UI.Management
+@inherits Panel
+@namespace Dynasty.UI.Components
+@attribute [StyleSheet( "/Dynasty/UI/Components/TutorialTipModal.razor.scss" )]
+
+<root class="tutorial-tip-modal-root">
+	<div class="ui-modal-backdrop ui-anim-fade" style="@UiModalHelpers.ZIndexStyle( UiWindowType.TutorialTip )">
+		<div class="ui-modal-card tutorial-tip-modal" @onmousedown='@UiModalHelpers.StopPropagation'>
+			<Label class="modal-title">@Tip?.Title</Label>
+			<Label class="muted tip-body">@Tip?.Body</Label>
+			<div class="modal-actions spread">
+				<Button class="btn ghost" Text="Hide tips" onclick="@HideAllTips" />
+				<Button class="btn primary" Text="Got it" onclick="@DismissTip" />
+			</div>
+		</div>
+	</div>
+</root>
+
+@code
+{
+	TutorialTipDef Tip => DynastyUiManager.Instance.GetPayload<TutorialTipDef>( UiWindowType.TutorialTip )
+		?? DynastyTutorialTipsController.ActiveTip;
+
+	void DismissTip() => DynastyTutorialTipsController.Dismiss();
+	void HideAllTips() => DynastyTutorialTipsController.Dismiss( true );
+}

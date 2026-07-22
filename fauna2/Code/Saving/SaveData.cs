@@ -7,7 +7,7 @@ namespace Fauna2;
 /// </summary>
 public sealed class SaveData
 {
-	public const int CurrentVersion = 10;
+	public const int CurrentVersion = 14;
 
 	public int Version { get; set; } = CurrentVersion;
 	public long SavedAtUnix { get; set; }
@@ -41,8 +41,10 @@ public sealed class SaveData
 	public SaveVector3 OwnerPlayerPosition { get; set; } = new();
 
 	// ── Progression ─────────────────────────────────────────
-	/// <summary>Unified sequential goal index (0-based; tutorial = indices 0–7).</summary>
+	/// <summary>Unified sequential goal index (0-based; tutorial = indices 0–10).</summary>
 	public int ObjectiveIndex { get; set; }
+	/// <summary>Player opened Stats during the guest-ratings tutorial step.</summary>
+	public bool GuestRatingsReviewed { get; set; }
 	/// <summary>Deprecated — merged into ObjectiveIndex in save v10.</summary>
 	public int ChallengeIndex { get; set; }
 	public int LoginStreak { get; set; }

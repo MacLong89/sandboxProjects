@@ -1,0 +1,151 @@
+{
+  "__guid": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "GameObjects": [
+    {
+      "__guid": "b1000001-0000-4000-8000-000000000001",
+      "Flags": 0,
+      "Name": "NOFLY_Systems",
+      "Position": "0,0,0",
+      "Enabled": true,
+      "Components": [
+        {
+          "__type": "NoFly.GameBootstrap",
+          "__guid": "b1000001-0000-4000-8000-000000000010"
+        },
+        {
+          "__type": "NoFly.NoFlyGame",
+          "__guid": "b1000001-0000-4000-8000-000000000011",
+          "StartServer": true
+        },
+        {
+          "__type": "NoFly.AudioDirector",
+          "__guid": "b1000001-0000-4000-8000-000000000012"
+        }
+      ]
+    },
+    {
+      "__guid": "b1000001-0000-4000-8000-000000000002",
+      "Flags": 0,
+      "Name": "Sun",
+      "Rotation": "-0.0729315,0.4822396,0.1305433,0.8631827",
+      "Tags": "light_directional,light",
+      "Enabled": true,
+      "Components": [
+        {
+          "__type": "Sandbox.DirectionalLight",
+          "__guid": "b1000001-0000-4000-8000-000000000021",
+          "FogMode": "Enabled",
+          "FogStrength": 0.4,
+          "LightColor": "1,0.97,0.9,1",
+          "Shadows": true,
+          "SkyColor": "0.45,0.65,0.85,1"
+        },
+        {
+          "__type": "Sandbox.AmbientLight",
+          "__guid": "b1000001-0000-4000-8000-000000000022",
+          "Color": "0.35,0.38,0.42,1"
+        }
+      ]
+    },
+    {
+      "__guid": "b1000001-0000-4000-8000-000000000003",
+      "Flags": 0,
+      "Name": "2D Skybox",
+      "Tags": "skybox",
+      "Enabled": true,
+      "Components": [
+        {
+          "__type": "Sandbox.SkyBox2D",
+          "__guid": "b1000001-0000-4000-8000-000000000031",
+          "SkyMaterial": "materials/skybox/skybox_day_01.vmat",
+          "Tint": "1,1,1,1"
+        }
+      ]
+    },
+    {
+      "__guid": "b1000001-0000-4000-8000-000000000004",
+      "Flags": 0,
+      "Name": "NOFLY_HUD",
+      "Enabled": true,
+      "Components": [
+        {
+          "__type": "Sandbox.ScreenPanel",
+          "__guid": "b1000001-0000-4000-8000-000000000041"
+        },
+        {
+          "__type": "NoFly.NoFlyHud",
+          "__guid": "b1000001-0000-4000-8000-000000000042"
+        },
+        {
+          "__type": "NoFly.ForgeryPanel",
+          "__guid": "b1000001-0000-4000-8000-000000000043"
+        },
+        {
+          "__type": "NoFly.LuggageHidePanel",
+          "__guid": "b1000001-0000-4000-8000-000000000044"
+        },
+        {
+          "__type": "NoFly.DocumentInspectPanel",
+          "__guid": "b1000001-0000-4000-8000-000000000045"
+        },
+        {
+          "__type": "NoFly.ScannerPanel",
+          "__guid": "b1000001-0000-4000-8000-000000000046"
+        },
+        {
+          "__type": "NoFly.ShopPanel",
+          "__guid": "b1000001-0000-4000-8000-000000000047"
+        }
+      ]
+    },
+    {
+      "__guid": "b1000001-0000-4000-8000-000000000005",
+      "Flags": 0,
+      "Name": "NOFLY_Camera",
+      "Position": "-150,-280,180",
+      "Enabled": true,
+      "Components": [
+        {
+          "__type": "Sandbox.CameraComponent",
+          "__guid": "b1000001-0000-4000-8000-000000000051",
+          "BackgroundColor": "0.45,0.7,0.9,1",
+          "ClearFlags": "All",
+          "FieldOfView": 70,
+          "IsMainCamera": true,
+          "ZFar": 15000,
+          "ZNear": 5
+        },
+        {
+          "__type": "NoFly.PlayerCamera",
+          "__guid": "b1000001-0000-4000-8000-000000000052"
+        }
+      ]
+    }
+  ],
+  "SceneProperties": {
+    "FixedUpdateFrequency": 50,
+    "MaxFixedUpdates": 5,
+    "NetworkFrequency": 60,
+    "NetworkInterpolation": true,
+    "ThreadedAnimation": true,
+    "TimeScale": 1,
+    "UseFixedUpdate": true,
+    "NavMesh": {
+      "Enabled": false,
+      "IncludeStaticBodies": true,
+      "IncludeKeyframedBodies": true,
+      "EditorAutoUpdate": true,
+      "AgentHeight": 64,
+      "AgentRadius": 16,
+      "AgentStepSize": 18,
+      "AgentMaxSlope": 40,
+      "ExcludedBodies": "",
+      "IncludedBodies": ""
+    }
+  },
+  "Title": "nofly_airport",
+  "Description": "NO FLY — compact multiplayer airport party game",
+  "ResourceVersion": 1,
+  "__references": [],
+  "__version": 1
+}

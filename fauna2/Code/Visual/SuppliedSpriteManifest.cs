@@ -100,16 +100,28 @@ public static class SuppliedSpriteManifest
 	public static string PlayerAnimationDir( PlayerFacing facing ) =>
 		AnimationsRoot + $"player/{facing.ToKey()}/";
 
-	/// <summary>Per-variant walk/idle frames under models/animations/ (guest_sprite → guest/ for legacy art).</summary>
-	public static string GuestAnimationDir( int variantIndex = 0 )
+	/// <summary>Per-variant folder under models/animations/ (guest_sprite → guest/ for legacy art).</summary>
+	public static string GuestAnimationStem( int variantIndex = 0 )
 	{
 		var paths = GuestVariantSpritePaths;
 		var index = Math.Clamp( variantIndex, 0, paths.Length - 1 );
 		var stem = System.IO.Path.GetFileNameWithoutExtension( paths[index] );
-		var folder = stem.Equals( "guest_sprite", StringComparison.OrdinalIgnoreCase ) ? "guest" : stem;
-		return AnimationsRoot + $"{folder}/";
+		return stem.Equals( "guest_sprite", StringComparison.OrdinalIgnoreCase ) ? "guest" : stem;
 	}
 
+	/// <summary>Legacy flat guest anim dir (no facing subfolder).</summary>
+	public static string GuestAnimationDir( int variantIndex = 0 ) =>
+		AnimationsRoot + $"{GuestAnimationStem( variantIndex )}/";
+
+	/// <summary>4-direction guest anim dir when present.</summary>
+	public static string GuestAnimationDir( int variantIndex, PlayerFacing facing ) =>
+		AnimationsRoot + $"{GuestAnimationStem( variantIndex )}/{facing.ToKey()}/";
+
+	/// <summary>Legacy flat animal anim dir (no facing subfolder).</summary>
 	public static string AnimalAnimationDir( string stem ) =>
 		AnimationsRoot + $"animals/{stem}/";
+
+	/// <summary>4-direction animal anim dir when present.</summary>
+	public static string AnimalAnimationDir( string stem, PlayerFacing facing ) =>
+		AnimationsRoot + $"animals/{stem}/{facing.ToKey()}/";
 }

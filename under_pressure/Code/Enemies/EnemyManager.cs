@@ -161,6 +161,8 @@ public sealed class EnemyManager : Component
 		var core = GameCore.Instance;
 		if ( core is not null )
 		{
+			core.NotifyPestKilled();
+
 			var payout = def.Bounty * core.Upgrades.CashMultiplier * core.Upgrades.VanMultiplier * core.Prestige.Multiplier;
 			core.Wallet.Earn( payout );
 

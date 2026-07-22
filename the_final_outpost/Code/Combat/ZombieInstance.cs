@@ -11,6 +11,12 @@ public sealed class ZombieInstance
 	public float MaxHealth;
 	public float Damage;
 	public float Speed;
+	/// <summary>Seconds remaining of Oil Slick slow.</summary>
+	public float SlowRemain;
+	/// <summary>Move multiplier while slowed (e.g. 0.4).</summary>
+	public float SlowMult = 1f;
+	public float MoveMult => SlowRemain > 0f ? SlowMult : 1f;
+	public float EffectiveSpeed => Speed * MoveMult;
 	public float AttackTimer;
 	public float MoveStuckTimer;
 	/// <summary>Accumulated time with little or no movement progress.</summary>
@@ -63,6 +69,26 @@ public sealed class ZombieInstance
 		}
 
 		return false;
+	}
+
+	public void ApplySlow( float mult, float duration )
+	{
+		if ( Dead || duration <= 0f ) return;
+		mult = Math.Clamp( mult, 0.05f, 1f );
+		if ( SlowRemain <= 0f || mult < SlowMult )
+			SlowMult = mult;
+		SlowRemain = MathF.Max( SlowRemain, duration );
+	}
+
+	public void TickSlow( float dt )
+	{
+		if ( SlowRemain <= 0f ) return;
+		SlowRemain -= dt;
+		if ( SlowRemain <= 0f )
+		{
+			SlowRemain = 0f;
+			SlowMult = 1f;
+		}
 	}
 
 	public void RefreshLabel()

@@ -30,6 +30,7 @@ public static class Milestones
 		new() { Id = "night_20",    Title = "Unbreakable",   Icon = "bedtime",       Reward = 350,  Progress = s => s.BestNight, Goal = 20 },
 		new() { Id = "scrap_5k",    Title = "Scavenger",     Icon = "recycling",     Reward = 75,   Progress = s => (long)s.LifetimeEarned, Goal = 5000 },
 		new() { Id = "scrap_50k",   Title = "Hoarder",       Icon = "recycling",     Reward = 400,  Progress = s => (long)s.LifetimeEarned, Goal = 50000 },
+		new() { Id = "catalog_all", Title = "Field Guide",   Icon = "menu_book",     Reward = 150,  Progress = s => ZombieBestiary.DiscoveredCount( s ), Goal = ZombieCatalog.All.Count },
 	};
 
 	public static bool IsDone( SaveData s, string id ) => s?.MilestonesDone.Contains( id ) == true;

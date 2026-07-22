@@ -8,6 +8,8 @@ public sealed class HudHost : Component
 
 	protected override void OnStart()
 	{
+		UiVisible = true;
+
 		var screen = Components.GetOrCreate<ScreenPanel>();
 		screen.AutoScreenScale = true;
 		screen.ZIndex = 100;
@@ -41,6 +43,14 @@ public sealed class HudHost : Component
 		var mainCam = Scene.GetAllComponents<CameraComponent>().FirstOrDefault( c => c.IsMainCamera );
 		if ( mainCam.IsValid() && screen.TargetCamera != mainCam )
 			screen.TargetCamera = mainCam;
+
+		// After ScreenPanel/camera bind — same slot aimbox uses for SyncAfterUi.
+		TakeoverCursor.SyncAfterUi();
+	}
+
+	protected override void OnPreRender()
+	{
+		TakeoverCursor.Sync();
 	}
 
 	private void BindCamera( ScreenPanel screen )

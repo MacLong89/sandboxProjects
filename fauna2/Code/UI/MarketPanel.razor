@@ -264,7 +264,8 @@
 
 	private IEnumerable<AnimalDefinition> AdoptableAnimals()
 	{
-		IEnumerable<AnimalDefinition> query = Defs.Animals;
+		IEnumerable<AnimalDefinition> query = Defs.Animals
+			.Where( WorldSpriteCatalog.HasReadableCritterArt );
 
 		if ( _biomeFilter.HasValue )
 			query = query.Where( a => a.Biome == _biomeFilter.Value );
@@ -339,10 +340,27 @@
 
 	private void Adopt( AnimalDefinition def )
 	{
-		if ( !BuildValidation.IsUnlocked( def ) ) return;
+		if ( !BuildValidation.IsUnlocked( def ) )
+		{
+			UiState.PushToast( $"{def.DisplayName}: {BuildValidation.UnlockHint( def )}.", "lock" );
+			return;
+		}
+
+		var cost = AnimalSystem.Instance?.GetPurchaseCost( def ) ?? def.Cost;
+		if ( cost == 0 && BuildController.Instance?.TryAutoReleaseIntoHabitat( def ) == true )
+		{
+			UiState.Close();
+			UiState.PushToast( $"{def.DisplayName} released into your habitat — free welcome gift!", "pets" );
+			return;
+		}
 
 		UiState.CloseForPlacement();
 		BuildController.Instance?.BeginPlaceAnimal( def );
+		UiState.PushToast(
+			cost == 0
+				? "Click inside your habitat to release them (free)."
+				: $"Click inside a habitat to release {def.DisplayName}.",
+			"pets" );
 	}
 
 	private void Sell( AnimalComponent animal )
@@ -350,14 +368,7 @@
 		AnimalSystem.Instance?.RequestSellAnimal( animal.AnimalId );
 	}
 
-	private string LockText( AnimalDefinition def )
-	{
-		var needsPrestige = (ZooState.Instance?.Prestige ?? 0) < def.RequiredPrestige;
-		var text = $"Unlocks at level {def.UnlockLevel}";
-		if ( def.RequiredPrestige > 0 && needsPrestige )
-			text += $" + {def.RequiredPrestige} prestige";
-		return text;
-	}
+	private string LockText( AnimalDefinition def ) => BuildValidation.UnlockHint( def );
 
 	private static string FormatSpace( AnimalDefinition def ) =>
 		def.SpaceNeed >= 1000f ? $"{def.SpaceNeed / 1000f:0}k" : $"{def.SpaceNeed:0}";

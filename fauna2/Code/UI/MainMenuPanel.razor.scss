@@ -605,6 +605,19 @@ MainMenuPanel {
 		flex-shrink: 0;
 	}
 
+	.footer-actions {
+		flex-direction: row;
+		align-items: stretch;
+		gap: 12px;
+		width: 100%;
+
+		.menu-action {
+			flex: 1 1 0;
+			width: auto;
+			min-width: 0;
+		}
+	}
+
 	.menu-list {
 		flex-direction: column;
 		gap: 10px;
@@ -614,19 +627,6 @@ MainMenuPanel {
 		overflow: visible;
 		flex: 0 0 auto;
 		min-height: 0;
-	}
-
-	.save-row {
-		flex-direction: row;
-		align-items: stretch;
-		gap: 10px;
-		width: 100%;
-		flex-shrink: 0;
-
-		.menu-item {
-			flex-grow: 1;
-			min-width: 0;
-		}
 	}
 
 	.slot-badge {
@@ -647,32 +647,6 @@ MainMenuPanel {
 		font-size: 22px;
 		color: #7bc96f;
 		flex-shrink: 0;
-	}
-
-	.delete-btn {
-		flex-direction: row;
-		align-items: center;
-		justify-content: center;
-		width: 48px;
-		flex-shrink: 0;
-		border-radius: 12px;
-		background: rgba(255, 255, 255, 0.03);
-		border: 1px solid rgba(255, 255, 255, 0.08);
-		cursor: pointer;
-		@include ui-transition;
-
-		.icon { font-size: 20px; color: rgba(255, 138, 128, 0.85); transition: color $ui-fast $ui-ease; }
-
-		&:hover {
-			background: rgba(220, 80, 70, 0.16);
-			border-color: rgba(220, 80, 70, 0.42);
-			.icon { color: white; }
-		}
-
-		&:active {
-			transform: scale(0.96);
-			background: rgba(220, 80, 70, 0.28);
-		}
 	}
 
 	.menu-row {

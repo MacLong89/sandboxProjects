@@ -24,6 +24,9 @@ public sealed class ThornsVictoryManager : Component
 	readonly Dictionary<string, string> _lastGuildLeader = new( StringComparer.OrdinalIgnoreCase );
 	readonly List<ThornsVictoryLeadershipChangeDto> _leadershipChanges = new();
 
+	readonly Dictionary<string, HashSet<string>> _claimedMilestones = new( StringComparer.Ordinal );
+	readonly Dictionary<string, HashSet<string>> _completedPaths = new( StringComparer.Ordinal );
+
 	bool _dirty;
 	TimeSince _pushDebounce;
 
@@ -93,6 +96,8 @@ public sealed class ThornsVictoryManager : Component
 		_lastPlayerLeader.Clear();
 		_lastGuildLeader.Clear();
 		_leadershipChanges.Clear();
+		_claimedMilestones.Clear();
+		_completedPaths.Clear();
 
 		if ( dto is null )
 			return;
@@ -141,7 +146,32 @@ public sealed class ThornsVictoryManager : Component
 			}
 		}
 
+		ImportStringSetMap( dto.ClaimedMilestonesByAccount, _claimedMilestones );
+		ImportStringSetMap( dto.CompletedPathsByAccount, _completedPaths );
+
 		Log.Info( $"[Thorns Victory] Restored progress for {_playerProgress.Count} player(s), {_guildProgress.Count} guild(s)." );
+	}
+
+	static void ImportStringSetMap( Dictionary<string, List<string>> source, Dictionary<string, HashSet<string>> dest )
+	{
+		if ( source is null )
+			return;
+
+		foreach ( var (key, values) in source )
+		{
+			if ( string.IsNullOrWhiteSpace( key ) || values is null )
+				continue;
+
+			var set = new HashSet<string>( StringComparer.OrdinalIgnoreCase );
+			foreach ( var value in values )
+			{
+				if ( !string.IsNullOrWhiteSpace( value ) )
+					set.Add( value );
+			}
+
+			if ( set.Count > 0 )
+				dest[key] = set;
+		}
 	}
 
 	public ThornsVictoryPersistentStateDto ExportPersistent()
@@ -165,8 +195,24 @@ public sealed class ThornsVictoryManager : Component
 					PreviousLeaderScopeKey = c.PreviousLeaderScopeKey,
 					TimestampUtc = c.TimestampUtc
 				} )
-				.ToList()
+				.ToList(),
+			ClaimedMilestonesByAccount = ExportStringSetMap( _claimedMilestones ),
+			CompletedPathsByAccount = ExportStringSetMap( _completedPaths )
 		};
+	}
+
+	static Dictionary<string, List<string>> ExportStringSetMap( Dictionary<string, HashSet<string>> source )
+	{
+		var result = new Dictionary<string, List<string>>( StringComparer.Ordinal );
+		foreach ( var (key, set) in source )
+		{
+			if ( string.IsNullOrWhiteSpace( key ) || set is null or { Count: 0 } )
+				continue;
+
+			result[key] = set.OrderBy( v => v, StringComparer.OrdinalIgnoreCase ).ToList();
+		}
+
+		return result;
 	}
 
 	public void HostReportSource( string accountKey, string sourceKey, int amount = 1 )
@@ -199,9 +245,96 @@ public sealed class ThornsVictoryManager : Component
 		}
 
 		perPath.TryGetValue( pathId, out var current );
-		perPath[pathId] = current + delta;
+		var next = current + delta;
+		perPath[pathId] = next;
 		_dirty = true;
 		TryRecordLeadershipChange( pathId, scope );
+
+		if ( scope == ThornsVictoryScope.Player )
+			HostTryClaimMilestones( pathId, scopeKey, current, next );
+	}
+
+	void HostTryClaimMilestones( string pathId, string accountKey, long previous, long current )
+	{
+		if ( string.IsNullOrWhiteSpace( accountKey ) || !ThornsVictoryPathCatalog.TryGet( pathId, out var def ) )
+			return;
+
+		if ( !_claimedMilestones.TryGetValue( accountKey, out var claimed ) )
+		{
+			claimed = new HashSet<string>( StringComparer.OrdinalIgnoreCase );
+			_claimedMilestones[accountKey] = claimed;
+		}
+
+		var gameplay = FindGameplayByAccount( accountKey );
+		foreach ( var milestone in def.Milestones.OrderBy( m => m.Threshold ) )
+		{
+			if ( milestone is null || milestone.Threshold <= previous || milestone.Threshold > current )
+				continue;
+
+			var claimKey = $"{pathId}:{milestone.MilestoneId}";
+			if ( !claimed.Add( claimKey ) )
+				continue;
+
+			var xp = ResolveMilestoneXp( milestone.Threshold, def.TargetProgress );
+			if ( gameplay is not null )
+			{
+				gameplay.HostGrantXp( xp );
+				gameplay.PushMilestoneToastToOwner( milestone.Title, xp );
+				if ( !string.IsNullOrWhiteSpace( milestone.RewardPreview ) )
+					gameplay.PushClientToastToOwner( $"Victory reward: {milestone.RewardPreview}", "success", 6f );
+			}
+
+			Log.Info( $"[Thorns Victory] {accountKey} claimed {claimKey} (+{xp} XP)." );
+		}
+
+		if ( current < def.TargetProgress || previous >= def.TargetProgress )
+			return;
+
+		if ( !_completedPaths.TryGetValue( accountKey, out var completed ) )
+		{
+			completed = new HashSet<string>( StringComparer.OrdinalIgnoreCase );
+			_completedPaths[accountKey] = completed;
+		}
+
+		if ( !completed.Add( pathId ) )
+			return;
+
+		const int completionXp = 1000;
+		if ( gameplay is not null )
+		{
+			gameplay.HostGrantXp( completionXp );
+			gameplay.PushMilestoneToastToOwner( $"{def.DisplayName} Complete", completionXp );
+			gameplay.PushClientToastToOwner(
+				$"Path complete: {def.DisplayName}. Your mark on this world endures.",
+				"success",
+				8f );
+		}
+
+		ThornsWorldPersistence.RequestImmediateSave();
+		Log.Info( $"[Thorns Victory] {accountKey} completed path {pathId}." );
+	}
+
+	static int ResolveMilestoneXp( long threshold, long target )
+	{
+		if ( target <= 0 )
+			return 100;
+
+		var fraction = Math.Clamp( threshold / (float)target, 0.05f, 1f );
+		return Math.Max( 50, (int)MathF.Round( 200f * fraction ) );
+	}
+
+	static ThornsPlayerGameplay FindGameplayByAccount( string accountKey )
+	{
+		if ( string.IsNullOrWhiteSpace( accountKey ) )
+			return null;
+
+		foreach ( var gameplay in Game.ActiveScene?.GetAllComponents<ThornsPlayerGameplay>() ?? Array.Empty<ThornsPlayerGameplay>() )
+		{
+			if ( gameplay.IsValid() && string.Equals( gameplay.AccountKey, accountKey, StringComparison.Ordinal ) )
+				return gameplay;
+		}
+
+		return null;
 	}
 
 	public ThornsVictorySnapshot BuildSnapshotFor( string accountKey, string selectedPathId = null )

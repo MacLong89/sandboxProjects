@@ -3,8 +3,9 @@
 When `GameConstants.UseNightCombatMusicLoop` is **true** (default):
 
 - During `GamePhase.Night` only, `combat.mp3` and `combat2.mp3` loop together via `MusicPlayer`.
-- **All other audio is suppressed during night** — gunfire, impacts, wave start, UI clicks, etc.
-  (`Sfx.Play` / `Sfx.TryPlay` return early while phase is Night).
+- Most gameplay SFX is suppressed during night (gunfire, impacts, purchases).
+- **Exceptions still play under the music bed:** wave start, wave clear, game over, and UI clicks
+  (`Sfx.AllowedDuringNightMusic`).
 - Day ambience, night recap, menu, and post-wave sounds behave as before once phase leaves Night.
 
 ## Revert
@@ -29,7 +30,7 @@ Optionally remove `NightCombatMusicPlayer` from `OutpostBootstrap` — not requi
 |------|------|
 | `Code/Core/NightCombatMusicPlayer.cs` | Dual loop playback |
 | `Code/Core/GameConstants.cs` | `UseNightCombatMusicLoop` toggle |
-| `Code/Core/Sfx.cs` | Blocks non-loop sounds at night |
+| `Code/Core/Sfx.cs` | Blocks most non-loop sounds at night |
 | `Code/Networking/OutpostBootstrap.cs` | Spawns component |
 
 Required assets: `Assets/sounds/fo_ambience.sound`, `Assets/sounds/fo_combat.sound`, `Assets/sounds/fo_combat2.sound` (each references the matching mp3).

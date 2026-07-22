@@ -7,7 +7,7 @@ using Terraingen.Player;
 /// <summary>Versioned world save load/save with migration hooks.</summary>
 public static class ThornsSaveFormat
 {
-	public const int CurrentVersion = 12;
+	public const int CurrentVersion = 13;
 
 	public static ThornsPersistentWorldDto CreateEmpty() => new()
 	{
@@ -27,7 +27,8 @@ public static class ThornsSaveFormat
 		PlayerMapsByAccountKey = new Dictionary<string, ThornsPersistentPlayerMapDto>(),
 		VictoryState = new ThornsVictoryPersistentStateDto(),
 		NpcGuild = new ThornsPersistentNpcGuildDto(),
-		NpcGuilds = new List<ThornsPersistentNpcGuildDto>()
+		NpcGuilds = new List<ThornsPersistentNpcGuildDto>(),
+		DeathCrates = new List<ThornsPersistentDeathCrateDto>()
 	};
 
 	public static bool TryLoad( string relativePath, out ThornsPersistentWorldDto dto, out string error )
@@ -109,6 +110,9 @@ public static class ThornsSaveFormat
 		loaded.VictoryState.LastPlayerLeaderByPath ??= new Dictionary<string, string>();
 		loaded.VictoryState.LastGuildLeaderByPath ??= new Dictionary<string, string>();
 		loaded.VictoryState.LeadershipChanges ??= new List<ThornsVictoryLeadershipChangePersistentDto>();
+		loaded.DeathCrates ??= new List<ThornsPersistentDeathCrateDto>();
+		loaded.VictoryState.ClaimedMilestonesByAccount ??= new Dictionary<string, List<string>>();
+		loaded.VictoryState.CompletedPathsByAccount ??= new Dictionary<string, List<string>>();
 
 		if ( loaded.Version < 4 )
 		{
@@ -175,6 +179,15 @@ public static class ThornsSaveFormat
 
 		if ( loaded.Version < 12 )
 			loaded.Version = 12;
+
+		if ( loaded.Version < 13 )
+		{
+			loaded.DeathCrates ??= new List<ThornsPersistentDeathCrateDto>();
+			loaded.VictoryState ??= new ThornsVictoryPersistentStateDto();
+			loaded.VictoryState.ClaimedMilestonesByAccount ??= new Dictionary<string, List<string>>();
+			loaded.VictoryState.CompletedPathsByAccount ??= new Dictionary<string, List<string>>();
+			loaded.Version = 13;
+		}
 
 		loaded.NpcGuild ??= new ThornsPersistentNpcGuildDto();
 		loaded.NpcGuilds ??= new List<ThornsPersistentNpcGuildDto>();

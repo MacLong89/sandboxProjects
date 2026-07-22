@@ -65,7 +65,7 @@ public sealed class AnimalSystem : Component
 			return;
 		}
 
-		if ( AnimalRegistry.Count >= PlotSystem.Instance.AnimalCap )
+		if ( AnimalRegistry.Count >= (PlotSystem.Instance?.AnimalCap ?? int.MaxValue) )
 		{
 			state.Notify( "Animal capacity reached — buy more land!", "warning" );
 			return;
@@ -108,7 +108,7 @@ public sealed class AnimalSystem : Component
 		CollectionSystem.Instance?.OnAnimalAcquired( animal, bred: false );
 		state.Notify( $"{animal.AnimalName} the {def.DisplayName} joined the zoo!", "pets" );
 
-		ZooSoundNetwork.PlayPlaceForAll();
+		ZooSoundNetwork.PlayAnimalPlacedForAll( Defs.IdOf( def ), animal.GameObject.WorldPosition );
 	}
 
 	/// <summary>Client asks to move an animal to another habitat (or relocate within one).</summary>
@@ -223,7 +223,7 @@ public sealed class AnimalSystem : Component
 		if ( animal is null ) return false;
 
 		CollectionSystem.Instance?.OnAnimalAcquired( animal, bred: false );
-		ZooSoundNetwork.PlayPlaceForAll();
+		ZooSoundNetwork.PlayAnimalPlacedForAll( Defs.IdOf( def ), animal.GameObject.WorldPosition );
 		return true;
 	}
 }

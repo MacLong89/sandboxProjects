@@ -106,7 +106,21 @@ public static class AimboxMetaNavigation
 			screen = AimboxMetaScreen.PostMatch;
 
 		CurrentScreen = screen;
+		TrackOnboardingNavigation( screen );
 		ApplyPresentationState();
+	}
+
+	static void TrackOnboardingNavigation( AimboxMetaScreen screen )
+	{
+		switch ( screen )
+		{
+			case AimboxMetaScreen.ModeSelect:
+				AimboxOnboardingTips.NotifyPlayLobbyVisited();
+				break;
+			case AimboxMetaScreen.CreateClass:
+				AimboxOnboardingTips.NotifyLoadoutsVisited();
+				break;
+		}
 	}
 
 	public static void Close()

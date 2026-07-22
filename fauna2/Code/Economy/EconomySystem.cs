@@ -40,7 +40,13 @@ public sealed class EconomySystem : Component
 		var revenue = GuestRevenue.PerSecond( guests.GuestCount, guests.Satisfaction )
 			* (SanctuaryEventSystem.Instance?.IncomeMultiplier ?? 1f)
 			* deltaSeconds;
-		var expense = (ZooOperatingCosts.PerSecond() + (StaffSystem.Instance?.PayrollPerMinute ?? 0) / 60f) * deltaSeconds;
+		// Starter layout opens guest access immediately. Defer ops until the sanctuary
+		// has a resident or paying guests so the first minutes are not a false drain.
+		var operationsOpen = PathNetwork.HasGuestAccess
+			&& (AnimalRegistry.Count > 0 || guests.GuestCount > 0);
+		var expense = operationsOpen
+			? (ZooOperatingCosts.PerSecond() + (StaffSystem.Instance?.PayrollPerMinute ?? 0) / 60f) * deltaSeconds
+			: 0f;
 
 		ApplyRevenue( state, revenue );
 		ApplyExpense( state, expense );

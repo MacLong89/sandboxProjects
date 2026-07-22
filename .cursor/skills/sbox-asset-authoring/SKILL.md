@@ -24,11 +24,13 @@ This repo’s harness lives at `tools/sbox-asset-harness/`.
 
 ## Always
 
-1. No invented `.vmdl` / `.vmat` paths
+1. No invented `.vmdl` / `.vmat` paths — prefer paths under `shared_assets/Assets/` when present
 2. Update `tools/sbox-asset-harness/catalog/*.catalog.json`
 3. Reuse game helpers or copy `tools/sbox-asset-harness/portable/SceneKit/`
 4. Ground contact + ±1 depth nudges
 5. Validate: `powershell -File tools/sbox-asset-harness/scripts/validate_catalog.ps1` (or the `.py` script if Python exists)
+6. Cross-game content library: `shared_assets/` (refresh via `tools/sbox-asset-harness/scripts/consolidate_shared_assets.ps1`)
+7. Generated quadrupeds: use `tools/sbox-asset-harness/docs/donor-free-creature-rigging.md`; scratch-v5 is the default, donor retargeting is a compatibility fallback
 
 ## Default look-dev project
 

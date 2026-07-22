@@ -30,6 +30,13 @@ public sealed class WildAttackSystem : Component
 	{
 		if ( IsProxy || !EncounterActive ) return;
 
+		// Same soft-lock guard as CatchSystem: wild destroyed/fled mid-encounter.
+		if ( _activeWild is null || !_activeWild.IsValid() || _activeWild.Fled )
+		{
+			CancelEncounterHost();
+			return;
+		}
+
 		var bar = BarPosition;
 		TimingBarMinigame.TickBar( ref bar, ref _barAscending, BarSpeed, Time.Delta );
 		BarPosition = bar;

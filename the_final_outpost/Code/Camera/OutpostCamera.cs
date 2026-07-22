@@ -13,7 +13,7 @@ public sealed class OutpostCamera : Component
 	private const float FixedPitch = 55f;
 
 	private CameraComponent _camera;
-	private float _distance = 950f;
+	private float _distance = GameConstants.CameraDefaultDistance;
 	private Vector3 _focus = Vector3.Zero;
 
 	protected override void OnAwake()
@@ -30,7 +30,7 @@ public sealed class OutpostCamera : Component
 	protected override void OnDestroy()
 	{
 		if ( Instance == this ) Instance = null;
-		Mouse.Visibility = MouseVisibility.Visible;
+		TakeoverCursor.ForceVisible( "OutpostCamera.OnDestroy" );
 	}
 
 	protected override void OnStart()
@@ -46,13 +46,16 @@ public sealed class OutpostCamera : Component
 
 		_focus = Vector3.Zero;
 		ApplyTransform();
-		Mouse.Visibility = MouseVisibility.Visible;
+		TakeoverCursor.ForceVisible( "OutpostCamera.OnStart" );
 		BindHudCamera();
 		Log.Info( $"[FinalOutpost] OutpostCamera ready pos={WorldPosition} rot={WorldRotation}" );
 	}
 
 	protected override void OnUpdate()
 	{
+		if ( RecruitTakeoverController.Instance?.BlocksIsometricCamera == true )
+			return;
+
 		var core = GameCore.Instance;
 		if ( core?.IsUiBlocking != true )
 		{
@@ -62,6 +65,15 @@ public sealed class OutpostCamera : Component
 
 		ApplyTransform();
 		BindHudCamera();
+	}
+
+	public void MakeMainCamera()
+	{
+		if ( _camera is null ) return;
+		_camera.IsMainCamera = true;
+		GameObject.Enabled = true;
+		BindHudCamera();
+		TakeoverCursor.ForceVisible( "OutpostCamera.MakeMainCamera" );
 	}
 
 	private void BindHudCamera()
@@ -103,18 +115,20 @@ public sealed class OutpostCamera : Component
 		// Middle-mouse drag pan.
 		if ( Input.Down( "Run" ) && Mouse.Delta.Length > 0.5f )
 		{
+			var sens = AudioSettings.CameraSensitivity;
 			var rot = Rotation.FromYaw( FixedYaw );
-			pan += -rot.Right * Mouse.Delta.x * 0.35f;
-			pan += rot.Forward.WithZ( 0f ).Normal * Mouse.Delta.y * 0.35f;
+			pan += -rot.Right * Mouse.Delta.x * 0.35f * sens;
+			pan += rot.Forward.WithZ( 0f ).Normal * Mouse.Delta.y * 0.35f * sens;
 		}
 
 		if ( pan.Length > 0.01f )
 		{
+			var sens = AudioSettings.CameraSensitivity;
 			var rot = Rotation.FromYaw( FixedYaw );
-			var move = rot * pan.WithZ( 0f ).Normal * GameConstants.CameraPanSpeed * Time.Delta;
+			var move = rot * pan.WithZ( 0f ).Normal * GameConstants.CameraPanSpeed * sens * Time.Delta;
 			_focus += move;
 
-			var limit = GameConstants.ActiveTerrainHalfExtent - 150f;
+			var limit = GameConstants.ActiveTerrainHalfExtent - GameConstants.U( 150f );
 			_focus = _focus.WithX( Math.Clamp( _focus.x, -limit, limit ) )
 				.WithY( Math.Clamp( _focus.y, -limit, limit ) );
 		}
@@ -125,7 +139,11 @@ public sealed class OutpostCamera : Component
 		var scroll = Input.MouseWheel.y;
 		if ( MathF.Abs( scroll ) < 0.01f ) return;
 
-		_distance = Math.Clamp( _distance - scroll * GameConstants.CameraZoomSpeed, GameConstants.CameraMinDistance, GameConstants.CameraMaxDistance );
+		var sens = AudioSettings.CameraSensitivity;
+		_distance = Math.Clamp(
+			_distance - scroll * GameConstants.CameraZoomSpeed * sens,
+			GameConstants.CameraMinDistance,
+			GameConstants.CameraMaxDistance );
 	}
 
 	private void ApplyTransform()

@@ -1,15 +1,8 @@
 namespace FinalOutpost;
 
-/// <summary>Night-gated unlocks derived from each asset's combat or utility strength.</summary>
+/// <summary>Survival night-gated unlocks. Fixed tables — not derived from scaled range/DPS.</summary>
 public static class NightUnlocks
 {
-	private const float TowerOrigin = 30f;
-	private const float TowerStep = 3.5f;
-	private const float RecruitOrigin = 16f;
-	private const float RecruitStep = 4f;
-	private const float RangePowerScale = 0.08f;
-	private const float MobileBonus = 3.5f;
-
 	/// <summary>Highest night reached this run (prep for night N means progress is at least N).</summary>
 	public static int ProgressNight( SaveData save ) =>
 		Math.Max( save?.CurrentNight ?? 1, save?.BestNight ?? 0 );
@@ -17,52 +10,66 @@ public static class NightUnlocks
 	public static bool IsUnlocked( SaveData save, int requiredNight ) =>
 		ProgressNight( save ) >= requiredNight;
 
+	/// <summary>Legacy helper for Cure season curves — design-unit range only.</summary>
 	public static float CombatPower( float dps, float range, bool mobile = false )
 	{
-		var power = dps;
-		power += Math.Max( 0f, range - CombatEconomy.ReferenceRange ) * RangePowerScale;
-		if ( mobile ) power += MobileBonus;
+		const float rangePowerScale = 0.08f;
+		const float mobileBonus = 3.5f;
+		var scale = MathF.Max( 0.01f, GameConstants.RangeScale );
+		var designRange = range / scale;
+		var designRef = CombatEconomy.ReferenceRangeDesign;
+		var power = dps + Math.Max( 0f, designRange - designRef ) * rangePowerScale;
+		if ( mobile ) power += mobileBonus;
 		return power;
 	}
 
-	public static int UnlockFromPower( float power, float origin, float step ) =>
-		Math.Clamp( 1 + (int)MathF.Floor( MathF.Max( 0f, power - origin ) / step ), 1, 25 );
-
-	public static int TowerUnlockNight( float dps, float range ) =>
-		UnlockFromPower( CombatPower( dps, range ), TowerOrigin, TowerStep );
-
-	public static int RecruitUnlockNight( float dps, float range ) =>
-		UnlockFromPower( CombatPower( dps, range, mobile: true ), RecruitOrigin, RecruitStep );
-
-	public static int BuildingUnlockNight( BuildableDef def ) => def.Role switch
+	public static int BuildingUnlockNight( BuildableDef def ) => def.Id switch
 	{
-		BuildingRole.Defense => TowerUnlockNight( def.Dps(), def.BaseRange ),
-		BuildingRole.Wall => 1,
-		BuildingRole.Management => TowerUnlockNight( 18f + def.BaseHp * 0.08f, CombatEconomy.ReferenceRange ),
+		BuildableId.WallPiece => 1,
+		BuildableId.GunTower => 1,
+		BuildableId.CannonTower => 1,
+		BuildableId.LongRangeTower => 6,
+		BuildableId.AmmoDepot => 8,
+		// N10+ cadence: one unlock every 2 nights (supports + late towers).
+		BuildableId.Spotlight => 10,
+		BuildableId.Hardpoint => 12,
+		BuildableId.RadioMast => 14,
+		BuildableId.Minefield => 16,
+		BuildableId.OilSlick => 18,
+		BuildableId.Artillery => 20,
+		BuildableId.Barracks => 2,
+		BuildableId.Lab => 1,
 		_ => 1
 	};
 
-	public static int RecruitUnlockNight( RecruitWeaponDef def ) =>
-		RecruitUnlockNight( def.BaseDps, def.Range );
+	public static int RecruitUnlockNight( RecruitWeaponDef def ) => def.Type switch
+	{
+		RecruitWeaponType.Pistol => 1,
+		RecruitWeaponType.Smg => 3,
+		RecruitWeaponType.AssaultRifle => 3,
+		RecruitWeaponType.Shotgun => 4,
+		RecruitWeaponType.Sniper => 6,
+		_ => 1
+	};
 
 	public static int WorkerUnlockNight( WorkerRole role ) => role switch
 	{
-		WorkerRole.Forager => RecruitUnlockNight( 14f, 0f ),
-		WorkerRole.Craftsman => RecruitUnlockNight( 22f, 0f ),
-		WorkerRole.Repairman => RecruitUnlockNight( 28f, 0f ),
-		WorkerRole.Farmer => RecruitUnlockNight( 16f, 0f ),
-		WorkerRole.Scholar => RecruitUnlockNight( 20f, 0f ),
-		WorkerRole.Operator => RecruitUnlockNight( 24f, 0f ),
-		WorkerRole.Medic => RecruitUnlockNight( 26f, 0f ),
-		WorkerRole.Merchant => RecruitUnlockNight( 22f, 0f ),
+		WorkerRole.Forager => 1,
+		WorkerRole.Craftsman => 99, // removed from Survival scrap-only economy
+		WorkerRole.Repairman => 2,
+		WorkerRole.Farmer => 1,
+		WorkerRole.Scholar => 2,
+		WorkerRole.Operator => 2,
+		WorkerRole.Medic => 3,
+		WorkerRole.Merchant => 3,
 		_ => 1
 	};
 
 	/// <summary>Short scout trips — moderate payout, low risk.</summary>
-	public static int ShortExpeditionNight => TowerUnlockNight( 34f, CombatEconomy.ReferenceRange );
+	public static int ShortExpeditionNight => 3;
 
 	/// <summary>Long expeditions — high payout, loss risk.</summary>
-	public static int LongExpeditionNight => TowerUnlockNight( 44f, 420f );
+	public static int LongExpeditionNight => 6;
 
 	public static bool IsBuildingUnlocked( SaveData save, BuildableId id )
 	{
@@ -99,12 +106,8 @@ public static class NightUnlocks
 		return IsUnlocked( save, LongExpeditionNight );
 	}
 
-	public static string UnlockLabel( SaveData save, int requiredNight )
-	{
-		if ( GameCore.Instance?.IsCure == true )
-			return CureUnlocks.UnlockLabel( requiredNight );
-		return $"Night {requiredNight}";
-	}
+	public static string UnlockLabel( SaveData save, int requiredNight ) =>
+		$"Night {requiredNight}";
 
 	public static bool IsBuildingUnlockedLegacy( SaveData save, BuildableId id ) =>
 		IsUnlocked( save, BuildingUnlockNight( BuildableCatalog.Get( id ) ) );

@@ -471,6 +471,96 @@ HudRoot {
 		}
 	}
 
+	// ── Onboarding tips (Final Outpost-style coach cards) ───
+	.tip-overlay {
+		position: absolute;
+		left: 0;
+		top: 0;
+		width: 100%;
+		height: 100%;
+		align-items: center;
+		justify-content: center;
+		padding: 24px;
+		background-color: rgba(8, 12, 10, 0.72);
+		pointer-events: all;
+		z-index: 800;
+
+		.tutorial-tip {
+			width: 440px;
+			max-width: calc(100% - 48px);
+			flex-direction: column;
+			align-items: center;
+			gap: 12px;
+			padding: 24px 28px 20px 28px;
+			background: rgba(10, 16, 10, 0.97);
+			border: 1px solid rgba(123, 201, 111, 0.42);
+			border-radius: 18px;
+
+			&.settling .btn {
+				opacity: 0.45;
+				pointer-events: none;
+			}
+		}
+
+		.tip-icon {
+			font-size: 36px;
+			color: #ffd166;
+		}
+
+		.tip-title {
+			font-size: 20px;
+			font-weight: 800;
+			color: #eef3ec;
+			text-align: center;
+		}
+
+		.tip-body {
+			font-size: 14px;
+			line-height: 1.55;
+			color: #c8d4c4;
+			text-align: left;
+			width: 100%;
+		}
+
+		.tip-actions {
+			flex-direction: row;
+			flex-wrap: wrap;
+			align-items: center;
+			justify-content: center;
+			gap: 8px;
+			margin-top: 6px;
+			width: 100%;
+		}
+
+		.btn {
+			padding: 8px 14px;
+			border-radius: 10px;
+			font-size: 13px;
+			font-weight: 700;
+			cursor: pointer;
+
+			&.primary {
+				background: rgba(123, 201, 111, 0.32);
+				color: #eef3ec;
+				&:hover { background: rgba(123, 201, 111, 0.46); }
+			}
+
+			&.secondary {
+				background: rgba(255, 209, 102, 0.18);
+				color: #ffe6a8;
+				border: 1px solid rgba(255, 209, 102, 0.35);
+				&:hover { background: rgba(255, 209, 102, 0.28); }
+			}
+
+			&.ghost {
+				background: transparent;
+				color: #9aab96;
+				border: 1px solid rgba(154, 171, 150, 0.35);
+				&:hover { color: #c8d4c4; border-color: rgba(200, 212, 196, 0.45); }
+			}
+		}
+	}
+
 	// ── Objective card (legacy) ─────────────────────────────
 	.objective-card {
 		position: absolute;
@@ -602,7 +692,7 @@ HudRoot {
 
 	.guest-alert {
 		position: absolute;
-		top: 188px;
+		top: 72px;
 		left: 24px;
 		width: 340px;
 		flex-direction: row;

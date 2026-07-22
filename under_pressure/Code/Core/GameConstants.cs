@@ -119,6 +119,8 @@ public static class GameConstants
 	public const int PestHitsUntilKnockout = 3;
 	/// <summary>Seconds the screen stays dark while the player is out cold.</summary>
 	public const float KnockoutBlackoutDuration = 2.8f;
+	/// <summary>Seconds after waking from a knockout during which pests won't attack.</summary>
+	public const float PostKnockoutGraceDuration = 10f;
 	/// <summary>Fraction of current cash lost when waking up from a pest swarm.</summary>
 	public const double KnockoutPenaltyPercent = 0.10;
 	public const double KnockoutPenaltyMin = 35;

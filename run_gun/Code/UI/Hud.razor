@@ -72,11 +72,31 @@
 					}
 				</div>
 
-					@if ( (Core.Save.TotalRuns < 2 || !Core.Save.HasCompletedTutorialRun) && Core.Run.DistanceMeters < 100f )
-					{
-						<div class="hint">GREEN grows or powers you · RED always kills crew · dodge walls</div>
-					}
 			</div>
+		}
+
+		@if ( Phase == GamePhase.Running && TutorialTip is not null && !Core.PowerPicks.IsOpen )
+		{
+			var tip = TutorialTip;
+			<div class="tip-overlay">
+				<div class="tip-backdrop"></div>
+				<div class="tip-card tutorial-tip">
+					<i class="icon tip-icon">@tip.Icon</i>
+					<div class="tip-title">@tip.Title</div>
+					<div class="tip-body">@tip.Body</div>
+					<div class="tip-actions">
+						<div class="tip-btn ghost" onclick="@HideAllTips">
+							<i class="icon">visibility_off</i><span>Hide tips</span>
+						</div>
+						<div class="tip-btn primary" onclick="@DismissTip"><span>Got it</span></div>
+					</div>
+				</div>
+			</div>
+		}
+
+		@if ( !string.IsNullOrEmpty( TipToast ) )
+		{
+			<div class="tip-toast">@TipToast</div>
 		}
 
 		@if ( Core.PowerPicks.IsOpen )
@@ -258,6 +278,8 @@
 	private GamePhase Phase => Core?.Phase ?? GamePhase.Start;
 	private bool ShopOpen => Core?.ShopOpen ?? false;
 	private bool CharacterSelectOpen => Core?.CharacterSelectOpen ?? false;
+	private TutorialTipDef TutorialTip => Core?.ActiveTutorialTip;
+	private string TipToast => Core?.TipToast ?? "";
 
 	private string Cash => GameConstants.FormatCash( Core?.Wallet.Cash ?? 0 );
 	private int SquadCount => Core?.Run.SquadInt ?? 0;
@@ -312,6 +334,8 @@
 	private void BuyFeatured() => Core?.BuyFeaturedUpgrade();
 	private void Prestige() => Core?.TryPrestige();
 	private void ChoosePick( PowerPickId id ) => Core?.ChoosePowerPick( id );
+	private void DismissTip() => Core?.DismissTutorialTip();
+	private void HideAllTips() => Core?.DismissTutorialTip( hideAll: true );
 	private void PickCharacter( string id )
 	{
 		if ( Characters.IsUnlocked( id ) ) Core?.SelectCharacter( id );
@@ -344,6 +368,8 @@
 			Core?.FeaturedUpgrade,
 			(int)(Core?.StatusBannerTime ?? 0),
 			Core?.Track?.CurrentBiomeIndex ?? 0,
-			(int)(Core?.Save.BestDistance ?? 0) )
+			(int)(Core?.Save.BestDistance ?? 0),
+			Core?.ActiveTutorialTip?.Id,
+			Core?.TipToast )
 	);
 }

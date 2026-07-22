@@ -300,8 +300,14 @@ public static class BuildingCollision
 			return false;
 
 		var radius = ResolveZombieAgentRadius( allow );
-		// Stand outside the rasterized cells with a little walkway clearance for corner skirting.
-		var pad = radius + MathF.Max( 12f, GameConstants.ZombieApproachStandoff * 0.5f );
+		// Stand outside the rasterized cells with walkway clearance for corner skirting.
+		// Command post gets extra pad so waypoints sit past the 2×2 cell exterior corner
+		// instead of dead on it (agents were grinding there when walking past HQ).
+		var isCore = blockHalf.x >= BuildGrid.CommandPostFootprint.x * 0.45f
+			&& blockHalf.y >= BuildGrid.CommandPostFootprint.y * 0.45f;
+		var pad = radius + MathF.Max( GameConstants.U( 12f ), GameConstants.ZombieApproachStandoff * 0.5f );
+		if ( isCore )
+			pad += GameConstants.CellSize * 0.45f;
 		var hx = blockHalf.x + pad;
 		var hy = blockHalf.y + pad;
 		var c = blockCenter;
@@ -337,10 +343,18 @@ public static class BuildingCollision
 		foreach ( var candidate in candidates )
 		{
 			var cand = candidate;
+			// Push core corners further radially so the stand point is clearly past the L-corner.
+			if ( isCore )
+			{
+				var radial = (cand - c).WithZ( 0f );
+				if ( radial.Length > 0.001f )
+					cand = c + radial.Normal * (radial.Length + GameConstants.CellSize * 0.35f);
+			}
+
 			if ( BlocksUnit( cand, ignorePerimeterWalls: probeAllow.IgnorePerimeterWalls, forZombieMelee: true, allow: probeAllow ) )
 			{
 				cand = EnsureClearStand(
-					candidate,
+					cand,
 					from,
 					radius,
 					probeAllow.IgnorePerimeterWalls,
@@ -352,7 +366,10 @@ public static class BuildingCollision
 				continue;
 
 			var leave = (cand - from).WithZ( 0f ).Length;
-			if ( leave < 14f )
+			var fromCoreDist = (from - c).WithZ( 0f ).Length;
+			var candCoreDist = (cand - c).WithZ( 0f ).Length;
+			// Reject tiny hops unless the waypoint is meaningfully further around/out from HQ.
+			if ( leave < 14f && candCoreDist <= fromCoreDist + 10f )
 				continue;
 
 			if ( SegmentHitsBlocker( from, cand, probeAllow ) )
@@ -364,6 +381,9 @@ public static class BuildingCollision
 
 			var clearsRest = !SegmentHitsBlocker( cand, goal, probeAllow );
 			var score = -via + (clearsRest ? 200f : 0f);
+			// Prefer corners that sit further from the blocker center (clearer of the L-corner).
+			if ( isCore )
+				score += MathF.Min( 40f, candCoreDist - fromCoreDist );
 			if ( score <= bestScore )
 				continue;
 
@@ -373,6 +393,46 @@ public static class BuildingCollision
 		}
 
 		return found;
+	}
+
+	/// <summary>
+	/// True when the agent has finished skirting the command-post AABB toward <paramref name="finalGoal"/>.
+	/// </summary>
+	public static bool HasClearedCoreSkirt( Vector3 pos, Vector3 detourGoal, Vector3 finalGoal, Vector3 corePos )
+	{
+		pos = pos.WithZ( 0f );
+		detourGoal = detourGoal.WithZ( 0f );
+		finalGoal = finalGoal.WithZ( 0f );
+		corePos = corePos.WithZ( 0f );
+
+		if ( (detourGoal - pos).Length <= 22f )
+			return true;
+
+		var half = BuildGrid.CommandPostZombieCollisionFootprint * 0.5f;
+		var clearPad = GameConstants.ZombiePathRadius + GameConstants.CellSize * 0.35f;
+		var outside =
+			MathF.Abs( pos.x - corePos.x ) > half.x + clearPad
+			|| MathF.Abs( pos.y - corePos.y ) > half.y + clearPad;
+		if ( !outside )
+			return false;
+
+		// On the goal's side of HQ (past the near faces), resume direct seek only if clear.
+		var toGoal = finalGoal - corePos;
+		var toPos = pos - corePos;
+		if ( MathF.Abs( toGoal.x ) >= MathF.Abs( toGoal.y ) )
+		{
+			if ( MathF.Sign( toGoal.x ) != 0 && MathF.Sign( toPos.x ) == MathF.Sign( toGoal.x )
+			     && MathF.Abs( toPos.x ) > half.x + clearPad * 0.5f )
+				return !SegmentHitsBlocker( pos, finalGoal, default );
+		}
+		else
+		{
+			if ( MathF.Sign( toGoal.y ) != 0 && MathF.Sign( toPos.y ) == MathF.Sign( toGoal.y )
+			     && MathF.Abs( toPos.y ) > half.y + clearPad * 0.5f )
+				return !SegmentHitsBlocker( pos, finalGoal, default );
+		}
+
+		return !SegmentHitsBlocker( pos, finalGoal, default );
 	}
 
 	static bool TryFirstBlockerAlong(
@@ -530,22 +590,30 @@ public static class BuildingCollision
 
 	/// <summary>
 	/// Can a projectile travel from origin to target without passing through a solid building?
-	/// Perimeter walls are ignored — towers and recruits shoot over the parapet.
+	/// Perimeter walls and scaffold wall pieces are ignored — defenses shoot through them.
 	/// The shooter's own cell is skipped so turrets aren't blinded by their tile.
 	/// </summary>
-	public static bool HasLineOfFire( Vector3 origin, Vector3 target, float targetMargin = 28f )
+	/// <param name="ignoreCellX">Optional placement cell to always skip (tower base when muzzle sticks past the edge).</param>
+	/// <param name="ignoreCellY">Optional placement cell Y paired with <paramref name="ignoreCellX"/>.</param>
+	public static bool HasLineOfFire(
+		Vector3 origin,
+		Vector3 target,
+		float targetMargin = 28f * GameConstants.TileScale,
+		int ignoreCellX = int.MinValue,
+		int ignoreCellY = int.MinValue )
 	{
 		origin = origin.WithZ( 0f );
 		target = target.WithZ( 0f );
 		var seg = target - origin;
 		var len = seg.Length;
-		if ( len < 8f ) return true;
+		if ( len < GameConstants.U( 8f ) ) return true;
 
 		BuildGrid.WorldToCell( origin, out var originX, out var originY );
+		var hasIgnoreCell = ignoreCellX != int.MinValue && ignoreCellY != int.MinValue;
 
 		var dir = seg / len;
-		var steps = Math.Max( 2, (int)(len / 32f) );
-		const float muzzleClearance = 22f;
+		var steps = Math.Max( 2, (int)(len / GameConstants.U( 32f )) );
+		var muzzleClearance = GameConstants.U( 22f );
 		for ( var i = 1; i < steps; i++ )
 		{
 			var distAlong = len * (i / (float)steps);
@@ -558,11 +626,13 @@ public static class BuildingCollision
 			if ( !BuildGrid.WorldToCell( sample, out var cellX, out var cellY ) )
 				continue;
 
-			// Don't treat the firing tile as an occluder.
+			// Don't treat the firing tile (or the shooter's placement cell) as an occluder.
 			if ( cellX == originX && cellY == originY )
 				continue;
+			if ( hasIgnoreCell && cellX == ignoreCellX && cellY == ignoreCellY )
+				continue;
 
-			if ( TileOccupancy.IsBuildingCell( cellX, cellY ) )
+			if ( TileOccupancy.BlocksLineOfFire( cellX, cellY ) )
 				return false;
 		}
 

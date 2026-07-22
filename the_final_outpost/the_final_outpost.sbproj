@@ -18,7 +18,7 @@
     "MaxPlayers": 1,
     "MinPlayers": 1,
     "TickRate": 50,
-    "GameNetworkType": "Multiplayer",
+    "GameNetworkType": "Singleplayer",
     "MapSelect": "Hidden",
     "MapList": [],
     "RankType": "Score",

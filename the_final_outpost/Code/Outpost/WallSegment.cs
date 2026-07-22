@@ -53,6 +53,7 @@ public sealed class WallSegment
 	{
 		if ( IsBroken || amount <= 0f ) return;
 
+		amount *= DefenseEffects.DamageTakenMultAt( Center );
 		Health = MathF.Max( 0f, Health - amount );
 		if ( IsBroken )
 			DestructionFx.Burst( Center.WithZ( 0f ), 1.15f );

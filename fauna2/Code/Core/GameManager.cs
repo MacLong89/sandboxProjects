@@ -58,7 +58,7 @@ public sealed class GameManager : Component, Component.INetworkListener
 	{
 		if ( !SaveHost.CanStartSession || GameStarted ) return;
 
-		UI.UiState.BeginSessionLoading();
+		UI.UiState.BeginSessionLoadingFresh();
 		ActiveSaveSlot = slotId;
 		SpawnZooCore();
 
@@ -91,12 +91,14 @@ public sealed class GameManager : Component, Component.INetworkListener
 	{
 		if ( !SaveHost.CanStartSession || GameStarted || profile is null ) return;
 
-		UI.UiState.BeginSessionLoading();
-		UI.UiState.RequestWelcomeIntroForNewZoo();
+		UI.UiState.BeginSessionLoadingFresh();
+		UI.UiState.RequestOnboardingForNewZoo();
 		ActiveSaveSlot = slotId;
 		SpawnZooCore();
 		SaveSystem.Instance.StartNewGame( profile, slotId );
 		FinishSessionStart();
+		// Catch-up / bootstrap must not leave a brand-new zoo at Level 2+.
+		SaveSystem.Instance?.ForceNewGameLevel();
 	}
 
 	private void FinishSessionStart()
@@ -107,6 +109,7 @@ public sealed class GameManager : Component, Component.INetworkListener
 		GameStarted = true;
 		PlotSystem.Instance?.EnsureStarterPlot();
 		GameSettings.Apply();
+		SocialSystem.ClaimPendingVisitorCredits();
 		SocialSystem.Instance?.OnVisitorJoined( Connection.Local );
 
 		if ( SaveSystem.Instance.IsValid() )
@@ -121,18 +124,13 @@ public sealed class GameManager : Component, Component.INetworkListener
 	/// <summary>Called once world visuals and the minimum loading time are ready.</summary>
 	public void OnSessionLoadingComplete()
 	{
-		ShowSessionWelcome();
-	}
-
-	private void ShowSessionWelcome()
-	{
 		if ( !SaveHost.CanStartSession )
 		{
 			UI.UiState.ReleaseStartupNotifications();
 			return;
 		}
 
-		UI.UiState.ShowWelcomeIntroIfNeeded();
+		UI.UiState.BeginOnboardingTips();
 	}
 
 	private void EnsureLocalPlayerReady()

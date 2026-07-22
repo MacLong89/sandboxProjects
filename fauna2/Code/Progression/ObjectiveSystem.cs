@@ -13,6 +13,7 @@ public enum ObjectiveAction
 	BuildAmenities,
 	BuildRestroom,
 	BuildRestaurant,
+	BuildShop,
 	StatsFinances,
 	Progression,
 	BreedHelp,
@@ -20,7 +21,9 @@ public enum ObjectiveAction
 	ExpandLand,
 	StatsOverview,
 	CatchHelp,
+	PlaceAnimal,
 	PrestigeHelp,
+	FindWildlife,
 }
 
 public sealed class ObjectiveDef
@@ -37,73 +40,82 @@ public static class ObjectiveRules
 {
 	public static bool IsComplete( int index ) => index switch
 	{
-		0 => (TerrainObstacleSystem.Instance?.TotalCleared ?? 0) >= 1,
-		1 => PathNetwork.HasEntrance,
-		2 => PathNetwork.HasGuestAccess,
-		3 => StarterGoalGuide.HasStarterSmallHabitat(),
-		4 => StarterGoalGuide.HasStarterAnimalPlaced(),
-		5 => PlaceableRegistry.RestroomCount > 0,
-		6 => PlaceableRegistry.RestaurantCount > 0,
-		7 => (GuestSystem.Instance?.GuestCount ?? 0) >= 10,
-		8 => (ZooState.Instance?.TotalAnimalsCaught ?? 0) > 0,
-		9 => (ZooState.Instance?.TotalAnimalsBred ?? 0) > 0,
-		10 => (PlotSystem.Instance?.PlotCount ?? 1) > 1,
-		11 => (CollectionSystem.Instance?.DiscoveredSpeciesCount ?? 0) >= 5,
-		12 => (CollectionSystem.Instance?.CompletionPercent ?? 0f) >= 50f,
-		13 => (GuestSystem.Instance?.ZooRating ?? 0f) >= 4f,
-		14 => (EconomySystem.Instance?.IncomePerMinute ?? 0f) > 0f,
-		15 => (GuestSystem.Instance?.GuestCount ?? 0) >= 100,
-		16 => (ZooState.Instance?.TotalAnimalsBred ?? 0) >= 5,
-		17 => (PlotSystem.Instance?.PlotCount ?? 1) >= 4,
-		18 => (CollectionSystem.Instance?.CompletionPercent ?? 0f) >= 99.5f,
+		0 => StarterGoalGuide.HasSpottedWildAnimal(),
+		1 => (ZooState.Instance?.TotalAnimalsCaught ?? 0) > 0,
+		2 => PathNetwork.HasEntrance,
+		3 => (TerrainObstacleSystem.Instance?.TotalCleared ?? 0) > 0,
+		4 => PathNetwork.HasGuestAccess,
+		5 => StarterGoalGuide.HasTutorialHabitat(),
+		6 => StarterGoalGuide.HasAnimalInHabitat(),
+		7 => PlaceableRegistry.RestroomCount > 0,
+		8 => PlaceableRegistry.RestaurantCount > 0,
+		9 => PlaceableRegistry.ShopCount > 0,
+		10 => ObjectiveSystem.Instance?.GuestRatingsReviewed == true,
+		11 => (GuestSystem.Instance?.GuestCount ?? 0) >= 10,
+		12 => (ZooState.Instance?.TotalAnimalsBred ?? 0) > 0,
+		13 => (PlotSystem.Instance?.PlotCount ?? 1) > 1,
+		14 => (CollectionSystem.Instance?.DiscoveredSpeciesCount ?? 0) >= 5,
+		15 => (CollectionSystem.Instance?.CompletionPercent ?? 0f) >= 50f,
+		16 => (GuestSystem.Instance?.ZooRating ?? 0f) >= 4f,
+		17 => (EconomySystem.Instance?.IncomePerMinute ?? 0f) > 0f,
+		18 => (GuestSystem.Instance?.GuestCount ?? 0) >= 100,
+		19 => (ZooState.Instance?.TotalAnimalsBred ?? 0) >= 5,
+		20 => (PlotSystem.Instance?.PlotCount ?? 1) >= 4,
+		21 => (CollectionSystem.Instance?.CompletionPercent ?? 0f) >= 99.5f,
 		_ => false,
 	};
 
 	public static float ProgressFraction( int index ) => index switch
 	{
-		0 => (TerrainObstacleSystem.Instance?.TotalCleared ?? 0) >= 1 ? 1f : 0f,
-		1 => PathNetwork.HasEntrance ? 1f : 0f,
-		2 => PathNetwork.HasGuestAccess ? 1f : 0f,
-		3 => StarterGoalGuide.HasStarterSmallHabitat() ? 1f : 0f,
-		4 => StarterGoalGuide.HasStarterAnimalPlaced() ? 1f : 0f,
-		5 => PlaceableRegistry.RestroomCount > 0 ? 1f : 0f,
-		6 => PlaceableRegistry.RestaurantCount > 0 ? 1f : 0f,
-		7 => MathX.Clamp( (GuestSystem.Instance?.GuestCount ?? 0) / 10f, 0f, 1f ),
-		8 => (ZooState.Instance?.TotalAnimalsCaught ?? 0) > 0 ? 1f : 0f,
-		9 => (ZooState.Instance?.TotalAnimalsBred ?? 0) > 0 ? 1f : 0f,
-		10 => (PlotSystem.Instance?.PlotCount ?? 1) > 1 ? 1f : 0f,
-		11 => MathX.Clamp( (CollectionSystem.Instance?.DiscoveredSpeciesCount ?? 0) / 5f, 0f, 1f ),
-		12 => MathX.Clamp( (CollectionSystem.Instance?.CompletionPercent ?? 0f) / 50f, 0f, 1f ),
-		13 => MathX.Clamp( (GuestSystem.Instance?.ZooRating ?? 0f) / 4f, 0f, 1f ),
-		14 => (EconomySystem.Instance?.IncomePerMinute ?? 0f) > 0f ? 1f : 0f,
-		15 => MathX.Clamp( (GuestSystem.Instance?.GuestCount ?? 0) / 100f, 0f, 1f ),
-		16 => MathX.Clamp( (ZooState.Instance?.TotalAnimalsBred ?? 0) / 5f, 0f, 1f ),
-		17 => MathX.Clamp( (PlotSystem.Instance?.PlotCount ?? 1) / 4f, 0f, 1f ),
-		18 => MathX.Clamp( (CollectionSystem.Instance?.CompletionPercent ?? 0f) / 99.5f, 0f, 1f ),
+		0 => StarterGoalGuide.HasSpottedWildAnimal() ? 1f : 0f,
+		1 => (ZooState.Instance?.TotalAnimalsCaught ?? 0) > 0 ? 1f : 0f,
+		2 => PathNetwork.HasEntrance ? 1f : 0f,
+		3 => (TerrainObstacleSystem.Instance?.TotalCleared ?? 0) > 0 ? 1f : 0f,
+		4 => PathNetwork.HasGuestAccess ? 1f : 0f,
+		5 => StarterGoalGuide.HasTutorialHabitat() ? 1f : 0f,
+		6 => StarterGoalGuide.HasAnimalInHabitat() ? 1f : 0f,
+		7 => PlaceableRegistry.RestroomCount > 0 ? 1f : 0f,
+		8 => PlaceableRegistry.RestaurantCount > 0 ? 1f : 0f,
+		9 => PlaceableRegistry.ShopCount > 0 ? 1f : 0f,
+		10 => ObjectiveSystem.Instance?.GuestRatingsReviewed == true ? 1f : 0f,
+		11 => MathX.Clamp( (GuestSystem.Instance?.GuestCount ?? 0) / 10f, 0f, 1f ),
+		12 => (ZooState.Instance?.TotalAnimalsBred ?? 0) > 0 ? 1f : 0f,
+		13 => (PlotSystem.Instance?.PlotCount ?? 1) > 1 ? 1f : 0f,
+		14 => MathX.Clamp( (CollectionSystem.Instance?.DiscoveredSpeciesCount ?? 0) / 5f, 0f, 1f ),
+		15 => MathX.Clamp( (CollectionSystem.Instance?.CompletionPercent ?? 0f) / 50f, 0f, 1f ),
+		16 => MathX.Clamp( (GuestSystem.Instance?.ZooRating ?? 0f) / 4f, 0f, 1f ),
+		17 => (EconomySystem.Instance?.IncomePerMinute ?? 0f) > 0f ? 1f : 0f,
+		18 => MathX.Clamp( (GuestSystem.Instance?.GuestCount ?? 0) / 100f, 0f, 1f ),
+		19 => MathX.Clamp( (ZooState.Instance?.TotalAnimalsBred ?? 0) / 5f, 0f, 1f ),
+		20 => MathX.Clamp( (PlotSystem.Instance?.PlotCount ?? 1) / 4f, 0f, 1f ),
+		21 => MathX.Clamp( (CollectionSystem.Instance?.CompletionPercent ?? 0f) / 99.5f, 0f, 1f ),
 		_ => 0f,
 	};
 
 	public static string ProgressLabel( int index ) => index switch
 	{
-		0 => (TerrainObstacleSystem.Instance?.TotalCleared ?? 0) > 0 ? "Cleared" : "0/1 cleared",
-		1 => PathNetwork.HasEntrance ? "Entrance built" : "Not placed",
-		2 => PathNetwork.HasGuestAccess ? "Paths connected" : "Not connected",
-		3 => StarterGoalGuide.HabitatProgressLabel(),
-		4 => StarterGoalGuide.AnimalProgressLabel(),
-		5 => PlaceableRegistry.RestroomCount > 0 ? "Restroom built" : "Not placed",
-		6 => PlaceableRegistry.RestaurantCount > 0 ? "Food stand built" : "Not placed",
-		7 => $"{GuestSystem.Instance?.GuestCount ?? 0}/10 guests",
-		8 => (ZooState.Instance?.TotalAnimalsCaught ?? 0) > 0 ? "Caught" : "Not yet",
-		9 => (ZooState.Instance?.TotalAnimalsBred ?? 0) > 0 ? "Bred" : "Not yet",
-		10 => (PlotSystem.Instance?.PlotCount ?? 1) > 1 ? "Expanded" : "1 plot",
-		11 => $"{CollectionSystem.Instance?.DiscoveredSpeciesCount ?? 0}/5 species",
-		12 => $"{CollectionSystem.Instance?.CompletionPercent ?? 0f:0}% / 50%",
-		13 => $"{GuestSystem.Instance?.ZooRating ?? 0f:0.0} / 4.0 stars",
-		14 => (EconomySystem.Instance?.IncomePerMinute ?? 0f) > 0f ? "Profitable" : "Still investing",
-		15 => $"{GuestSystem.Instance?.GuestCount ?? 0}/100 guests",
-		16 => $"{ZooState.Instance?.TotalAnimalsBred ?? 0}/5 bred",
-		17 => $"{PlotSystem.Instance?.PlotCount ?? 1}/4 plots",
-		18 => $"{CollectionSystem.Instance?.CompletionPercent ?? 0f:0}% / 100%",
+		0 => StarterGoalGuide.HasSpottedWildAnimal() ? "Spotted" : "Not yet",
+		1 => (ZooState.Instance?.TotalAnimalsCaught ?? 0) > 0 ? "Caught" : "Not yet",
+		2 => PathNetwork.HasEntrance ? "Entrance built" : "Not placed",
+		3 => (TerrainObstacleSystem.Instance?.TotalCleared ?? 0) > 0 ? "Cleared" : "Not yet",
+		4 => PathNetwork.HasGuestAccess ? "Paths connected" : "Not connected",
+		5 => StarterGoalGuide.HabitatProgressLabel(),
+		6 => StarterGoalGuide.AnimalProgressLabel(),
+		7 => PlaceableRegistry.RestroomCount > 0 ? "Restroom built" : "Not placed",
+		8 => PlaceableRegistry.RestaurantCount > 0 ? "Food stand built" : "Not placed",
+		9 => PlaceableRegistry.ShopCount > 0 ? "Shop built" : "Not placed",
+		10 => ObjectiveSystem.Instance?.GuestRatingsReviewed == true ? "Reviewed" : "Not yet",
+		11 => $"{GuestSystem.Instance?.GuestCount ?? 0}/10 guests",
+		12 => (ZooState.Instance?.TotalAnimalsBred ?? 0) > 0 ? "Bred" : "Not yet",
+		13 => (PlotSystem.Instance?.PlotCount ?? 1) > 1 ? "Expanded" : "1 plot",
+		14 => $"{CollectionSystem.Instance?.DiscoveredSpeciesCount ?? 0}/5 species",
+		15 => $"{CollectionSystem.Instance?.CompletionPercent ?? 0f:0}% / 50%",
+		16 => $"{GuestSystem.Instance?.ZooRating ?? 0f:0.0} / 4.0 stars",
+		17 => (EconomySystem.Instance?.IncomePerMinute ?? 0f) > 0f ? "Profitable" : "Still investing",
+		18 => $"{GuestSystem.Instance?.GuestCount ?? 0}/100 guests",
+		19 => $"{ZooState.Instance?.TotalAnimalsBred ?? 0}/5 bred",
+		20 => $"{PlotSystem.Instance?.PlotCount ?? 1}/4 plots",
+		21 => $"{CollectionSystem.Instance?.CompletionPercent ?? 0f:0}% / 100%",
 		_ => "",
 	};
 
@@ -114,8 +126,7 @@ public static class ObjectiveRules
 
 		var description = index switch
 		{
-			3 => StarterGoalGuide.HabitatGoalDescription(),
-			4 => StarterGoalGuide.AnimalGoalDescription(),
+			5 => StarterGoalGuide.HabitatGoalDescription(),
 			_ => ObjectiveSystem.Objectives[index].Description,
 		};
 
@@ -131,10 +142,19 @@ public sealed class ObjectiveSystem : Component
 {
 	public static ObjectiveSystem Instance { get; private set; }
 
-	/// <summary>Early goals teach core zoo setup; later goals extend into endgame.</summary>
-	public const int TutorialGoalCount = 8;
+	/// <summary>Core loop through amenities + ratings (indices 0–10).</summary>
+	public const int TutorialGoalCount = 11;
+
+	/// <summary>House-your-catch goal.</summary>
+	public const int PlaceAnimalGoalIndex = 6;
+
+	/// <summary>Open Stats / guest wants tip.</summary>
+	public const int GuestRatingsGoalIndex = 10;
 
 	[Sync( SyncFlags.FromHost )] public int CurrentIndex { get; set; }
+
+	/// <summary>True once the player opens Stats during the ratings tutorial step.</summary>
+	[Sync( SyncFlags.FromHost )] public bool GuestRatingsReviewed { get; set; }
 
 	private TimeUntil _nextCheck;
 
@@ -142,10 +162,17 @@ public sealed class ObjectiveSystem : Component
 	{
 		new()
 		{
-			Title = "Clear an obstacle",
-			Description = "Click a tree or rock, open its panel, and press Clear.",
-			RewardMoney = 200, RewardXp = 25,
-			Action = ObjectiveAction.ClearLand,
+			Title = "Find a wild animal",
+			Description = "Walk into the wilderness and get close to wildlife.",
+			RewardMoney = 100, RewardXp = 15,
+			Action = ObjectiveAction.FindWildlife,
+		},
+		new()
+		{
+			Title = "Catch a wild animal",
+			Description = "Press E near wildlife and time your catch on the green zone.",
+			RewardMoney = 400, RewardXp = 60,
+			Action = ObjectiveAction.CatchHelp,
 		},
 		new()
 		{
@@ -156,6 +183,13 @@ public sealed class ObjectiveSystem : Component
 		},
 		new()
 		{
+			Title = "Clear a tree or boulder",
+			Description = "Click a tree or rock on your land, then press Clear to open space for paths and buildings.",
+			RewardMoney = 150, RewardXp = 15,
+			Action = ObjectiveAction.ClearLand,
+		},
+		new()
+		{
 			Title = "Connect a path",
 			Description = "Lay path tiles from your entrance — at least one path must touch the entrance so guests can arrive.",
 			RewardMoney = 200, RewardXp = 20,
@@ -163,17 +197,17 @@ public sealed class ObjectiveSystem : Component
 		},
 		new()
 		{
-			Title = "Build your first habitat",
-			Description = "Place the small habitat that matches your starter biome.",
+			Title = "Build a habitat",
+			Description = "Place a habitat for your catch — match their biome when you can.",
 			RewardMoney = 500, RewardXp = 30,
 			Action = ObjectiveAction.BuildHabitats,
 		},
 		new()
 		{
-			Title = "Adopt your first animal",
-			Description = "Adopt a species that matches your habitat biome and size.",
+			Title = "House your animal",
+			Description = "Walk to your habitat and press E to release your catch into it.",
 			RewardMoney = 250, RewardXp = 40,
-			Action = ObjectiveAction.Market,
+			Action = ObjectiveAction.PlaceAnimal,
 		},
 		new()
 		{
@@ -191,17 +225,24 @@ public sealed class ObjectiveSystem : Component
 		},
 		new()
 		{
+			Title = "Build a gift shop",
+			Description = "Place a shop near your paths — guests love souvenirs and it earns extra income.",
+			RewardMoney = 250, RewardXp = 25,
+			Action = ObjectiveAction.BuildShop,
+		},
+		new()
+		{
+			Title = "Check guest ratings",
+			Description = "Open Stats to see your rating and what guests want next.",
+			RewardMoney = 150, RewardXp = 20,
+			Action = ObjectiveAction.StatsOverview,
+		},
+		new()
+		{
 			Title = "Welcome 10 guests",
 			Description = "Guests arrive through your entrance and bring ticket revenue.",
 			RewardMoney = 500, RewardXp = 60,
 			Action = ObjectiveAction.StatsGuests,
-		},
-		new()
-		{
-			Title = "Catch a wild animal",
-			Description = "Head into the wilderness, press E on wildlife, and time your catch.",
-			RewardMoney = 400, RewardXp = 60,
-			Action = ObjectiveAction.CatchHelp,
 		},
 		new()
 		{
@@ -294,8 +335,7 @@ public sealed class ObjectiveSystem : Component
 
 	public string GetGoalTitle( int index ) => index switch
 	{
-		3 => StarterGoalGuide.HabitatGoalTitle(),
-		4 => StarterGoalGuide.AnimalGoalTitle(),
+		5 => StarterGoalGuide.HabitatGoalTitle(),
 		_ => index >= 0 && index < Objectives.Count ? Objectives[index].Title : "",
 	};
 
@@ -356,8 +396,10 @@ public sealed class ObjectiveSystem : Component
 	{
 		if ( IsProxy || !_nextCheck ) return;
 		if ( GameManager.Instance is null || !GameManager.Instance.GameStarted ) return;
-		_nextCheck = 0.5f;
+		// Find-wildlife checks player proximity — tick a bit faster during that goal.
+		_nextCheck = CurrentIndex == 0 ? 0.2f : 0.5f;
 		TryAdvanceGoals();
+		UI.UiState.TryShowOnboardingTip();
 	}
 
 	private void TryAdvanceGoals( bool ignoreGameStarted = false )
@@ -375,7 +417,6 @@ public sealed class ObjectiveSystem : Component
 		if ( CurrentIndex < 0 || CurrentIndex >= Objectives.Count ) return;
 
 		var completedIndex = CurrentIndex;
-		var completedTitle = GetGoalTitle( completedIndex );
 		var state = ZooState.Instance;
 		if ( !state.IsValid() ) return;
 
@@ -384,23 +425,19 @@ public sealed class ObjectiveSystem : Component
 		if ( rewardMoney > 0 ) state.AddMoney( rewardMoney );
 		if ( rewardXp > 0 ) state.AddXp( rewardXp );
 
-		var rewardText = rewardMoney > 0 ? $" (+${rewardMoney:n0})" : "";
-		var completeIcon = completedIndex < TutorialGoalCount ? "task_alt" : "emoji_events";
-		state.Notify( $"Goal complete: {completedTitle}{rewardText}", completeIcon );
-
 		if ( completedIndex == TutorialGoalCount - 1 )
-			UI.UiState.ShowCelebration( "Tutorial complete!", "Guests are visiting — catch wildlife, breed animals, and expand from here.", "flag" );
+			UI.UiState.ShowCelebration( "Tutorial complete!", "You know the loop — amenities, ratings, and growth from here.", "flag" );
 		else
 			ShowCompletionCelebration( completedIndex );
 
 		CurrentIndex++;
-		UI.UiState.NotifyGoalsChanged();
 
-		if ( CurrentIndex < Objectives.Count )
-		{
-			var nextIcon = CurrentIndex < TutorialGoalCount ? "flag" : "emoji_events";
-			state.Notify( $"Next goal: {GetGoalTitle( CurrentIndex )}", nextIcon );
-		}
+		UI.UiState.NotifyGoalsChanged();
+		// Dismiss the tip for this step and immediately show the next center card.
+		UI.UiState.AdvanceOnboardingTipAfterGoal( completedIndex );
+
+		// No bottom-right toasts for goal complete / next goal — too noisy when
+		// rewards also grant XP (level-up toast + center celebration already cover wins).
 
 		if ( AllComplete )
 			UI.UiState.ShowCelebration( "All goals complete!", "You have mastered every milestone. Keep growing your sanctuary.", "emoji_events" );
@@ -410,17 +447,37 @@ public sealed class ObjectiveSystem : Component
 	{
 		switch ( completedIndex )
 		{
-			case 2:
-				UI.UiState.ShowCelebration( "Your zoo is open!", "Guests can arrive — ticket revenue starts now.", "follow_the_signs" );
+			case 1:
+				UI.UiState.ShowCelebration( "First catch!", "Build an entrance, clear land, path, and habitat — then house them.", "pets" );
+				break;
+			case 3:
+				UI.UiState.ShowCelebration( "Land cleared!", "Space opened — lay a path from your entrance next.", "forest" );
 				break;
 			case 4:
-				UI.UiState.ShowCelebration( "First resident!", "Your sanctuary has its first animal.", "pets" );
+				UI.UiState.ShowCelebration( "Paths connected!", "Guests can reach your zoo once you have animals on show.", "follow_the_signs" );
 				break;
 			case 6:
-				UI.UiState.ShowCelebration( "Food stand ready!", "Guests can grab a bite along your paths.", "restaurant" );
+				UI.UiState.ShowCelebration( "First resident!", "Next up: restrooms, food, and a shop for your guests.", "pets" );
 				break;
 			case 7:
+				UI.UiState.ShowCelebration( "Restroom ready!", "Guests stay happier with facilities on the path.", "wc" );
+				break;
+			case 8:
+				UI.UiState.ShowCelebration( "Food stand ready!", "Guests can grab a bite along your paths.", "restaurant" );
+				break;
+			case 9:
+				UI.UiState.ShowCelebration( "Shop open!", "Souvenirs earn income — now check what guests want.", "storefront" );
 				break;
 		}
+	}
+
+	/// <summary>Called when the player opens Stats — completes the ratings tutorial goal.</summary>
+	public void MarkGuestRatingsReviewed()
+	{
+		if ( IsProxy || GuestRatingsReviewed )
+			return;
+
+		GuestRatingsReviewed = true;
+		TryAdvanceGoals();
 	}
 }

@@ -42,6 +42,16 @@ public static class CureObjectives
 		{
 			Id = "survive_winter", Title = "Survive a winter threat", Icon = "ac_unit", RequiredTier = 3,
 			IsMet = c => c?.Save.EverSurvivedWinterThreat == true
+		},
+		new()
+		{
+			Id = "survive_threats_25", Title = "Survive 25 threats", Icon = "shield", RequiredTier = 4,
+			IsMet = c => (c?.Save.TotalThreatsSurvived ?? 0) >= 25
+		},
+		new()
+		{
+			Id = "own_five_plots", Title = "Own 5 plots", Icon = "flag", RequiredTier = 4,
+			IsMet = c => (c?.Save.OwnedPlots.Count ?? 0) >= 5
 		}
 	};
 

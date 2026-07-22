@@ -1,0 +1,216 @@
+@namespace CatchACritter
+@inherits PanelComponent
+
+<root class="hud @HudClass">
+	@if (Progress is null)
+	{
+		<div class="boot">Loading Critter Isle…</div>
+	}
+	else
+	{
+		@* ---- Persistent chrome (hidden under full-screen sheets) ---- *@
+		@if (ShowChrome)
+		{
+			<div class="topbar">
+				<div class="stat coins">
+					<span class="ico">💰</span>
+					<span class="val">@Balance.Fmt(Progress.Data.Coins)</span>
+				</div>
+				<div class="stat gems">
+					<span class="ico">💎</span>
+					<span class="val">@Progress.Data.Gems</span>
+				</div>
+				<div class="stat pack @(Progress.BackpackCount >= Progress.BackpackCapacity ? "full" : "")">
+					<span class="ico">🎒</span>
+					<span class="val">@Progress.BackpackCount/@Progress.BackpackCapacity</span>
+					@if (Progress.BackpackCount > 0)
+					{
+						<span class="worth">(@Balance.Fmt(Progress.BackpackValue()))</span>
+					}
+				</div>
+				<div class="stat net">
+					<span class="ico">🥅</span>
+					<span class="val">@Progress.Net.Name</span>
+				</div>
+				@if (Progress.Data.Crowns > 0)
+				{
+					<div class="stat crowns">
+						<span class="ico">👑</span>
+						<span class="val">@Progress.Data.Crowns</span>
+					</div>
+				}
+				<div class="stat streak">
+					<span class="ico">🔥</span>
+					<span class="val">Day @Progress.Data.StreakCount</span>
+				</div>
+			</div>
+
+			@* Top-center band: tip toast wins over sell hint (never both). *@
+			@if (!string.IsNullOrEmpty(TipToast))
+			{
+				<div class="tip-toast">@TipToast</div>
+			}
+			else if (ShowSellHint)
+			{
+				<div class="sellhint">💰 Sell your catches at the gold SELL stand in the hub plaza</div>
+			}
+
+			@if (Milestone is not null)
+			{
+				<div class="objective">
+					<div class="obj-kicker">⭐ NEXT GOAL</div>
+					<div class="obj-title">@Milestone.Title</div>
+					<div class="obj-detail">@Milestone.Detail</div>
+					<div class="obj-progress">@Milestone.ProgressLabel(Progress)</div>
+				</div>
+			}
+
+			<div class="right-rail">
+				@if (Progress.SanctuaryIncomePerSecond > 0)
+				{
+					<div class="passive">🏡 +@(Balance.Fmt(Progress.SanctuaryIncomePerSecond))/s</div>
+				}
+				@if (Players.Count() > 1)
+				{
+					<div class="board">
+						<div class="board-title">🏆 Session Catches</div>
+						@foreach (var p in Players.Take(6))
+						{
+							<div class="board-row @(p == CritterPlayer.Local ? "me" : "")">
+								<span class="board-name">@(p.Crowns > 0 ? $"👑{p.Crowns} " : "")@p.DisplayName</span>
+								<span class="board-score">@p.SessionCatches</span>
+							</div>
+						}
+					</div>
+				}
+			</div>
+
+			@* Bottom-center stack: hotkeys → prompt → toasts (each owns its band). *@
+			<div class="hotkeys">
+				<span><b>LMB</b> Swing Net</span>
+				<span><b>Ctrl</b> Sneak</span>
+				<span><b>E</b> Interact</span>
+				<span><b>Tab</b> Menu</span>
+			</div>
+
+			@if (!string.IsNullOrEmpty(PromptText))
+			{
+				<div class="prompt">@PromptText</div>
+			}
+		}
+
+		@* Toasts only when no modal covers the center; parked in a reserved band. *@
+		@if (ShowToasts)
+		{
+			<div class="toasts @(ShowChrome && !string.IsNullOrEmpty(PromptText) ? "lifted" : "") @(ShowChrome ? "" : "menu-safe")">
+				@foreach (var toast in Progress.Toasts.TakeLast(3))
+				{
+					<div class="toast">
+						<span class="toast-ico">@toast.Icon</span>
+						<span class="toast-msg">@toast.Message</span>
+					</div>
+				}
+			</div>
+		}
+
+		@if (GameState?.WelcomeOpen == true)
+		{
+			<div class="overlay">
+				<div class="welcome">
+					<div class="wl-title">Welcome back, Keeper! 🐾</div>
+					@if (Progress.OfflineCoinsEarned > 1)
+					{
+						<div class="wl-sub">You were away for @Balance.FmtTime(Progress.OfflineSecondsAway)</div>
+						<div class="wl-earn">Your sanctuary earned <b>@Balance.Fmt(Progress.OfflineCoinsEarned) 💰</b></div>
+					}
+					@if (Progress.StreakGemsGranted > 0)
+					{
+						<div class="wl-streak">🔥 Day @Progress.Data.StreakCount streak: +@Progress.StreakGemsGranted 💎</div>
+					}
+					<div class="wl-btn" onclick="@Dismiss">Collect & Play!</div>
+				</div>
+			</div>
+		}
+
+		@if (TutorialTip is not null)
+		{
+			var tip = TutorialTip;
+			<div class="overlay tip-overlay">
+				<div class="welcome tutorial-tip">
+					<div class="wl-title">@tip.Title</div>
+					<div class="wl-sub tip-body">@tip.Body</div>
+					<div class="tip-actions">
+						<div class="wl-btn ghost" onclick="@HideAllTips">Hide tips</div>
+						<div class="wl-btn" onclick="@DismissTip">Got it</div>
+					</div>
+				</div>
+			</div>
+		}
+	}
+</root>
+
+@code {
+	PlayerProgress Progress => PlayerProgress.Local;
+	CritterGame GameState => CritterGame.Instance;
+	bool MenuOpen => GameState?.MenuOpen == true;
+	bool ModalOpen => GameState?.WelcomeOpen == true || TutorialTip is not null;
+	bool ShowChrome => !MenuOpen && !ModalOpen;
+	bool ShowToasts => !ModalOpen && Progress?.Toasts.Count > 0;
+	bool ShowSellHint => Progress.BackpackCount > 0 && string.IsNullOrEmpty(PromptText);
+	MilestoneDef Milestone => Progress is null ? null : Milestones.Current(Progress);
+	IEnumerable<CritterPlayer> Players => GameState?.Leaderboard ?? Enumerable.Empty<CritterPlayer>();
+	TutorialTipDef TutorialTip => GameState?.ActiveTutorialTip;
+	string TipToast => ModalOpen ? "" : (GameState?.TipToast ?? "");
+
+	string HudClass
+	{
+		get
+		{
+			if (ModalOpen) return "modal-open";
+			if (MenuOpen) return "menu-open";
+			return "";
+		}
+	}
+
+	string PromptText
+	{
+		get
+		{
+			var player = CritterPlayer.Local;
+			if (!player.IsValid() || !ShowChrome) return null;
+
+			var gate = GateController.Nearest(player.WorldPosition, 260f);
+			if (gate is not null)
+			{
+				var def = BiomeCatalog.Get(gate.Target);
+				return Progress.Coins >= def.GateCost
+					? $"[E] Unlock {def.Name} — {Balance.Fmt(def.GateCost)} 💰"
+					: $"🔒 {def.Name} needs {Balance.Fmt(def.GateCost)} 💰";
+			}
+
+			var station = player.NearestStation(170f);
+			if (station is not null)
+			{
+				if (station.Kind == StationKind.Sell && Progress.BackpackCount > 0)
+					return $"[E] Sell {Progress.BackpackCount} critters for {Balance.Fmt(Progress.BackpackValue())} 💰";
+				return $"[E] {station.Prompt}";
+			}
+
+			return null;
+		}
+	}
+
+	void Dismiss() => GameState?.DismissWelcome();
+	void DismissTip() => GameState?.DismissTutorialTip();
+	void HideAllTips() => GameState?.DismissTutorialTip( hideAll: true );
+
+	protected override int BuildHash()
+	{
+		var p = Progress;
+		if (p is null) return 0;
+		return HashCode.Combine(
+			(long)p.Data.Coins, p.Data.Gems, p.BackpackCount, p.Data.MilestoneIndex,
+			HashCode.Combine(p.Toasts.Count, PromptText, GameState?.WelcomeOpen, GameState?.MenuOpen),
+			HashCode.Combine(Players.Sum(x => x.SessionCatches), TutorialTip?.Id, TipToast));
+	}
+}

@@ -65,7 +65,8 @@ public sealed partial class YaPlayerHud
 		bool showRoundStartAnnouncement,
 		bool showLobbySoloHint,
 		bool showFloatingMessages,
-		bool showDamageFeedback )
+		bool showDamageFeedback,
+		bool showOnboardingTip )
 	{
 		var hideCombatHud = spectatingInRound;
 
@@ -90,7 +91,7 @@ public sealed partial class YaPlayerHud
 		_uiFrame.ShowLobbySoloHint = showLobbySoloHint;
 		_uiFrame.ShowFloatingMessages = showFloatingMessages;
 		_uiFrame.RequiresMouse = showPracticeChoice || controlsTutorialVisible || scoreboardVisible
-		                         || hideCombatHud || showDeathOverlay;
+		                         || hideCombatHud || showDeathOverlay || showOnboardingTip;
 	}
 
 	void TickUiManager( float dt )

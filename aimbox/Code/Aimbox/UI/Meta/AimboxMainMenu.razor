@@ -60,12 +60,6 @@
 	</div>
 
 	<div class="menu-util">
-		<button class="util-btn" title="Messages" onclick="@(() => ToggleOverlay(OverlayKind.Messages))">
-			<div class="util-icon mail"></div>
-		</button>
-		<button class="util-btn" title="Friends" onclick="@(() => ToggleOverlay(OverlayKind.Friends))">
-			<div class="util-icon friends"></div>
-		</button>
 		<button class="util-btn" title="Settings" onclick="@(() => ToggleOverlay(OverlayKind.Settings))">
 			<div class="util-icon settings"></div>
 		</button>
@@ -127,7 +121,14 @@
 			</div>
 		</div>
 		<div class="footer-meta">
-			<div class="footer-version">@AimboxMainMenuUi.VersionLabel</div>
+			@if ( !WeaponPackagesReady )
+			{
+				<div class="footer-version">Loading weapons…</div>
+			}
+			else
+			{
+				<div class="footer-version">@AimboxMainMenuUi.VersionLabel</div>
+			}
 			<div class="footer-mark">X</div>
 		</div>
 	</div>
@@ -144,6 +145,27 @@
 				@OverlayBody()
 			</div>
 		</div>
+	}
+
+	@if ( ActiveTip is not null )
+	{
+		var tip = ActiveTip;
+		<div class="tip-overlay">
+			<div class="tip-card">
+				<div class="tip-icon">@tip.Icon</div>
+				<div class="tip-title">@tip.Title</div>
+				<div class="tip-body">@tip.Body</div>
+				<div class="tip-actions">
+					<button class="tip-btn ghost" onclick="@HideAllTips">Hide tips</button>
+					<button class="tip-btn primary" onclick="@DismissTip">Got it</button>
+				</div>
+			</div>
+		</div>
+	}
+
+	@if ( !string.IsNullOrEmpty( TipToast ) )
+	{
+		<div class="tip-toast">@TipToast</div>
 	}
 	}
 </root>
@@ -200,6 +222,11 @@
 	AimboxGameMode SelectedAimLeaderboardMode { get; set; } = AimboxGameMode.AimLevel1;
 	int NewsIndex { get; set; }
 	TimeSince _newsTimer;
+	AimboxTutorialTipDef ActiveTip;
+	int _onboardingSoftDismissedGoal = -1;
+	TimeUntil _tipCooldown;
+	string TipToast = "";
+	TimeUntil _tipToastHide;
 
 	NewsItem CurrentNews => NewsItems[Math.Clamp( NewsIndex, 0, NewsItems.Count - 1 )];
 
@@ -216,6 +243,7 @@
 	}
 
 	int PlayerLevel => PlayerData?.PlayerLevel ?? 0;
+	bool WeaponPackagesReady => AimboxGame.Instance?.WeaponPackagesReady ?? false;
 
 	string XpLabel
 	{
@@ -310,13 +338,114 @@
 	protected override void OnUpdate()
 	{
 		if ( !Visible )
+		{
+			ActiveTip = null;
 			return;
+		}
 
 		if ( _newsTimer >= 6f )
 		{
 			_newsTimer = 0f;
 			NewsIndex = (NewsIndex + 1) % NewsItems.Count;
 		}
+
+		if ( _tipToastHide )
+			TipToast = "";
+
+		if ( Input.Keyboard.Pressed( "h" ) || Input.Keyboard.Pressed( "H" ) )
+			ToggleTipsHidden();
+
+		RefreshTips();
+	}
+
+	int _lastOnboardingGoal = -1;
+
+	void RefreshTips()
+	{
+		if ( ActiveOverlay != OverlayKind.None )
+			return;
+
+		if ( !AimboxOnboardingTips.ShouldRun() )
+		{
+			ActiveTip = null;
+			return;
+		}
+
+		AimboxOnboardingTips.TryAdvancePendingGoals();
+
+		var goal = AimboxOnboardingTips.CurrentGoalIndex();
+		if ( goal != _lastOnboardingGoal )
+		{
+			_onboardingSoftDismissedGoal = -1;
+			_lastOnboardingGoal = goal;
+			_tipCooldown = 0.55f;
+		}
+
+		if ( goal > AimboxOnboardingTips.MaxGoalIndex )
+		{
+			ActiveTip = null;
+			return;
+		}
+
+		if ( !AimboxOnboardingTips.CanShowGoal( goal ) )
+		{
+			ActiveTip = null;
+			return;
+		}
+
+		if ( goal == _onboardingSoftDismissedGoal )
+		{
+			ActiveTip = null;
+			return;
+		}
+
+		if ( ActiveTip is not null || !_tipCooldown )
+			return;
+
+		ActiveTip = AimboxOnboardingTips.TipForGoal( goal );
+	}
+
+	void DismissTip()
+	{
+		if ( ActiveTip is null )
+			return;
+
+		if ( ActiveTip.GoalIndex == AimboxOnboardingTips.MaxGoalIndex )
+			AimboxOnboardingTips.MarkTipsForGoal( AimboxOnboardingTips.MaxGoalIndex );
+
+		_onboardingSoftDismissedGoal = ActiveTip.GoalIndex;
+		ActiveTip = null;
+		_tipCooldown = 0.55f;
+	}
+
+	void HideAllTips()
+	{
+		if ( ActiveTip is not null )
+			ActiveTip = null;
+
+		AimboxOnboardingTips.HideAllTips();
+		TipToast = "Tips hidden — press H to show again";
+		_tipToastHide = 3f;
+		_tipCooldown = 0f;
+		_onboardingSoftDismissedGoal = -1;
+	}
+
+	void ToggleTipsHidden()
+	{
+		AimboxClientSettings.HideTutorialTips = !AimboxClientSettings.HideTutorialTips;
+		if ( AimboxClientSettings.HideTutorialTips )
+		{
+			ActiveTip = null;
+			TipToast = "Tips hidden — press H to show again";
+		}
+		else
+		{
+			TipToast = "Tips enabled";
+			_onboardingSoftDismissedGoal = -1;
+		}
+
+		_tipToastHide = 3f;
+		_tipCooldown = 0.55f;
 	}
 
 	void ActivateNav( NavItem item )
@@ -411,12 +540,6 @@
 				RewardXp = 2500
 			};
 
-		foreach ( var challenge in challenges )
-		{
-			if ( challenge.Stat == "headshots" )
-				return challenge;
-		}
-
 		if ( PlayerData is not null )
 		{
 			foreach ( var challenge in challenges )
@@ -424,6 +547,12 @@
 				if ( !PlayerData.CompletedChallenges.Contains( challenge.Id ) )
 					return challenge;
 			}
+		}
+
+		foreach ( var challenge in challenges )
+		{
+			if ( challenge.Stat == "headshots" )
+				return challenge;
 		}
 
 		return challenges[0];
@@ -454,7 +583,27 @@
 				<div class="settings-value">@AimboxUiTheme.CurrentLabel</div>
 				<button class="settings-btn" onclick="@ToggleUiTheme">@UiThemeToggleLabel()</button>
 			</div>
-			<div class="settings-hint">More audio and gameplay settings are coming soon.</div>
+			<div class="settings-row">
+				<div class="settings-label">SENSITIVITY</div>
+				<div class="settings-value">@AimboxClientSettings.FormatSensitivity()</div>
+				<button class="settings-btn" onclick="@CycleSensitivity">ADJUST</button>
+			</div>
+			<div class="settings-row">
+				<div class="settings-label">MASTER</div>
+				<div class="settings-value">@AimboxClientSettings.FormatVolume( AimboxClientSettings.MasterVolume )</div>
+				<button class="settings-btn" onclick="@CycleMasterVolume">ADJUST</button>
+			</div>
+			<div class="settings-row">
+				<div class="settings-label">MUSIC</div>
+				<div class="settings-value">@AimboxClientSettings.FormatVolume( AimboxClientSettings.MusicVolume )</div>
+				<button class="settings-btn" onclick="@CycleMusicVolume">ADJUST</button>
+			</div>
+			<div class="settings-row">
+				<div class="settings-label">SFX</div>
+				<div class="settings-value">@AimboxClientSettings.FormatVolume( AimboxClientSettings.SfxVolume )</div>
+				<button class="settings-btn" onclick="@CycleSfxVolume">ADJUST</button>
+			</div>
+			<div class="settings-hint">WASD move · Mouse look · LMB fire · RMB ADS · R reload · G lethal · F tactical · 1/2 weapons · Tab scoreboard · Esc pause</div>
 		</div>,
 		OverlayKind.Leaderboards => @<div class="leaderboard-panel">
 			<div class="leaderboard-mode-tabs">
@@ -501,12 +650,14 @@
 			}
 			<div class="overlay-hint">Every run is saved locally. Top 100 scores per mode persist across sessions.</div>
 		</div>,
-		OverlayKind.Messages => @<div class="overlay-empty">No new messages.</div>,
-		OverlayKind.Friends => @<div class="overlay-empty">Friends list coming soon.</div>,
 		_ => @<text></text>
 	};
 
 	void ToggleUiTheme() => AimboxUiTheme.Cycle();
+	void CycleSensitivity() => AimboxClientSettings.CycleMouseSensitivity();
+	void CycleMasterVolume() => AimboxClientSettings.CycleMasterVolume();
+	void CycleMusicVolume() => AimboxClientSettings.CycleMusicVolume();
+	void CycleSfxVolume() => AimboxClientSettings.CycleSfxVolume();
 
 	string UiThemeToggleLabel() => $"SWITCH TO {AimboxUiTheme.NextLabel}";
 
@@ -546,6 +697,7 @@
 
 		return HashCode.Combine(
 			HashCode.Combine( Visible, IsLobbyJoiner, ActiveNav, HoveredNav, ActiveOverlay, NewsIndex, PlayerData?.TotalXp, PlayerData?.PlayerLevel ),
-			HashCode.Combine( PlayerData?.Kills, PlayerData?.Headshots, FeaturedChallengeProgress, AimboxUiTheme.Version, SelectedAimLeaderboardMode, SelectedAimPersonalBest, SelectedAimLeaderboardEntries.Count ) );
+			HashCode.Combine( PlayerData?.Kills, PlayerData?.Headshots, FeaturedChallengeProgress, AimboxUiTheme.Version, SelectedAimLeaderboardMode, SelectedAimPersonalBest, SelectedAimLeaderboardEntries.Count, WeaponPackagesReady ),
+			HashCode.Combine( ActiveTip?.Id, TipToast ) );
 	}
 }

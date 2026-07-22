@@ -117,7 +117,7 @@ public static class AimboxMw2Catalog
 public static class AimboxUnlockService
 {
 	public static bool BypassProgressionLocks =>
-		AimboxGame.Instance?.DebugUnlockAllProgression == true;
+		AimboxGame.Instance?.DevUnlockAllProgressionActive == true;
 
 	public static void ApplyDebugUnlockAll( AimboxPlayerData data )
 	{
@@ -174,8 +174,29 @@ public static class AimboxUnlockService
 		AimboxMw2Catalog.IsPrimaryWeapon( id ) && IsWeaponUnlocked( data, id );
 
 	/// <summary>Whether the saved primary may be added to the in-match weapon inventory.</summary>
-	public static bool ShouldEquipPrimaryInMatch( AimboxPlayerData data, AimboxWeaponId primary ) =>
-		AimboxMw2Catalog.IsPrimaryWeapon( primary ) && IsWeaponUnlocked( data, primary );
+	public static bool ShouldEquipPrimaryInMatch( AimboxPlayerData data, AimboxWeaponId primary )
+	{
+		if ( !AimboxMw2Catalog.IsPrimaryWeapon( primary ) )
+			return false;
+
+		// First three matches: always grant a primary so new players are not pistol-only vs rifle bots.
+		if ( AimboxXpSystem.IsFirstSession( data ) )
+			return true;
+
+		return IsWeaponUnlocked( data, primary );
+	}
+
+	/// <summary>Match inventory gate — bayonet + first-session starter primaries allowed when locked.</summary>
+	public static bool CanEquipWeaponInMatch( AimboxPlayerData data, AimboxWeaponId id )
+	{
+		if ( id == AimboxWeaponId.M9Bayonet )
+			return true;
+
+		if ( IsWeaponUnlocked( data, id ) )
+			return true;
+
+		return AimboxXpSystem.IsFirstSession( data ) && AimboxMw2Catalog.IsPrimaryWeapon( id );
+	}
 
 	public static bool IsPerkUnlocked( AimboxPlayerData data, AimboxPerkId id )
 	{
@@ -192,6 +213,9 @@ public static class AimboxUnlockService
 	public static bool IsKillstreakUnlocked( AimboxPlayerData data, AimboxKillstreakId id )
 	{
 		if ( id == AimboxKillstreakId.None )
+			return false;
+
+		if ( !AimboxMw2Catalog.IsKillstreakImplemented( id ) )
 			return false;
 
 		if ( BypassProgressionLocks )

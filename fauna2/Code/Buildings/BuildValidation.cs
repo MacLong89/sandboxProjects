@@ -217,6 +217,23 @@ public static class BuildValidation
 			&& state.Prestige >= def.RequiredPrestige;
 	}
 
+	public static string UnlockHint( PlaceableDefinition def )
+	{
+		if ( def is null ) return "Unavailable";
+		if ( def.RequiredPrestige > 0 )
+			return $"Unlocks at level {def.UnlockLevel} · {def.RequiredPrestige} prestige";
+		return $"Unlocks at level {def.UnlockLevel}";
+	}
+
+	public static string UnlockHint( AnimalDefinition def )
+	{
+		if ( def is null ) return "Unavailable";
+		var text = $"Unlocks at level {def.UnlockLevel}";
+		if ( def.RequiredPrestige > 0 )
+			text += $" · {def.RequiredPrestige} prestige";
+		return text;
+	}
+
 	public static Vector2 RotatedFootprint( Vector2 footprint, float yawDegrees )
 	{
 		var quarterTurns = (int)MathF.Round( yawDegrees / 90f ) % 4;

@@ -59,12 +59,13 @@ public static class TileOccupancy
 
 		var side = WallApproach.FromWorldPosition( cellCenter, Vector3.Zero );
 		var snapped = cellCenter;
+		var ring = GameConstants.WallRingCenter;
 		switch ( side )
 		{
-			case WallApproachSide.North: snapped.y = GameConstants.ArenaHalf; break;
-			case WallApproachSide.South: snapped.y = -GameConstants.ArenaHalf; break;
-			case WallApproachSide.East: snapped.x = GameConstants.ArenaHalf; break;
-			default: snapped.x = -GameConstants.ArenaHalf; break;
+			case WallApproachSide.North: snapped.y = ring; break;
+			case WallApproachSide.South: snapped.y = -ring; break;
+			case WallApproachSide.East: snapped.x = ring; break;
+			default: snapped.x = -ring; break;
 		}
 
 		snapped.z = OutpostTerrain.SampleHeight( snapped.x, snapped.y )
@@ -102,6 +103,22 @@ public static class TileOccupancy
 
 	public static bool IsBuildingCell( int cellX, int cellY ) =>
 		BuildGrid.IsCoreCell( cellX, cellY ) || BuildingCells.ContainsKey( (cellX, cellY) );
+
+	/// <summary>
+	/// Solid occluders for turret/recruit shots. Scaffold <see cref="BuildableId.WallPiece"/> is open
+	/// enough to fire through (same idea as perimeter timber walls).
+	/// </summary>
+	public static bool BlocksLineOfFire( int cellX, int cellY )
+	{
+		if ( BuildGrid.IsCoreCell( cellX, cellY ) )
+			return true;
+
+		var building = BuildManager.Instance?.BuildingAt( cellX, cellY );
+		if ( building is null || building.IsDestroyed )
+			return false;
+
+		return building.Type != BuildableId.WallPiece;
+	}
 
 	public static bool IsWorldBlocked(
 		Vector3 worldPos,
@@ -151,8 +168,8 @@ public static class TileOccupancy
 		if ( wall is null || wall.IsBroken || wall.FootprintSize.Length <= 0f )
 			return;
 
-		// Occupancy strip sits just inside ArenaHalf so we don't block the empty outer cell.
-		var pathCenter = WallPathOccupancyCenter( wall );
+		// Wall centers already sit on build-grid cell centers — mark that cell directly.
+		var pathCenter = wall.Center.WithZ( 0f );
 		BuildGrid.ForEachCellInFootprint( pathCenter, wall.PathFootprintSize, ( cx, cy ) =>
 		{
 			AddCell( WallPathCells, cx, cy );
@@ -170,7 +187,7 @@ public static class TileOccupancy
 		if ( wall is null || wall.FootprintSize.Length <= 0f )
 			return;
 
-		var pathCenter = WallPathOccupancyCenter( wall );
+		var pathCenter = wall.Center.WithZ( 0f );
 		BuildGrid.ForEachCellInFootprint( pathCenter, wall.PathFootprintSize, ( cx, cy ) =>
 		{
 			RemoveCell( WallPathCells, cx, cy );
@@ -181,24 +198,6 @@ public static class TileOccupancy
 			RemoveCell( WallPathCells, mx, my );
 			RemoveCell( WallMountCells, mx, my );
 		}
-	}
-
-	/// <summary>
-	/// Center the occupancy strip just inside the ring so it rasterizes to the timber cell,
-	/// not the outer cell of open ground beyond the bars.
-	/// </summary>
-	static Vector3 WallPathOccupancyCenter( WallSegment wall )
-	{
-		var c = wall.Center.WithZ( 0f );
-		var inward = GameConstants.WallPathDepth * 0.5f;
-		var side = WallApproach.FromWorldPosition( c, Vector3.Zero );
-		return side switch
-		{
-			WallApproachSide.North => new Vector3( c.x, GameConstants.ArenaHalf - inward, 0f ),
-			WallApproachSide.South => new Vector3( c.x, -GameConstants.ArenaHalf + inward, 0f ),
-			WallApproachSide.East => new Vector3( GameConstants.ArenaHalf - inward, c.y, 0f ),
-			_ => new Vector3( -GameConstants.ArenaHalf + inward, c.y, 0f )
-		};
 	}
 
 	public static void ClearBuildings() => BuildingCells.Clear();

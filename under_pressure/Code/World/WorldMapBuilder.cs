@@ -69,11 +69,42 @@ public static class WorldMapBuilder
 				break;
 			case MapTheme.Industrial:
 			case MapTheme.GasStation:
+			case MapTheme.Waterfront:
 				BuildIndustrialSilhouette( horizonRoot, center, radius * 0.90f, segments, job.Theme );
+				break;
+			case MapTheme.Underground:
+			case MapTheme.Interior:
+				// Fully enclosed — the perimeter shell is the horizon.
+				break;
+			case MapTheme.Rooftop:
+				BuildRooftopSkyline( horizonRoot, center, radius * 0.80f, segments );
 				break;
 			default:
 				BuildHillSilhouette( horizonRoot, center, radius * 0.88f, segments, theme.HorizonGround );
 				break;
+		}
+	}
+
+	/// <summary>Neighboring towers seen from a high roof — tops end below the deck so the site reads as the tallest point.</summary>
+	private static void BuildRooftopSkyline( GameObject parent, Vector3 center, float radius, int segments )
+	{
+		var wall = new Color( 0.16f, 0.17f, 0.22f );
+		var lit = new Color( 0.92f, 0.78f, 0.42f );
+
+		for ( var i = 0; i < segments; i++ )
+		{
+			var yaw = i * 360f / segments;
+			var dir = Rotation.FromYaw( yaw ).Forward;
+			var dist = radius + (Hash( i, 12, 59 ) % 160) - 80f;
+			var pos = center + dir * dist;
+			var h = 200f + Hash( i, 13, 61 ) % 380;
+			var w = 120f + Hash( i, 14, 67 ) % 140;
+
+			// Sunk below grade so only the top ~40% pokes above the void plane.
+			Scenery.Box( parent, $"Tower_{i}", pos + Vector3.Up * (h * 0.5f - h * 0.55f), new Vector3( w, w * 0.8f, h ), wall, new Angles( 0, yaw, 0 ), GameMaterials.Concrete );
+
+			if ( i % 3 == 0 )
+				Scenery.Box( parent, $"TowerWin_{i}", pos + dir * (w * 0.4f + 3f) + Vector3.Up * (h * 0.3f), new Vector3( w * 0.5f, 4f, 30f ), lit, new Angles( 0, yaw, 0 ), GameMaterials.Metal );
 		}
 	}
 
@@ -202,10 +233,94 @@ public static class WorldMapBuilder
 				BuildParkingGarageShell( root, center, job.GroundSize );
 				PlaceParkingLines( root, center, job.GroundSize * 0.48f );
 				break;
+
+			case MapTheme.Waterfront:
+				BuildWaterEdge( root, center, job.GroundSize, job.MapSize, new Color( 0.09f, 0.16f, 0.22f ) );
+				break;
+
+			case MapTheme.Snowfield:
+				ScatterTrees( root, center, ring, ring + 1000f, 26, seed, new Color( 0.78f, 0.86f, 0.90f ) );
+				break;
+
+			case MapTheme.Underground:
+				BuildEnclosedShell( root, center, job.GroundSize,
+					wall: new Color( 0.20f, 0.20f, 0.23f ), ceiling: new Color( 0.10f, 0.10f, 0.12f ), wallH: 340f );
+				break;
+
+			case MapTheme.Interior:
+				BuildEnclosedShell( root, center, job.GroundSize,
+					wall: new Color( 0.44f, 0.44f, 0.48f ), ceiling: new Color( 0.30f, 0.30f, 0.34f ), wallH: 360f );
+				break;
+
+			case MapTheme.Rooftop:
+				BuildRoofParapet( root, center, job.GroundSize );
+				break;
+
+			case MapTheme.Highway:
+				ScatterTrees( root, center, ring + 300f, ring + 1100f, 14, seed, new Color( 0.10f, 0.16f, 0.10f ) );
+				break;
+
+			case MapTheme.Dam:
+				BuildWaterEdge( root, center, job.GroundSize, job.MapSize, new Color( 0.10f, 0.30f, 0.34f ) );
+				ScatterTrees( root, center, ring + 500f, ring + 1200f, 8, seed, new Color( 0.16f, 0.34f, 0.20f ) );
+				break;
 		}
 	}
 
-	private static void ScatterTrees( GameObject parent, Vector3 center, float minR, float maxR, int count, int seed )
+	/// <summary>Dark water plane filling the map north of the play pad, plus a bollard-dotted quay edge.</summary>
+	private static void BuildWaterEdge( GameObject parent, Vector3 center, Vector2 playSize, Vector2 mapSize, Color water )
+	{
+		var edgeY = playSize.y * 0.5f + 60f;
+		var waterDepth = mapSize.y * 0.5f - edgeY;
+		var waterCy = edgeY + waterDepth * 0.5f;
+
+		FlatQuad( parent, "Harbor", center + new Vector3( 0f, waterCy, 0f ), new Vector2( mapSize.x, waterDepth ), GameMaterials.Metal, water, z: DepthLayers.MapTransition + 1f );
+
+		// Quay curb along the waterline with mooring bollards.
+		Scenery.Box( parent, "QuayCurb", center + new Vector3( 0f, edgeY, 12f ), new Vector3( playSize.x + 300f, 30f, 24f ), new Color( 0.55f, 0.55f, 0.53f ), default, GameMaterials.Concrete );
+		var bollards = 6;
+		for ( var i = 0; i < bollards; i++ )
+		{
+			var x = -playSize.x * 0.5f + playSize.x * (i + 0.5f) / bollards;
+			Scenery.Box( parent, $"Bollard_{i}", center + new Vector3( x, edgeY, 40f ), new Vector3( 22f, 22f, 34f ), new Color( 0.16f, 0.16f, 0.18f ), default, GameMaterials.Metal );
+		}
+	}
+
+	/// <summary>Walls + ceiling slab wrapping the pad — used for tunnels, labs, and studio floors.</summary>
+	private static void BuildEnclosedShell( GameObject parent, Vector3 center, Vector2 groundSize, Color wall, Color ceiling, float wallH )
+	{
+		var half = groundSize * 0.5f;
+		var wallT = 40f;
+
+		Scenery.Box( parent, "ShellN", center + new Vector3( 0f, half.y + 20f, wallH * 0.5f ), new Vector3( groundSize.x + 80f, wallT, wallH ), wall, default, GameMaterials.Concrete );
+		Scenery.Box( parent, "ShellS", center + new Vector3( 0f, -(half.y + 20f), wallH * 0.5f ), new Vector3( groundSize.x + 80f, wallT, wallH ), wall, default, GameMaterials.Concrete );
+		Scenery.Box( parent, "ShellE", center + new Vector3( half.x + 20f, 0f, wallH * 0.5f ), new Vector3( wallT, groundSize.y + 80f, wallH ), wall, default, GameMaterials.Concrete );
+		Scenery.Box( parent, "ShellW", center + new Vector3( -(half.x + 20f), 0f, wallH * 0.5f ), new Vector3( wallT, groundSize.y + 80f, wallH ), wall, default, GameMaterials.Concrete );
+		Scenery.Box( parent, "ShellCeiling", center + new Vector3( 0f, 0f, wallH + 14f ), new Vector3( groundSize.x + 80f, groundSize.y + 80f, 28f ), ceiling, default, GameMaterials.Concrete );
+
+		// Recessed light strips −1 below the ceiling underside so the box interior isn't pitch flat.
+		var strips = 3;
+		for ( var i = 0; i < strips; i++ )
+		{
+			var y = -half.y * 0.5f + half.y * i * 0.5f;
+			Scenery.Box( parent, $"ShellLight_{i}", center + new Vector3( 0f, y, wallH - 1f ), new Vector3( groundSize.x * 0.6f, 24f, 4f ), new Color( 0.95f, 0.95f, 0.88f ), default, GameMaterials.Metal );
+		}
+	}
+
+	/// <summary>Low parapet ring so a rooftop pad reads as a building edge, not a floating slab.</summary>
+	private static void BuildRoofParapet( GameObject parent, Vector3 center, Vector2 groundSize )
+	{
+		var half = groundSize * 0.5f;
+		var parapet = new Color( 0.30f, 0.31f, 0.35f );
+		var h = 52f;
+
+		Scenery.Box( parent, "ParapetN", center + new Vector3( 0f, half.y + 14f, h * 0.5f ), new Vector3( groundSize.x + 60f, 28f, h ), parapet, default, GameMaterials.Concrete );
+		Scenery.Box( parent, "ParapetS", center + new Vector3( 0f, -(half.y + 14f), h * 0.5f ), new Vector3( groundSize.x + 60f, 28f, h ), parapet, default, GameMaterials.Concrete );
+		Scenery.Box( parent, "ParapetE", center + new Vector3( half.x + 14f, 0f, h * 0.5f ), new Vector3( 28f, groundSize.y + 60f, h ), parapet, default, GameMaterials.Concrete );
+		Scenery.Box( parent, "ParapetW", center + new Vector3( -(half.x + 14f), 0f, h * 0.5f ), new Vector3( 28f, groundSize.y + 60f, h ), parapet, default, GameMaterials.Concrete );
+	}
+
+	private static void ScatterTrees( GameObject parent, Vector3 center, float minR, float maxR, int count, int seed, Color? leaf = null )
 	{
 		for ( var i = 0; i < count; i++ )
 		{
@@ -221,6 +336,7 @@ public static class WorldMapBuilder
 				Position = center + dir * dist,
 				Yaw = angle,
 				Size = new Vector3( scale, 1f, 1f ),
+				Color = leaf ?? Color.White,
 			} );
 		}
 	}

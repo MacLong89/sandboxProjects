@@ -7,7 +7,6 @@ namespace Fauna2;
 public static class GameConstants
 {
 	// ── Economy ─────────────────────────────────────────────
-	public const int StartingMoney = 8_500;
 	/// <summary>Guest spending before satisfaction and difficulty modifiers (see GuestRevenue).</summary>
 	public const float IncomePerGuestPerSecond = 0.052f;
 	/// <summary>Default guest revenue multiplier when settings have no override.</summary>
